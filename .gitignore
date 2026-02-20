@@ -22,4 +22,3 @@ __pycache__
 # Coverage
 coverage/
 .nyc_output/
-.github/
