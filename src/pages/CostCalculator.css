@@ -1,0 +1,1169 @@
+/* Cost Calculator page styles */
+.cost-calc-page {
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.cost-calc-header {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+
+.cost-calc-back-link {
+  display: inline-block;
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.cost-calc-back-link:hover {
+  color: var(--color-primary);
+}
+
+.cost-calc-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cost-calc-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 8px 0;
+}
+
+.cost-calc-subtitle {
+  font-size: 15px;
+  color: var(--color-secondary);
+  margin: 0;
+}
+
+.cost-calc-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cost-calc-new-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Content Layout */
+.cost-calc-content {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+
+/* Sidebar - Product List */
+.cost-calc-sidebar {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 16px 0;
+}
+
+.sidebar-empty {
+  font-size: 13px;
+  color: var(--color-muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-list-item {
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.product-list-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.product-list-item.active {
+  background: var(--accent-light);
+  border-color: var(--btn-primary-bg);
+}
+
+.product-list-info {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.product-list-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.product-list-sku {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.product-list-cost {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.product-list-current {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.product-list-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.product-list-status.on-target {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+.product-list-status.over {
+  background: var(--danger-light);
+  color: var(--danger);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 10px;
+}
+
+/* Product actions */
+.product-list-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.pla-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pla-btn.edit {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.pla-btn.edit:hover {
+  background: var(--accent-light);
+  opacity: 0.9;
+}
+
+.pla-btn.delete {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.pla-btn.delete:hover {
+  background: var(--danger-light);
+  opacity: 0.9;
+}
+
+/* Main Calculator Area */
+.cost-calc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cost-calc-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.cost-calc-empty {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 60px 40px;
+  text-align: center;
+  color: var(--color-secondary);
+  border: 2px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cost-calc-empty h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.cost-calc-empty p {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+/* Product Info Card */
+.product-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.product-info-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 10px 0;
+}
+
+.product-info-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.product-info-meta span {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+.product-status.active {
+  background: rgba(46, 204, 113, 0.15) !important;
+  color: #27ae60 !important;
+}
+
+.product-status.development {
+  background: var(--accent-light) !important;
+  color: var(--color-primary) !important;
+}
+
+.product-status.archived {
+  background: rgba(149, 165, 166, 0.15) !important;
+  color: #7f8c8d !important;
+}
+
+.product-cost-summary {
+  display: flex;
+  gap: 24px;
+}
+
+.cost-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.cost-label {
+  font-size: 12px;
+  color: var(--color-secondary);
+  margin-bottom: 4px;
+}
+
+.cost-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.cost-value.target {
+  color: var(--color-primary);
+}
+
+.cost-value.current {
+  color: var(--color-primary);
+}
+
+.cost-value.variance.over {
+  color: var(--danger);
+}
+
+.cost-value.variance.under {
+  color: #27ae60;
+}
+
+.variance-pct {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* BOM Card */
+.bom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.bom-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.bom-add-btn {
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bom-add-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.bom-table-wrapper {
+  overflow-x: auto;
+}
+
+.bom-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.bom-table th,
+.bom-table td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--bg-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bom-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-secondary);
+  text-transform: uppercase;
+  background: var(--bg-surface);
+  letter-spacing: 0.5px;
+}
+
+.bom-table td {
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.bom-component {
+  font-weight: 500;
+}
+
+.bom-supplier {
+  color: var(--color-secondary);
+}
+
+.bom-qty,
+.bom-unit {
+  text-align: center;
+}
+
+.bom-unit-cost,
+.bom-total-cost {
+  text-align: right;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-weight: 500;
+}
+
+.bom-pct {
+  text-align: right;
+  font-size: 12px;
+  color: var(--color-muted);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.bom-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bom-action-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bom-action-btn.edit {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.bom-action-btn.delete {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.bom-action-btn.save {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.bom-action-btn.cancel {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+.bom-action-btn:hover {
+  opacity: 0.8;
+}
+
+.bom-subtotal {
+  background: var(--bg-surface);
+}
+
+.bom-subtotal td {
+  font-weight: 600;
+  border-bottom: none;
+}
+
+/* Inline BOM editing */
+.bom-editing-row {
+  background: var(--bg-surface);
+}
+
+.bom-inline-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-primary);
+  transition: border-color 0.2s;
+}
+
+.bom-inline-input.narrow {
+  width: 90px;
+}
+
+.bom-inline-input:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+}
+
+.bom-inline-select {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-primary);
+  background: var(--bg-card);
+}
+
+/* Other Costs Card */
+.other-costs-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 6px 0;
+}
+
+.other-costs-hint {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 20px;
+}
+
+.other-costs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.other-cost-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-secondary);
+  margin-bottom: 8px;
+}
+
+.cost-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.cost-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: var(--color-muted);
+  z-index: 1;
+}
+
+.cost-input-wrapper input {
+  width: 100%;
+  padding: 12px 12px 12px 28px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  transition: border-color 0.2s;
+}
+
+.cost-input-wrapper input:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+}
+
+/* Mini bar under each cost input */
+.cost-item-bar {
+  height: 4px;
+  background: var(--bg-surface);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.cost-item-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.cost-item-pct {
+  display: block;
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+.other-costs-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--bg-surface);
+}
+
+.total-cost-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: var(--color-secondary);
+}
+
+.total-cost-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.save-costs-btn {
+  padding: 12px 24px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-costs-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Breakdown Card */
+.breakdown-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 20px 0;
+}
+
+.breakdown-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.breakdown-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdown-bar-name {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breakdown-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.breakdown-bar-value {
+  font-size: 14px;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-weight: 500;
+}
+
+.bar-pct {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.breakdown-bar-track {
+  height: 10px;
+  background: var(--bg-surface);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.breakdown-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.breakdown-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--border-color);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.breakdown-total-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+/* ────────────────────────────────────────────────
+   Selling Price Calculator
+   ──────────────────────────────────────────────── */
+.price-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px;
+}
+
+.price-card-subtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 20px;
+}
+
+.price-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.price-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.price-input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-secondary);
+  margin-bottom: 8px;
+}
+
+.margin-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.margin-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: linear-gradient(90deg, var(--danger), #f39c12, #27ae60);
+  border-radius: 4px;
+  outline: none;
+}
+
+.margin-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 3px solid var(--btn-primary-bg);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.margin-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 3px solid var(--btn-primary-bg);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.margin-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  min-width: 50px;
+  text-align: right;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.use-recommended-btn {
+  padding: 12px 20px;
+  background: var(--accent-light);
+  border: 2px dashed var(--btn-primary-bg);
+  border-radius: 10px;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.use-recommended-btn:hover {
+  background: var(--accent-light);
+  opacity: 0.9;
+}
+
+/* Price results */
+.price-results {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.price-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.pr-label {
+  font-size: 14px;
+  color: var(--color-secondary);
+}
+
+.pr-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  color: var(--color-primary);
+}
+
+.pr-value.highlight {
+  color: var(--color-primary);
+  font-size: 22px;
+}
+
+.pr-value.positive {
+  color: #27ae60;
+}
+
+.pr-value.negative {
+  color: var(--danger);
+}
+
+.price-result-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 6px 0;
+}
+
+/* Margin Gauge */
+.margin-gauge {
+  margin-top: 16px;
+}
+
+.margin-gauge-track {
+  position: relative;
+  height: 12px;
+  background: var(--bg-surface-hover);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.margin-gauge-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.margin-gauge-fill.good {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.margin-gauge-fill.warning {
+  background: linear-gradient(90deg, #f39c12, #e67e22);
+}
+
+.margin-gauge-fill.bad {
+  background: linear-gradient(90deg, var(--danger), var(--danger-hover));
+}
+
+.margin-target-line {
+  position: absolute;
+  top: -6px;
+  width: 2px;
+  height: 24px;
+  background: var(--color-primary);
+  transform: translateX(-50%);
+}
+
+.target-label {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 3px;
+  box-shadow: var(--shadow-sm);
+}
+
+.margin-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--color-muted);
+}
+
+/* ────────────────────────────────────────────────
+   Modal Styles
+   ──────────────────────────────────────────────── */
+.cost-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cost-modal {
+  background: var(--bg-card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.2s ease;
+}
+
+.cost-modal-confirm {
+  max-width: 440px;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.cost-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--bg-surface);
+}
+
+.cost-modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--color-primary);
+}
+
+.cost-modal-body {
+  padding: 24px;
+}
+
+.confirm-text {
+  font-size: 15px;
+  color: var(--color-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modal-form-group {
+  margin-bottom: 16px;
+}
+
+.modal-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.modal-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-secondary);
+  margin-bottom: 8px;
+}
+
+.modal-form-group input,
+.modal-form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-primary);
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+}
+
+.modal-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.modal-form-row.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cost-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--bg-surface);
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.modal-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.modal-btn.secondary {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+.modal-btn.secondary:hover {
+  background: var(--bg-surface-hover);
+}
+
+.modal-btn.danger {
+  background: var(--danger);
+  color: var(--btn-primary-text);
+}
+
+.modal-btn.danger:hover {
+  background: var(--danger-hover);
+}
+
+/* ────────────────────────────────────────────────
+   Responsive
+   ──────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .other-costs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .price-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .cost-calc-content {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-calc-sidebar {
+    position: static;
+    order: 1;
+  }
+
+  .cost-calc-main {
+    order: 0;
+  }
+
+  .product-info-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .product-cost-summary {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .other-costs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .other-costs-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .total-cost-display {
+    justify-content: space-between;
+  }
+
+  .modal-form-row,
+  .modal-form-row.three-col {
+    grid-template-columns: 1fr;
+  }
+}

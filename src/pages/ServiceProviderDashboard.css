@@ -1,0 +1,124 @@
+/* ── Service Provider Dashboard ───────────────────────────── */
+.spd-page { max-width: 1280px; margin: 0 auto; padding: 0 24px 40px; }
+
+.spd-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+.spd-title { font-size: 26px; font-weight: 800; color: var(--color-primary); margin: 0 0 4px; }
+.spd-subtitle { font-size: 14px; color: var(--color-secondary); margin: 0; }
+
+/* ── KPI Cards ──────────────────────────────────────────── */
+.spd-kpis {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.spd-kpi-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 18px; border-radius: 10px; min-width: 120px; flex: 1;
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+.spd-kpi-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.spd-kpi-icon.blue   { background: var(--accent-light); color: var(--color-primary); }
+.spd-kpi-icon.green  { background: var(--accent-light); color: var(--accent-text); }
+.spd-kpi-icon.purple { background: var(--accent-light); color: var(--color-primary); }
+.spd-kpi-icon.orange { background: var(--danger-light); color: var(--danger); }
+.spd-kpi-icon.teal   { background: var(--accent-light); color: var(--color-primary); }
+.spd-kpi-body { display: flex; flex-direction: column; align-items: center; }
+.spd-kpi-value { font-size: 22px; font-weight: 900; color: var(--color-primary); line-height: 1.2; }
+.spd-kpi-label { font-size: 11px; color: var(--color-muted); margin-top: 2px; text-align: center; }
+@media (max-width: 640px) {
+  .spd-kpi-card { min-width: 100px; }
+  .spd-kpi-value { font-size: 20px; }
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.spd-columns {
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px;
+}
+@media (max-width: 900px) { .spd-columns { grid-template-columns: 1fr; } }
+
+.spd-card {
+  background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border-color);
+  padding: 20px; box-shadow: var(--shadow-sm);
+}
+.spd-card-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 8px; flex-wrap: wrap;
+}
+.spd-card-title { font-size: 16px; font-weight: 700; color: var(--color-primary); margin: 0; }
+.spd-link-btn {
+  background: none; border: none; color: var(--color-primary); font-size: 13px;
+  font-weight: 600; cursor: pointer; padding: 0;
+}
+.spd-link-btn:hover { text-decoration: underline; }
+.spd-empty { text-align: center; color: var(--color-muted); padding: 32px 0; font-size: 14px; }
+
+/* ── Project list ───────────────────────────────────────── */
+.spd-project-list { display: flex; flex-direction: column; gap: 8px; }
+.spd-project-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+  background: var(--bg-surface); cursor: pointer; width: 100%; text-align: left;
+  transition: border-color .15s, box-shadow .15s;
+}
+.spd-project-row:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
+.spd-project-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.spd-project-name { font-size: 14px; font-weight: 600; color: var(--color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spd-project-meta { font-size: 11px; color: var(--color-muted); }
+.spd-progress-bar-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.spd-progress-bar { width: 80px; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.spd-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+.spd-progress-pct { font-size: 12px; font-weight: 700; color: var(--color-primary); min-width: 32px; text-align: right; }
+
+/* ── Badge ──────────────────────────────────────────────── */
+.spd-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 20px; white-space: nowrap;
+}
+
+/* ── Tab Pills ──────────────────────────────────────────── */
+.spd-tab-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.spd-tab-pill {
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-color);
+  background: var(--bg-card); font-size: 12px; font-weight: 600; color: var(--color-secondary);
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 4px;
+}
+.spd-tab-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.spd-tab-pill.active { background: var(--btn-primary-bg); color: var(--btn-primary-text); border-color: var(--btn-primary-bg); }
+.spd-tab-count { font-weight: 700; }
+
+/* ── Request list ───────────────────────────────────────── */
+.spd-req-list { display: flex; flex-direction: column; gap: 6px; }
+.spd-req-item {
+  border: 1px solid var(--border-light); border-radius: 10px; overflow: hidden;
+  transition: border-color .15s;
+}
+.spd-req-item:hover { border-color: var(--border-color); }
+.spd-req-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; cursor: pointer; width: 100%; text-align: left;
+  background: none; border: none;
+}
+.spd-req-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.spd-req-title { font-size: 14px; font-weight: 600; color: var(--color-primary); }
+.spd-req-company { font-size: 12px; color: var(--color-muted); display: flex; align-items: center; gap: 4px; }
+.spd-req-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.spd-priority { font-size: 11px; font-weight: 600; color: var(--color-muted); }
+.spd-priority.urgent { color: var(--danger); font-weight: 700; }
+
+/* ── Request detail ─────────────────────────────────────── */
+.spd-req-detail { padding: 0 14px 14px; border-top: 1px solid var(--border-light); }
+.spd-detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+  font-size: 13px; color: var(--color-secondary); padding: 12px 0;
+}
+.spd-req-desc { font-size: 13px; color: var(--color-secondary); margin-top: 8px; }
+.spd-req-desc p { margin: 4px 0 0; font-style: italic; color: var(--color-secondary); }
+.spd-admin-notes { margin-top: 12px; font-size: 13px; }
+.spd-note { margin-top: 6px; padding: 8px 12px; background: var(--bg-surface); border-radius: 8px; }
+.spd-note-text { color: var(--color-primary); }
+.spd-note-meta { display: block; font-size: 11px; color: var(--color-muted); margin-top: 2px; }
+
+/* ── Dark mode (tokens handle most) ──────────────────────── */
+[data-theme="dark"] .spd-progress-bar { background: var(--bg-surface-hover); }

@@ -1,0 +1,198 @@
+/* Scoped under .app-page for Gantt / Project & Audit Schedule content */
+.app-page .dashboard-main.gantt-dashboard-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.app-page .widget {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.app-page .widget-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 16px 0;
+}
+
+.app-page .gantt-chart-card {
+  grid-column: 1 / -1;
+}
+
+.app-page .gantt-chart {
+  position: relative;
+  height: 60px;
+  background-color: var(--bg-surface-hover);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.app-page .gantt-bar {
+  position: absolute;
+  height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 10px;
+  color: var(--btn-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-page .gantt-timeline {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-secondary);
+  padding: 0 8px;
+}
+
+.app-page .pie-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-page .pie-chart {
+  width: 120px;
+  height: 120px;
+}
+
+.stx-pie-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.stx-pie-ring::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  background: var(--bg-card);
+}
+.stx-pie-ring:hover {
+  transform: scale(1.08);
+}
+
+.app-page .pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.app-page .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-page .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.app-page .legend-label {
+  font-size: 14px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.app-page .production-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-page .production-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.app-page .progress-bar-container {
+  width: 100%;
+}
+
+.app-page .progress-bar {
+  width: 100%;
+  height: 12px;
+  background-color: var(--bg-surface-hover);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.app-page .progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.app-page .supplier-rating-card {
+  min-height: 200px;
+}
+
+.app-page .calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.app-page .calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-secondary);
+  background-color: var(--bg-surface-hover);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.app-page .calendar-day.highlighted {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-weight: 600;
+}
+
+.app-page .calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-secondary);
+}
+
+.app-page .legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--btn-primary-bg);
+}
+
+.app-page .calendar-legend .legend-text {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .app-page .dashboard-main.gantt-dashboard-main {
+    grid-template-columns: 1fr;
+  }
+  .app-page .gantt-chart-card {
+    grid-column: 1;
+  }
+}

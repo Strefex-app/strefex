@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+.git
+.vscode
+.idea
+*.egg-info
+alembic/versions/__pycache__

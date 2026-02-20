@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-strefex}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-strefex}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_EXPIRE_MINUTES: 60
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_BASIC: ${STRIPE_PRICE_BASIC:-}
+      STRIPE_PRICE_STANDARD: ${STRIPE_PRICE_STANDARD:-}
+      STRIPE_PRICE_PREMIUM: ${STRIPE_PRICE_PREMIUM:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Alembic migrations (run once) ──────────────────────────
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-strefex}
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    restart: "no"
+
+  # ── Stripe CLI (webhook forwarding — dev only) ─────────────
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    depends_on:
+      - backend
+    command: listen --forward-to backend:8000/api/v1/billing/webhook
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
+    profiles:
+      - dev  # Only run with: docker compose --profile dev up
+
+volumes:
+  pgdata:

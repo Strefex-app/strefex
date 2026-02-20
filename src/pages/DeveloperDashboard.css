@@ -1,0 +1,59 @@
+.dd-page { max-width: 100%; }
+.dd-header { background: var(--bg-card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.dd-title { font-size: 24px; font-weight: 700; color: var(--color-primary); margin: 0 0 4px; }
+.dd-subtitle { font-size: 14px; color: var(--color-secondary); margin: 0; }
+.dd-badge-super { background: var(--btn-primary-bg); color: var(--btn-primary-text); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; letter-spacing: .3px; }
+.dd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dd-stat { background: var(--bg-card); border-radius: 10px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); }
+.dd-stat-value { font-size: 28px; font-weight: 700; color: var(--color-primary); }
+.dd-stat-label { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+.dd-stat-open .dd-stat-value { color: var(--color-primary); }
+.dd-stat-progress .dd-stat-value { color: #f39c12; }
+.dd-stat-resolved .dd-stat-value { color: #2ecc71; }
+.dd-category-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.dd-cat-chip { padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; }
+.dd-filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.dd-search { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; }
+.dd-search:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--accent-light); }
+.dd-filter-select { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; background: var(--bg-card); cursor: pointer; }
+.dd-panels { display: grid; grid-template-columns: 380px 1fr; gap: 16px; min-height: 500px; }
+.dd-list { background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); overflow-y: auto; max-height: 70vh; }
+.dd-ticket-row { padding: 14px 16px; border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background .15s; }
+.dd-ticket-row:hover { background: var(--bg-surface); }
+.dd-ticket-row.active { background: var(--accent-light); border-left: 3px solid var(--accent); }
+.dd-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.dd-row-id { font-size: 11px; font-weight: 600; color: var(--color-primary); font-family: monospace; }
+.dd-row-status { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.dd-row-subject { font-size: 14px; font-weight: 600; color: var(--color-primary); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd-row-meta { display: flex; gap: 10px; font-size: 11px; color: var(--color-muted); flex-wrap: wrap; }
+.dd-empty { padding: 40px; text-align: center; color: var(--color-muted); font-size: 14px; }
+.dd-detail { background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); padding: 24px; overflow-y: auto; max-height: 70vh; display: flex; flex-direction: column; gap: 16px; }
+.dd-detail-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-muted); font-size: 15px; }
+.dd-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dd-detail-subject { font-size: 18px; font-weight: 700; color: var(--color-primary); margin: 0 0 6px; }
+.dd-detail-meta { display: flex; gap: 14px; font-size: 13px; color: var(--color-muted); flex-wrap: wrap; }
+.dd-detail-actions { display: flex; gap: 8px; align-items: center; }
+.dd-status-select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 13px; }
+.dd-btn-delete { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font-size: 13px; cursor: pointer; }
+.dd-btn-delete:hover { background: var(--danger-light); }
+.dd-detail-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 14px; background: var(--bg-surface); border-radius: 8px; font-size: 13px; color: var(--color-secondary); }
+.dd-info-row strong { color: var(--color-primary); margin-right: 6px; }
+.dd-detail-message { font-size: 14px; color: var(--color-primary); line-height: 1.7; padding: 14px; background: var(--bg-surface); border-radius: 8px; border: 1px solid var(--border-color); white-space: pre-wrap; }
+.dd-replies { display: flex; flex-direction: column; gap: 8px; }
+.dd-replies-title { font-size: 14px; font-weight: 600; color: var(--color-primary); margin: 0 0 4px; }
+.dd-reply { padding: 10px 14px; border-radius: 8px; background: var(--bg-surface); font-size: 13px; }
+.dd-reply-staff { background: var(--accent-light); border-left: 3px solid var(--accent); }
+.dd-reply-from { font-weight: 600; color: var(--color-primary); font-size: 12px; margin-bottom: 2px; }
+.dd-reply-msg { color: var(--color-secondary); line-height: 1.5; }
+.dd-reply-time { font-size: 11px; color: var(--color-muted); margin-top: 4px; }
+.dd-reply-form { display: flex; flex-direction: column; gap: 8px; }
+.dd-reply-input { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical; font-family: inherit; }
+.dd-reply-input:focus { outline: none; border-color: var(--color-primary); }
+.dd-btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+.dd-btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); align-self: flex-end; }
+.dd-btn-primary:hover { background: var(--btn-primary-hover); }
+.dd-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 900px) { .dd-panels { grid-template-columns: 1fr; } }
+[data-theme="dark"] .dd-ticket-row { border-bottom-color: var(--border-light); }
+[data-theme="dark"] .dd-ticket-row:hover { background: var(--bg-surface-hover); }
+[data-theme="dark"] .dd-detail-info strong { color: var(--color-primary); }

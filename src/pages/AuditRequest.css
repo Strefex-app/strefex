@@ -1,0 +1,192 @@
+/* Scoped form and success styles for Audit Request */
+.app-page .audit-success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.app-page .audit-success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--btn-primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--btn-primary-text);
+  margin-bottom: 24px;
+}
+
+.app-page .audit-request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.app-page .audit-form-section {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-page .audit-form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.app-page .audit-form-group {
+  margin-bottom: 20px;
+}
+
+.app-page .audit-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.app-page .audit-form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.app-page .audit-required {
+  color: var(--danger);
+}
+
+.app-page .audit-form-input,
+.app-page .audit-form-textarea,
+.app-page .audit-form-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-primary);
+  background: var(--bg-card);
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.app-page .audit-form-input:focus,
+.app-page .audit-form-textarea:focus,
+.app-page .audit-form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.app-page .audit-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.app-page .audit-form-select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.app-page .audit-form-file {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-secondary);
+  cursor: pointer;
+  background: var(--bg-surface);
+}
+
+.app-page .audit-form-file:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.app-page .audit-attachment-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+}
+
+.app-page .audit-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.app-page .audit-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80%;
+}
+
+.app-page .audit-attachment-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-surface-hover);
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.app-page .audit-attachment-remove:hover {
+  background: var(--danger);
+  color: var(--btn-primary-text);
+}
+
+.app-page .audit-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.app-page .audit-submit-button {
+  flex: 1;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.app-page .audit-submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.app-page .audit-submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .app-page .audit-form-actions {
+    flex-direction: column;
+  }
+  .app-page .audit-attachment-remove {
+    width: 36px;
+    height: 36px;
+  }
+}

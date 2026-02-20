@@ -1,0 +1,40 @@
+/* Scoped under .app-page for Industry Management Dashboard (map + widgets) */
+.app-page .dashboard-main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app-page .map-container {
+  width: 100%;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+
+.app-page .widgets-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.app-page .widget {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+@media (max-width: 768px) {
+  .app-page .map-container {
+    height: 400px;
+  }
+  .app-page .widgets-container {
+    grid-template-columns: 1fr;
+  }
+}

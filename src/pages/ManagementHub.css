@@ -1,0 +1,124 @@
+/* ── Management Hub ──────────────────────────────────────── */
+.mgmt-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mgmt-hub-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.mgmt-hub-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.mgmt-hub-card.mgmt-hub-locked {
+  opacity: 0.7;
+  border-color: var(--bg-surface-hover);
+}
+
+.mgmt-hub-card.mgmt-hub-locked:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.mgmt-hub-card-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.mgmt-hub-locked .mgmt-hub-card-icon {
+  background: var(--bg-surface);
+  color: var(--color-muted);
+}
+
+.mgmt-hub-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-hub-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mgmt-hub-locked .mgmt-hub-card-title {
+  color: var(--color-secondary);
+}
+
+.mgmt-lock-icon {
+  color: var(--color-primary);
+}
+
+.mgmt-hub-card-desc {
+  font-size: 12.5px;
+  color: var(--color-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.mgmt-hub-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-text);
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.mgmt-hub-card-arrow {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  align-self: center;
+  transition: color 0.2s;
+}
+
+.mgmt-hub-card:hover .mgmt-hub-card-arrow {
+  color: var(--color-primary);
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .mgmt-hub-grid {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-hub-card {
+    padding: 16px;
+  }
+}
+
+/* ── Dark mode (tokens resolve automatically) ───────────── */

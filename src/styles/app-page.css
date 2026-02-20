@@ -1,0 +1,203 @@
+/**
+ * Shared page layout and card design (matches Home).
+ * Import in all AppLayout pages for consistent look.
+ */
+.app-page {
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.app-page-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+
+.app-page-card:last-child {
+  margin-bottom: 0;
+}
+
+.app-page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.app-page-subtitle {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0 0 20px 0;
+}
+
+.app-page-body {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Action buttons / list items */
+.app-page-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-bottom: 10px;
+}
+
+.app-page-action:last-child {
+  margin-bottom: 0;
+}
+
+.app-page-action:hover {
+  background: var(--bg-surface-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-page-action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-icon);
+  flex-shrink: 0;
+}
+
+/* Section within card */
+.app-page-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-page-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.app-page-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+}
+
+.app-page-section-value {
+  font-size: 16px;
+  color: var(--color-primary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* List of clickable items */
+.app-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.app-page-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.app-page-list-item:hover {
+  background: var(--bg-surface-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-page-list-item-info {
+  flex: 1;
+}
+
+.app-page-list-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.app-page-list-item-desc {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin: 0;
+}
+
+.app-page-list-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+  color: var(--color-icon);
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.app-page-list-item-arrow {
+  color: var(--color-muted);
+  font-size: 18px;
+  margin-left: 12px;
+}
+
+.app-page-list-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-secondary);
+  background: var(--bg-surface);
+  border-radius: 8px;
+}
+
+.app-page-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin-bottom: 16px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.app-page-back-link:hover {
+  color: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+  .app-page-card {
+    padding: 20px;
+  }
+}

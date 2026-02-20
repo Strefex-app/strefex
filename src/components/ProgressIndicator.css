@@ -1,0 +1,101 @@
+.progress-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.progress-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-primary);
+  min-width: 50px;
+}
+
+.progress-gauge {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.progress-svg {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+}
+
+.progress-stars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stars-row {
+  display: flex;
+  gap: 4px;
+}
+
+.stars-row-small {
+  gap: 2px;
+}
+
+.stars-row-small .star {
+  font-size: 14px;
+}
+
+.star {
+  font-size: 18px;
+  color: var(--bg-surface-hover);
+  line-height: 1;
+}
+
+.star.filled {
+  color: #ffc107;
+}
+
+.progress-bar-container {
+  width: 100%;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--bg-surface-hover);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.label-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.label-stars .star {
+  font-size: 12px;
+  color: #4CAF50;
+}
+
+.label-stars .star.filled {
+  color: #4CAF50;
+}

@@ -1,0 +1,443 @@
+/* ═══════════════════════════════════════════════════════════════
+   STREFEX Design System — 60 / 30 / 10 Color Tokens
+   Light: Cloud White · Midnight Navy · Champagne
+   Dark:  Cursor Dark · Night Black · Electric Blue
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 60 % — Dominant Background (Cloud White) ───────────── */
+  --bg-primary: #F5F6FA;
+  --bg-card: #FFFFFF;
+  --bg-surface: #ECEDF2;
+  --bg-surface-hover: #E3E4EB;
+  --bg-input: #FFFFFF;
+
+  /* ── 30 % — Secondary / UI (Midnight Navy) ─────────────── */
+  --color-primary: #192A56;
+  --color-secondary: #3D4F7C;
+  --color-muted: #6B7AA1;
+  --color-icon: #192A56;
+  --nav-bg: #192A56;
+  --nav-text: rgba(255, 255, 255, 0.9);
+  --nav-text-hover: #FFFFFF;
+  --nav-active-bg: rgba(247, 215, 148, 0.18);
+  --btn-primary-bg: #192A56;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #0F1D3D;
+
+  /* ── 10 % — Accent / Details (Champagne) ───────────────── */
+  --accent: #F7D794;
+  --accent-hover: #F5C561;
+  --accent-light: rgba(247, 215, 148, 0.15);
+  --accent-text: #8B6914;
+  --active-indicator: #F7D794;
+
+  /* ── Special — Danger / Delete (Dusty Rose) ────────────── */
+  --danger: #EDA6A3;
+  --danger-hover: #E88E8A;
+  --danger-light: rgba(237, 166, 163, 0.15);
+  --danger-text: #8B3A37;
+
+  /* ── Borders & Shadows ─────────────────────────────────── */
+  --border-color: rgba(25, 42, 86, 0.10);
+  --border-light: rgba(25, 42, 86, 0.06);
+  --shadow-sm: 0 2px 8px rgba(25, 42, 86, 0.06);
+  --shadow-md: 0 4px 16px rgba(25, 42, 86, 0.10);
+  --shadow-lg: 0 8px 32px rgba(25, 42, 86, 0.15);
+
+  /* ── Links ─────────────────────────────────────────────── */
+  --link-color: #192A56;
+
+  /* ── Inputs ────────────────────────────────────────────── */
+  --input-border: rgba(25, 42, 86, 0.20);
+  --input-focus: #F7D794;
+  --input-placeholder: #6B7AA1;
+
+  /* ── Toggles ───────────────────────────────────────────── */
+  --toggle-off: #C5C9D6;
+  --toggle-on: #192A56;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK / NIGHT MODE — Cursor-inspired + Night Black + Electric Blue
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg-primary: #1a1a2e;
+  --bg-card: #1E272E;
+  --bg-surface: #252D34;
+  --bg-surface-hover: #2C3640;
+  --bg-input: #1E272E;
+
+  --color-primary: #F5F6FA;
+  --color-secondary: rgba(245, 246, 250, 0.75);
+  --color-muted: rgba(245, 246, 250, 0.50);
+  --color-icon: #00CEC9;
+  --nav-bg: #1E272E;
+  --nav-text: rgba(245, 246, 250, 0.9);
+  --nav-text-hover: #F5F6FA;
+  --nav-active-bg: rgba(9, 132, 227, 0.15);
+  --btn-primary-bg: #0984E3;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #0770C2;
+
+  --accent: #0984E3;
+  --accent-hover: #0770C2;
+  --accent-light: rgba(9, 132, 227, 0.15);
+  --accent-text: #B3D9F7;
+  --active-indicator: #0984E3;
+
+  --danger: #EDA6A3;
+  --danger-hover: #E88E8A;
+  --danger-light: rgba(237, 166, 163, 0.20);
+  --danger-text: #F5C5C3;
+
+  --border-color: rgba(245, 246, 250, 0.08);
+  --border-light: rgba(245, 246, 250, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  --link-color: #0984E3;
+
+  --input-border: rgba(245, 246, 250, 0.15);
+  --input-focus: #0984E3;
+  --input-placeholder: rgba(245, 246, 250, 0.40);
+
+  --toggle-off: #3D4650;
+  --toggle-on: #0984E3;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Shared "dark-list" pattern (Menu pages etc.)
+   Now powered by design tokens
+   ═══════════════════════════════════════════════════════════════ */
+.dark-list-container {
+  background-color: var(--bg-surface);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dark-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background-color: var(--bg-card);
+  border-radius: 10px;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dark-list-item:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.dark-list-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  color: var(--color-icon);
+}
+
+.dark-list-item-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dark-list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dark-list-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.dark-list-item-description {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.dark-list-item-arrow {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.dark-list-empty {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  background-color: var(--bg-card);
+  border-radius: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Base / reset
+   ═══════════════════════════════════════════════════════════════ */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--color-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK / NIGHT MODE — global element overrides
+   (token-based: most colors auto-switch via variables above)
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .app-layout {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .app-main {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .app-sidebar {
+  background: var(--nav-bg);
+}
+
+/* All white cards → dark surface */
+[data-theme="dark"] .home-card,
+[data-theme="dark"] .home-indicator-card,
+[data-theme="dark"] .production-card,
+[data-theme="dark"] .production-indicator-card,
+[data-theme="dark"] .production-header,
+[data-theme="dark"] .cert-status-card,
+[data-theme="dark"] .cost-mgmt-header,
+[data-theme="dark"] .cost-mgmt-card,
+[data-theme="dark"] .cost-mgmt-indicator-card,
+[data-theme="dark"] .enterprise-header,
+[data-theme="dark"] .enterprise-card,
+[data-theme="dark"] .enterprise-indicator-card,
+[data-theme="dark"] .industry-hub-header,
+[data-theme="dark"] .industry-hub-card,
+[data-theme="dark"] .industry-hub-indicator-card,
+[data-theme="dark"] .prof-card,
+[data-theme="dark"] .prof-header-card,
+[data-theme="dark"] .app-page-card,
+[data-theme="dark"] .smp-header,
+[data-theme="dark"] .smp-content,
+[data-theme="dark"] .sysmgmt-header,
+[data-theme="dark"] .sysmgmt-card,
+[data-theme="dark"] .payment-card,
+[data-theme="dark"] .payment-header {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--color-primary);
+}
+
+/* Text colors */
+[data-theme="dark"] .home-card-title,
+[data-theme="dark"] .home-indicator-value,
+[data-theme="dark"] .production-title,
+[data-theme="dark"] .production-card-title,
+[data-theme="dark"] .indicator-value,
+[data-theme="dark"] .cost-mgmt-title,
+[data-theme="dark"] .enterprise-title,
+[data-theme="dark"] .industry-hub-title,
+[data-theme="dark"] .app-page-title,
+[data-theme="dark"] .smp-title,
+[data-theme="dark"] .smp-section-title,
+[data-theme="dark"] .sysmgmt-title,
+[data-theme="dark"] .sysmgmt-card-name,
+[data-theme="dark"] .prof-card-title,
+[data-theme="dark"] .prof-name,
+[data-theme="dark"] .page-item-name,
+[data-theme="dark"] .smp-step-title,
+[data-theme="dark"] .smp-kpi-value,
+[data-theme="dark"] .smp-req-domain,
+[data-theme="dark"] .smp-box-title,
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .home-card-subtitle,
+[data-theme="dark"] .home-indicator-label,
+[data-theme="dark"] .home-industry-desc,
+[data-theme="dark"] .production-subtitle,
+[data-theme="dark"] .production-card-subtitle,
+[data-theme="dark"] .indicator-label,
+[data-theme="dark"] .cost-mgmt-subtitle,
+[data-theme="dark"] .enterprise-subtitle,
+[data-theme="dark"] .industry-hub-subtitle,
+[data-theme="dark"] .app-page-subtitle,
+[data-theme="dark"] .app-page-body,
+[data-theme="dark"] .smp-subtitle,
+[data-theme="dark"] .smp-text,
+[data-theme="dark"] .smp-kpi-label,
+[data-theme="dark"] .sysmgmt-subtitle,
+[data-theme="dark"] .sysmgmt-card-desc,
+[data-theme="dark"] .prof-card-subtitle,
+[data-theme="dark"] .prof-role,
+[data-theme="dark"] .page-item-desc,
+[data-theme="dark"] .smp-list li {
+  color: var(--color-secondary);
+}
+
+[data-theme="dark"] .home-industry-name,
+[data-theme="dark"] .home-quick-action-item,
+[data-theme="dark"] .production-action-item,
+[data-theme="dark"] .cost-mgmt-action-item,
+[data-theme="dark"] .enterprise-action-item,
+[data-theme="dark"] .prof-action-btn {
+  color: var(--color-primary);
+}
+
+/* List items & action buttons */
+[data-theme="dark"] .home-industry-item,
+[data-theme="dark"] .home-quick-action-item,
+[data-theme="dark"] .production-page-item,
+[data-theme="dark"] .production-action-item,
+[data-theme="dark"] .smp-step-card,
+[data-theme="dark"] .smp-kpi,
+[data-theme="dark"] .recent-audit-item,
+[data-theme="dark"] .app-page-list-item,
+[data-theme="dark"] .prof-action-btn {
+  background: var(--bg-surface);
+}
+
+[data-theme="dark"] .home-industry-item:hover,
+[data-theme="dark"] .home-quick-action-item:hover,
+[data-theme="dark"] .production-page-item:hover,
+[data-theme="dark"] .production-action-item:hover,
+[data-theme="dark"] .prof-action-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+[data-theme="dark"] .home-quick-action-icon,
+[data-theme="dark"] .action-icon {
+  background: var(--bg-surface);
+  color: var(--color-icon);
+}
+
+/* Tables */
+[data-theme="dark"] .smp-table th {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .smp-table td {
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .smp-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+/* Inputs & selects */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: var(--bg-input);
+  color: var(--color-primary);
+  border-color: var(--input-border);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: var(--input-focus);
+}
+
+/* Tabs */
+[data-theme="dark"] .smp-tabs {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .smp-tab {
+  color: var(--color-muted);
+}
+
+[data-theme="dark"] .smp-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Borders */
+[data-theme="dark"] .smp-req-block {
+  border-left-color: var(--border-color);
+}
+
+[data-theme="dark"] .smp-box {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+/* Modals */
+[data-theme="dark"] .audit-modal,
+[data-theme="dark"] .prof-modal {
+  background: var(--bg-card);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .audit-type-card {
+  border-color: var(--border-color);
+}
+
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-hover);
+  border-radius: 4px;
+}
+
+/* Links */
+[data-theme="dark"] a,
+[data-theme="dark"] .production-back-link,
+[data-theme="dark"] .cost-mgmt-back-link,
+[data-theme="dark"] .enterprise-back-link,
+[data-theme="dark"] .industry-hub-back-link,
+[data-theme="dark"] .app-page-back-link,
+[data-theme="dark"] .sysmgmt-back {
+  color: var(--link-color);
+}
+
+/* View-all buttons */
+[data-theme="dark"] .view-all-btn {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+[data-theme="dark"] .view-all-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--color-primary);
+}

@@ -1,0 +1,54 @@
+.industry-equipment-landing-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  position: relative;
+}
+
+.industry-equipment-landing-content {
+  flex: 1;
+  padding: 20px;
+  padding-bottom: 80px;
+  overflow-y: auto;
+}
+
+.industry-equipment-landing-container .page-title-section {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 20px 24px;
+  margin: -20px -20px 20px -20px;
+}
+
+.industry-equipment-landing-container .page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.industry-equipment-landing-container .page-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.categories-section {
+  margin-bottom: 24px;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+@media (max-width: 640px) {
+  .industry-equipment-landing-container .page-title {
+    font-size: 22px;
+  }
+}

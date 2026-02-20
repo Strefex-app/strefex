@@ -1,0 +1,49 @@
+.ai-page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.ai-back { background: none; border: none; color: var(--color-primary); font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 8px; display: inline-block; }
+.ai-header { margin-bottom: 20px; }
+.ai-title { font-size: 26px; font-weight: 900; color: var(--color-primary); margin: 0; }
+.ai-subtitle { font-size: 13px; color: var(--color-muted); margin: 4px 0 0; }
+.ai-metrics { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+.ai-metric { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 18px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-light); min-width: 120px; flex: 1; }
+.ai-metric-val { font-size: 22px; font-weight: 900; color: var(--color-primary); line-height: 1.2; }
+.ai-metric-label { font-size: 11px; font-weight: 700; color: var(--color-muted); margin-top: 2px; text-align: center; }
+.ai-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+.ai-tab { padding: 8px 16px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--color-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.ai-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.ai-risk-list, .ai-rec-list { display: flex; flex-direction: column; gap: 10px; }
+.ai-empty { text-align: center; color: var(--color-muted); padding: 40px; }
+.ai-risk-card { padding: 16px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-light); border-left: 3px solid var(--danger); }
+.ai-risk-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ai-risk-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+.ai-risk-type { font-size: 10px; font-weight: 700; color: var(--color-muted); text-transform: capitalize; padding: 2px 8px; background: var(--bg-surface); border-radius: 6px; }
+.ai-risk-entity { font-size: 12px; font-weight: 700; color: var(--color-primary); }
+.ai-risk-prob { font-size: 11px; color: var(--color-muted); margin-left: auto; }
+.ai-risk-title { font-size: 15px; font-weight: 700; color: var(--color-primary); margin-bottom: 4px; }
+.ai-risk-desc { font-size: 12px; color: var(--color-secondary); margin-bottom: 6px; line-height: 1.5; }
+.ai-risk-impact { font-size: 12px; color: var(--danger); margin-bottom: 4px; }
+.ai-risk-rec { font-size: 12px; color: var(--color-primary); padding: 8px 12px; border-radius: 8px; background: var(--accent-light); }
+.ai-rec-card { padding: 16px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-light); }
+.ai-rec-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ai-rec-cat { font-size: 10px; font-weight: 700; color: var(--color-primary); padding: 2px 8px; border-radius: 6px; background: var(--accent-light); }
+.ai-rec-priority { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+.ai-rec-priority.high { color: var(--danger); background: var(--danger-light); }
+.ai-rec-priority.medium { color: var(--danger); background: var(--danger-light); }
+.ai-rec-priority.low { color: var(--color-primary); background: var(--accent-light); }
+.ai-rec-title { font-size: 15px; font-weight: 700; color: var(--color-primary); margin-bottom: 4px; }
+.ai-rec-desc { font-size: 12px; color: var(--color-secondary); margin-bottom: 6px; line-height: 1.5; }
+.ai-rec-impact { font-size: 12px; color: var(--color-primary); font-weight: 600; }
+.ai-predictions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ai-card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light); padding: 20px; }
+.ai-card h4 { margin: 0 0 16px; color: var(--color-primary); }
+.ai-pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ai-pred-item { display: flex; flex-direction: column; padding: 12px; border-radius: 8px; background: var(--accent-light); }
+.ai-pred-label { font-size: 11px; color: var(--color-muted); font-weight: 600; }
+.ai-pred-val { font-size: 20px; font-weight: 900; color: var(--color-primary); }
+.ai-trend-list { display: flex; flex-direction: column; gap: 8px; }
+.ai-trend-item { font-size: 13px; color: var(--color-primary); display: flex; align-items: center; gap: 8px; }
+.ai-trend-arrow { font-size: 16px; font-weight: 900; width: 24px; text-align: center; }
+.ai-trend-arrow.up { color: var(--danger); }
+.ai-trend-arrow.down { color: var(--color-primary); }
+.ai-trend-arrow.stable { color: var(--color-primary); }
+@media (max-width: 640px) { .ai-metric { min-width: 100px; } .ai-metric-val { font-size: 20px; } }
+@media (max-width: 800px) { .ai-predictions { grid-template-columns: 1fr; } .ai-pred-grid { grid-template-columns: 1fr; } .ai-metrics { gap: 10px; } }

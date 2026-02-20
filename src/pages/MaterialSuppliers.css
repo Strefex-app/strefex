@@ -1,0 +1,82 @@
+/* Supplier cards (layout from app-page.css) */
+.suppliers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.supplier-card {
+  background: var(--bg-surface);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.supplier-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.supplier-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.supplier-source-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.supplier-source-badge.open {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.supplier-source-badge.database {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.supplier-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-secondary);
+}
+
+.supplier-country {
+  font-weight: 500;
+}
+
+.supplier-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.supplier-stars .star {
+  font-size: 14px;
+  color: var(--bg-surface-hover);
+}
+
+.supplier-stars .star.filled {
+  color: #ffc107;
+}
+
+.rating-num {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--color-primary);
+}

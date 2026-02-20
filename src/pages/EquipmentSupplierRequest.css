@@ -1,0 +1,125 @@
+/* Scoped form and success styles for Equipment Supplier Selection */
+.app-page .equipment-success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.app-page .equipment-success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--btn-primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--btn-primary-text);
+  margin-bottom: 24px;
+}
+
+.app-page .equipment-request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.app-page .equipment-form-section {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--bg-surface-hover);
+}
+
+.app-page .equipment-form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.app-page .equipment-form-group {
+  margin-bottom: 20px;
+}
+
+.app-page .equipment-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.app-page .equipment-form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.app-page .equipment-required {
+  color: var(--danger);
+}
+
+.app-page .equipment-form-input,
+.app-page .equipment-form-textarea,
+.app-page .equipment-form-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-primary);
+  background: var(--bg-card);
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.app-page .equipment-form-input:focus,
+.app-page .equipment-form-textarea:focus,
+.app-page .equipment-form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.app-page .equipment-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.app-page .equipment-form-select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.app-page .equipment-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--bg-surface-hover);
+}
+
+.app-page .equipment-submit-button {
+  flex: 1;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.app-page .equipment-submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.app-page .equipment-submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .app-page .equipment-form-actions {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,808 @@
+/* HR Documentation page styles */
+.hrdoc-page {
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.hrdoc-header {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+
+.hrdoc-back-link {
+  display: inline-block;
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.hrdoc-back-link:hover {
+  color: var(--color-primary);
+}
+
+.hrdoc-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 8px 0;
+}
+
+.hrdoc-subtitle {
+  font-size: 15px;
+  color: var(--color-secondary);
+  margin: 0;
+}
+
+/* Tabs */
+.hrdoc-tabs-wrap {
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.hrdoc-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--bg-surface);
+  padding-bottom: 0;
+  min-width: max-content;
+}
+
+.hrdoc-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.hrdoc-tab:hover {
+  color: var(--color-primary);
+}
+
+.hrdoc-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.hrdoc-tab-label {
+  display: inline-block;
+}
+
+.hrdoc-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--accent-light);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.hrdoc-tab.active .hrdoc-tab-count {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+/* Card */
+.hrdoc-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+/* Toolbar */
+.hrdoc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.hrdoc-search-wrap {
+  flex: 1;
+  min-width: 200px;
+}
+
+.hrdoc-search {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg-card);
+  transition: all 0.2s;
+}
+
+.hrdoc-search:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.hrdoc-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hrdoc-upload-btn {
+  padding: 10px 20px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hrdoc-upload-btn:hover {
+  background: var(--btn-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.hrdoc-bulk-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hrdoc-bulk-btn.archive {
+  background: rgba(149, 165, 166, 0.15);
+  color: #7f8c8d;
+}
+
+.hrdoc-bulk-btn.archive:hover {
+  background: rgba(149, 165, 166, 0.25);
+}
+
+.hrdoc-bulk-btn.delete {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.hrdoc-bulk-btn.delete:hover {
+  background: var(--danger-light);
+  opacity: 0.9;
+}
+
+/* Table */
+.hrdoc-table-wrap {
+  overflow-x: auto;
+}
+
+.hrdoc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hrdoc-table thead {
+  background: var(--bg-surface);
+}
+
+.hrdoc-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.hrdoc-th-check {
+  width: 40px;
+  text-align: center;
+}
+
+.hrdoc-th-actions {
+  width: 200px;
+  text-align: right;
+}
+
+.hrdoc-table tbody tr {
+  border-bottom: 1px solid var(--bg-surface);
+  transition: all 0.2s;
+}
+
+.hrdoc-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+.hrdoc-table tbody tr.hrdoc-row-selected {
+  background: var(--accent-light);
+}
+
+.hrdoc-table tbody tr.hrdoc-row-warning {
+  background: rgba(230, 126, 34, 0.05);
+}
+
+.hrdoc-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.hrdoc-td-check {
+  text-align: center;
+}
+
+.hrdoc-td-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.hrdoc-doc-name {
+  display: block;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.hrdoc-expiry-warning {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+  margin-top: 4px;
+}
+
+.hrdoc-expiry-warning.expired {
+  background: rgba(231, 76, 60, 0.15);
+  color: #c0392b;
+}
+
+.hrdoc-employee {
+  color: #666;
+}
+
+.hrdoc-date {
+  color: #666;
+  font-size: 13px;
+}
+
+.hrdoc-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hrdoc-status-badge.active {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+.hrdoc-status-badge.expired {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.hrdoc-status-badge.draft {
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+}
+
+.hrdoc-status-badge.archived {
+  background: rgba(149, 165, 166, 0.15);
+  color: #7f8c8d;
+}
+
+.hrdoc-file-type {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(var(--file-color-rgb, 127, 140, 141), 0.15);
+  color: var(--file-color, #7f8c8d);
+}
+
+.hrdoc-td-actions {
+  text-align: right;
+}
+
+.hrdoc-action-btn {
+  padding: 6px 12px;
+  margin-left: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--color-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hrdoc-action-btn:hover {
+  background: var(--bg-surface);
+  border-color: var(--btn-primary-bg);
+  color: var(--color-primary);
+}
+
+.hrdoc-action-btn.archive {
+  border-color: rgba(149, 165, 166, 0.3);
+  color: #7f8c8d;
+}
+
+.hrdoc-action-btn.archive:hover {
+  background: rgba(149, 165, 166, 0.1);
+  border-color: #7f8c8d;
+}
+
+.hrdoc-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* Upload Modal */
+.hrdoc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.hrdoc-upload-form-wrap {
+  background: var(--bg-card);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.hrdoc-upload-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--bg-surface);
+}
+
+.hrdoc-upload-form-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.hrdoc-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.hrdoc-modal-close:hover {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+}
+
+.hrdoc-upload-form {
+  padding: 24px;
+}
+
+.hrdoc-form-group {
+  margin-bottom: 20px;
+}
+
+.hrdoc-form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.hrdoc-form-group input[type="text"],
+.hrdoc-form-group input[type="date"],
+.hrdoc-form-group select,
+.hrdoc-form-group input[type="file"] {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg-card);
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.hrdoc-form-group input[type="text"]:focus,
+.hrdoc-form-group input[type="date"]:focus,
+.hrdoc-form-group select:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.hrdoc-form-group input[type="file"] {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.hrdoc-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--bg-surface);
+}
+
+.hrdoc-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hrdoc-btn.primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.hrdoc-btn.primary:hover {
+  background: var(--btn-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.hrdoc-btn.secondary {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+.hrdoc-btn.secondary:hover {
+  background: var(--bg-surface-hover);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .hrdoc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hrdoc-search-wrap {
+    width: 100%;
+  }
+
+  .hrdoc-toolbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .hrdoc-table {
+    font-size: 13px;
+  }
+
+  .hrdoc-table th,
+  .hrdoc-table td {
+    padding: 10px 12px;
+  }
+
+  .hrdoc-td-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hrdoc-action-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .hrdoc-upload-form-wrap {
+    width: 95%;
+    max-height: 95vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .hrdoc-header {
+    padding: 20px;
+  }
+
+  .hrdoc-title {
+    font-size: 20px;
+  }
+
+  .hrdoc-card {
+    padding: 16px;
+  }
+
+  .hrdoc-tabs {
+    gap: 4px;
+  }
+
+  .hrdoc-tab {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .hrdoc-table-wrap {
+    overflow-x: scroll;
+  }
+}
+
+/* Dark mode */
+[data-theme="dark"] .hrdoc-header {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .hrdoc-back-link {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-back-link:hover {
+  color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-title {
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-subtitle {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-tabs {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-tab {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-tab:hover {
+  color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-tab.active {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-tab.active .hrdoc-tab-count {
+  background: #fff;
+  color: #27272a;
+}
+
+[data-theme="dark"] .hrdoc-card {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .hrdoc-search {
+  background: #3f3f46;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-search:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-upload-btn {
+  background: #fff;
+  color: #27272a;
+}
+
+[data-theme="dark"] .hrdoc-upload-btn:hover {
+  background: #e5e5e5;
+}
+
+[data-theme="dark"] .hrdoc-bulk-btn.archive {
+  background: rgba(149, 165, 166, 0.2);
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-bulk-btn.archive:hover {
+  background: rgba(149, 165, 166, 0.3);
+}
+
+[data-theme="dark"] .hrdoc-bulk-btn.delete {
+  background: rgba(231, 76, 60, 0.2);
+  color: #ef4444;
+}
+
+[data-theme="dark"] .hrdoc-bulk-btn.delete:hover {
+  background: rgba(231, 76, 60, 0.3);
+}
+
+[data-theme="dark"] .hrdoc-table thead {
+  background: #3f3f46;
+}
+
+[data-theme="dark"] .hrdoc-table th {
+  color: #a1a1aa;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-table tbody tr {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .hrdoc-table tbody tr:hover {
+  background: #3f3f46;
+}
+
+[data-theme="dark"] .hrdoc-table tbody tr.hrdoc-row-selected {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-table tbody tr.hrdoc-row-warning {
+  background: rgba(230, 126, 34, 0.15);
+}
+
+[data-theme="dark"] .hrdoc-table td {
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-doc-name {
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-employee,
+[data-theme="dark"] .hrdoc-date {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-action-btn {
+  background: #3f3f46;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-action-btn:hover {
+  background: #52525b;
+  border-color: #fff;
+  color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-action-btn.archive {
+  border-color: rgba(149, 165, 166, 0.3);
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-action-btn.archive:hover {
+  background: rgba(149, 165, 166, 0.2);
+  border-color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-empty {
+  color: #71717a;
+}
+
+[data-theme="dark"] .hrdoc-upload-form-wrap {
+  background: #27272a;
+}
+
+[data-theme="dark"] .hrdoc-upload-form-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-upload-form-header h2 {
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-modal-close {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-modal-close:hover {
+  background: #3f3f46;
+  color: #fff;
+}
+
+[data-theme="dark"] .hrdoc-form-group label {
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-form-group input[type="text"],
+[data-theme="dark"] .hrdoc-form-group input[type="date"],
+[data-theme="dark"] .hrdoc-form-group select,
+[data-theme="dark"] .hrdoc-form-group input[type="file"] {
+  background: #3f3f46;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fafafa;
+}
+
+[data-theme="dark"] .hrdoc-form-group input[type="text"]:focus,
+[data-theme="dark"] .hrdoc-form-group input[type="date"]:focus,
+[data-theme="dark"] .hrdoc-form-group select:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-form-actions {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .hrdoc-btn.primary {
+  background: #fff;
+  color: #27272a;
+}
+
+[data-theme="dark"] .hrdoc-btn.primary:hover {
+  background: #e5e5e5;
+}
+
+[data-theme="dark"] .hrdoc-btn.secondary {
+  background: #3f3f46;
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .hrdoc-btn.secondary:hover {
+  background: #52525b;
+  color: #fafafa;
+}

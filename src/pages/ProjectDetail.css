@@ -1,0 +1,198 @@
+/* Project detail (Project Management) — scoped to avoid conflicts */
+.project-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.project-detail-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #333;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.project-detail-btn-add:hover {
+  background: #555;
+}
+
+.project-detail-btn-add span {
+  font-size: 18px;
+}
+
+.project-detail-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-detail-no-tasks {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  padding: 20px 0;
+}
+
+.project-detail-task-row {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.project-detail-task-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.project-detail-task-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.project-detail-task-status {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #e3f2fd;
+  color: #1976D2;
+}
+
+.project-detail-task-ratio {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.project-detail-progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.project-detail-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.project-detail-edit-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.project-detail-edit-inline input[type="range"] {
+  width: 120px;
+}
+
+.project-detail-task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.project-detail-btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.project-detail-btn-small.project-detail-btn-delete {
+  background: #e53935;
+}
+
+/* Modal */
+.project-detail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.project-detail-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.project-detail-modal-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin: 12px 0 6px 0;
+}
+
+.project-detail-modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.project-detail-modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.project-detail-btn-save {
+  padding: 10px 18px;
+  background: #333;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.project-detail-btn-save:hover {
+  background: #555;
+}
+
+/* ── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .project-detail-actions {
+    flex-direction: column;
+  }
+  .project-detail-edit-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .project-detail-edit-inline input[type="range"] {
+    width: 100%;
+  }
+  .project-detail-modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+}

@@ -1,0 +1,63 @@
+/* ═══════════════════════════════════════════════════════════ */
+/*  STREFEX Icon System — consistent style & click animation  */
+/* ═══════════════════════════════════════════════════════════ */
+
+.stx-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.stx-icon-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+}
+
+.stx-icon-clickable:hover {
+  opacity: 0.82;
+}
+
+.stx-icon-clickable:active {
+  transform: scale(0.78);
+  opacity: 0.65;
+}
+
+/* ── Press animation class (applied via JS for touch) ──── */
+@keyframes stxIconPress {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.78); }
+  100% { transform: scale(1); }
+}
+.stx-icon-pressed {
+  animation: stxIconPress 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Action wrapper: any clickable parent containing icon ─ */
+.stx-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.stx-action-icon:active {
+  transform: scale(0.88);
+}
+.stx-action-icon:active .stx-icon {
+  transform: scale(0.88);
+}
+
+/* ── Page-level click feedback for cards / buttons with icons ─ */
+.stx-click-feedback {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.stx-click-feedback:active {
+  transform: scale(0.97);
+}
+.stx-click-feedback:active .stx-icon {
+  transform: scale(0.85);
+  opacity: 0.75;
+}

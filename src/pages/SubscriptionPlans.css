@@ -1,0 +1,346 @@
+/* ═══════════════════════════════════════════════════════════════ */
+/*  Subscription Plans — Full-scale maximized layout             */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* ── Maximize page: strip parent padding to bare minimum ────── */
+.app-main:has(.sp-page) { padding: 8px 4px 24px !important; }
+
+.sp-page {
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow: visible;
+  margin: 0 !important;
+}
+.sp-page .app-page-card {
+  margin-bottom: 16px;
+  padding: 28px 32px;
+  border-radius: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.sp-header-card {
+  text-align: center;
+  padding: 32px 36px 26px !important;
+}
+.sp-header-card .app-page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.sp-header-card .app-page-subtitle { font-size: 16px; margin-bottom: 0; color: var(--color-secondary); }
+
+/* ── Billing selector ──────────────────────────────────────── */
+.sp-billing-selector {
+  display: inline-flex; background: var(--bg-surface); border-radius: 14px;
+  padding: 5px; gap: 4px; margin-top: 16px;
+}
+.sp-billing-opt {
+  display: flex; align-items: center; gap: 7px;
+  padding: 12px 26px; border: none; border-radius: 12px;
+  background: transparent; font-size: 16px; font-weight: 600;
+  color: var(--color-secondary); cursor: pointer; transition: all .2s; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+.sp-billing-opt:hover { color: var(--color-primary); background: rgba(255,255,255,.5); }
+.sp-billing-opt.active { background: var(--bg-card); color: var(--color-primary); box-shadow: var(--shadow-sm); }
+.sp-billing-badge {
+  display: inline-block; background: var(--accent-light); color: var(--accent-text);
+  padding: 3px 11px; border-radius: 10px; font-size: 13px; font-weight: 700;
+}
+.sp-billing-badge.best { background: var(--accent-light); color: var(--accent-text); }
+
+/* ── Alerts ────────────────────────────────────────────────── */
+.sp-alert { padding: 16px 24px; border-radius: 12px; font-size: 15px; margin-bottom: 14px; background: var(--danger-light); color: var(--danger); }
+.sp-alert-success { background: var(--accent-light); color: var(--accent-text); }
+.sp-alert-info { background: var(--accent-light); color: var(--color-primary); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ── Card grid — 3 per row, maximized ──────────────────────  */
+/* ═══════════════════════════════════════════════════════════ */
+.sp-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 16px;
+  padding-top: 6px;
+  overflow: visible;
+  width: 100%;
+}
+
+/* ── Individual card ───────────────────────────────────────── */
+.sp-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  padding: 28px 28px 22px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: visible;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s, border-color .2s;
+}
+.sp-card:hover { box-shadow: var(--shadow-md); border-color: var(--bg-surface-hover); }
+.sp-card-active { border-color: var(--color-primary); background: var(--accent-light); }
+.sp-card-popular { border-color: var(--accent-hover); }
+
+/* Popular tag */
+.sp-card-popular-tag {
+  position: absolute; top: -1px; right: 22px;
+  background: var(--accent-hover); color: var(--btn-primary-text);
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  padding: 6px 16px; border-radius: 0 0 8px 8px;
+}
+
+/* ── Card header (name + badge) ────────────────────────────── */
+.sp-card-header {
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 2px solid transparent; padding-bottom: 16px; margin-bottom: 16px;
+}
+.sp-card-name { font-size: 24px; font-weight: 700; letter-spacing: .3px; }
+.sp-card-badge {
+  display: inline-block; padding: 3px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+}
+.sp-card-badge.current { background: var(--accent-light); color: var(--accent-text); }
+
+/* ── Price block ───────────────────────────────────────────── */
+.sp-card-price-block { margin-bottom: 18px; }
+.sp-card-price { font-size: 40px; font-weight: 800; color: var(--color-primary); line-height: 1.1; }
+.sp-card-currency { font-size: 24px; font-weight: 700; vertical-align: top; margin-right: 2px; }
+.sp-card-interval { font-size: 17px; font-weight: 500; color: var(--color-muted); }
+.sp-card-savings { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.sp-card-original { font-size: 16px; color: var(--color-muted); text-decoration: line-through; }
+.sp-card-save {
+  display: inline-block; background: var(--accent-light); color: var(--accent-text);
+  padding: 3px 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+}
+.sp-card-storage {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 600; color: var(--color-primary); margin-top: 8px;
+}
+
+/* ── Features (top 5 only) ─────────────────────────────────── */
+.sp-card-features {
+  list-style: none; padding: 0; margin: 0 0 10px; flex: 1;
+  min-width: 0;
+}
+.sp-card-features li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 0; font-size: 16px; color: var(--color-secondary); line-height: 1.45;
+  min-width: 0; word-break: break-word;
+}
+.sp-card-features li svg { flex-shrink: 0; margin-top: 4px; }
+
+/* ── Learn More link ───────────────────────────────────────── */
+.sp-learn-more {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600; padding: 8px 0; margin-bottom: 14px;
+  transition: opacity .15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+.sp-learn-more:hover { opacity: .75; }
+
+/* ── Action button ─────────────────────────────────────────── */
+.sp-card-action { margin-top: auto; padding-top: 8px; }
+
+.sp-btn {
+  display: block; width: 100%;
+  padding: 15px 22px; border-radius: 12px;
+  font-size: 16px; font-weight: 600;
+  cursor: pointer; border: none; transition: all .2s;
+  text-align: center; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+.sp-btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
+.sp-btn-primary:hover { filter: brightness(1.15); box-shadow: var(--shadow-md); }
+.sp-btn-outline { background: var(--bg-card); color: var(--color-primary); border: 2px solid var(--accent); }
+.sp-btn-outline:hover { background: var(--accent-light); }
+.sp-btn-current { background: var(--accent-light); color: var(--accent-text); cursor: default; }
+.sp-btn-pending { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); cursor: default; font-size: 15px; }
+.sp-btn-secondary { display: inline-block; width: auto; background: var(--bg-surface); color: var(--color-primary); padding: 14px 32px; border-radius: 12px; font-size: 16px; border: none; cursor: pointer; }
+.sp-btn-secondary:hover { background: var(--bg-surface-hover); }
+.sp-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── Manage ────────────────────────────────────────────────── */
+.sp-manage { text-align: center; margin-bottom: 16px; }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ── Comparison table ──────────────────────────────────────  */
+/* ═══════════════════════════════════════════════════════════ */
+.sp-comparison-title { font-size: 20px; font-weight: 600; color: var(--color-primary); margin: 0 0 14px; }
+.sp-comparison-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sp-comparison-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.sp-comparison-table th {
+  text-align: left; padding: 14px 20px; color: var(--color-secondary);
+  font-weight: 600; border-bottom: 2px solid var(--border-color); white-space: nowrap;
+}
+.sp-comparison-table td { padding: 14px 20px; border-bottom: 1px solid var(--bg-surface); color: var(--color-primary); }
+.sp-td-plan { font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.sp-td-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.sp-tbl-current td { background: var(--accent-light); }
+.sp-th-badge {
+  display: inline-block; background: var(--accent-light); color: var(--accent-text);
+  padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  margin-left: 5px; vertical-align: middle;
+}
+.sp-th-badge.best { background: var(--accent-light); color: var(--accent-text); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ── Learn More modal ──────────────────────────────────────  */
+/* ═══════════════════════════════════════════════════════════ */
+.sp-modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.45); display: flex;
+  align-items: center; justify-content: center;
+  padding: 20px; animation: spFadeIn .15s;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+@keyframes spFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.sp-modal {
+  position: relative; background: var(--bg-card); border-radius: 16px;
+  width: 100%; max-width: 580px; max-height: 82vh;
+  max-height: 82dvh;
+  overflow-y: auto; padding: 32px 32px 24px;
+  box-shadow: var(--shadow-lg);
+  animation: spSlideUp .2s ease-out;
+  -webkit-overflow-scrolling: touch;
+}
+@keyframes spSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.sp-modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--bg-surface); border: none; border-radius: 10px;
+  width: 40px; height: 40px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--color-secondary);
+  transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.sp-modal-close:hover { background: var(--bg-surface-hover); color: var(--color-primary); }
+
+.sp-modal-header {
+  border-bottom: 2px solid transparent; padding-bottom: 16px; margin-bottom: 20px;
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+}
+.sp-modal-name { font-size: 26px; font-weight: 800; margin: 0; }
+.sp-modal-price { font-size: 20px; font-weight: 700; color: var(--color-primary); }
+.sp-modal-storage { font-size: 15px; color: var(--color-primary); font-weight: 600; }
+
+.sp-modal-section-title { font-size: 16px; font-weight: 600; color: var(--color-secondary); margin: 0 0 12px; }
+
+.sp-modal-features {
+  list-style: none; padding: 0; margin: 0 0 24px;
+  columns: 2; column-gap: 24px;
+}
+.sp-modal-features li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 0; font-size: 15px; color: var(--color-primary); line-height: 1.45;
+  break-inside: avoid;
+}
+.sp-modal-features li svg { flex-shrink: 0; margin-top: 3px; }
+
+.sp-modal-action { padding-top: 6px; }
+.sp-modal-action .sp-btn { max-width: 300px; }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ── Responsive ────────────────────────────────────────────  */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* ── Desktop narrow / iPad landscape (~1024px) ─────────── */
+@media (max-width: 1100px) {
+  .sp-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .sp-card-name { font-size: 21px; }
+  .sp-card-price { font-size: 34px; }
+  .sp-card-currency { font-size: 20px; }
+}
+
+/* ── iPad portrait (~768-834px) ────────────────────────── */
+@media (max-width: 900px) {
+  .app-main:has(.sp-page) { padding: 8px 4px 24px !important; }
+  .sp-header-card { padding: 24px 20px 20px !important; }
+  .sp-header-card .app-page-title { font-size: 24px; }
+  .sp-header-card .app-page-subtitle { font-size: 15px; }
+  .sp-billing-selector { flex-wrap: wrap; justify-content: center; }
+  .sp-billing-opt { padding: 10px 18px; font-size: 14px; }
+  .sp-page .app-page-card { padding: 22px 20px; }
+  .sp-card { padding: 22px 20px 18px; }
+  .sp-card-name { font-size: 20px; }
+  .sp-card-price { font-size: 30px; }
+  .sp-card-currency { font-size: 18px; }
+  .sp-card-interval { font-size: 15px; }
+  .sp-card-features li { font-size: 14px; padding: 5px 0; }
+  .sp-card-storage { font-size: 13px; }
+  .sp-learn-more { font-size: 13px; }
+  .sp-btn { padding: 13px 18px; font-size: 15px; }
+  .sp-comparison-table { font-size: 14px; }
+  .sp-comparison-table th,
+  .sp-comparison-table td { padding: 11px 14px; }
+  .sp-modal { max-width: 480px; padding: 24px 24px 20px; }
+  .sp-modal-name { font-size: 22px; }
+  .sp-modal-features li { font-size: 14px; }
+}
+
+/* ── Phone landscape / large phone (~680px) ────────────── */
+@media (max-width: 680px) {
+  .app-main:has(.sp-page) { padding: 6px 2px 20px !important; }
+  .sp-header-card { padding: 20px 16px 16px !important; }
+  .sp-header-card .app-page-title { font-size: 22px; }
+  .sp-header-card .app-page-subtitle { font-size: 14px; }
+  .sp-billing-selector { flex-direction: column; width: 100%; border-radius: 12px; }
+  .sp-billing-opt { justify-content: center; padding: 11px 16px; font-size: 14px; border-radius: 10px; }
+  .sp-page .app-page-card { padding: 18px 16px; }
+  .sp-card-grid { grid-template-columns: 1fr; gap: 16px; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .sp-card { padding: 22px 20px 18px; }
+  .sp-card-name { font-size: 22px; }
+  .sp-card-price { font-size: 34px; }
+  .sp-card-currency { font-size: 20px; }
+  .sp-card-features li { font-size: 15px; }
+  .sp-btn { padding: 14px 20px; font-size: 15px; }
+  .sp-modal { max-width: 100%; padding: 22px 20px 18px; border-radius: 14px; }
+  .sp-modal-name { font-size: 22px; }
+  .sp-modal-features { columns: 1; }
+  .sp-modal-features li { font-size: 14px; }
+  .sp-comparison-table { font-size: 13px; }
+  .sp-comparison-table th,
+  .sp-comparison-table td { padding: 10px 12px; }
+  .sp-td-plan { font-size: 13px; }
+}
+
+/* ── Mobile (<640px): hamburger visible, needs top padding ─ */
+@media (max-width: 640px) {
+  .app-main:has(.sp-page) { padding: 64px 6px 20px !important; }
+  .sp-modal-overlay { padding: 12px; }
+  .sp-modal { max-width: 100%; margin: 0; }
+}
+
+/* ── Small phone (<420px) ──────────────────────────────── */
+@media (max-width: 420px) {
+  .app-main:has(.sp-page) { padding: 60px 4px 16px !important; }
+  .sp-header-card { padding: 16px 12px 14px !important; }
+  .sp-header-card .app-page-title { font-size: 20px; }
+  .sp-header-card .app-page-subtitle { font-size: 13px; }
+  .sp-card-grid { max-width: 100%; }
+  .sp-card { padding: 18px 16px 16px; }
+  .sp-card-header { padding-bottom: 12px; margin-bottom: 12px; }
+  .sp-card-name { font-size: 20px; }
+  .sp-card-price { font-size: 30px; }
+  .sp-card-currency { font-size: 18px; }
+  .sp-card-price-block { margin-bottom: 14px; }
+  .sp-card-features li { font-size: 14px; gap: 8px; }
+  .sp-btn { padding: 12px 16px; font-size: 14px; border-radius: 10px; }
+  .sp-learn-more { font-size: 13px; }
+  .sp-card-popular-tag { font-size: 11px; padding: 4px 12px; right: 14px; }
+  .sp-modal { padding: 18px 16px 16px; }
+  .sp-modal-name { font-size: 20px; }
+  .sp-modal-close { width: 36px; height: 36px; top: 12px; right: 12px; }
+  .sp-comparison-table th,
+  .sp-comparison-table td { padding: 8px 8px; font-size: 12px; white-space: nowrap; }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ── Dark mode (tokens handle most; minimal overrides) ──────  */
+/* ═══════════════════════════════════════════════════════════ */
+[data-theme="dark"] .sp-card-active { border-color: var(--color-primary); background: var(--accent-light); }

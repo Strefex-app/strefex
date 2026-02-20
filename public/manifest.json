@@ -1,0 +1,27 @@
+{
+  "name": "STREFEX Platform",
+  "short_name": "STREFEX",
+  "description": "Strategic Sourcing & Procurement Platform — Manage suppliers, contracts, spend, and compliance",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000222",
+  "theme_color": "#000888",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/strefex-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/strefex-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en"
+}

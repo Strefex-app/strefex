@@ -1,0 +1,440 @@
+/* Cost Management page styles - similar to Home/IndustryHub layout */
+.cost-mgmt-page {
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+/* Header */
+.cost-mgmt-header {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 16px;
+}
+
+.cost-mgmt-back-link {
+  display: inline-block;
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.cost-mgmt-back-link:hover {
+  color: var(--color-primary);
+}
+
+.cost-mgmt-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 8px 0;
+}
+
+.cost-mgmt-subtitle {
+  font-size: 15px;
+  color: var(--color-secondary);
+  margin: 0;
+}
+
+/* Top indicator cards */
+.cost-mgmt-indicators {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cost-mgmt-indicator-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cost-mgmt-indicator-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cost-mgmt-indicator-icon.blue {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.cost-mgmt-indicator-icon.green {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+.cost-mgmt-indicator-icon.orange {
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+}
+
+.cost-mgmt-indicator-icon.red {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.cost-mgmt-indicator-icon.purple {
+  background: rgba(155, 89, 182, 0.15);
+  color: #8e44ad;
+}
+
+.cost-mgmt-indicator-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.cost-mgmt-indicator-label {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin-top: 4px;
+}
+
+/* Main two-column layout */
+.cost-mgmt-main {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 12px;
+  align-items: start;
+}
+
+.cost-mgmt-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.cost-mgmt-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.cost-mgmt-card-subtitle {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0 0 12px 0;
+}
+
+/* Pages list */
+.cost-mgmt-pages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cost-mgmt-page-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cost-mgmt-page-item:hover {
+  background: var(--bg-surface-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.cost-mgmt-page-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.cost-mgmt-page-info {
+  flex: 1;
+}
+
+.cost-mgmt-page-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.cost-mgmt-page-desc {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin: 0;
+}
+
+.cost-mgmt-page-arrow {
+  color: var(--color-muted);
+  font-size: 18px;
+  margin-left: 12px;
+  transition: transform 0.2s;
+}
+
+.cost-mgmt-page-item:hover .cost-mgmt-page-arrow {
+  transform: translateX(4px);
+}
+
+/* Quick actions */
+.cost-mgmt-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cost-mgmt-action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cost-mgmt-action-item:hover {
+  background: var(--bg-surface-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.cost-mgmt-action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+
+.cost-mgmt-action-item:hover .cost-mgmt-action-icon {
+  background: var(--bg-surface-hover);
+}
+
+/* Recent products */
+.cost-mgmt-recent {
+  border-top: 1px solid var(--bg-surface);
+  padding-top: 16px;
+}
+
+.cost-mgmt-recent-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-secondary);
+  margin: 0 0 12px 0;
+}
+
+.cost-mgmt-recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cost-mgmt-recent-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.recent-product-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.recent-product-sku {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.recent-product-cost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.recent-cost-current {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.recent-cost-variance {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.recent-cost-variance.over {
+  color: var(--danger);
+}
+
+.recent-cost-variance.under {
+  color: #27ae60;
+}
+
+/* Cost Categories Card */
+.cost-mgmt-categories-card {
+  margin-bottom: 16px;
+}
+
+.cost-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.cost-category-item {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.category-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.category-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.category-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.category-bar {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.category-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.category-percent {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .cost-categories-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .cost-mgmt-indicators {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cost-mgmt-main {
+    grid-template-columns: 1fr;
+  }
+  
+  .cost-categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cost-mgmt-indicators {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cost-mgmt-indicator-value {
+    font-size: 24px;
+  }
+  
+  .cost-categories-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Clickable indicator cards + edit + modal */
+.cost-mgmt-indicator-clickable { cursor: pointer; transition: transform .15s, box-shadow .15s; position: relative; }
+.cost-mgmt-indicator-clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(25,42,86,.1); }
+.cm-edit-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--color-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.cm-edit-btn:hover { background: var(--bg-surface); color: var(--color-primary); }
+.cm-modal-overlay { position: fixed; inset: 0; z-index: 5000; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cm-modal { background: var(--bg-card); border-radius: 14px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); animation: cmModalIn .2s ease; }
+@keyframes cmModalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.cm-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light); }
+.cm-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary); }
+.cm-modal-close { background: none; border: none; font-size: 20px; color: var(--color-muted); cursor: pointer; padding: 4px; border-radius: 6px; line-height: 1; }
+.cm-modal-close:hover { background: var(--bg-surface); color: var(--color-primary); }
+.cm-modal-body { padding: 16px 20px; }
+.cm-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; }
+.cm-modal-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--color-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.cm-modal-save { padding: 8px 16px; border-radius: 8px; border: none; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.cm-modal-save:hover { background: var(--btn-primary-hover); }
+.cm-field-label { display: block; font-size: 12px; font-weight: 700; color: var(--color-secondary); margin-bottom: 6px; }
+.cm-field-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-input); color: var(--color-primary); }
+.cm-field-input:focus { outline: none; border-color: var(--color-primary); }

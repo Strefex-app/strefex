@@ -1,0 +1,52 @@
+.resources-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.resources-page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 8px 0;
+}
+
+.resources-page-subtitle {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0 0 24px 0;
+}
+
+.resources-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.resources-placeholder {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0 0 16px 0;
+}
+
+.resources-link-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--bg-surface-hover);
+  background: var(--bg-surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.resources-link-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+@media (max-width: 640px) {
+  .resources-page { max-width: 100%; padding: 0; }
+  .resources-card { padding: 16px; }
+  .resources-page-title { font-size: 20px; }
+}

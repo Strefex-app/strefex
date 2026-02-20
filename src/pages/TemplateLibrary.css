@@ -1,0 +1,428 @@
+.tpl-page { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+/* ── Header ──────────────────────────────────────────────── */
+.tpl-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+.tpl-back { background: none; border: none; color: var(--color-primary); font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 8px; display: inline-block; }
+.tpl-title { font-size: 26px; font-weight: 900; color: var(--color-primary); margin: 0; }
+.tpl-subtitle { font-size: 13px; color: var(--color-muted); margin: 4px 0 0; }
+
+.tpl-create-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: 8px; border: none;
+  background: var(--btn-primary-bg); color: var(--btn-primary-text);
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tpl-create-btn:hover { background: var(--btn-primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+/* ── KPIs ────────────────────────────────────────────────── */
+.tpl-kpis { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.tpl-kpi { display: flex; flex-direction: column; align-items: center; padding: 14px 18px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-light); flex: 1; min-width: 120px; }
+.tpl-kpi-n { font-size: 22px; font-weight: 900; color: var(--color-primary); line-height: 1.2; }
+.tpl-kpi-l { font-size: 11px; color: var(--color-muted); margin-top: 2px; text-align: center; }
+
+/* ── Featured ────────────────────────────────────────────── */
+.tpl-featured { margin-bottom: 20px; }
+.tpl-featured h4 { margin: 0 0 12px; color: var(--color-primary); }
+.tpl-featured-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+.tpl-featured-card {
+  min-width: 180px; padding: 16px; background: var(--accent-light);
+  border: 1px solid var(--border-color); border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center; flex-shrink: 0; cursor: pointer; transition: all .15s;
+}
+.tpl-featured-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.tpl-featured-card h5 { margin: 0; font-size: 13px; color: var(--color-primary); }
+.tpl-card-cat { font-size: 10px; font-weight: 700; color: var(--color-primary); padding: 2px 8px; border-radius: 6px; background: var(--accent-light); }
+.tpl-card-rating { font-size: 11px; color: var(--color-primary); }
+.tpl-card-icon { font-size: 28px; }
+
+/* ── Filters ─────────────────────────────────────────────── */
+.tpl-filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.tpl-search { padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; min-width: 200px; background: var(--bg-input); color: var(--color-primary); }
+.tpl-search:focus { outline: none; border-color: var(--color-primary); }
+.tpl-cat-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.tpl-cat-btn {
+  padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 6px;
+  font-size: 11px; font-weight: 700; background: var(--bg-card);
+  color: var(--color-secondary); cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tpl-cat-btn:hover { border-color: var(--color-muted); }
+.tpl-cat-btn.active { background: var(--accent-light); color: var(--color-primary); border-color: var(--color-primary); }
+.tpl-cat-count { font-size: 10px; font-weight: 600; opacity: .65; }
+.tpl-sort { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px; margin-left: auto; background: var(--bg-input); color: var(--color-primary); }
+
+/* ── Template Grid ───────────────────────────────────────── */
+.tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+.tpl-card {
+  background: var(--bg-card); border-radius: 12px;
+  border: 1px solid var(--border-light); padding: 14px;
+  display: flex; flex-direction: column; gap: 8px; transition: border-color .15s;
+}
+.tpl-card:hover { border-color: var(--input-border); }
+
+/* Generate / create card */
+.tpl-card-generate {
+  border: 2px dashed var(--border-color); cursor: pointer;
+  background: var(--bg-surface); min-height: 200px;
+  display: flex; align-items: center; justify-content: center;
+}
+.tpl-card-generate:hover { border-color: var(--color-primary); background: var(--accent-light); }
+.tpl-generate-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--color-muted); text-align: center;
+}
+.tpl-card-generate:hover .tpl-generate-inner { color: var(--color-primary); }
+.tpl-card-generate .tpl-card-name { margin: 0; }
+.tpl-card-generate .tpl-card-desc { margin: 0; }
+
+/* Card top row with actions */
+.tpl-card-top { display: flex; justify-content: space-between; align-items: center; }
+.tpl-card-top-actions { display: flex; align-items: center; gap: 4px; }
+.tpl-card-format { font-size: 10px; font-weight: 800; color: var(--color-muted); padding: 2px 8px; border-radius: 6px; background: var(--bg-surface); }
+
+.tpl-card-action-btn {
+  width: 26px; height: 26px; border-radius: 6px; border: none;
+  background: transparent; color: var(--color-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.tpl-card-action-btn:hover { background: var(--bg-surface); color: var(--color-primary); }
+.tpl-delete-btn:hover { background: var(--danger-light); color: var(--danger); }
+
+.tpl-card-name { font-size: 14px; font-weight: 700; color: var(--color-primary); margin: 0; }
+.tpl-card-desc { font-size: 12px; color: var(--color-secondary); line-height: 1.5; margin: 0; }
+.tpl-card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tpl-tag { padding: 2px 8px; border-radius: 6px; font-size: 10px; background: var(--accent-light); color: var(--color-primary); font-weight: 600; }
+.tpl-card-footer { display: flex; gap: 12px; font-size: 11px; color: var(--color-muted); margin-top: auto; }
+
+.tpl-card-btns { display: flex; gap: 6px; margin-top: 4px; }
+.tpl-download-btn {
+  flex: 1; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--input-border);
+  background: var(--accent-light); color: var(--color-primary);
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-download-btn:hover { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
+
+.tpl-edit-btn {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+  background: var(--bg-card); color: var(--color-secondary);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.tpl-edit-btn:hover { background: var(--bg-surface); color: var(--color-primary); border-color: var(--color-muted); }
+
+.tpl-empty { text-align: center; color: var(--color-muted); padding: 40px; }
+
+/* ── Modal ───────────────────────────────────────────────── */
+.tpl-modal-overlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,.45); display: flex;
+  align-items: center; justify-content: center; padding: 24px;
+}
+.tpl-modal {
+  background: var(--bg-card); border-radius: 14px; width: 100%; max-width: 600px;
+  max-height: calc(100vh - 48px); display: flex; flex-direction: column;
+  box-shadow: var(--shadow-lg); animation: tplModalIn .2s ease;
+}
+.tpl-modal-sm { max-width: 420px; }
+
+@keyframes tplModalIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tpl-modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 24px; border-bottom: 1px solid var(--border-light); flex-shrink: 0;
+}
+.tpl-modal-header h3 { margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary); }
+.tpl-modal-close { background: none; border: none; color: var(--color-muted); cursor: pointer; padding: 4px; border-radius: 6px; display: flex; }
+.tpl-modal-close:hover { background: var(--bg-surface); color: var(--color-primary); }
+
+.tpl-modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+
+.tpl-modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 16px 24px; border-top: 1px solid var(--border-light); flex-shrink: 0;
+}
+.tpl-modal-cancel {
+  padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border-color);
+  background: var(--bg-card); color: var(--color-secondary); font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.tpl-modal-cancel:hover { background: var(--bg-surface); }
+
+.tpl-modal-save {
+  padding: 8px 20px; border-radius: 8px; border: none;
+  background: var(--btn-primary-bg); color: var(--btn-primary-text);
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-modal-save:hover:not(:disabled) { background: var(--btn-primary-hover); }
+.tpl-modal-save:disabled { opacity: .5; cursor: not-allowed; }
+
+.tpl-modal-delete {
+  padding: 8px 20px; border-radius: 8px; border: none;
+  background: var(--danger); color: #fff;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-modal-delete:hover { background: var(--danger-hover); }
+
+.tpl-delete-msg { font-size: 14px; color: var(--color-secondary); line-height: 1.6; margin: 0; }
+.tpl-delete-msg strong { color: var(--color-primary); }
+
+/* ── Form fields ─────────────────────────────────────────── */
+.tpl-form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.tpl-form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.tpl-fg-wide { min-width: 100%; }
+
+.tpl-field-label { font-size: 12px; font-weight: 600; color: var(--color-secondary); }
+
+.tpl-field-input {
+  padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 8px;
+  font-size: 13px; background: var(--bg-input); color: var(--color-primary);
+  transition: border-color .15s;
+}
+.tpl-field-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--accent-light); }
+
+.tpl-field-textarea {
+  padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 8px;
+  font-size: 13px; background: var(--bg-input); color: var(--color-primary);
+  font-family: inherit; resize: vertical; min-height: 60px;
+  transition: border-color .15s;
+}
+.tpl-field-textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--accent-light); }
+
+/* ── Icon picker ─────────────────────────────────────────── */
+.tpl-icon-picker {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 10px;
+  background: var(--bg-surface); border-radius: 8px; max-height: none;
+}
+.tpl-icon-opt {
+  width: 32px; height: 32px; border: 2px solid transparent; border-radius: 6px;
+  background: var(--bg-card); font-size: 18px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: all .12s;
+}
+.tpl-icon-opt:hover { border-color: var(--color-muted); }
+.tpl-icon-opt.active { border-color: var(--color-primary); background: var(--accent-light); }
+
+/* ── Tag editor ──────────────────────────────────────────── */
+.tpl-tags-editor {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px;
+  border: 1px solid var(--input-border); border-radius: 8px;
+  background: var(--bg-input); align-items: center; min-height: 38px;
+}
+.tpl-tag-editable { display: inline-flex; align-items: center; gap: 3px; }
+.tpl-tag-editable button {
+  background: none; border: none; color: var(--color-primary); font-size: 14px;
+  font-weight: 700; cursor: pointer; padding: 0; line-height: 1;
+}
+.tpl-tag-editable button:hover { color: var(--danger); }
+.tpl-tag-input {
+  border: none; background: transparent; outline: none; font-size: 12px;
+  color: var(--color-primary); min-width: 80px; flex: 1; padding: 2px 0;
+}
+.tpl-tag-input::placeholder { color: var(--color-muted); }
+
+/* ── File attachments on card ────────────────────────────── */
+.tpl-card-files {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--color-muted); margin-top: 2px;
+}
+.tpl-card-files svg { flex-shrink: 0; }
+.tpl-card-file-list {
+  display: flex; flex-wrap: wrap; gap: 4px; width: 100%; margin-top: 2px;
+}
+.tpl-card-file-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  background: var(--bg-surface); color: var(--color-secondary);
+  border: 1px solid var(--border-light); white-space: nowrap;
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── File management in modal ────────────────────────────── */
+.tpl-file-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 180px; overflow-y: auto; padding: 2px 0;
+}
+.tpl-file-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 8px;
+  background: var(--bg-surface); border: 1px solid var(--border-light);
+  transition: all .15s;
+}
+.tpl-file-row:hover { border-color: var(--color-primary); background: var(--bg-surface-hover); }
+.tpl-file-icon { font-size: 18px; flex-shrink: 0; }
+.tpl-file-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.tpl-file-name {
+  font-size: 13px; font-weight: 600; color: var(--color-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tpl-file-size { font-size: 11px; color: var(--color-muted); }
+.tpl-file-remove {
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; color: var(--color-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.tpl-file-remove:hover { background: var(--danger-light, rgba(237,166,163,.15)); color: var(--danger); }
+
+/* ── Drop zone ───────────────────────────────────────────── */
+.tpl-drop-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 20px; border-radius: 10px;
+  border: 2px dashed var(--border-color); background: var(--bg-surface);
+  color: var(--color-muted); font-size: 13px; cursor: pointer;
+  transition: all .2s; text-align: center;
+}
+.tpl-drop-zone:hover { border-color: var(--color-primary); background: var(--accent-light); color: var(--color-secondary); }
+.tpl-drop-zone strong { color: var(--color-primary); }
+.tpl-drop-hint { font-size: 11px; opacity: .7; }
+
+/* ── Featured checkbox ───────────────────────────────────── */
+.tpl-featured-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--color-secondary); cursor: pointer;
+}
+.tpl-featured-check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+
+/* ── Role badge ─────────────────────────────────────────── */
+.tpl-role-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+  background: var(--accent-light); color: var(--color-primary);
+  margin-left: 10px; vertical-align: middle;
+}
+
+/* ── Status badges ──────────────────────────────────────── */
+.tpl-status-badge {
+  display: inline-flex; align-items: center; padding: 2px 10px;
+  border-radius: 20px; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+}
+.tpl-badge-approved { background: rgba(39,174,96,.12); color: #27ae60; }
+.tpl-badge-pending_approval { background: rgba(243,156,18,.12); color: #f39c12; }
+.tpl-badge-draft { background: rgba(149,165,166,.15); color: #7f8c8d; }
+.tpl-badge-rejected { background: rgba(237,166,163,.15); color: var(--danger); }
+
+/* ── Card status variants ───────────────────────────────── */
+.tpl-card-status-draft { border-left: 3px solid #95a5a6; opacity: .85; }
+.tpl-card-status-pending_approval { border-left: 3px solid #f39c12; }
+.tpl-card-status-rejected { border-left: 3px solid var(--danger); opacity: .85; }
+
+/* ── Card creator info ──────────────────────────────────── */
+.tpl-card-creator {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--color-muted);
+}
+.tpl-card-date { margin-left: auto; font-size: 10px; opacity: .7; }
+
+/* ── Rejection note on card ─────────────────────────────── */
+.tpl-rejection-note {
+  padding: 8px 10px; border-radius: 6px; font-size: 11px;
+  background: rgba(237,166,163,.1); color: var(--danger);
+  border: 1px solid rgba(237,166,163,.25); line-height: 1.4;
+}
+.tpl-rejection-note strong { font-weight: 700; }
+
+/* ── Submit for approval button ─────────────────────────── */
+.tpl-submit-btn {
+  flex: 1; padding: 8px 14px; border-radius: 8px; border: none;
+  background: #f39c12; color: #fff;
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-submit-btn:hover { background: #e67e22; transform: translateY(-1px); }
+
+/* ── Approve / Reject buttons ───────────────────────────── */
+.tpl-approve-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 14px; border-radius: 8px; border: none;
+  background: #27ae60; color: #fff;
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-approve-btn:hover { background: #219a52; transform: translateY(-1px); }
+
+.tpl-reject-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 14px; border-radius: 8px; border: none;
+  background: var(--danger); color: #fff;
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.tpl-reject-btn:hover { background: var(--danger-hover); transform: translateY(-1px); }
+
+/* Pending label on own cards */
+.tpl-card-pending-label {
+  font-size: 11px; font-weight: 600; color: #f39c12;
+  font-style: italic; flex: 1;
+}
+
+/* ── Status filter buttons ──────────────────────────────── */
+.tpl-status-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.tpl-status-btn {
+  padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 6px;
+  font-size: 11px; font-weight: 700; background: var(--bg-card);
+  color: var(--color-secondary); cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tpl-status-btn:hover { border-color: var(--color-muted); }
+.tpl-status-btn.active { border-color: var(--color-primary); }
+.tpl-status-btn.active.tpl-status-all_status { background: var(--accent-light); color: var(--color-primary); }
+.tpl-status-btn.active.tpl-status-approved { background: rgba(39,174,96,.12); color: #27ae60; border-color: #27ae60; }
+.tpl-status-btn.active.tpl-status-pending_approval { background: rgba(243,156,18,.12); color: #f39c12; border-color: #f39c12; }
+.tpl-status-btn.active.tpl-status-draft { background: rgba(149,165,166,.12); color: #7f8c8d; border-color: #95a5a6; }
+.tpl-status-btn.active.tpl-status-rejected { background: rgba(237,166,163,.12); color: var(--danger); border-color: var(--danger); }
+.tpl-status-count { font-size: 10px; font-weight: 600; opacity: .65; }
+
+/* ── Pending KPI ────────────────────────────────────────── */
+.tpl-kpi-pending { border: 1px solid #f39c12; background: rgba(243,156,18,.08); }
+.tpl-kpi-pending .tpl-kpi-n { color: #f39c12; }
+
+/* ── Approval Queue Section ─────────────────────────────── */
+.tpl-approval-section {
+  margin-bottom: 20px; padding: 16px; border-radius: 12px;
+  background: rgba(243,156,18,.05); border: 1px solid rgba(243,156,18,.2);
+}
+.tpl-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 800; color: var(--color-primary); margin: 0 0 14px;
+}
+.tpl-approval-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #f39c12; color: #fff; font-size: 11px; font-weight: 800;
+}
+
+.tpl-approval-list { display: flex; flex-direction: column; gap: 10px; }
+
+.tpl-approval-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 16px; border-radius: 10px;
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  transition: border-color .15s;
+}
+.tpl-approval-card:hover { border-color: #f39c12; }
+.tpl-approval-card .tpl-card-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+
+.tpl-approval-info { flex: 1; min-width: 0; }
+.tpl-approval-info h5 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--color-primary); }
+.tpl-approval-info p { margin: 0 0 8px; font-size: 12px; color: var(--color-secondary); line-height: 1.4; }
+
+.tpl-approval-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.tpl-approval-by { font-size: 11px; font-weight: 600; color: var(--color-muted); }
+.tpl-approval-date { font-size: 11px; color: var(--color-muted); opacity: .7; }
+.tpl-approval-files { font-size: 11px; color: var(--color-primary); font-weight: 600; }
+
+.tpl-approval-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; flex-wrap: wrap; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tpl-kpi { min-width: 100px; }
+  .tpl-kpi-n { font-size: 20px; }
+}
+@media (max-width: 800px) {
+  .tpl-grid { grid-template-columns: 1fr; }
+  .tpl-header { flex-direction: column; }
+  .tpl-form-row { flex-direction: column; }
+  .tpl-form-group { min-width: 100%; }
+}

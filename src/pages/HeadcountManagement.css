@@ -1,0 +1,448 @@
+/* Headcount Management page styles */
+.headcount-page {
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+.headcount-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.headcount-back-link {
+  display: inline-block;
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.headcount-back-link:hover {
+  color: #000888;
+}
+
+.headcount-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 8px 0;
+}
+
+.headcount-subtitle {
+  font-size: 15px;
+  color: #666;
+  margin: 0;
+}
+
+/* Indicators */
+.headcount-indicators {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.headcount-indicator-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headcount-indicator-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headcount-indicator-icon.blue {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
+.headcount-indicator-icon.green {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+.headcount-indicator-icon.orange {
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+}
+
+.headcount-indicator-icon.purple {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.headcount-indicator-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.headcount-star {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.headcount-indicator-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.headcount-indicator-label {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin-top: 4px;
+}
+
+/* Main Layout */
+.headcount-main {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 12px;
+  align-items: start;
+}
+
+.headcount-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.headcount-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+}
+
+.headcount-card-subtitle {
+  font-size: 14px;
+  color: var(--color-secondary);
+  margin: 0 0 12px 0;
+}
+
+/* Pages List */
+.headcount-pages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.headcount-page-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.headcount-page-item:hover {
+  background: var(--bg-surface-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.headcount-page-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headcount-page-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.headcount-page-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 2px 0;
+}
+
+.headcount-page-item-desc {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headcount-page-item-arrow {
+  color: var(--color-muted);
+  font-size: 16px;
+  transition: transform 0.2s;
+}
+
+.headcount-page-item:hover .headcount-page-item-arrow {
+  transform: translateX(4px);
+}
+
+/* Sidebar */
+.headcount-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.headcount-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.headcount-action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.headcount-action-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.headcount-action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-icon);
+  flex-shrink: 0;
+}
+
+.headcount-action-item:hover .headcount-action-icon {
+  background: var(--bg-surface-hover);
+  opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .headcount-indicators {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .headcount-main {
+    grid-template-columns: 1fr;
+  }
+
+  .headcount-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .headcount-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .headcount-indicators {
+    grid-template-columns: 1fr;
+  }
+
+  .headcount-indicator-value {
+    font-size: 24px;
+  }
+}
+
+/* Edit button on indicator cards */
+.hm-edit-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.hm-edit-btn:hover {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+}
+
+/* Add New Module button in quick actions */
+.headcount-action-add {
+  border: 1px dashed var(--border-color);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.headcount-action-add:hover {
+  border-color: var(--color-primary);
+  background: var(--accent-light);
+}
+
+/* Modal (aligned with TemplateLibrary modal patterns) */
+.hm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.hm-modal {
+  background: var(--bg-card);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  animation: hmModalIn 0.2s ease;
+}
+@keyframes hmModalIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.hm-modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.hm-modal-close {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hm-modal-close:hover {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+}
+.hm-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.hm-modal-cancel {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--color-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.hm-modal-cancel:hover {
+  background: var(--bg-surface);
+}
+.hm-modal-save {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.hm-modal-save:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+}
+.hm-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.hm-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+.hm-field-input {
+  padding: 9px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--bg-input);
+  color: var(--color-primary);
+  transition: border-color 0.15s;
+}
+.hm-field-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+

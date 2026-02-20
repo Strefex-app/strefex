@@ -1,0 +1,357 @@
+/* ═══════════════════════════════════════════════════════
+ *  WALLET PAGE
+ * ═══════════════════════════════════════════════════════ */
+.wal-page { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* Header */
+.wal-header { margin-bottom: 24px; }
+.wal-back { background: none; border: none; color: var(--color-primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 8px; display: inline-block; }
+.wal-back:hover { text-decoration: underline; }
+.wal-title { font-size: 26px; font-weight: 800; color: var(--wal-text, var(--color-primary)); margin: 0; }
+.wal-subtitle { font-size: 13px; color: var(--color-muted); margin: 4px 0 0; }
+
+/* Feedback */
+.wal-feedback {
+  position: fixed; top: 20px; right: 20px; z-index: 10000;
+  padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600;
+  box-shadow: var(--shadow-lg); animation: walFadeIn .3s;
+}
+.wal-feedback.success { background: var(--accent-light); color: var(--accent-text); border: 1px solid var(--border-color); }
+.wal-feedback.error { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); }
+@keyframes walFadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Tabs */
+.wal-tabs {
+  display: flex; gap: 4px; margin-bottom: 24px;
+  border-bottom: 2px solid var(--border-light); padding-bottom: 0;
+}
+.wal-tab {
+  padding: 10px 18px; font-size: 13px; font-weight: 600;
+  border: none; background: none; color: var(--color-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all .15s;
+}
+.wal-tab:hover { color: var(--color-primary); }
+.wal-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+/* ── Balance Card ──────────────────────────────────── */
+.wal-balance-card {
+  background: var(--btn-primary-bg);
+  border-radius: 20px; padding: 32px; color: var(--btn-primary-text); margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+}
+.wal-balance-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.wal-balance-label { font-size: 13px; opacity: .7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+.wal-balance-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.wal-sec-badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.wal-sec-badge.green { background: rgba(46,204,113,.2); color: #2ecc71; }
+.wal-sec-badge.blue { background: rgba(52,152,219,.2); color: var(--color-primary); }
+.wal-sec-badge.purple { background: rgba(155,89,182,.2); color: #c39bd3; }
+.wal-balance-amount { font-size: 48px; font-weight: 900; line-height: 1.1; margin-bottom: 4px; }
+.wal-balance-currency { font-size: 14px; opacity: .5; font-weight: 600; margin-bottom: 12px; }
+.wal-escrow-info {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; opacity: .7; margin-bottom: 16px;
+}
+.wal-balance-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Buttons */
+.wal-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  border: none; cursor: pointer; transition: all .15s;
+}
+.wal-btn.primary { background: var(--bg-card); color: var(--btn-primary-bg); }
+.wal-btn.primary:hover { background: rgba(255,255,255,.85); }
+.wal-btn.secondary { background: rgba(255,255,255,.15); color: var(--btn-primary-text); border: 1px solid rgba(255,255,255,.3); }
+.wal-btn.secondary:hover { background: rgba(255,255,255,.25); }
+.wal-btn.accent { background: rgba(46,204,113,.9); color: var(--btn-primary-text); }
+.wal-btn.accent:hover { background: rgba(46,204,113,1); }
+.wal-btn.small { padding: 6px 14px; font-size: 12px; }
+
+/* Outside balance card — regular btn overrides */
+.wal-section .wal-btn.primary,
+.wal-modal .wal-btn.primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
+.wal-section .wal-btn.primary:hover,
+.wal-modal .wal-btn.primary:hover { background: var(--btn-primary-hover); }
+.wal-section .wal-btn.secondary,
+.wal-modal .wal-btn.secondary { background: var(--bg-surface); color: var(--color-primary); border: 1px solid var(--border-color); }
+.wal-section .wal-btn.secondary:hover,
+.wal-modal .wal-btn.secondary:hover { background: var(--bg-surface-hover); }
+
+.wal-btn-sm {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  border: none; cursor: pointer; transition: all .15s;
+}
+.wal-btn-sm.green { background: rgba(46,204,113,.1); color: #27ae60; }
+.wal-btn-sm.green:hover { background: rgba(46,204,113,.2); }
+.wal-btn-sm.red { background: var(--danger-light); color: var(--danger); }
+.wal-btn-sm.red:hover { background: var(--danger-light); }
+.wal-btn-sm.blue { background: var(--accent-light); color: var(--color-primary); }
+.wal-btn-sm.blue:hover { background: rgba(52,152,219,.2); }
+
+.wal-link { background: none; border: none; color: var(--color-primary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.wal-link:hover { text-decoration: underline; }
+
+/* ── Stats Row ─────────────────────────────────────── */
+.wal-stats-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.wal-stat {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 18px; background: var(--wal-card, var(--bg-card));
+  border-radius: 10px; border: 1px solid var(--border-light);
+  min-width: 120px; flex: 1;
+}
+.wal-stat-val { font-size: 22px; font-weight: 900; color: var(--color-primary); line-height: 1.2; }
+.wal-stat-label { font-size: 11px; color: var(--color-muted); margin-top: 2px; text-align: center; }
+
+/* ── Sections ──────────────────────────────────────── */
+.wal-section { margin-bottom: 28px; }
+.wal-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.wal-section-title { font-size: 17px; font-weight: 700; color: var(--wal-text, var(--color-primary)); margin: 0; }
+.wal-empty {
+  text-align: center; padding: 32px; color: var(--color-muted); font-size: 14px;
+  background: var(--wal-card, var(--bg-surface)); border-radius: 12px; border: 1px dashed var(--border-light);
+}
+.wal-empty-card {
+  text-align: center; padding: 48px; border-radius: 16px;
+  background: var(--wal-card, var(--bg-surface)); border: 2px dashed var(--border-light);
+}
+
+/* ── Transaction List ──────────────────────────────── */
+.wal-tx-list { display: flex; flex-direction: column; gap: 6px; }
+.wal-tx-list.full { gap: 8px; }
+.wal-tx-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--wal-card, var(--bg-card)); border: 1px solid var(--border-light);
+  transition: border-color .15s;
+}
+.wal-tx-item:hover { border-color: var(--border-color); }
+.wal-tx-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; flex-shrink: 0;
+}
+.wal-tx-info { flex: 1; min-width: 0; }
+.wal-tx-desc { font-size: 14px; font-weight: 600; color: var(--wal-text, var(--color-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wal-tx-meta { font-size: 11px; color: var(--color-muted); margin-top: 2px; }
+.wal-tx-ref { font-size: 10px; color: var(--color-muted); font-family: monospace; margin-top: 2px; }
+.wal-tx-amount { font-size: 16px; font-weight: 800; white-space: nowrap; }
+.wal-tx-status {
+  padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.wal-tx-status.completed { background: rgba(46,204,113,.1); color: #27ae60; }
+.wal-tx-status.processing { background: rgba(243,156,18,.1); color: #f39c12; }
+.wal-tx-status.pending { background: var(--accent-light); color: var(--color-primary); }
+.wal-tx-status.failed { background: var(--danger-light); color: var(--danger); }
+
+.wal-filter-select {
+  padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 8px;
+  font-size: 12px; background: var(--bg-card); cursor: pointer;
+}
+
+/* ── Escrow List ───────────────────────────────────── */
+.wal-escrow-list { display: flex; flex-direction: column; gap: 8px; }
+.wal-escrow-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--accent-light); border: 1px solid var(--border-color);
+}
+.wal-escrow-item-info { flex: 1; }
+.wal-escrow-item-title { font-size: 14px; font-weight: 600; color: var(--color-primary); }
+.wal-escrow-item-meta { font-size: 11px; color: var(--color-muted); margin-top: 2px; }
+.wal-escrow-item-amount { font-size: 18px; font-weight: 800; color: var(--color-primary); }
+.wal-escrow-item-actions { display: flex; gap: 6px; }
+
+/* ── Payment Methods ───────────────────────────────── */
+.wal-methods-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+.wal-method-card {
+  background: var(--wal-card, var(--bg-card)); border-radius: 14px; padding: 18px;
+  border: 1px solid var(--border-light); transition: all .15s;
+}
+.wal-method-card.default { border-color: var(--input-border); box-shadow: 0 0 0 1px var(--accent-light); }
+.wal-method-card:hover { border-color: var(--border-color); }
+.wal-method-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.wal-method-icon { font-size: 28px; }
+.wal-method-badges { display: flex; gap: 4px; }
+.wal-badge {
+  padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.wal-badge.green { background: rgba(46,204,113,.1); color: #27ae60; }
+.wal-badge.blue { background: var(--accent-light); color: var(--color-primary); }
+.wal-badge.orange { background: rgba(243,156,18,.1); color: #e67e22; }
+.wal-badge.red { background: var(--danger-light); color: var(--danger); }
+.wal-method-label { font-size: 14px; font-weight: 700; color: var(--wal-text, var(--color-primary)); margin-bottom: 2px; }
+.wal-method-type { font-size: 12px; color: var(--color-muted); }
+.wal-method-date { font-size: 11px; color: var(--color-muted); margin-top: 6px; }
+.wal-method-actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-light); }
+
+.wal-supported-info {
+  background: var(--wal-card, var(--bg-surface)); border-radius: 14px; padding: 20px;
+  border: 1px solid var(--border-light);
+}
+.wal-supported-info h4 { font-size: 14px; margin: 0 0 12px; color: var(--color-secondary); }
+.wal-supported-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.wal-supported-item {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light);
+  font-size: 12px; color: var(--color-secondary); font-weight: 500;
+}
+.wal-supported-icon { font-size: 16px; }
+
+/* ── Security Cards ────────────────────────────────── */
+.wal-sec-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+.wal-sec-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 20px; border-radius: 14px;
+  background: var(--wal-card, var(--bg-card)); border: 1px solid var(--border-light);
+}
+.wal-sec-card.ok { border-left: 4px solid var(--accent); }
+.wal-sec-card.warn { border-left: 4px solid var(--accent-hover); }
+.wal-sec-card-icon { color: var(--color-icon); flex-shrink: 0; }
+.wal-sec-card-info { flex: 1; }
+.wal-sec-card-title { font-size: 15px; font-weight: 700; color: var(--wal-text, var(--color-primary)); }
+.wal-sec-card-desc { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+
+/* Toggle */
+.wal-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.wal-toggle.small { width: 36px; height: 20px; }
+.wal-toggle input { opacity: 0; width: 0; height: 0; }
+.wal-toggle-slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--toggle-off); border-radius: 24px; transition: .2s;
+}
+.wal-toggle-slider::before {
+  content: ''; position: absolute;
+  height: 18px; width: 18px; left: 3px; bottom: 3px;
+  background: var(--bg-card); border-radius: 50%; transition: .2s;
+}
+.wal-toggle.small .wal-toggle-slider::before { height: 14px; width: 14px; }
+.wal-toggle input:checked + .wal-toggle-slider { background: var(--btn-primary-bg); }
+.wal-toggle input:checked + .wal-toggle-slider::before { transform: translateX(20px); }
+.wal-toggle.small input:checked + .wal-toggle-slider::before { transform: translateX(16px); }
+
+/* Security limits */
+.wal-sec-limits { margin-bottom: 28px; }
+.wal-sec-limits h4 { font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--wal-text, var(--color-primary)); }
+.wal-sec-limits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.wal-sec-limit-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-radius: 10px;
+  background: var(--wal-card, var(--bg-surface)); border: 1px solid var(--border-light);
+  font-size: 13px; color: var(--color-secondary);
+}
+.wal-sec-limit-item strong { color: var(--wal-text, var(--color-primary)); }
+
+/* Security tips */
+.wal-sec-tips { background: var(--accent-light); border-radius: 14px; padding: 20px; border: 1px solid var(--border-light); }
+.wal-sec-tips h4 { margin: 0 0 10px; font-size: 14px; color: var(--color-primary); }
+.wal-sec-tips ul { margin: 0; padding-left: 18px; }
+.wal-sec-tips li { font-size: 13px; color: var(--color-secondary); margin-bottom: 6px; line-height: 1.5; }
+.wal-sec-tips li.warn { color: var(--danger); font-weight: 600; }
+
+/* ── Modals ────────────────────────────────────────── */
+.wal-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+  z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.wal-modal {
+  background: var(--wal-card, var(--bg-card)); border-radius: 20px; padding: 32px;
+  width: 100%; max-width: 440px; box-shadow: var(--shadow-lg);
+  animation: walModalIn .25s;
+}
+.wal-modal.wide { max-width: 540px; }
+.wal-modal.verify { max-width: 400px; text-align: center; }
+@keyframes walModalIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+.wal-modal-title { font-size: 20px; font-weight: 800; color: var(--wal-text, var(--color-primary)); margin: 0 0 16px; }
+.wal-modal-info { font-size: 13px; color: var(--color-muted); margin-bottom: 14px; }
+.wal-modal-info strong { color: var(--wal-text, var(--color-primary)); }
+.wal-modal-field { margin-bottom: 14px; }
+.wal-modal-field label { display: block; font-size: 12px; font-weight: 600; color: var(--color-secondary); margin-bottom: 4px; }
+.wal-modal-field input,
+.wal-modal-field select {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 10px;
+  font-size: 14px; background: var(--wal-card, var(--bg-card)); color: var(--wal-text, var(--color-primary));
+  box-sizing: border-box;
+}
+.wal-modal-field input:focus,
+.wal-modal-field select:focus { outline: none; border-color: var(--btn-primary-bg); box-shadow: 0 0 0 2px var(--accent-light); }
+.wal-modal-hint { font-size: 12px; color: var(--color-muted); }
+.wal-modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.wal-quick-amounts { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.wal-quick-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--color-secondary); cursor: pointer;
+  transition: all .15s;
+}
+.wal-quick-btn:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--accent-light); }
+.wal-method-form-fields { display: flex; flex-direction: column; gap: 2px; }
+.wal-checkbox-label {
+  display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-secondary);
+  margin-top: 8px; cursor: pointer;
+}
+.wal-checkbox-label input { width: auto; }
+
+/* Verification modal */
+.wal-verify-icon { margin-bottom: 12px; }
+.wal-verify-desc { font-size: 13px; color: var(--color-muted); margin-bottom: 12px; }
+.wal-verify-step-badge {
+  display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 11px;
+  font-weight: 700; background: var(--accent-light); color: var(--color-primary); margin-bottom: 16px;
+}
+.wal-verify-hint { font-size: 11px; color: var(--color-muted); margin-top: 8px; }
+.wal-verify-hint strong { color: var(--color-primary); }
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .wal-stat { min-width: 100px; }
+  .wal-stat-val { font-size: 20px; }
+}
+@media (max-width: 600px) {
+  .wal-balance-amount { font-size: 32px; }
+  .wal-balance-actions { flex-direction: column; }
+  .wal-stats-row { gap: 10px; }
+  .wal-methods-grid { grid-template-columns: 1fr; }
+  .wal-modal { padding: 24px; }
+}
+
+/* ── Dark Mode ─────────────────────────────────────── */
+[data-theme="dark"] {
+  --wal-text: var(--color-primary);
+  --wal-card: var(--bg-card);
+}
+[data-theme="dark"] .wal-balance-card { box-shadow: var(--shadow-lg); }
+[data-theme="dark"] .wal-stat { background: var(--bg-card); border-color: var(--border-light); }
+[data-theme="dark"] .wal-tx-item { background: var(--bg-card); border-color: var(--border-light); }
+[data-theme="dark"] .wal-tx-item:hover { border-color: var(--border-color); }
+[data-theme="dark"] .wal-escrow-item { background: var(--accent-light); border-color: var(--border-color); }
+[data-theme="dark"] .wal-method-card { background: var(--bg-card); border-color: var(--border-light); }
+[data-theme="dark"] .wal-method-card.default { border-color: var(--input-border); }
+[data-theme="dark"] .wal-method-actions { border-color: var(--border-light); }
+[data-theme="dark"] .wal-supported-info { background: var(--bg-surface); border-color: var(--border-light); }
+[data-theme="dark"] .wal-supported-item { background: var(--bg-card); border-color: var(--border-light); color: var(--color-secondary); }
+[data-theme="dark"] .wal-sec-card { background: var(--bg-card); border-color: var(--border-light); }
+[data-theme="dark"] .wal-sec-card-icon { color: var(--color-icon); }
+[data-theme="dark"] .wal-sec-limit-item { background: var(--bg-surface); border-color: var(--border-light); color: var(--color-secondary); }
+[data-theme="dark"] .wal-sec-tips { background: var(--accent-light); border-color: var(--border-color); }
+[data-theme="dark"] .wal-sec-tips li { color: var(--color-secondary); }
+[data-theme="dark"] .wal-modal { background: var(--bg-card); }
+[data-theme="dark"] .wal-modal-field input,
+[data-theme="dark"] .wal-modal-field select { background: var(--bg-input); border-color: var(--input-border); color: var(--color-primary); }
+[data-theme="dark"] .wal-quick-btn { background: var(--bg-surface-hover); border-color: var(--toggle-off); color: var(--color-secondary); }
+[data-theme="dark"] .wal-quick-btn:hover { background: var(--accent-light); color: var(--color-primary); border-color: var(--color-primary); }
+[data-theme="dark"] .wal-filter-select { background: var(--bg-card); color: var(--color-primary); border-color: var(--input-border); }
+[data-theme="dark"] .wal-empty { background: var(--bg-surface); border-color: var(--border-light); color: var(--color-muted); }
+[data-theme="dark"] .wal-empty-card { background: var(--bg-surface); border-color: var(--border-light); }
+[data-theme="dark"] .wal-feedback.success { background: var(--accent-light); border-color: var(--color-primary); }
+[data-theme="dark"] .wal-feedback.error { background: var(--danger-light); border-color: var(--danger); }
