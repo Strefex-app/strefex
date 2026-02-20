@@ -546,4 +546,29 @@ const stripeService = {
   },
 }
 
+/**
+ * Sync subscription status from the Supabase `subscriptions` table.
+ * Returns { plan_id, status, current_period_end } or null.
+ */
+export async function syncSubscriptionFromSupabase() {
+  try {
+    const { supabase } = await import('../config/supabase')
+    if (!supabase) return null
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('plan_id, status, current_period_end, stripe_customer_id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    return data || null
+  } catch {
+    return null
+  }
+}
+
 export default stripeService

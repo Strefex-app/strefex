@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import AnalyticsProvider from './components/AnalyticsProvider'
 import UpgradePrompt from './components/UpgradePrompt'
+import PWAUpdateBanner from './components/PWAUpdateBanner'
 import AppLayout from './components/AppLayout'
 import authService from './services/authService'
 
@@ -130,6 +131,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <PWAUpdateBanner />
       <Router>
         <AnalyticsProvider>
         <Routes>

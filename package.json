@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.38.0",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "jsdom": "^28.0.0",
+    "sharp": "^0.34.5",
     "vite": "^5.0.8",
     "vitest": "^4.0.18"
   }

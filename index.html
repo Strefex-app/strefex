@@ -2,23 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000888" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+
+    <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/assets/strefex-logo.png" />
+
+    <!-- Theme / brand colour -->
+    <meta name="theme-color" content="#000888" />
+    <meta name="color-scheme" content="light" />
+
+    <!-- Primary meta -->
     <title>STREFEX Platform</title>
+    <meta name="description" content="Strategic Sourcing & Procurement Platform — Manage suppliers, projects, contracts, spend, and compliance." />
+    <meta name="application-name" content="STREFEX" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/svg+xml" href="/assets/icon-src.svg" />
+
+    <!-- ─── iOS / Safari ──────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="STREFEX" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120x120.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+
+    <!-- iOS splash screens (generated sizes for common devices) -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+
+    <!-- ─── Android / Chrome ──────────────────────────────── -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- ─── Windows / Edge ────────────────────────────────── -->
+    <meta name="msapplication-TileColor" content="#000888" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-config" content="none" />
+
+    <!-- ─── Open Graph (link previews) ────────────────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="STREFEX Platform" />
+    <meta property="og:description" content="Strategic Sourcing & Procurement Platform" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+
+    <!-- ─── Twitter Card ──────────────────────────────────── -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="STREFEX Platform" />
+    <meta name="twitter:description" content="Strategic Sourcing & Procurement Platform" />
+    <meta name="twitter:image" content="/icons/icon-512x512.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
-        })
-      }
-    </script>
   </body>
 </html>

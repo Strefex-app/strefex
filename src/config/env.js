@@ -20,7 +20,8 @@ const env = {
   FIREBASE_APP_ID:               import.meta.env.VITE_FIREBASE_APP_ID              || '',
 
   /* ── Stripe ───────────────────────────────────────────── */
-  STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+  STRIPE_PUBLISHABLE_KEY:   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY   || '',
+  STRIPE_PRICING_TABLE_ID:  import.meta.env.VITE_STRIPE_PRICING_TABLE_ID  || '',
 
   /* ── Mixpanel ─────────────────────────────────────────── */
   MIXPANEL_TOKEN: import.meta.env.VITE_MIXPANEL_TOKEN || '',

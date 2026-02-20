@@ -338,6 +338,7 @@ export const productionService = createCrudService('production_data')
 export const costDataService   = createCrudService('cost_data')
 export const enterpriseService = createCrudService('enterprise_data')
 export const fileMetadataService = createCrudService('file_metadata')
+export const subscriptionsService = createCrudService('subscriptions')
 
 /* ================================================================
    STORAGE — File uploads

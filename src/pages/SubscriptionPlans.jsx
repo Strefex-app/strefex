@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import StripePricingTable from '../components/StripePricingTable'
 import { useSubscriptionStore } from '../services/featureFlags'
 import stripeService, { PLANS, BILLING_PERIODS, BILLING_DISCOUNT, getPlanPrice, getBillingLabel, getStorageLabel } from '../services/stripeService'
 import { useTransactionStore, getCompanyDomain } from '../store/transactionStore'
 import { useAuthStore } from '../store/authStore'
 import { analytics } from '../services/analytics'
+import { isStripeConfigured } from '../config/stripe'
+import { syncSubscriptionFromSupabase } from '../services/stripeService'
 import './SubscriptionPlans.css'
 
 const MAX_VISIBLE_FEATURES = 5
@@ -28,6 +31,7 @@ export default function SubscriptionPlans() {
   const role = useAuthStore((s) => s.role)
   const isSuperAdmin = role === 'superadmin'
   const isCompanyAdmin = role === 'admin' || isSuperAdmin
+  const stripeLive = isStripeConfigured
 
   const [billingPeriod, setBillingPeriod] = useState(storedBilling || BILLING_PERIODS.MONTHLY)
 
@@ -49,8 +53,16 @@ export default function SubscriptionPlans() {
     : ''
 
   useEffect(() => {
+    syncSubscriptionFromSupabase().then((sub) => {
+      if (sub?.plan_id && sub.plan_id !== currentPlan) {
+        setPlan(sub.plan_id, sub.status || 'active')
+      }
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (searchParams.get('success') === 'true') {
-      stripeService.getSubscription().then((sub) => {
+      syncSubscriptionFromSupabase().then((sub) => {
         if (sub?.plan_id) {
           const prevPlan = currentPlan
           setPlan(sub.plan_id, sub.status)
@@ -72,6 +84,10 @@ export default function SubscriptionPlans() {
             })
           }
         }
+      }).catch(() => {
+        stripeService.getSubscription().then((sub) => {
+          if (sub?.plan_id) setPlan(sub.plan_id, sub.status)
+        })
       })
       analytics.track('checkout_completed')
     }
@@ -168,6 +184,22 @@ export default function SubscriptionPlans() {
         {pendingUpgrade && (
           <div className="sp-alert sp-alert-info" style={{ borderColor: '#e65100', background: 'rgba(230,81,0,.06)' }}>
             <strong>Upgrade Pending:</strong> Your upgrade to <strong>{PLANS.find((p) => p.id === pendingUpgrade.planTo)?.name}</strong> is: <strong>{pendingStatusLabel}</strong>
+          </div>
+        )}
+
+        {/* ── Stripe Pricing Table (live checkout) ── */}
+        {stripeLive && (
+          <div className="app-page-card" style={{ padding: '2rem 1rem' }}>
+            <h3 style={{ textAlign: 'center', marginBottom: '0.5rem', fontSize: '1.1rem', color: '#333' }}>
+              Subscribe via Stripe
+            </h3>
+            <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#888' }}>
+              Secure checkout powered by Stripe. Select a plan below to subscribe.
+            </p>
+            <StripePricingTable
+              customerEmail={user?.email}
+              clientReferenceId={user?.companyId || user?.tenant || ''}
+            />
           </div>
         )}
 
