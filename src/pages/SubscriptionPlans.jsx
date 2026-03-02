@@ -33,6 +33,7 @@ export default function SubscriptionPlans() {
   const isSuperAdmin = role === 'superadmin'
   const isCompanyAdmin = role === 'admin' || isSuperAdmin
   const stripeLive = isStripeConfigured
+  const showStripePricingTable = stripeLive && env.SHOW_STRIPE_PRICING_TABLE
   const showLocalPlanCatalog = !stripeLive && env.IS_DEV
 
   const [billingPeriod, setBillingPeriod] = useState(storedBilling || BILLING_PERIODS.MONTHLY)
@@ -225,23 +226,27 @@ export default function SubscriptionPlans() {
           </div>
         )}
 
-        {/* ── Stripe Pricing Table (live checkout) ── */}
+        {/* ── Stripe checkout section ── */}
         {stripeLive && (
           <div className="app-page-card" style={{ padding: '2rem 1rem' }}>
             <h3 style={{ textAlign: 'center', marginBottom: '0.5rem', fontSize: '1.1rem', color: '#333' }}>
               Subscribe via Stripe
             </h3>
             <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#888' }}>
-              Secure checkout powered by Stripe. Select a plan below to subscribe.
+              Secure checkout powered by Stripe. Use the plan buttons below to subscribe.
             </p>
-            <StripePricingTable
-              customerEmail={user?.email}
-              clientReferenceId={user?.companyId || user?.tenant || ''}
-            />
-            <div style={{ marginTop: '1rem' }}>
-              <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
-                If the pricing table is slow, use quick checkout:
-              </p>
+            {showStripePricingTable && (
+              <StripePricingTable
+                customerEmail={user?.email}
+                clientReferenceId={user?.companyId || user?.tenant || ''}
+              />
+            )}
+            <div style={{ marginTop: showStripePricingTable ? '1rem' : 0 }}>
+              {showStripePricingTable && (
+                <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
+                  If the pricing table is slow, use quick checkout:
+                </p>
+              )}
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
                 {PLANS.filter((p) => p.price > 0).map((plan) => (
                   <button

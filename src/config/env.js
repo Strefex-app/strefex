@@ -22,6 +22,7 @@ const env = {
   /* ── Stripe ───────────────────────────────────────────── */
   STRIPE_PUBLISHABLE_KEY:   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY   || '',
   STRIPE_PRICING_TABLE_ID:  import.meta.env.VITE_STRIPE_PRICING_TABLE_ID  || '',
+  SHOW_STRIPE_PRICING_TABLE: String(import.meta.env.VITE_SHOW_STRIPE_PRICING_TABLE || '').toLowerCase() === 'true',
   STRIPE_PRICE_ID_BASIC:    import.meta.env.VITE_STRIPE_PRICE_ID_BASIC     || '',
   STRIPE_PRICE_ID_STANDARD: import.meta.env.VITE_STRIPE_PRICE_ID_STANDARD  || '',
   STRIPE_PRICE_ID_PREMIUM:  import.meta.env.VITE_STRIPE_PRICE_ID_PREMIUM   || '',
