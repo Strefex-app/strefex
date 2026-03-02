@@ -126,7 +126,11 @@ function RegisterForm() {
 
       // FREE tier activates immediately; paid tiers require Stripe confirmation.
       if (selectedTier !== 'free') {
-        const checkout = await stripeService.checkout(selectedTier)
+        const checkout = await stripeService.checkout(selectedTier, {
+          userId: result?.user?.id || '',
+          userEmail: email.trim().toLowerCase(),
+          industry: selectedIndustry || 'general',
+        })
         if (checkout?.error) {
           setError(checkout.error)
           return

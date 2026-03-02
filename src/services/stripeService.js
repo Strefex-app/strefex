@@ -515,63 +515,59 @@ const stripeService = {
   plans: PLANS,
   TIERS,
 
-  async checkout(planId) {
+  async checkout(planId, context = {}) {
     if (!isStripeConfigured) {
       console.warn('[Stripe] Not configured — skipping checkout')
       return { error: 'Stripe is not configured. Set VITE_STRIPE_PUBLISHABLE_KEY in .env' }
     }
+    if (planId === 'start' || planId === 'free') {
+      return { success: true, bypassed: true }
+    }
+
+    const priceIdByPlan = {
+      basic: env.STRIPE_PRICE_ID_BASIC,
+      standard: env.STRIPE_PRICE_ID_STANDARD,
+      premium: env.STRIPE_PRICE_ID_PREMIUM,
+      enterprise: env.STRIPE_PRICE_ID_ENTERPRISE,
+    }
+    const priceId = priceIdByPlan[planId]
+    if (!priceId) {
+      return { error: `Missing Stripe price ID for ${planId}. Set VITE_STRIPE_PRICE_ID_${planId.toUpperCase()} in Vercel.` }
+    }
+
     analytics.track('checkout_started', { plan: planId })
     try {
-      const { session_id } = await billingApi.createCheckout(planId)
+      const payload = {
+        priceId,
+        tier: planId,
+        industry: context.industry || 'general',
+        userId: context.userId || '',
+        userEmail: context.userEmail || '',
+      }
+
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to create checkout session')
+      }
+
+      const sessionId = data?.sessionId || data?.session_id
+      if (!sessionId) {
+        throw new Error('Checkout session ID is missing from server response')
+      }
+
       const stripe = await getStripe()
       if (!stripe) throw new Error('Stripe failed to load')
-      const { error } = await stripe.redirectToCheckout({ sessionId: session_id })
+      const { error } = await stripe.redirectToCheckout({ sessionId })
       if (error) throw error
       return { success: true }
     } catch (err) {
-      // Fallback path: if backend checkout endpoint is unavailable, redirect
-      // directly via Stripe price IDs configured in Vercel env vars.
-      const priceIdByPlan = {
-        basic: env.STRIPE_PRICE_ID_BASIC,
-        standard: env.STRIPE_PRICE_ID_STANDARD,
-        premium: env.STRIPE_PRICE_ID_PREMIUM,
-        enterprise: env.STRIPE_PRICE_ID_ENTERPRISE,
-      }
-      const fallbackPriceId = priceIdByPlan[planId]
-      let fallbackMessage = ''
-      if (fallbackPriceId) {
-        try {
-          const stripe = await getStripe()
-          if (stripe) {
-            const result = await stripe.redirectToCheckout({
-              mode: 'subscription',
-              lineItems: [{ price: fallbackPriceId, quantity: 1 }],
-              successUrl: `${window.location.origin}/plans?success=true`,
-              cancelUrl: `${window.location.origin}/plans?canceled=true`,
-            })
-            if (!result?.error) return { success: true }
-            fallbackMessage = result.error?.message || ''
-          }
-        } catch (fallbackErr) {
-          fallbackMessage = fallbackErr?.message || ''
-        }
-      }
-
-      // Final fallback: open Stripe Payment Link directly (if configured).
-      const paymentLinkByPlan = {
-        basic: env.STRIPE_PAYMENT_LINK_BASIC,
-        standard: env.STRIPE_PAYMENT_LINK_STANDARD,
-        premium: env.STRIPE_PAYMENT_LINK_PREMIUM,
-        enterprise: env.STRIPE_PAYMENT_LINK_ENTERPRISE,
-      }
-      const paymentLink = paymentLinkByPlan[planId]
-      if (paymentLink) {
-        window.location.assign(paymentLink)
-        return { success: true }
-      }
-
       const rawMessage =
-        fallbackMessage ||
         err?.detail ||
         err?.data?.detail ||
         err?.data?.message ||
@@ -587,7 +583,7 @@ const stripeService = {
         normalized === 'error'
 
       const errorMessage = isGenericUnexpected
-        ? 'Checkout is temporarily unavailable. Please set Stripe fallback env vars: VITE_STRIPE_PRICE_ID_* or VITE_STRIPE_PAYMENT_LINK_* in Vercel, then redeploy.'
+        ? 'Unable to start Stripe checkout right now. Please try again.'
         : String(rawMessage)
 
       analytics.track('checkout_error', { plan: planId, error: errorMessage })

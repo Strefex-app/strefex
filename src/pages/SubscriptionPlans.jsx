@@ -162,7 +162,11 @@ export default function SubscriptionPlans() {
   const handleQuickStripeCheckout = async (planId) => {
     setError('')
     setLoading(planId)
-    const result = await stripeService.checkout(planId)
+    const result = await stripeService.checkout(planId, {
+      userId: user?.id || user?.userId || '',
+      userEmail: user?.email || '',
+      industry: 'general',
+    })
     if (result?.error) setError(result.error)
     setLoading(null)
   }
