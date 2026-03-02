@@ -1,7 +1,7 @@
 /**
  * Stripe service — subscription management and checkout.
  */
-import { getStripe, isStripeConfigured } from '../config/stripe'
+import { isStripeConfigured } from '../config/stripe'
 import env from '../config/env'
 import { billingApi } from './api'
 import { analytics } from './analytics'
@@ -544,16 +544,13 @@ const stripeService = {
         throw new Error(data?.error || 'Failed to create checkout session')
       }
 
-      const sessionId = data?.sessionId || data?.session_id
-      if (!sessionId) {
-        throw new Error('Checkout session ID is missing from server response')
+      const checkoutUrl = data?.url || ''
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl)
+        return { success: true }
       }
 
-      const stripe = await getStripe()
-      if (!stripe) throw new Error('Stripe failed to load')
-      const { error } = await stripe.redirectToCheckout({ sessionId })
-      if (error) throw error
-      return { success: true }
+      throw new Error('Checkout URL is missing from server response')
     } catch (err) {
       const rawMessage =
         err?.detail ||
