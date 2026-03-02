@@ -74,6 +74,8 @@ const Login = () => {
 
       if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
         setError('Please verify your email before logging in.')
+      } else if (err.code === 'request_timeout' || msg.toLowerCase().includes('timed out')) {
+        setError('Login is taking too long. Please check your connection and try again.')
       } else if (err.code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login')) {
         setError('Invalid email or password.')
       } else if (err.status === 0 || msg.includes('Network error') || msg.includes('Failed to fetch')) {

@@ -21,6 +21,7 @@ import {
 } from 'firebase/auth'
 import { auth as firebaseAuth, isFirebaseConfigured } from '../config/firebase'
 import { isSupabaseConfigured } from '../config/supabase'
+import env from '../config/env'
 import { supabaseAuth, profilesService, companiesService } from './supabaseService'
 import { authApi } from './api'
 import { useAuthStore } from '../store/authStore'
@@ -35,8 +36,23 @@ import {
 import { useIndustryStore } from '../store/industryStore'
 
 const googleProvider = isFirebaseConfigured ? new GoogleAuthProvider() : null
+const AUTH_TIMEOUT_MS = 12000
 
 /* ── Internal helpers ────────────────────────────────────── */
+
+async function withTimeout(promise, ms, message) {
+  let timer
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 function capRole(role, email) {
   if (role === 'superadmin' && !isSuperadminEmail(email)) return 'admin'
@@ -87,13 +103,16 @@ async function storeSupabaseSession(session, profile) {
     tenant: profile?.companies?.slug,
   })
 
-  // Load active subscriptions for industry+tier access guards.
+  // Load non-critical data in background so login does not block on slow network.
   if (user?.id) {
-    await useIndustrySubscriptionStore.getState().loadActiveSubscriptions(user.id)
+    useIndustrySubscriptionStore
+      .getState()
+      .loadActiveSubscriptions(user.id)
+      .catch(() => {})
   }
 
-  // Restore supplier industry/category registrations from database metadata.
-  await useIndustryStore.getState().hydrateFromDatabase?.()
+  // Restore supplier industry/category registrations asynchronously.
+  Promise.resolve(useIndustryStore.getState().hydrateFromDatabase?.()).catch(() => {})
 
   // Keep UI account-type context aligned with profile metadata.
   useSubscriptionStore.getState().setAccountType(primaryAccountType)
@@ -219,7 +238,20 @@ const authService = {
   async loginWithEmail(email, password, tenantSlug = null) {
     // ── Supabase path ──
     if (isSupabaseConfigured) {
-      const { session, user } = await supabaseAuth.signIn(email, password)
+      let signInResult
+      try {
+        signInResult = await withTimeout(
+          supabaseAuth.signIn(email, password),
+          AUTH_TIMEOUT_MS,
+          'Login request timed out. Please try again.'
+        )
+      } catch (err) {
+        if (String(err?.message || '').toLowerCase().includes('timed out')) {
+          err.code = 'request_timeout'
+        }
+        throw err
+      }
+      const { session, user } = signInResult
 
       // Block login for users whose email is not yet confirmed
       if (user && !user.email_confirmed_at) {
@@ -237,8 +269,16 @@ const authService = {
         await createFreeSubscription({ userId: user.id, industry: metaIndustry }).catch(() => {})
       }
 
-      const rawProfile = await profilesService.getMyProfile()
-      const profile = await syncProfileFromRegistrationMetadata(user, rawProfile)
+      const rawProfile = await withTimeout(
+        profilesService.getMyProfile(),
+        AUTH_TIMEOUT_MS,
+        'Login request timed out while loading profile. Please try again.'
+      )
+      const profile = await withTimeout(
+        syncProfileFromRegistrationMetadata(user, rawProfile),
+        AUTH_TIMEOUT_MS,
+        'Login request timed out while finalizing your account. Please try again.'
+      )
       await storeSupabaseSession(session, profile)
       return { session, user, profile }
     }
@@ -264,6 +304,15 @@ const authService = {
       storeSession(response)
       return response
     } catch (err) {
+      if (err?.status === 404) {
+        const configErr = new Error(
+          env.IS_PROD
+            ? 'Login service is not configured for this deployment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel and redeploy.'
+            : 'Login endpoint returned 404. Configure Supabase auth for this app.'
+        )
+        configErr.code = 'auth_not_configured'
+        throw configErr
+      }
       if (isFirebaseConfigured && firebaseAuth.currentUser) {
         await firebaseSignOut(firebaseAuth).catch(() => {})
       }
@@ -458,6 +507,15 @@ const authService = {
       })
       return response
     } catch (err) {
+      if (err?.status === 404) {
+        const configErr = new Error(
+          env.IS_PROD
+            ? 'Registration service is not configured for this deployment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel and redeploy.'
+            : 'Registration endpoint returned 404. Configure Supabase auth for this app.'
+        )
+        configErr.code = 'auth_not_configured'
+        throw configErr
+      }
       if (isFirebaseConfigured && firebaseAuth.currentUser) {
         await firebaseSignOut(firebaseAuth).catch(() => {})
       }
