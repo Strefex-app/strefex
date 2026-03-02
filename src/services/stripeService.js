@@ -524,21 +524,9 @@ const stripeService = {
       return { success: true, bypassed: true }
     }
 
-    const priceIdByPlan = {
-      basic: env.STRIPE_PRICE_ID_BASIC,
-      standard: env.STRIPE_PRICE_ID_STANDARD,
-      premium: env.STRIPE_PRICE_ID_PREMIUM,
-      enterprise: env.STRIPE_PRICE_ID_ENTERPRISE,
-    }
-    const priceId = priceIdByPlan[planId]
-    if (!priceId) {
-      return { error: `Missing Stripe price ID for ${planId}. Set VITE_STRIPE_PRICE_ID_${planId.toUpperCase()} in Vercel.` }
-    }
-
     analytics.track('checkout_started', { plan: planId })
     try {
       const payload = {
-        priceId,
         tier: planId,
         industry: context.industry || 'general',
         userId: context.userId || '',

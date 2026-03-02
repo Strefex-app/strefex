@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const {
-      priceId,
+      priceId: incomingPriceId,
       userId = '',
       userEmail = '',
       industry = 'general',
@@ -28,8 +28,17 @@ export default async function handler(req, res) {
       cancelUrl,
     } = body
 
+    const serverPriceIdByTier = {
+      basic: process.env.STRIPE_PRICE_ID_BASIC || '',
+      standard: process.env.STRIPE_PRICE_ID_STANDARD || '',
+      premium: process.env.STRIPE_PRICE_ID_PREMIUM || '',
+      enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || '',
+    }
+    const resolvedTier = String(tier || '').trim().toLowerCase()
+    const priceId = incomingPriceId || serverPriceIdByTier[resolvedTier]
+
     if (!priceId) {
-      return res.status(400).json({ error: 'priceId is required' })
+      return res.status(400).json({ error: 'Stripe price is not configured for this tier' })
     }
 
     const origin = req.headers.origin || process.env.APP_URL || 'http://localhost:5173'
@@ -39,7 +48,7 @@ export default async function handler(req, res) {
     const metadata = {
       user_id: userId || '',
       industry: industry || 'general',
-      tier: tier || '',
+      tier: resolvedTier || '',
       price_id: priceId,
       user_email: userEmail || '',
     }
