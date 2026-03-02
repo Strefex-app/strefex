@@ -134,7 +134,11 @@ function App() {
   const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession();
+    // Guard against missing Supabase config in production to avoid
+    // runtime crashes that can result in a blank screen.
+    if (supabase?.auth?.getSession) {
+      supabase.auth.getSession().catch(() => {})
+    }
   }, []);
 
   useEffect(() => {
