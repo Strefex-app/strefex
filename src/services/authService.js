@@ -283,6 +283,16 @@ const authService = {
       return { session, user, profile }
     }
 
+    // In production we require Supabase auth to avoid hitting legacy
+    // backend routes that are not deployed on Vercel.
+    if (env.IS_PROD) {
+      const configErr = new Error(
+        'Login service is not configured for this deployment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel and redeploy.'
+      )
+      configErr.code = 'auth_not_configured'
+      throw configErr
+    }
+
     // ── Firebase path (sign-in only — never auto-create) ──
     if (isFirebaseConfigured) {
       try {
@@ -475,6 +485,15 @@ const authService = {
         return { session, user, profile, requiresPayment: normalizedTier !== 'free', tier: normalizedTier, industry: selectedIndustry }
       }
       return signUpData
+    }
+
+    // Production deployments must use Supabase auth setup.
+    if (env.IS_PROD) {
+      const configErr = new Error(
+        'Registration service is not configured for this deployment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel and redeploy.'
+      )
+      configErr.code = 'auth_not_configured'
+      throw configErr
     }
 
     // ── Firebase path ──
