@@ -38,8 +38,8 @@ export default function ContractDashboard() {
   const role = useAuthStore((s) => s.role)
 
   const rawContracts = useContractStore((s) => s.contracts)
-  // Role-based filtering: users see only contracts they own, managers+ see all company contracts
-  const contracts = useMemo(() => filterByCompanyRole(rawContracts, { creatorField: 'owner' }), [rawContracts])
+  // Role-based filtering: users see only own contracts, managers+ see all company contracts
+  const contracts = useMemo(() => filterByCompanyRole(rawContracts, { creatorField: '_createdBy' }), [rawContracts])
   const alerts = useContractStore((s) => s.getAlerts)
   const storeStats = useContractStore((s) => s.stats)
   const renewContract = useContractStore((s) => s.renewContract)

@@ -16,7 +16,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserRole, getUserId, getTenantId, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 let _seqId = 1000
@@ -35,6 +35,8 @@ const useVendorStore = create(
         const vendor = {
           id: `vnd-${Date.now()}`,
           vendorNumber: nextVendorNumber(),
+          _companyId: getTenantId(),
+          _createdBy: getUserId(),
           status: 'pending_approval',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -354,3 +356,44 @@ const useVendorStore = create(
 )
 
 export default useVendorStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-vendor-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useVendorStore.getState()
+    if (!Array.isArray(state.vendors) || state.vendors.length === 0) {
+      const now = new Date().toISOString()
+      useVendorStore.setState({
+        vendors: [
+          {
+            id: 'vnd-starter-001',
+            vendorNumber: 'VEND-1001',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+            general: {
+              companyName: 'Starter Vendor Ltd',
+              legalName: 'Starter Vendor Ltd',
+              country: 'Germany',
+              currency: 'USD',
+              industry: ['general'],
+              categories: ['packaging'],
+            },
+            addresses: {},
+            contacts: [{ id: 'ct-starter-001', name: 'Sales Contact', email: 'sales@starter-vendor.com', phone: '', isPrimary: true }],
+            banking: {},
+            purchasing: { paymentTerms: 'Net 30', incoterms: 'EXW', minimumOrderValue: 0, leadTimeAvgDays: 0, deliveryReliability: 0, qualityRating: 0, priceCompetitiveness: 0, overallScore: 0 },
+            certifications: [],
+            connections: [],
+            documents: [],
+            evaluations: [],
+            complaints: [],
+            notes: [],
+            changeLog: [],
+          },
+        ],
+      })
+    }
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

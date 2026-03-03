@@ -56,23 +56,44 @@ export function getTenantId() {
   if (!session) return 'guest'
 
   const { user, tenant } = session
+  const accountType = String(
+    user?.primaryAccountType ||
+    user?.accountType ||
+    (Array.isArray(user?.accountTypes) ? user.accountTypes[0] : '') ||
+    'seller'
+  )
+    .toLowerCase()
+    .replace(/[^a-z0-9._\-]/g, '') || 'seller'
+
+  const withAccountScope = (base) => `${base}::${accountType}`
 
   // Priority 1: explicit tenant/company ID from backend
-  if (tenant?.id) return String(tenant.id).toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+  if (tenant?.id) {
+    const base = String(tenant.id).toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+    return withAccountScope(base)
+  }
 
   // Priority 2: tenant slug
-  if (tenant?.slug) return tenant.slug.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+  if (tenant?.slug) {
+    return withAccountScope(tenant.slug.toLowerCase().replace(/[^a-z0-9._\-]/g, ''))
+  }
 
   // Priority 3: derive company from email domain (e.g. john@acme.com → acme.com)
   // This takes precedence over companyName to stay consistent with
   // getCompanyDomain() used in transactionStore / serviceRequestStore.
   if (user?.email) {
     const domain = user.email.split('@')[1]
-    if (domain) return domain.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+    if (domain) {
+      const base = domain.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+      return withAccountScope(base)
+    }
   }
 
   // Priority 4: company name from user profile (fallback for non-email logins)
-  if (user?.companyName) return user.companyName.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+  if (user?.companyName) {
+    const base = user.companyName.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+    return withAccountScope(base)
+  }
 
   return 'guest'
 }

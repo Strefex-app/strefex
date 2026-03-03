@@ -39,7 +39,6 @@ export default function ProcurementDashboard() {
   // Role-based data filtering: users see only own PRs/POs, managers see department, admin sees all company
   const requisitions = useMemo(() => filterByCompanyRole(rawRequisitions, { creatorField: 'requester', departmentField: 'department' }), [rawRequisitions])
   const purchaseOrders = useMemo(() => filterByCompanyRole(rawPurchaseOrders, { creatorField: 'requester', departmentField: 'department' }), [rawPurchaseOrders])
-  const storeStats = useProcurementStore((s) => s.stats)
   const submitPR = useProcurementStore((s) => s.submitPR)
   const approvePR = useProcurementStore((s) => s.approvePR)
   const rejectPR = useProcurementStore((s) => s.rejectPR)
@@ -61,7 +60,20 @@ export default function ProcurementDashboard() {
 
   const flash = (msg) => { setFeedback({ text: msg, type: 'success' }); setTimeout(() => setFeedback(null), 3000) }
 
-  const stats = useMemo(() => storeStats(), [requisitions, purchaseOrders])
+  const stats = useMemo(() => ({
+    totalPRs: requisitions.length,
+    pendingPRs: requisitions.filter((r) => r.status.startsWith('pending')).length,
+    approvedPRs: requisitions.filter((r) => r.status === 'approved').length,
+    rejectedPRs: requisitions.filter((r) => r.status === 'rejected').length,
+    draftPRs: requisitions.filter((r) => r.status === 'draft').length,
+    totalPOs: purchaseOrders.length,
+    pendingPOs: purchaseOrders.filter((o) => o.status.startsWith('pending')).length,
+    approvedPOs: purchaseOrders.filter((o) => o.status === 'approved' || o.status === 'completed').length,
+    totalSpend: purchaseOrders
+      .filter((o) => o.status === 'approved' || o.status === 'completed')
+      .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+    avgProcessingDays: 3.2,
+  }), [requisitions, purchaseOrders])
 
   const filtered = useMemo(() => {
     const source = tab === 'purchase-orders' ? purchaseOrders : requisitions

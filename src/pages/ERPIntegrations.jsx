@@ -9,53 +9,28 @@ import './ERPIntegrations.css'
 
 const INTEGRATIONS = [
   {
-    id: 'sap', name: 'SAP S/4HANA', icon: 'erp', color: '#192A56',
-    description: 'Enterprise resource planning — master data sync, PO/PR integration, financial postings.',
-    status: 'connected', lastSync: '2026-02-02T10:30:00Z', syncFreq: 'Every 15 min',
-    modules: ['Material Master', 'Vendor Master (XK01)', 'Purchase Orders', 'Goods Receipt', 'Invoice Verification', 'Financial Postings'],
-    config: { host: 'sap-prod.company.com', client: '100', sysId: 'PRD', protocol: 'RFC/BAPI' },
-  },
-  {
-    id: 'quickbooks', name: 'QuickBooks Online', icon: 'book', color: '#192A56',
-    description: 'Accounting & invoicing — sync invoices, payments, and chart of accounts.',
-    status: 'connected', lastSync: '2026-02-02T09:45:00Z', syncFreq: 'Every 30 min',
-    modules: ['Chart of Accounts', 'Invoices', 'Payments', 'Vendors', 'Purchase Orders'],
-    config: { companyId: 'QB-123456', realm: 'production', apiVersion: 'v3' },
-  },
-  {
-    id: 'xero', name: 'Xero', icon: 'dollar', color: '#192A56',
-    description: 'Cloud accounting — bills, contacts, and bank reconciliation.',
-    status: 'disconnected', lastSync: '', syncFreq: '—',
-    modules: ['Bills', 'Contacts', 'Bank Transactions', 'Purchase Orders'],
-    config: {},
-  },
-  {
-    id: 'oracle', name: 'Oracle NetSuite', icon: 'database', color: '#192A56',
-    description: 'ERP suite — procurement, inventory management, and financials.',
-    status: 'disconnected', lastSync: '', syncFreq: '—',
-    modules: ['Procurement', 'Inventory', 'Accounts Payable', 'General Ledger'],
-    config: {},
-  },
-  {
-    id: 'dynamics', name: 'Microsoft Dynamics 365', icon: 'globe', color: '#192A56',
-    description: 'Business applications — supply chain, finance, and operations.',
-    status: 'pending', lastSync: '', syncFreq: '—',
-    modules: ['Supply Chain Management', 'Finance', 'Procurement', 'Warehouse Management'],
-    config: { tenant: 'company.onmicrosoft.com', env: 'staging' },
-  },
-  {
-    id: 'coupa', name: 'Coupa', icon: 'procurement', color: '#192A56',
-    description: 'Procurement platform — spend management, sourcing, and invoicing.',
-    status: 'disconnected', lastSync: '', syncFreq: '—',
-    modules: ['Requisitions', 'Purchase Orders', 'Invoices', 'Suppliers', 'Contracts'],
-    config: {},
+    id: 'sap',
+    name: 'SAP S/4HANA',
+    icon: 'erp',
+    color: '#192A56',
+    description: 'Starter connector template. Replace with your production ERP endpoint and credentials.',
+    status: 'pending',
+    lastSync: '',
+    syncFreq: 'Manual',
+    modules: ['Vendor Master', 'Purchase Orders', 'Invoice Verification'],
+    config: { host: 'erp.example.com', client: '100', protocol: 'API' },
   },
 ]
 
 const WEBHOOKS = [
-  { id: 'wh-1', name: 'PO Approval Webhook', url: 'https://api.company.com/webhooks/po-approval', events: ['po.approved', 'po.rejected'], status: 'active', lastTriggered: '2026-02-01T14:30:00Z' },
-  { id: 'wh-2', name: 'Vendor Update Webhook', url: 'https://erp.company.com/hooks/vendor-sync', events: ['vendor.updated', 'vendor.created'], status: 'active', lastTriggered: '2026-01-30T09:15:00Z' },
-  { id: 'wh-3', name: 'Invoice Received', url: 'https://accounting.company.com/hooks/invoice', events: ['invoice.received', 'invoice.paid'], status: 'paused', lastTriggered: '' },
+  {
+    id: 'wh-1',
+    name: 'ERP Sync Webhook',
+    url: 'https://api.example.com/webhooks/erp-sync',
+    events: ['po.approved'],
+    status: 'paused',
+    lastTriggered: '',
+  },
 ]
 
 const STATUS_META = {
@@ -201,12 +176,7 @@ export default function ERPIntegrations() {
             <h4>Recent Sync Activity</h4>
             <div className="erp-sync-log">
               {[
-                { time: '2026-02-02T10:30:00Z', system: 'SAP S/4HANA', action: 'Full sync completed', records: 156, status: 'success' },
-                { time: '2026-02-02T09:45:00Z', system: 'QuickBooks', action: 'Invoice sync', records: 12, status: 'success' },
-                { time: '2026-02-01T22:00:00Z', system: 'SAP S/4HANA', action: 'Vendor master sync', records: 8, status: 'success' },
-                { time: '2026-02-01T14:30:00Z', system: 'QuickBooks', action: 'Payment sync', records: 3, status: 'success' },
-                { time: '2026-01-31T10:00:00Z', system: 'SAP S/4HANA', action: 'PO sync', records: 24, status: 'warning' },
-                { time: '2026-01-30T08:00:00Z', system: 'Dynamics 365', action: 'Connection test', records: 0, status: 'error' },
+                { time: new Date().toISOString(), system: 'SAP S/4HANA', action: 'Starter sync template', records: 0, status: 'success' },
               ].map((log, i) => (
                 <div key={i} className="erp-sync-row">
                   <span className={`erp-sync-dot ${log.status}`} />

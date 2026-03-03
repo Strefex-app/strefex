@@ -15,8 +15,8 @@ const COLORS = ['#000888', '#2980b9', '#27ae60', '#e67e22', '#8e44ad', '#e74c3c'
 export default function SpendAnalysis() {
   const navigate = useNavigate()
   const vendors = useVendorStore((s) => s.vendors)
-  const purchaseOrders = useProcurementStore((s) => s.purchaseOrders)
-  const contracts = useContractStore((s) => s.contracts)
+  const purchaseOrders = useProcurementStore((s) => s.getSafePurchaseOrders())
+  const contracts = useContractStore((s) => s.getSafeContracts())
 
   const [period, setPeriod] = useState('all')
   const [view, setView] = useState('category')

@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor as guardIsAuditor } from '../utils/companyGuard'
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -203,6 +203,7 @@ const useProcurementStore = create(
         const po = {
           id: `PO-2026-${String(get().purchaseOrders.length + 4).padStart(4, '0')}`,
           type: 'po', ...data,
+          _createdBy: getUserId(),
           status: 'pending_manager',
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           approvalChain: [
@@ -269,5 +270,76 @@ const useProcurementStore = create(
     { name: 'strefex-procurement', storage: createTenantStorage() }
   )
 )
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-procurement-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useProcurementStore.getState()
+    const hasPRs = Array.isArray(state.requisitions) && state.requisitions.length > 0
+    const hasPOs = Array.isArray(state.purchaseOrders) && state.purchaseOrders.length > 0
+    if (!hasPRs && !hasPOs) {
+      const now = new Date().toISOString()
+      useProcurementStore.setState({
+        requisitions: [
+          {
+            id: 'PR-STARTER-0001',
+            type: 'pr',
+            title: 'Starter Requisition - Packaging Materials',
+            description: 'Sample requisition for launch presentation.',
+            requester: 'Admin',
+            department: 'Procurement',
+            category: 'Office Supplies',
+            priority: 'medium',
+            currency: 'USD',
+            items: [{ id: 'li-starter-001', description: 'Packaging Box', qty: 100, unit: 'pcs', unitPrice: 2, total: 200 }],
+            totalAmount: 200,
+            vendorId: '',
+            vendorName: 'Starter Vendor',
+            _createdBy: getUserId(),
+            status: 'approved',
+            createdAt: now,
+            updatedAt: now,
+            approvalChain: [
+              { level: 'requester', approver: 'Admin', status: 'approved', date: now, notes: '' },
+              { level: 'manager', approver: 'Admin', status: 'approved', date: now, notes: '' },
+            ],
+            linkedPOId: 'PO-STARTER-0001',
+          },
+        ],
+        purchaseOrders: [
+          {
+            id: 'PO-STARTER-0001',
+            type: 'po',
+            title: 'Starter Purchase Order',
+            description: 'Sample PO for launch presentation.',
+            requester: 'Admin',
+            department: 'Procurement',
+            category: 'Office Supplies',
+            priority: 'medium',
+            currency: 'USD',
+            items: [{ id: 'li-starter-001', description: 'Packaging Box', qty: 100, unit: 'pcs', unitPrice: 2, total: 200 }],
+            totalAmount: 200,
+            vendorId: '',
+            vendorName: 'Starter Vendor',
+            status: 'approved',
+            createdAt: now,
+            updatedAt: now,
+            deliveryDate: '',
+            paymentTerms: 'Net 30',
+            approvalChain: [
+              { level: 'requester', approver: 'Admin', status: 'approved', date: now, notes: '' },
+              { level: 'manager', approver: 'Admin', status: 'approved', date: now, notes: '' },
+            ],
+            linkedPRId: 'PR-STARTER-0001',
+            receivingStatus: 'not_received',
+            receivedQty: 0,
+            invoiceStatus: 'none',
+          },
+        ],
+      })
+    }
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}
 
 export default useProcurementStore

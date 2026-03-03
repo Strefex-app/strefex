@@ -26,15 +26,8 @@ const SIDEBAR_NAV = [
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
   { id: 'notifications', tKey: 'nav.notifications', path: '/notifications', icon: 'notifications' },
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },
-  { id: 'procurement', label: 'Procurement', path: '/procurement', icon: 'procurement', requiredPlan: 'procurement' },
-  { id: 'vendors', label: 'Vendor Master', path: '/vendors', icon: 'vendors' },
-  { id: 'contracts', label: 'Contracts', path: '/contracts', icon: 'contracts', requiredPlan: 'contractManagement' },
-  { id: 'spend', label: 'Spend Analysis', path: '/spend-analysis', icon: 'spend', requiredPlan: 'spendAnalysis' },
-  { id: 'compliance', label: 'Compliance & ESG', path: '/compliance', icon: 'compliance', requiredPlan: 'complianceEsg' },
   { id: 'ai-insights', label: 'AI Insights', path: '/ai-insights', icon: 'ai', requiredPlan: 'aiInsights' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: 'templates', requiredPlan: 'templateLibrary' },
-  { id: 'erp', label: 'ERP Integrations', path: '/erp-integrations', icon: 'erp', requiredPlan: 'erpIntegrations' },
-  { id: 'audit-logs', label: 'Audit Logs', path: '/audit-logs', icon: 'audit', minRole: 'admin', requiredPlan: 'auditLogs' },
   { id: 'wallet', label: 'Wallet', path: '/wallet', icon: 'wallet' },
   { id: 'payment', tKey: 'nav.payment', path: '/payment', icon: 'card' },
   { id: 'plans', tKey: 'nav.plans', path: '/plans', icon: 'plan' },
@@ -71,6 +64,20 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  /* Always start each route at the top */
+  useEffect(() => {
+    const resetScrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      const appMain = document.querySelector('.app-main')
+      if (appMain) appMain.scrollTop = 0
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    }
+    resetScrollTop()
+    const raf = requestAnimationFrame(resetScrollTop)
+    return () => cancelAnimationFrame(raf)
+  }, [location.pathname, location.search])
 
   /* ── Preview session countdown (10-min) ─────────────────── */
   useEffect(() => {
@@ -155,13 +162,8 @@ export default function AppLayout({ children }) {
                   location.pathname.startsWith('/wallet') ||
                   location.pathname.startsWith('/send-payment')
                 )) ||
-                (item.id === 'vendors' && location.pathname.startsWith('/vendors')) ||
-                (item.id === 'procurement' && location.pathname.startsWith('/procurement')) ||
-                (item.id === 'contracts' && location.pathname.startsWith('/contracts')) ||
-                (item.id === 'spend' && location.pathname.startsWith('/spend')) ||
-                (item.id === 'compliance' && location.pathname.startsWith('/compliance')) ||
                 (item.id === 'templates' && location.pathname.startsWith('/templates')) ||
-                (item.id === 'audit-logs' && location.pathname.startsWith('/audit-logs'))
+                (item.id === 'ai-insights' && location.pathname.startsWith('/ai-insights'))
               return (
                 <button
                   key={item.id}

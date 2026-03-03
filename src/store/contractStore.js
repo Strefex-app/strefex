@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 /* Seed data removed for production — contracts start empty */
@@ -146,3 +146,44 @@ const useContractStore = create(
 
 export { CONTRACT_TYPES, CONTRACT_STATUSES }
 export default useContractStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-contract-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useContractStore.getState()
+    if (!Array.isArray(state.contracts) || state.contracts.length === 0) {
+      const now = new Date()
+      const start = now.toISOString().slice(0, 10)
+      const end = new Date(now.getFullYear(), now.getMonth() + 12, now.getDate()).toISOString().slice(0, 10)
+      useContractStore.setState({
+        contracts: [
+          {
+            id: 'CTR-STARTER-001',
+            title: 'Starter Supply Agreement',
+            type: 'supply',
+            status: 'active',
+            vendorName: 'Starter Vendor Ltd',
+            vendorId: '',
+            category: 'Packaging',
+            value: 25000,
+            currency: 'USD',
+            startDate: start,
+            endDate: end,
+            renewalDate: '',
+            autoRenew: false,
+            renewalTermMonths: 12,
+            owner: 'Admin',
+            department: 'Procurement',
+            terms: 'Starter contract for launch presentation.',
+            _createdBy: getUserId(),
+            documents: [],
+            milestones: [],
+            createdAt: now.toISOString(),
+            updatedAt: now.toISOString(),
+          },
+        ],
+      })
+    }
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

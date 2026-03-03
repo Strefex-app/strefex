@@ -18,7 +18,7 @@ export default function AuditLogs() {
   const navigate = useNavigate()
   const role = useAuthStore((s) => s.role)
   const { companyName, isSuperAdmin } = getCompanyContext()
-  const logs = useAuditStore((s) => s.logs)
+  const logs = useAuditStore((s) => s.getSafeLogs())
   const storeStats = useAuditStore((s) => s.stats)
   const searchFn = useAuditStore((s) => s.search)
 

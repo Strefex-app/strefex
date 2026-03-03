@@ -59,6 +59,85 @@ function capRole(role, email) {
   return role || 'user'
 }
 
+async function cleanupLaunchStarterExamples() {
+  try {
+    const [
+      projectMod,
+      procurementMod,
+      vendorMod,
+      contractMod,
+      auditMod,
+      costMod,
+      enterpriseMod,
+      productionMod,
+    ] = await Promise.all([
+      import('../store/projectStore'),
+      import('../store/procurementStore'),
+      import('../store/vendorStore'),
+      import('../store/contractStore'),
+      import('../store/auditStore'),
+      import('../store/costStore'),
+      import('../store/enterpriseStore'),
+      import('../store/productionStore'),
+    ])
+
+    projectMod.useProjectStore.setState((s) => ({
+      projects: (s.projects || []).filter((p) => !String(p.id || '').startsWith('proj-starter-')),
+    }))
+    procurementMod.default.setState((s) => ({
+      requisitions: (s.requisitions || []).filter((r) => !String(r.id || '').startsWith('PR-STARTER-')),
+      purchaseOrders: (s.purchaseOrders || []).filter((o) => !String(o.id || '').startsWith('PO-STARTER-')),
+    }))
+    vendorMod.default.setState((s) => ({
+      vendors: (s.vendors || []).filter((v) => !String(v.id || '').startsWith('vnd-starter-')),
+    }))
+    contractMod.default.setState((s) => ({
+      contracts: (s.contracts || []).filter((c) => !String(c.id || '').startsWith('CTR-STARTER-')),
+    }))
+    auditMod.default.setState((s) => ({
+      logs: (s.logs || []).filter((l) => !String(l.id || '').startsWith('aud-starter-')),
+    }))
+    costMod.default.setState((s) => ({
+      products: (s.products || []).filter((x) => !x?._starterExample),
+      scenarios: (s.scenarios || []).filter((x) => !x?._starterExample),
+      costCategories: (s.costCategories || []).filter((x) => !x?._starterExample),
+    }))
+    enterpriseMod.default.setState((s) => ({
+      fixedCosts: (s.fixedCosts || []).filter((x) => !x?._starterExample),
+      variableCosts: (s.variableCosts || []).filter((x) => !x?._starterExample),
+      semiVariableCosts: (s.semiVariableCosts || []).filter((x) => !x?._starterExample),
+      directCosts: (s.directCosts || []).filter((x) => !x?._starterExample),
+      indirectCosts: (s.indirectCosts || []).filter((x) => !x?._starterExample),
+      opex: (s.opex || []).filter((x) => !x?._starterExample),
+      capex: (s.capex || []).filter((x) => !x?._starterExample),
+      personnelCosts: (s.personnelCosts || []).filter((x) => !x?._starterExample),
+      financialCosts: (s.financialCosts || []).filter((x) => !x?._starterExample),
+      exceptionalCosts: (s.exceptionalCosts || []).filter((x) => !x?._starterExample),
+      riskCosts: (s.riskCosts || []).filter((x) => !x?._starterExample),
+      products: (s.products || []).filter((x) => !x?._starterExample),
+    }))
+    productionMod.default.setState((s) => ({
+      fiveSAudits: (s.fiveSAudits || []).filter((x) => !x?._starterExample),
+      vda63Audits: (s.vda63Audits || []).filter((x) => !x?._starterExample),
+      oeeData: (s.oeeData || []).filter((x) => !x?._starterExample),
+      downtimeRecords: (s.downtimeRecords || []).filter((x) => !x?._starterExample),
+      scrapRecords: (s.scrapRecords || []).filter((x) => !x?._starterExample),
+      productionOutput: (s.productionOutput || []).filter((x) => !x?._starterExample),
+      equipment: (s.equipment || []).filter((x) => !x?._starterExample),
+      auditHistory: (s.auditHistory || []).filter((x) => !x?._starterExample),
+      processAudits: (s.processAudits || []).filter((x) => !x?._starterExample),
+      workCenters: (s.workCenters || []).filter((x) => !x?._starterExample),
+      certificationHistory: {
+        iso9001: (s.certificationHistory?.iso9001 || []).filter((x) => !x?._starterExample),
+        iatf16949: (s.certificationHistory?.iatf16949 || []).filter((x) => !x?._starterExample),
+        other: (s.certificationHistory?.other || []).filter((x) => !x?._starterExample),
+      },
+    }))
+  } catch {
+    // Launch cleanup should never block authentication.
+  }
+}
+
 /**
  * After successful Supabase auth, sync with Zustand store.
  */
@@ -116,6 +195,9 @@ async function storeSupabaseSession(session, profile) {
 
   // Keep UI account-type context aligned with profile metadata.
   useSubscriptionStore.getState().setAccountType(primaryAccountType)
+
+  // After real auth, remove presentation starter examples from workspace data.
+  cleanupLaunchStarterExamples().catch(() => {})
 }
 
 async function syncProfileFromRegistrationMetadata(user, profile) {

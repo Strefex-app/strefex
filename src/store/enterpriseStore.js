@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 const useEnterpriseStore = create(
@@ -506,3 +506,30 @@ const useEnterpriseStore = create(
 )
 
 export default useEnterpriseStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-enterprise-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useEnterpriseStore.getState()
+    const keepFirst = (arr) => (
+      Array.isArray(arr) && arr.length > 0
+        ? [{ ...arr[0], _starterExample: true }]
+        : []
+    )
+    useEnterpriseStore.setState({
+      fixedCosts: keepFirst(state.fixedCosts),
+      variableCosts: keepFirst(state.variableCosts),
+      semiVariableCosts: keepFirst(state.semiVariableCosts),
+      directCosts: keepFirst(state.directCosts),
+      indirectCosts: keepFirst(state.indirectCosts),
+      opex: keepFirst(state.opex),
+      capex: keepFirst(state.capex),
+      personnelCosts: keepFirst(state.personnelCosts),
+      financialCosts: keepFirst(state.financialCosts),
+      exceptionalCosts: keepFirst(state.exceptionalCosts),
+      riskCosts: keepFirst(state.riskCosts),
+      products: keepFirst(state.products),
+    })
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

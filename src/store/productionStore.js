@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 const useProductionStore = create(
@@ -1519,3 +1519,33 @@ const useProductionStore = create(
 )
 
 export default useProductionStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-production-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useProductionStore.getState()
+    const keepFirst = (arr) => (
+      Array.isArray(arr) && arr.length > 0
+        ? [{ ...arr[0], _starterExample: true }]
+        : []
+    )
+    useProductionStore.setState({
+      fiveSAudits: keepFirst(state.fiveSAudits),
+      vda63Audits: keepFirst(state.vda63Audits),
+      oeeData: keepFirst(state.oeeData),
+      downtimeRecords: keepFirst(state.downtimeRecords),
+      scrapRecords: keepFirst(state.scrapRecords),
+      productionOutput: keepFirst(state.productionOutput),
+      equipment: keepFirst(state.equipment),
+      auditHistory: keepFirst(state.auditHistory),
+      processAudits: keepFirst(state.processAudits),
+      workCenters: keepFirst(state.workCenters),
+      certificationHistory: {
+        iso9001: keepFirst(state.certificationHistory?.iso9001),
+        iatf16949: keepFirst(state.certificationHistory?.iatf16949),
+        other: keepFirst(state.certificationHistory?.other),
+      },
+    })
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

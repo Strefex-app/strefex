@@ -4,12 +4,8 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
-
-const demoLogs = import.meta.env.DEV ? [
-  { id: 'aud-001', timestamp: '2026-02-02T14:30:00Z', user: 'Sarah Chen', role: 'admin', module: 'procurement', action: 'approve_pr', entity: 'PR-2026-0001', description: 'Approved purchase requisition', details: { level: 'manager', amount: 13100 }, severity: 'info' },
-] : []
 
 const MODULES = ['procurement', 'vendor', 'contract', 'subscription', 'team', 'wallet', 'security', 'compliance', 'settings', 'erp']
 const SEVERITIES = ['info', 'warning', 'critical']
@@ -17,9 +13,9 @@ const SEVERITIES = ['info', 'warning', 'critical']
 const useAuditStore = create(
   persist(
     (set, get) => ({
-      logs: demoLogs,
+      logs: [],
 
-      getSafeLogs: () => filterByCompanyRole(get().logs, { creatorField: 'user' }),
+      getSafeLogs: () => filterByCompanyRole(get().logs, { creatorField: '_createdBy' }),
       canEditAudit: () => guardCanEdit(),
       isReadOnly: () => isAuditor(),
       getAccessLevel: () => getUserRole(),
@@ -57,11 +53,14 @@ const useAuditStore = create(
       },
 
       addLog: (log) => {
+        const actor = getUserId()
         const entry = {
           id: `aud-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
           timestamp: new Date().toISOString(),
           severity: 'info',
+          _createdBy: actor,
           ...log,
+          user: log?.user || actor,
         }
         set((s) => ({ logs: [entry, ...s.logs] }))
       },
@@ -87,3 +86,30 @@ const useAuditStore = create(
 
 export { MODULES, SEVERITIES }
 export default useAuditStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-audit-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useAuditStore.getState()
+    if (!Array.isArray(state.logs) || state.logs.length === 0) {
+      useAuditStore.setState({
+        logs: [
+          {
+            id: 'aud-starter-001',
+            timestamp: new Date().toISOString(),
+            user: 'Admin',
+            role: 'admin',
+            module: 'settings',
+            action: 'platform_initialized',
+            entity: 'launch',
+            description: 'Starter audit event for launch presentation.',
+            details: {},
+            severity: 'info',
+            _createdBy: getUserId(),
+          },
+        ],
+      })
+    }
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

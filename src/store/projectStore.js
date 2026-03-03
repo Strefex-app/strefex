@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit } from '../utils/companyGuard'
 
 // Helper to calculate duration in days
@@ -239,3 +239,45 @@ export const useProjectStore = create(
     }
   )
 )
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-project-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useProjectStore.getState()
+    if (!Array.isArray(state.projects) || state.projects.length === 0) {
+      const today = new Date().toISOString().slice(0, 10)
+      useProjectStore.setState({
+        projects: [
+          {
+            id: 'proj-starter-001',
+            name: 'Starter Launch Project',
+            budget: 50000,
+            currency: 'USD',
+            createdAt: today,
+            createdBy: 'admin',
+            _createdBy: getUserId(),
+            resources: [],
+            revisions: [{ id: 'rev-starter-001', date: today, note: 'Starter project created', snapshot: null }],
+            tasks: [
+              {
+                id: 'task-starter-001',
+                name: 'Prepare Supplier Onboarding',
+                startDate: today,
+                endDate: today,
+                baselineStart: today,
+                baselineEnd: today,
+                progressPercent: 0,
+                status: 'not-started',
+                assignee: '',
+                cost: 0,
+                predecessors: [],
+                children: [],
+              },
+            ],
+          },
+        ],
+      })
+    }
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

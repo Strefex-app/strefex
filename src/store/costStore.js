@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserRole } from '../utils/tenantStorage'
+import { createTenantStorage, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 const useCostStore = create(
@@ -274,3 +274,21 @@ const useCostStore = create(
 )
 
 export default useCostStore
+
+if (typeof window !== 'undefined') {
+  const starterMarkerKey = tenantKey('strefex-launch-starter-cost-v1')
+  if (!localStorage.getItem(starterMarkerKey)) {
+    const state = useCostStore.getState()
+    const keepFirst = (arr) => (
+      Array.isArray(arr) && arr.length > 0
+        ? [{ ...arr[0], _starterExample: true }]
+        : []
+    )
+    useCostStore.setState({
+      products: keepFirst(state.products),
+      scenarios: keepFirst(state.scenarios),
+      costCategories: keepFirst(state.costCategories),
+    })
+    localStorage.setItem(starterMarkerKey, '1')
+  }
+}

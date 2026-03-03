@@ -6,7 +6,6 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { getAccountTypeLabel } from '../services/stripeService'
 import { usersApi } from '../services/api'
 import { analytics } from '../services/analytics'
-import { tenantKey } from '../utils/tenantStorage'
 import AppLayout from '../components/AppLayout'
 import EmptyState from '../components/EmptyState'
 import './TeamManagement.css'
@@ -31,9 +30,7 @@ export default function TeamManagement() {
   const accountType = useSubscriptionStore((s) => s.accountType)
 
   /* ── Get current business account from registry ─────── */
-  const currentEmail = currentUser?.email || (() => {
-    try { const s = JSON.parse(localStorage.getItem(tenantKey('strefex-subscription'))); return null } catch { return null }
-  })()
+  const currentEmail = currentUser?.email || ''
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const inviteTeamMember = useAccountRegistry((s) => s.inviteTeamMember)
   const removeTeamMember = useAccountRegistry((s) => s.removeTeamMember)
@@ -56,29 +53,29 @@ export default function TeamManagement() {
     return registryAccounts.find((a) => a.accountType === accountType && a.status !== 'canceled')
   }, [registryAccounts, currentEmail, accountType])
 
-  // Team members from registry + demo admin entry
+  // Team members from registry + owning account admin
   const registryMembers = businessAccount?.teamMembers || []
   const adminMember = businessAccount ? {
-    id: 'admin-owner',
-    email: businessAccount.email,
-    full_name: businessAccount.contactName || 'Account Admin',
+    id: currentUser?.id || 'account-owner',
+    email: businessAccount.email || currentEmail,
+    full_name: businessAccount.contactName || currentUser?.fullName || currentEmail.split('@')[0] || 'Account Owner',
     role: 'admin',
     is_active: true,
-    created_at: businessAccount.registeredAt?.slice(0, 10) || '2025-06-01',
+    created_at: businessAccount.registeredAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     isOwner: true,
-  } : { id: 'admin-owner', email: 'admin@strefex.com', full_name: 'John Doe', role: 'admin', is_active: true, created_at: '2025-06-01', isOwner: true }
+  } : null
 
-  const [members, setMembers] = useState(() => [
-    adminMember,
+  const members = useMemo(() => ([
+    ...(adminMember ? [adminMember] : []),
     ...registryMembers.map((m) => ({
       id: m.id,
       email: m.email,
       full_name: m.name,
       role: m.role,
-      is_active: m.status === 'active',
+      is_active: m.status === 'active' || m.status === 'pending',
       created_at: m.invitedAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     })),
-  ])
+  ]), [adminMember, registryMembers])
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
@@ -126,40 +123,32 @@ export default function TeamManagement() {
       }
     }
 
+    if (!businessAccount) {
+      setError('No business account found for this profile.')
+      return
+    }
+
     setLoading(true)
     try {
-      // Try backend
-      const newUser = await usersApi.create({
+      // Keep invited users in the same account directory (seller/buyer/service provider).
+      inviteTeamMember(businessAccount.id, {
+        name: inviteName || inviteEmail.split('@')[0],
+        email: inviteEmail,
+        role: inviteRole,
+        accountType,
+        companyId: businessAccount.id,
+      })
+
+      // Optional API invitation endpoint.
+      await usersApi.create({
         email: inviteEmail,
         full_name: inviteName || inviteEmail.split('@')[0],
         role: inviteRole,
       })
-      setMembers((prev) => [...prev, { ...newUser, created_at: new Date().toISOString().slice(0, 10) }])
+
       setSuccess(`Invited ${inviteEmail} as ${inviteRole}`)
     } catch (err) {
-      // Fallback demo — also persist to registry
-      if (err.status === 0 || err.message?.includes('Network')) {
-        const newMember = {
-          id: String(Date.now()),
-          email: inviteEmail,
-          full_name: inviteName || inviteEmail.split('@')[0],
-          role: inviteRole,
-          is_active: true,
-          created_at: new Date().toISOString().slice(0, 10),
-        }
-        setMembers((prev) => [...prev, newMember])
-        // Persist to account registry
-        if (businessAccount) {
-          inviteTeamMember(businessAccount.id, {
-            name: inviteName || inviteEmail.split('@')[0],
-            email: inviteEmail,
-            role: inviteRole,
-          })
-        }
-        setSuccess(`Invited ${inviteEmail} as ${inviteRole} — no separate registration needed`)
-      } else {
-        setError(err.detail || err.message || 'Failed to invite user')
-      }
+      setError(err.detail || err.message || 'Failed to invite user')
     } finally {
       setLoading(false)
       setInviteEmail('')
@@ -175,8 +164,7 @@ export default function TeamManagement() {
     if (newRole === 'superadmin' || newRole === 'auditor_external') return
     try {
       await usersApi.update(memberId, { role: newRole })
-    } catch { /* demo fallback */ }
-    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)))
+    } catch { /* API may be unavailable in this deployment */ }
     // Sync to registry
     const member = members.find((m) => m.id === memberId)
     if (businessAccount && member) {
@@ -190,8 +178,7 @@ export default function TeamManagement() {
     const member = members.find((m) => m.id === memberId)
     try {
       await usersApi.delete(memberId)
-    } catch { /* demo fallback */ }
-    setMembers((prev) => prev.filter((m) => m.id !== memberId))
+    } catch { /* API may be unavailable in this deployment */ }
     // Remove from registry
     if (businessAccount && member) {
       removeTeamMember(businessAccount.id, member.email)
@@ -205,8 +192,7 @@ export default function TeamManagement() {
     const newStatus = !member.is_active
     try {
       await usersApi.update(memberId, { is_active: newStatus })
-    } catch { /* demo fallback */ }
-    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, is_active: newStatus } : m)))
+    } catch { /* API may be unavailable in this deployment */ }
     // Sync to registry
     if (businessAccount && member) {
       updateTeamMember(businessAccount.id, member.email, { status: newStatus ? 'active' : 'disabled' })

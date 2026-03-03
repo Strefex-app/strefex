@@ -103,6 +103,8 @@ export const useAccountRegistry = create((set, get) => ({
       name: member.name,
       email: member.email,
       role: member.role || 'user',
+      accountType: member.accountType || acct.accountType || 'seller',
+      companyId: member.companyId || acct.id || '',
       invitedAt: new Date().toISOString(),
       status: 'pending',
     }]
