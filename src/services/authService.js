@@ -251,7 +251,27 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
     tier: md.tier || profile?.metadata?.tier || 'free',
   }
 
-  const nextRole = companyId ? 'admin' : (profile?.role || 'user')
+  const allowedRoles = new Set(['superadmin', 'auditor_external', 'admin', 'auditor_internal', 'manager', 'user'])
+  const metadataRoleRaw = md.invited_role || md.role || ''
+  const metadataRole = allowedRoles.has(String(metadataRoleRaw).toLowerCase())
+    ? String(metadataRoleRaw).toLowerCase()
+    : ''
+  const hadCompanyBefore = Boolean(profile?.company_id)
+
+  // Preserve privileged role for the STREFEX superadmin account.
+  // For invited users, prefer role from metadata instead of forcing admin.
+  let nextRole = profile?.role || 'user'
+  if (!profile?.role) {
+    if (metadataRole) {
+      nextRole = metadataRole
+    } else if (companyId && !hadCompanyBefore) {
+      // First account owner keeps admin by default.
+      nextRole = 'admin'
+    }
+  }
+  if (isSuperadminEmail(user?.email)) {
+    nextRole = 'superadmin'
+  }
   const metadataChanged = JSON.stringify(profile?.metadata || {}) !== JSON.stringify(metadata)
   const needsUpdate = !profile
     || profile.full_name !== fullName

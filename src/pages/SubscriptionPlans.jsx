@@ -289,18 +289,27 @@ export default function SubscriptionPlans() {
                     ? 'Yearly charge'
                     : '3-year charge'}
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+              <div className="sp-stripe-grid">
                 {PLANS.filter((p) => p.price > 0).map((plan) => (
-                  <button
-                    key={`quick-${plan.id}`}
-                    type="button"
-                    className="sp-btn sp-btn-outline"
-                    style={{ minWidth: 200 }}
-                    disabled={loading === plan.id}
-                    onClick={() => handleQuickStripeCheckout(plan.id)}
-                  >
-                    {loading === plan.id ? 'Opening...' : `${plan.name} • ${getPriceDisplay(plan).primary}`}
-                  </button>
+                  <div key={`quick-${plan.id}`} className={`sp-stripe-card ${plan.popular ? 'popular' : ''}`}>
+                    <div className="sp-stripe-card-head">
+                      <span className="sp-stripe-plan-name" style={{ color: planAccent(plan.id) }}>{plan.name}</span>
+                      {plan.popular && <span className="sp-stripe-popular">Most Popular</span>}
+                    </div>
+                    <div className="sp-stripe-price">{getPriceDisplay(plan).primary}</div>
+                    {getPriceDisplay(plan).secondary && (
+                      <div className="sp-stripe-subprice">{getPriceDisplay(plan).secondary}</div>
+                    )}
+                    <div className="sp-stripe-storage">{getStorageLabel(plan)}</div>
+                    <button
+                      type="button"
+                      className={`sp-btn ${plan.popular ? 'sp-btn-primary' : 'sp-btn-outline'}`}
+                      disabled={loading === plan.id}
+                      onClick={() => handleQuickStripeCheckout(plan.id)}
+                    >
+                      {loading === plan.id ? 'Opening...' : 'Choose Plan'}
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

@@ -5,6 +5,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { getAccountTypeLabel } from '../services/stripeService'
 import { usersApi } from '../services/api'
+import { supabaseAuth, isSupabaseConfigured } from '../services/supabaseService'
 import { analytics } from '../services/analytics'
 import AppLayout from '../components/AppLayout'
 import EmptyState from '../components/EmptyState'
@@ -139,14 +140,28 @@ export default function TeamManagement() {
         companyId: businessAccount.id,
       })
 
-      // Optional API invitation endpoint.
-      await usersApi.create({
-        email: inviteEmail,
-        full_name: inviteName || inviteEmail.split('@')[0],
-        role: inviteRole,
-      })
-
-      setSuccess(`Invited ${inviteEmail} as ${inviteRole}`)
+      if (isSupabaseConfigured) {
+        const inviteResult = await supabaseAuth.inviteTeamUser({
+          email: inviteEmail,
+          fullName: inviteName || inviteEmail.split('@')[0],
+          role: inviteRole,
+          companyId: businessAccount.id,
+          accountType,
+        })
+        if (inviteResult?.alreadyExists) {
+          setSuccess(`Added ${inviteEmail} to team. Account already exists, so no new confirmation email was sent.`)
+        } else {
+          setSuccess(`Invitation sent to ${inviteEmail}. They must confirm email before first login.`)
+        }
+      } else {
+        // Fallback API invitation endpoint for non-Supabase deployments.
+        await usersApi.create({
+          email: inviteEmail,
+          full_name: inviteName || inviteEmail.split('@')[0],
+          role: inviteRole,
+        })
+        setSuccess(`Invited ${inviteEmail} as ${inviteRole}`)
+      }
     } catch (err) {
       setError(err.detail || err.message || 'Failed to invite user')
     } finally {
@@ -336,7 +351,7 @@ export default function TeamManagement() {
             <div className="tm-modal-body">
               <div className="tm-invite-note">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                Invited members join your business account — no separate registration needed. They share your plan and permissions.
+                Invited members join your business account and receive an email confirmation link for first login.
               </div>
               <label className="tm-form-label">
                 Email Address *

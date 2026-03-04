@@ -13,6 +13,13 @@ import { supabase, isSupabaseConfigured } from '../config/supabase'
    AUTH
    ================================================================ */
 export const supabaseAuth = {
+  _generateInvitePassword() {
+    const bytes = new Uint8Array(12)
+    window.crypto.getRandomValues(bytes)
+    const base = Array.from(bytes, (b) => (b % 36).toString(36)).join('')
+    return `Tmp!${base}9Z`
+  },
+
   /**
    * Sign up with email + password.
    * Creates a Supabase auth user; the DB trigger auto-creates the profile.
@@ -34,6 +41,64 @@ export const supabaseAuth = {
     })
     if (error) throw error
     return data
+  },
+
+  /**
+   * Invite a team user by creating an auth account and triggering
+   * Supabase email confirmation flow. Keeps inviter session intact.
+   */
+  async inviteTeamUser({ email, fullName, role = 'user', companyId = null, accountType = 'seller' }) {
+    if (!isSupabaseConfigured) return null
+
+    const {
+      data: { session: inviterSession },
+    } = await supabase.auth.getSession()
+    const inviterId = inviterSession?.user?.id || null
+    const redirectTo = `${window.location.origin}/login?confirmed=true`
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: this._generateInvitePassword(),
+      options: {
+        data: {
+          full_name: (fullName || '').trim(),
+          account_type: accountType,
+          company_id: companyId,
+          invited: true,
+          invited_by: inviterId,
+          invited_role: role,
+        },
+        emailRedirectTo: redirectTo,
+      },
+    })
+
+    // If user already exists, treat as non-fatal for team invite UX.
+    if (error) {
+      const msg = String(error?.message || '').toLowerCase()
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        return { alreadyExists: true, user: null }
+      }
+      throw error
+    }
+
+    // Important: preserve inviter session if signUp switched it.
+    if (
+      inviterSession?.access_token &&
+      inviterSession?.refresh_token &&
+      data?.session?.user?.id &&
+      data.session.user.id !== inviterSession.user?.id
+    ) {
+      await supabase.auth.setSession({
+        access_token: inviterSession.access_token,
+        refresh_token: inviterSession.refresh_token,
+      })
+    }
+
+    return {
+      user: data?.user || null,
+      emailConfirmationPending: !data?.session,
+      alreadyExists: false,
+    }
   },
 
   /** Sign in with email + password. */
