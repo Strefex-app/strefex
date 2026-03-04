@@ -37,6 +37,33 @@ export default function SubscriptionPlans() {
   const showLocalPlanCatalog = !stripeLive && env.IS_DEV
 
   const [billingPeriod, setBillingPeriod] = useState(storedBilling || BILLING_PERIODS.MONTHLY)
+  const [showEmbeddedStripeTable, setShowEmbeddedStripeTable] = useState(false)
+
+  const getPriceDisplay = (plan) => {
+    const unit = getPlanPrice(plan, accountType, billingPeriod)
+    if (!plan || unit === 0) {
+      return { primary: 'Free', secondary: '' }
+    }
+
+    if (billingPeriod === BILLING_PERIODS.ANNUAL) {
+      return {
+        primary: `$${(unit * 12).toFixed(2)}/year`,
+        secondary: `$${unit.toFixed(2)}/mo billed yearly`,
+      }
+    }
+
+    if (billingPeriod === BILLING_PERIODS.TRIENNIAL) {
+      return {
+        primary: `$${(unit * 36).toFixed(2)}/3 years`,
+        secondary: `$${unit.toFixed(2)}/mo billed every 3 years`,
+      }
+    }
+
+    return {
+      primary: `$${unit % 1 === 0 ? unit : unit.toFixed(2)}/month`,
+      secondary: '',
+    }
+  }
 
   const handleBillingChange = (period) => {
     setBillingPeriod(period)
@@ -236,29 +263,43 @@ export default function SubscriptionPlans() {
             <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#888' }}>
               Secure checkout powered by Stripe. Use the plan buttons below to subscribe.
             </p>
-            {showStripePricingTable && (
+            {showStripePricingTable && !showEmbeddedStripeTable && (
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className="sp-btn sp-btn-outline"
+                  style={{ width: 'auto', display: 'inline-block', minWidth: 240 }}
+                  onClick={() => setShowEmbeddedStripeTable(true)}
+                >
+                  Load Stripe Interactive Table
+                </button>
+              </div>
+            )}
+            {showStripePricingTable && showEmbeddedStripeTable && (
               <StripePricingTable
                 customerEmail={user?.email}
                 clientReferenceId={user?.companyId || user?.tenant || ''}
               />
             )}
-            <div style={{ marginTop: showStripePricingTable ? '1rem' : 0 }}>
-              {showStripePricingTable && (
-                <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
-                  If the pricing table is slow, use quick checkout:
-                </p>
-              )}
+            <div style={{ marginTop: '1rem' }}>
+              <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
+                {billingPeriod === BILLING_PERIODS.MONTHLY
+                  ? 'Monthly charge'
+                  : billingPeriod === BILLING_PERIODS.ANNUAL
+                    ? 'Yearly charge'
+                    : '3-year charge'}
+              </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
                 {PLANS.filter((p) => p.price > 0).map((plan) => (
                   <button
                     key={`quick-${plan.id}`}
                     type="button"
                     className="sp-btn sp-btn-outline"
-                    style={{ minWidth: 140 }}
+                    style={{ minWidth: 200 }}
                     disabled={loading === plan.id}
                     onClick={() => handleQuickStripeCheckout(plan.id)}
                   >
-                    {loading === plan.id ? 'Opening...' : `${plan.name} Checkout`}
+                    {loading === plan.id ? 'Opening...' : `${plan.name} • ${getPriceDisplay(plan).primary}`}
                   </button>
                 ))}
               </div>
@@ -272,6 +313,7 @@ export default function SubscriptionPlans() {
             <div className="sp-card-grid">
               {PLANS.map((plan) => {
                 const price = getPlanPrice(plan, accountType, billingPeriod)
+                const priceDisplay = getPriceDisplay(plan)
                 const monthlyPrice = plan.price
                 const isCurrent = plan.id === currentPlan
                 const savings = monthlyPrice > 0 && price < monthlyPrice ? Math.round((1 - price / monthlyPrice) * 100) : 0
@@ -292,9 +334,11 @@ export default function SubscriptionPlans() {
                         <span className="sp-card-price">Free</span>
                       ) : (
                         <span className="sp-card-price">
-                          <span className="sp-card-currency">$</span>{price % 1 === 0 ? price : price.toFixed(2)}
-                          <span className="sp-card-interval">/mo</span>
+                          {priceDisplay.primary}
                         </span>
+                      )}
+                      {priceDisplay.secondary && (
+                        <div className="sp-card-original">{priceDisplay.secondary}</div>
                       )}
                       {savings > 0 && (
                         <div className="sp-card-savings">
@@ -397,8 +441,11 @@ export default function SubscriptionPlans() {
             <div className="sp-modal-header" style={{ borderColor: planAccent(detailPlan.id) }}>
               <h3 className="sp-modal-name" style={{ color: planAccent(detailPlan.id) }}>{detailPlan.name} Plan</h3>
               <span className="sp-modal-price">
-                {detailPlan.price === 0 ? 'Free' : `$${getPlanPrice(detailPlan, accountType, billingPeriod)}/mo`}
+                {getPriceDisplay(detailPlan).primary}
               </span>
+              {getPriceDisplay(detailPlan).secondary && (
+                <span className="sp-modal-storage">{getPriceDisplay(detailPlan).secondary}</span>
+              )}
               <span className="sp-modal-storage">{getStorageLabel(detailPlan)}</span>
             </div>
             <h4 className="sp-modal-section-title">All Features</h4>

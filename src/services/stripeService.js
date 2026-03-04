@@ -6,6 +6,8 @@ import env from '../config/env'
 import { billingApi } from './api'
 import { analytics } from './analytics'
 
+const CHECKOUT_REQUEST_TIMEOUT_MS = 15000
+
 /* ── Tier constants (numeric hierarchy for comparison) ────── */
 
 export const TIERS = { START: 0, BASIC: 1, STANDARD: 2, PREMIUM: 3, ENTERPRISE: 4 }
@@ -533,11 +535,15 @@ const stripeService = {
         userId: context.userId || '',
         userEmail: context.userEmail || '',
       }
-
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), CHECKOUT_REQUEST_TIMEOUT_MS)
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId)
       })
 
       const data = await response.json().catch(() => ({}))
@@ -553,6 +559,11 @@ const stripeService = {
 
       throw new Error('Checkout URL is missing from server response')
     } catch (err) {
+      if (err?.name === 'AbortError') {
+        analytics.track('checkout_error', { plan: planId, error: 'timeout' })
+        return { error: 'Stripe checkout request timed out. Please try again.' }
+      }
+
       const rawMessage =
         err?.detail ||
         err?.data?.detail ||
