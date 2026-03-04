@@ -167,6 +167,7 @@ export default function SubscriptionPlans() {
       userId: user?.id || user?.userId || '',
       userEmail: user?.email || '',
       industry: 'general',
+      billingPeriod,
     })
     if (result?.error) setError(result.error)
     setLoading(null)
@@ -192,7 +193,7 @@ export default function SubscriptionPlans() {
               ? 'Active billing is managed through Stripe plans below.'
               : 'Choose the plan that fits your business. Upgrade or downgrade at any time.'}
           </p>
-          {showLocalPlanCatalog && (
+          {(showLocalPlanCatalog || stripeLive) && (
             <div className="sp-billing-selector">
               <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.MONTHLY ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.MONTHLY)}>Monthly</button>
               <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.ANNUAL ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.ANNUAL)}>Yearly <span className="sp-billing-badge">Save 15%</span></button>

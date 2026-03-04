@@ -528,6 +528,7 @@ const stripeService = {
     try {
       const payload = {
         tier: planId,
+        billingPeriod: context.billingPeriod || 'monthly',
         industry: context.industry || 'general',
         userId: context.userId || '',
         userEmail: context.userEmail || '',
