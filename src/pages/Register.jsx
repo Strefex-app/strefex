@@ -61,13 +61,9 @@ function RegisterForm() {
   const isBuyerBasicTrial = primaryAccountType === 'buyer' && selectedPlan === 'basic'
   const isPaidPlan = displayPrice > 0 && !isBuyerBasicTrial
 
-  const handleAccountTypeToggle = (type) => {
-    setAccountTypes((prev) => {
-      const next = prev.includes(type)
-        ? prev.filter((v) => v !== type)
-        : [...prev, type]
-      return next.length > 0 ? next : [type]
-    })
+  const handleAccountTypeSelect = (type) => {
+    // Registration is for one account direction at a time.
+    setAccountTypes([type])
     setSelectedPlan('start')
   }
 
@@ -250,7 +246,7 @@ function RegisterForm() {
                   <button
                     type="button"
                     className={`reg-account-type-btn ${accountTypes.includes('seller') ? 'active' : ''}`}
-                    onClick={() => handleAccountTypeToggle('seller')}
+                    onClick={() => handleAccountTypeSelect('seller')}
                     disabled={loading}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
@@ -265,7 +261,7 @@ function RegisterForm() {
                   <button
                     type="button"
                     className={`reg-account-type-btn ${accountTypes.includes('buyer') ? 'active' : ''}`}
-                    onClick={() => handleAccountTypeToggle('buyer')}
+                    onClick={() => handleAccountTypeSelect('buyer')}
                     disabled={loading}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
@@ -281,7 +277,7 @@ function RegisterForm() {
                   <button
                     type="button"
                     className={`reg-account-type-btn ${accountTypes.includes('service_provider') ? 'active' : ''}`}
-                    onClick={() => handleAccountTypeToggle('service_provider')}
+                    onClick={() => handleAccountTypeSelect('service_provider')}
                     disabled={loading}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>

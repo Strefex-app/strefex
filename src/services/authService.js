@@ -37,6 +37,7 @@ import { useIndustryStore } from '../store/industryStore'
 
 const googleProvider = isFirebaseConfigured ? new GoogleAuthProvider() : null
 const AUTH_TIMEOUT_MS = 12000
+const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider'])
 
 /* ── Internal helpers ────────────────────────────────────── */
 
@@ -55,12 +56,29 @@ async function withTimeout(promise, ms, message) {
 }
 
 function capRole(role, email) {
+  // The designated STREFEX account always keeps superadmin privileges.
+  if (isSuperadminEmail(email)) return 'superadmin'
   if (role === 'superadmin' && !isSuperadminEmail(email)) return 'admin'
   return role || 'user'
 }
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
+}
+
+function normalizeAccountType(value, fallback = 'seller') {
+  const normalized = String(value || '').trim().toLowerCase()
+  return VALID_ACCOUNT_TYPES.has(normalized) ? normalized : fallback
+}
+
+function normalizeAccountTypes(values, preferredPrimary = 'seller') {
+  const primary = normalizeAccountType(preferredPrimary)
+  const normalized = Array.isArray(values)
+    ? values.map((v) => normalizeAccountType(v, '')).filter(Boolean)
+    : []
+  if (normalized.includes(primary)) return [primary]
+  if (normalized.length > 0) return [normalized[0]]
+  return [primary]
 }
 
 async function cleanupLaunchStarterExamples() {
@@ -152,10 +170,10 @@ async function storeSupabaseSession(session, profile) {
   const metadataAccountTypes = Array.isArray(metadata.account_types)
     ? metadata.account_types
     : []
-  const fallbackAccountType = metadata.account_type || user?.user_metadata?.account_type || 'seller'
-  const accountTypes = metadataAccountTypes.length > 0
-    ? metadataAccountTypes
-    : [fallbackAccountType]
+  const fallbackAccountType = normalizeAccountType(
+    metadata.account_type || user?.user_metadata?.account_type || metadataAccountTypes[0] || 'seller'
+  )
+  const accountTypes = normalizeAccountTypes(metadataAccountTypes, fallbackAccountType)
   const primaryAccountType = accountTypes[0] || fallbackAccountType
 
   useAuthStore.getState().login({
@@ -208,11 +226,22 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!user) return profile
 
   const md = user.user_metadata || {}
+  const superadminEmail = isSuperadminEmail(user?.email)
   const hasRegistrationMetadata = Boolean(md.tier || md.account_type || md.company_name || md.industry)
-  if (!hasRegistrationMetadata) return profile
+  if (!hasRegistrationMetadata) {
+    // Even without registration metadata, keep superadmin role persistent.
+    if (superadminEmail && profile?.role !== 'superadmin') {
+      await profilesService.updateProfile({ role: 'superadmin' })
+      return profilesService.getMyProfile()
+    }
+    return profile
+  }
 
   const fullName = (md.full_name || profile?.full_name || '').trim()
   const phone = md.phone || profile?.phone || null
+  const primaryMetadataAccountType = normalizeAccountType(
+    md.account_type || profile?.metadata?.account_type || 'seller'
+  )
 
   let companyId = profile?.company_id || null
   if (!companyId) {
@@ -227,7 +256,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
         slug: `${slugBase}-${Date.now().toString(36)}`,
         email: user.email,
         phone: phone || null,
-        account_type: md.account_type || 'seller',
+        account_type: primaryMetadataAccountType,
         plan: md.tier || 'free',
         status: 'active',
       })
@@ -239,10 +268,8 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
 
   const metadata = {
     ...(profile?.metadata || {}),
-    account_type: md.account_type || profile?.metadata?.account_type || null,
-    account_types: Array.isArray(md.account_types)
-      ? md.account_types
-      : (profile?.metadata?.account_types || (md.account_type ? [md.account_type] : [])),
+    account_type: primaryMetadataAccountType,
+    account_types: [primaryMetadataAccountType],
     industry: md.industry || profile?.metadata?.industry || null,
     industries: Array.isArray(md.industries)
       ? md.industries
@@ -273,7 +300,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
       nextRole = 'admin'
     }
   }
-  if (isSuperadminEmail(user?.email)) {
+  if (superadminEmail) {
     nextRole = 'superadmin'
   }
   const metadataChanged = JSON.stringify(profile?.metadata || {}) !== JSON.stringify(metadata)
@@ -305,6 +332,8 @@ function storeSession(backendResponse) {
   const expiresAt = Date.now() + 55 * 60 * 1000
 
   const role = capRole(user?.role, user?.email)
+  const primaryAccountType = normalizeAccountType(user?.account_type || user?.account_types?.[0] || 'seller')
+  const normalizedAccountTypes = normalizeAccountTypes(user?.account_types, primaryAccountType)
 
   useAuthStore.getState().login({
     role,
@@ -316,10 +345,8 @@ function storeSession(backendResponse) {
           email: user.email,
           fullName: user.full_name ?? user.fullName,
           role,
-          accountTypes: Array.isArray(user.account_types)
-            ? user.account_types
-            : [user.account_type || 'seller'],
-          primaryAccountType: user.account_type || 'seller',
+          accountTypes: normalizedAccountTypes,
+          primaryAccountType,
         }
       : null,
     tenant: tenant
@@ -490,10 +517,8 @@ const authService = {
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       const normalizedTier = (selectedTier || selectedPlan || 'free').toLowerCase()
-      const normalizedAccountTypes = Array.isArray(accountTypes) && accountTypes.length > 0
-        ? accountTypes
-        : [accountType]
-      const primaryAccountType = normalizedAccountTypes[0] || accountType
+      const normalizedAccountTypes = normalizeAccountTypes(accountTypes, accountType)
+      const primaryAccountType = normalizedAccountTypes[0] || normalizeAccountType(accountType)
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -680,10 +705,11 @@ const authService = {
             fullName: profile.full_name,
             role: profile.role,
             phone: profile.phone,
-            accountTypes: Array.isArray(profile?.metadata?.account_types)
-              ? profile.metadata.account_types
-              : [profile?.metadata?.account_type || 'seller'],
-            primaryAccountType: profile?.metadata?.account_type || 'seller',
+            accountTypes: normalizeAccountTypes(
+              profile?.metadata?.account_types,
+              profile?.metadata?.account_type || 'seller'
+            ),
+            primaryAccountType: normalizeAccountType(profile?.metadata?.account_type || 'seller'),
           })
           return profile
         }
@@ -708,10 +734,31 @@ const authService = {
       throw new Error('Please enter your account email first.')
     }
     if (isSupabaseConfigured) {
-      await supabaseAuth.resetPassword(normalizedEmail)
-      return { sent: true }
+      try {
+        await supabaseAuth.resetPassword(normalizedEmail)
+        return { sent: true, confirmationResent: false }
+      } catch (err) {
+        const msg = String(err?.message || '').toLowerCase()
+        if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+          await supabaseAuth.resendSignupConfirmation(normalizedEmail)
+          return { sent: true, confirmationResent: true }
+        }
+        throw err
+      }
     }
     throw new Error('Password reset is only available with Supabase auth configuration.')
+  },
+
+  async resendConfirmation(email) {
+    const normalizedEmail = normalizeEmail(email)
+    if (!normalizedEmail) {
+      throw new Error('Please enter your account email first.')
+    }
+    if (isSupabaseConfigured) {
+      await supabaseAuth.resendSignupConfirmation(normalizedEmail)
+      return { sent: true }
+    }
+    throw new Error('Email confirmation resend is only available with Supabase auth configuration.')
   },
 
   /**
