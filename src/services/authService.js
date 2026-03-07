@@ -59,6 +59,10 @@ function capRole(role, email) {
   return role || 'user'
 }
 
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase()
+}
+
 async function cleanupLaunchStarterExamples() {
   try {
     const [
@@ -338,12 +342,13 @@ const authService = {
    * Tries Supabase first, then Firebase, then direct backend.
    */
   async loginWithEmail(email, password, tenantSlug = null) {
+    const normalizedEmail = normalizeEmail(email)
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       let signInResult
       try {
         signInResult = await withTimeout(
-          supabaseAuth.signIn(email, password),
+          supabaseAuth.signIn(normalizedEmail, password),
           AUTH_TIMEOUT_MS,
           'Login request timed out. Please try again.'
         )
@@ -398,7 +403,7 @@ const authService = {
     // ── Firebase path (sign-in only — never auto-create) ──
     if (isFirebaseConfigured) {
       try {
-        await signInWithEmailAndPassword(firebaseAuth, email, password)
+        await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, password)
       } catch (fbError) {
         if (fbError.code === 'auth/user-not-found') {
           throw new Error('No account found with this email. Please register first.')
@@ -412,7 +417,7 @@ const authService = {
 
     // ── Backend JWT path ──
     try {
-      const response = await authApi.login(email, password, tenantSlug)
+      const response = await authApi.login(normalizedEmail, password, tenantSlug)
       storeSession(response)
       return response
     } catch (err) {
@@ -481,6 +486,7 @@ const authService = {
     selectedIndustry = 'general',
     selectedTier = 'free',
   }) {
+    const normalizedEmail = normalizeEmail(email)
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       const normalizedTier = (selectedTier || selectedPlan || 'free').toLowerCase()
@@ -489,7 +495,7 @@ const authService = {
         : [accountType]
       const primaryAccountType = normalizedAccountTypes[0] || accountType
       const signUpData = await supabaseAuth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         fullName,
         phone,
@@ -519,7 +525,7 @@ const authService = {
           const newCompany = await companiesService.create({
             name: company || fullName || email.split('@')[0],
             slug: `${companySlug}-${Date.now().toString(36)}`,
-            email: email,
+            email: normalizedEmail,
             phone: phone || null,
             account_type: primaryAccountType,
             plan: selectedPlan,
@@ -601,7 +607,7 @@ const authService = {
     // ── Firebase path ──
     if (isFirebaseConfigured) {
       try {
-        await createUserWithEmailAndPassword(firebaseAuth, email, password)
+        await createUserWithEmailAndPassword(firebaseAuth, normalizedEmail, password)
       } catch (fbError) {
         if (fbError.code === 'auth/email-already-in-use') {
           // Already exists in Firebase — proceed to backend
@@ -615,7 +621,7 @@ const authService = {
     try {
       const response = await authApi.register({
         full_name: fullName,
-        email,
+        email: normalizedEmail,
         password,
         company_name: company,
         selected_plan: selectedPlan,
@@ -694,6 +700,18 @@ const authService = {
     } catch {
       return null
     }
+  },
+
+  async sendPasswordReset(email) {
+    const normalizedEmail = normalizeEmail(email)
+    if (!normalizedEmail) {
+      throw new Error('Please enter your account email first.')
+    }
+    if (isSupabaseConfigured) {
+      await supabaseAuth.resetPassword(normalizedEmail)
+      return { sent: true }
+    }
+    throw new Error('Password reset is only available with Supabase auth configuration.')
   },
 
   /**

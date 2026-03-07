@@ -49,13 +49,30 @@ const Login = () => {
     }
   }, [searchParams])
 
+  const handleResetPassword = async () => {
+    setError('')
+    setInfo('')
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError('Enter your account email first, then click Forgot password.')
+      return
+    }
+    try {
+      await authService.sendPasswordReset(normalizedEmail)
+      setInfo('Password reset email sent. Please check your inbox.')
+    } catch (err) {
+      setError(getReadableErrorMessage(err, 'Could not send password reset email. Please try again.'))
+    }
+  }
+
   /* ── Main login handler ──────────────────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setInfo('')
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError('Please enter a valid email address')
       return
     }
@@ -67,7 +84,7 @@ const Login = () => {
     // ── Regular login via Supabase / backend ──
     setLoading(true)
     try {
-      await authService.loginWithEmail(email, password)
+      await authService.loginWithEmail(normalizedEmail, password)
       navigate('/main-menu')
     } catch (err) {
       const msg = getReadableErrorMessage(err, '')
@@ -77,7 +94,7 @@ const Login = () => {
       } else if (err.code === 'request_timeout' || msg.toLowerCase().includes('timed out')) {
         setError('Login is taking too long. Please check your connection and try again.')
       } else if (err.code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login')) {
-        setError('Invalid email or password.')
+        setError('Invalid email or password. If this started after billing changes, use Forgot password to reset access.')
       } else if (err.status === 0 || msg.includes('Network error') || msg.includes('Failed to fetch')) {
         setError('Unable to reach the server. Please check your internet connection and try again.')
       } else {
@@ -154,7 +171,15 @@ const Login = () => {
                 <input type="checkbox" />
                 <span>{t('login.rememberMe')}</span>
               </label>
-              <a href="#" className="forgot-password">{t('login.forgotPassword')}</a>
+              <button
+                type="button"
+                className="forgot-password"
+                onClick={handleResetPassword}
+                disabled={loading}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                {t('login.forgotPassword')}
+              </button>
             </div>
 
             <button type="submit" className="login-button" disabled={loading}>
