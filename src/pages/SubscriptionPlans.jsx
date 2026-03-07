@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import StripePricingTable from '../components/StripePricingTable'
 import { useSubscriptionStore } from '../services/featureFlags'
 import stripeService, { PLANS, BILLING_PERIODS, BILLING_DISCOUNT, getPlanPrice, getBillingLabel, getStorageLabel } from '../services/stripeService'
 import { useTransactionStore, getCompanyDomain } from '../store/transactionStore'
@@ -33,11 +32,9 @@ export default function SubscriptionPlans() {
   const isSuperAdmin = role === 'superadmin'
   const isCompanyAdmin = role === 'admin' || isSuperAdmin
   const stripeLive = isStripeConfigured
-  const showStripePricingTable = stripeLive && env.SHOW_STRIPE_PRICING_TABLE
   const showLocalPlanCatalog = !stripeLive && env.IS_DEV
 
   const [billingPeriod, setBillingPeriod] = useState(storedBilling || BILLING_PERIODS.MONTHLY)
-  const [showEmbeddedStripeTable, setShowEmbeddedStripeTable] = useState(false)
 
   const getPriceDisplay = (plan) => {
     const unit = getPlanPrice(plan, accountType, billingPeriod)
@@ -191,8 +188,6 @@ export default function SubscriptionPlans() {
     setError('')
     setLoading(planId)
     const result = await stripeService.checkout(planId, {
-      userId: user?.id || user?.userId || '',
-      userEmail: user?.email || '',
       industry: 'general',
       billingPeriod,
     })
@@ -263,24 +258,6 @@ export default function SubscriptionPlans() {
             <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#888' }}>
               Secure checkout powered by Stripe. Use the plan buttons below to subscribe.
             </p>
-            {showStripePricingTable && !showEmbeddedStripeTable && (
-              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <button
-                  type="button"
-                  className="sp-btn sp-btn-outline"
-                  style={{ width: 'auto', display: 'inline-block', minWidth: 240 }}
-                  onClick={() => setShowEmbeddedStripeTable(true)}
-                >
-                  Load Stripe Interactive Table
-                </button>
-              </div>
-            )}
-            {showStripePricingTable && showEmbeddedStripeTable && (
-              <StripePricingTable
-                customerEmail={user?.email}
-                clientReferenceId={user?.companyId || user?.tenant || ''}
-              />
-            )}
             <div style={{ marginTop: '1rem' }}>
               <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
                 {billingPeriod === BILLING_PERIODS.MONTHLY

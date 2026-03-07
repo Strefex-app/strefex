@@ -201,8 +201,8 @@ function App() {
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
 
           {/* ── Wallet & Payments ──────────────────────────── */}
-          <Route path="/wallet" element={<P><WalletPage /></P>} />
-          <Route path="/send-payment" element={<P><SendPayment /></P>} />
+          <Route path="/wallet" element={<ProtectedRoute requiredRole="manager"><WalletPage /></ProtectedRoute>} />
+          <Route path="/send-payment" element={<ProtectedRoute requiredRole="manager"><SendPayment /></ProtectedRoute>} />
 
           {/* ── Vendor Management ────────────────────────── */}
           <Route path="/vendors" element={<P><VendorManagement /></P>} />
@@ -304,15 +304,15 @@ function App() {
           <Route path="/production/system/:systemId" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagementPage /></PlanGate>} />
 
           {/* ── Headcount Management ──────────────────────── */}
-          <Route path="/production/headcount" element={<P><HeadcountManagement /></P>} />
-          <Route path="/production/headcount/qualification-matrix" element={<P><QualificationMatrix /></P>} />
-          <Route path="/production/headcount/goals" element={<P><EmployeeGoals /></P>} />
-          <Route path="/production/headcount/dialogue" element={<P><EmployeeDialogue /></P>} />
-          <Route path="/production/headcount/hr-docs" element={<P><HRDocumentation /></P>} />
-          <Route path="/production/headcount/training" element={<P><HeadcountManagement /></P>} />
-          <Route path="/production/headcount/workforce" element={<P><HeadcountManagement /></P>} />
-          <Route path="/production/headcount/onboarding" element={<P><HeadcountManagement /></P>} />
-          <Route path="/production/headcount/attendance" element={<P><HeadcountManagement /></P>} />
+          <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
+          <Route path="/production/headcount/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />
+          <Route path="/production/headcount/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeDialogue /></PlanGate>} />
+          <Route path="/production/headcount/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HRDocumentation /></PlanGate>} />
+          <Route path="/production/headcount/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/production/headcount/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/production/headcount/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/production/headcount/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
 
           {/* ── Buyer Features (company-isolated, role-guarded) ── */}
           <Route path="/procurement" element={<PlanGate feature="procurement" planName="Enterprise"><ProcurementDashboard /></PlanGate>} />
