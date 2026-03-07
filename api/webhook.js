@@ -89,6 +89,7 @@ async function reserveWebhookEvent(event) {
 async function upsertSubscriptionRow({
   userId,
   industry = 'general',
+  industries = [],
   tier = '',
   stripeSubscriptionId = null,
   stripeCustomerId = null,
@@ -114,9 +115,14 @@ async function upsertSubscriptionRow({
     return
   }
 
+  const normalizedIndustries = Array.isArray(industries) && industries.length > 0
+    ? [...new Set(industries.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+    : [String(industry || 'general').trim().toLowerCase()]
+
+  for (const industryId of normalizedIndustries) {
   const payload = {
     user_id: userId,
-    industry: industry || 'general',
+    industry: industryId || 'general',
     tier: tier || 'basic',
     plan_id: tier || 'basic',
     stripe_subscription_id: stripeSubscriptionId,
@@ -130,6 +136,7 @@ async function upsertSubscriptionRow({
     .upsert(payload, { onConflict: 'user_id,industry' })
 
   if (error) throw error
+  }
 }
 
 function normalizeStatus(status) {
@@ -142,9 +149,14 @@ function normalizeStatus(status) {
 
 function extractMetadata(obj) {
   const metadata = obj?.metadata || {}
+  const parsedIndustries = String(metadata.industries_csv || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
   return {
     userId: metadata.user_id || obj?.client_reference_id || '',
     industry: metadata.industry || 'general',
+    industries: parsedIndustries,
     tier: metadata.tier || '',
   }
 }
@@ -197,10 +209,11 @@ export default async function handler(req, res) {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object
-      const { userId, industry, tier } = extractMetadata(session)
+      const { userId, industry, industries, tier } = extractMetadata(session)
       await upsertSubscriptionRow({
         userId,
         industry,
+        industries,
         tier,
         stripeSubscriptionId: session.subscription || null,
         stripeCustomerId: session.customer || null,
@@ -214,10 +227,11 @@ export default async function handler(req, res) {
       || event.type === 'customer.subscription.deleted'
     ) {
       const subscription = event.data.object
-      const { userId, industry, tier } = extractMetadata(subscription)
+      const { userId, industry, industries, tier } = extractMetadata(subscription)
       await upsertSubscriptionRow({
         userId,
         industry,
+        industries,
         tier,
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: subscription.customer || null,

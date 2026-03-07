@@ -242,11 +242,17 @@ export default async function handler(req, res) {
     const {
       priceId: incomingPriceId,
       industry = 'general',
+      industries = [],
       tier = '',
       billingPeriod = 'monthly',
       successUrl,
       cancelUrl,
     } = body
+    const normalizedIndustries = Array.isArray(industries) && industries.length > 0
+      ? [...new Set(industries.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+      : [String(industry || 'general').trim().toLowerCase()]
+    const primaryIndustry = normalizedIndustries[0] || 'general'
+    const industryCount = 1
 
     // Accept either price IDs (price_*) or product IDs (prod_*) from env.
     const serverPriceRefByTier = {
@@ -278,7 +284,9 @@ export default async function handler(req, res) {
 
     const metadata = {
       user_id: authUser.id,
-      industry: industry || 'general',
+      industry: primaryIndustry,
+      industries_csv: primaryIndustry,
+      industries_count: String(industryCount),
       tier: resolvedTier || '',
       billing_period: billingPeriod,
       price_id: priceId,
@@ -302,6 +310,8 @@ export default async function handler(req, res) {
       userId: authUser.id,
       tier: resolvedTier,
       billingPeriod,
+      industries: [primaryIndustry],
+      industryCount,
       stripeSessionId: session.id,
     })
     return res.status(200).json({ sessionId: session.id, url: session.url || '', requestId })

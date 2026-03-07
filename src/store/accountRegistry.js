@@ -157,6 +157,17 @@ export const useAccountRegistry = create((set, get) => ({
     )
   },
 
+  isDomainIndustryRegistered: (domain, accountType, industryId) => {
+    if (!domain || !industryId) return false
+    const safeDomain = domain.toLowerCase()
+    return get().accounts.some((a) =>
+      a.accountType === accountType &&
+      a.email?.split('@')[1]?.toLowerCase() === safeDomain &&
+      (a.industries || []).includes(industryId) &&
+      a.status !== 'canceled'
+    )
+  },
+
   getAccountsByDomain: (domain) => {
     if (!domain) return []
     return get().accounts.filter((a) =>

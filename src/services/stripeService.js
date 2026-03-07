@@ -541,6 +541,9 @@ const stripeService = {
         tier: planId,
         billingPeriod: context.billingPeriod || 'monthly',
         industry: context.industry || 'general',
+        industries: Array.isArray(context.industries)
+          ? context.industries
+          : (context.industry ? [context.industry] : []),
       }
       const controller = new AbortController()
       const timeoutId = window.setTimeout(() => controller.abort(), CHECKOUT_REQUEST_TIMEOUT_MS)

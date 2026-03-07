@@ -155,7 +155,21 @@ export const supabaseAuth = {
   /** Reset password. */
   async resetPassword(email) {
     if (!isSupabaseConfigured) return null
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email)
+    const redirectTo = `${window.location.origin}/login?reset=true`
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    if (error) throw error
+    return data
+  },
+
+  /** Resend signup confirmation email. */
+  async resendSignupConfirmation(email) {
+    if (!isSupabaseConfigured) return null
+    const redirectTo = `${window.location.origin}/login?confirmed=true`
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: redirectTo },
+    })
     if (error) throw error
     return data
   },

@@ -14,8 +14,6 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth'
@@ -35,9 +33,15 @@ import {
 } from './subscriptionService'
 import { useIndustryStore } from '../store/industryStore'
 
-const googleProvider = isFirebaseConfigured ? new GoogleAuthProvider() : null
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider'])
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
+  'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'proton.me', 'protonmail.com', 'pm.me',
+  'mail.com', 'gmx.com', 'zoho.com', 'yandex.com', 'yandex.ru',
+])
 
 /* ── Internal helpers ────────────────────────────────────── */
 
@@ -79,6 +83,39 @@ function normalizeAccountTypes(values, preferredPrimary = 'seller') {
   if (normalized.includes(primary)) return [primary]
   if (normalized.length > 0) return [normalized[0]]
   return [primary]
+}
+
+function isBusinessEmail(email) {
+  const normalized = normalizeEmail(email)
+  const parts = normalized.split('@')
+  if (parts.length !== 2) return false
+  const domain = parts[1]
+  if (!domain || !domain.includes('.')) return false
+  return !PUBLIC_EMAIL_DOMAINS.has(domain)
+}
+
+function getEmailDomain(email) {
+  const normalized = normalizeEmail(email)
+  const parts = normalized.split('@')
+  return parts.length === 2 ? parts[1].toLowerCase() : ''
+}
+
+function isDomainIndustryTakenFromRegistry(email, accountType, industryId) {
+  try {
+    const domain = getEmailDomain(email)
+    if (!domain || !industryId) return false
+    const raw = localStorage.getItem('strefex-account-registry')
+    const accounts = raw ? JSON.parse(raw) : []
+    return Array.isArray(accounts) && accounts.some((a) =>
+      a?.status !== 'canceled' &&
+      String(a?.accountType || '') === String(accountType || '') &&
+      String(a?.email || '').split('@')[1]?.toLowerCase() === domain &&
+      Array.isArray(a?.industries) &&
+      a.industries.includes(industryId)
+    )
+  } catch {
+    return false
+  }
 }
 
 async function cleanupLaunchStarterExamples() {
@@ -469,31 +506,8 @@ const authService = {
    * Prefers Supabase OAuth; falls back to Firebase popup.
    */
   async loginWithGoogle(tenantSlug = null) {
-    if (isSupabaseConfigured) {
-      await supabaseAuth.signInWithOAuth('google')
-      return
-    }
-
-    if (!isFirebaseConfigured || !googleProvider) {
-      throw new Error('Google SSO requires Firebase or Supabase configuration.')
-    }
-
-    const result = await signInWithPopup(firebaseAuth, googleProvider)
-    const idToken = await result.user.getIdToken()
-    const gEmail = result.user.email
-
-    try {
-      const response = await authApi.login(gEmail, idToken, tenantSlug)
-      storeSession(response)
-      return response
-    } catch (err) {
-      if (isFirebaseConfigured && firebaseAuth.currentUser) {
-        await firebaseSignOut(firebaseAuth).catch(() => {})
-      }
-      throw new Error(
-        err.detail || 'Google SSO succeeded but backend registration is pending. Contact your administrator.'
-      )
-    }
+    void tenantSlug
+    throw new Error('Google sign-in is disabled. Please use your business email and password.')
   },
 
   /**
@@ -511,14 +525,31 @@ const authService = {
     accountType = 'seller',
     accountTypes = null,
     selectedIndustry = 'general',
+    selectedIndustries = null,
+    selectedCategories = null,
     selectedTier = 'free',
   }) {
     const normalizedEmail = normalizeEmail(email)
+    if (!isBusinessEmail(normalizedEmail)) {
+      throw new Error('Please register using your business email domain (no public email providers).')
+    }
+    const normalizedPrimaryIndustry = String(selectedIndustry || '').trim().toLowerCase() || 'general'
+    const normalizedPrimaryAccountType = normalizeAccountType(accountType)
+    if (isDomainIndustryTakenFromRegistry(normalizedEmail, normalizedPrimaryAccountType, normalizedPrimaryIndustry)) {
+      throw new Error('This business domain is already registered for the selected account type and industry.')
+    }
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       const normalizedTier = (selectedTier || selectedPlan || 'free').toLowerCase()
       const normalizedAccountTypes = normalizeAccountTypes(accountTypes, accountType)
       const primaryAccountType = normalizedAccountTypes[0] || normalizeAccountType(accountType)
+      void selectedIndustries
+      const primaryIndustry = String(selectedIndustry || 'general').trim().toLowerCase() || 'general'
+      const normalizedIndustries = [primaryIndustry]
+      const normalizedCategories = (() => {
+        void selectedCategories
+        return {}
+      })()
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -528,9 +559,9 @@ const authService = {
           company_name: company || '',
           account_type: primaryAccountType,
           account_types: normalizedAccountTypes,
-          industry: selectedIndustry,
-          industries: [selectedIndustry],
-          categories: { [selectedIndustry]: [] },
+          industry: primaryIndustry,
+          industries: normalizedIndustries,
+          categories: normalizedCategories,
           tier: normalizedTier,
         },
       })
@@ -566,9 +597,9 @@ const authService = {
               metadata: {
                 account_type: primaryAccountType,
                 account_types: normalizedAccountTypes,
-                industry: selectedIndustry,
-                industries: [selectedIndustry],
-                categories: { [selectedIndustry]: [] },
+                industry: primaryIndustry,
+                industries: normalizedIndustries,
+                categories: normalizedCategories,
                 tier: normalizedTier,
               },
               email_verified: false,
@@ -585,13 +616,15 @@ const authService = {
             method: 'supabase',
             tier: normalizedTier,
             accountType: primaryAccountType,
-            industry: selectedIndustry,
+            industry: primaryIndustry,
+            industriesCount: normalizedIndustries.length,
             awaitingConfirmation: true,
           })
           return {
             user,
             emailConfirmationPending: true,
-            selectedIndustry,
+            selectedIndustry: primaryIndustry,
+            selectedIndustries: normalizedIndustries,
             selectedTier: normalizedTier,
           }
         }
@@ -602,10 +635,10 @@ const authService = {
 
         // Free tier grants access immediately.
         if (normalizedTier === 'free') {
-          await createFreeSubscription({ userId: user.id, industry: selectedIndustry })
+          await createFreeSubscription({ userId: user.id, industry: primaryIndustry })
         } else {
           // Paid tiers are pending until Stripe webhook confirms payment.
-          await createPendingSubscription({ userId: user.id, industry: selectedIndustry, tier: normalizedTier })
+          await createPendingSubscription({ userId: user.id, industry: primaryIndustry, tier: normalizedTier })
         }
 
         await useIndustrySubscriptionStore.getState().loadActiveSubscriptions(user.id)
@@ -613,9 +646,18 @@ const authService = {
           method: 'supabase',
           tier: normalizedTier,
           accountType: primaryAccountType,
-          industry: selectedIndustry,
+          industry: primaryIndustry,
+          industriesCount: normalizedIndustries.length,
         })
-        return { session, user, profile, requiresPayment: normalizedTier !== 'free', tier: normalizedTier, industry: selectedIndustry }
+        return {
+          session,
+          user,
+          profile,
+          requiresPayment: normalizedTier !== 'free',
+          tier: normalizedTier,
+          industry: primaryIndustry,
+          industries: normalizedIndustries,
+        }
       }
       return signUpData
     }
@@ -812,8 +854,8 @@ const authService = {
     return null
   },
 
-  /** Whether Google SSO is available (via Supabase or Firebase). */
-  isGoogleSSOAvailable: isSupabaseConfigured || isFirebaseConfigured,
+  /** Google SSO is intentionally disabled. */
+  isGoogleSSOAvailable: false,
 
   /** Whether Supabase is the primary auth provider. */
   isSupabaseConfigured,

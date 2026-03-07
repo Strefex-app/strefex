@@ -79,12 +79,11 @@ export default function ProductHub() {
   const planId = useSubscriptionStore((s) => s.planId)
   const limits = getEffectiveLimits(planId, accountType)
   const maxIndustries = isSuperAdmin ? Infinity : (limits.maxIndustries ?? 1)
-  const allIndustriesOpen = maxIndustries === Infinity
+  void maxIndustries
 
   const isServiceProvider = accountType === 'service_provider' && !isSuperAdmin
 
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
-  const selectIndustry = useIndustryStore((s) => s.selectIndustry)
   const isSelected = useIndustryStore((s) => s.isSelected)
 
   const [showPicker, setShowPicker] = useState(false)
@@ -125,22 +124,16 @@ export default function ProductHub() {
         ) : (
           <div className="app-page-card">
             <p style={{ fontSize: 14, color: '#666', marginBottom: 16 }}>
-              {allIndustriesOpen
-                ? 'Select an industry to browse product categories and suppliers.'
-                : selectedIndustries.length === 0
-                ? 'Choose your industry to register and access product categories.'
-                : selectedIndustries.length < maxIndustries
-                ? `Registered in ${selectedIndustries.length} of ${maxIndustries} industries — you can add more.`
-                : `Registered in ${selectedIndustries.length} industry — select product category inside.`}
+              {selectedIndustries.length === 0
+                ? 'No industry is linked to this account yet. Register one industry during onboarding.'
+                : `Registered in ${selectedIndustries.length} ${selectedIndustries.length === 1 ? 'industry' : 'industries'}. To access another industry, create a separate account registration.`}
             </p>
 
             <div style={{ display: 'grid', gap: 12 }}>
               {INDUSTRIES.map((item) => {
                 const chosen = isSelected(item.id)
-                const slotsLeft = maxIndustries - selectedIndustries.length
-                const canPick = slotsLeft > 0
 
-                if (allIndustriesOpen || chosen) {
+                if (isSuperAdmin || chosen) {
                   return (
                     <button
                       key={item.id}
@@ -179,13 +172,13 @@ export default function ProductHub() {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => canPick ? setShowPicker(item.id) : navigate('/plans')}
+                    onClick={() => setShowPicker(item.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 16,
                       padding: '16px 20px', borderRadius: 12,
                       background: '#fff', border: '1px solid #e2e8f0',
                       cursor: 'pointer', textAlign: 'left', width: '100%',
-                      opacity: canPick ? 1 : 0.6, transition: 'all .15s',
+                      opacity: 1, transition: 'all .15s',
                     }}
                   >
                     <span style={{
@@ -198,18 +191,12 @@ export default function ProductHub() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a2e' }}>
                         {item.tKey ? t(item.tKey) : item.label || item.id}
-                        {!canPick && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ marginLeft: 6, verticalAlign: 'middle', opacity: 0.5 }}>
-                            <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
-                        )}
                       </div>
                       <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>
-                        {canPick ? 'Click to register in this industry' : 'Upgrade plan to access'}
+                        Register this industry through a separate account onboarding
                       </div>
                     </div>
-                    <span style={{ color: canPick ? '#2e7d32' : '#ccc', fontSize: 20, fontWeight: 300 }}>{canPick ? '+' : '↑'}</span>
+                    <span style={{ color: '#2e7d32', fontSize: 20, fontWeight: 300 }}>+</span>
                   </button>
                 )
               })}
@@ -227,11 +214,10 @@ export default function ProductHub() {
                   const selected = INDUSTRIES.find((i) => i.id === showPicker)
                   return selected?.tKey ? t(selected.tKey) : selected?.label || showPicker
                 })()}</strong>?
-                {!allIndustriesOpen && (
-                  <><br /><span style={{ color: '#e65100', fontSize: 13 }}>
-                    Your plan allows {maxIndustries} {maxIndustries === 1 ? 'industry' : 'industries'}.
-                  </span></>
-                )}
+                <br />
+                <span style={{ color: '#e65100', fontSize: 13 }}>
+                  Log out and create a separate registration for this industry. Each registration has its own plan and Stripe checkout.
+                </span>
               </p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
@@ -242,13 +228,12 @@ export default function ProductHub() {
                 </button>
                 <button
                   onClick={() => {
-                    selectIndustry(showPicker, maxIndustries)
                     setShowPicker(false)
-                    navigate(`/product-hub/${showPicker}`)
+                    navigate('/login')
                   }}
                   style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#2e7d32', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                 >
-                  Confirm & Enter
+                  Go to Sign In
                 </button>
               </div>
             </div>

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Elements } from '@stripe/react-stripe-js'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { useSubscriptionStore } from '../services/featureFlags'
+import { useAccountRegistry } from '../store/accountRegistry'
 import { useTranslation } from '../i18n/useTranslation'
 import { getStripe, isStripeConfigured } from '../config/stripe'
 import authService from '../services/authService'
@@ -12,12 +12,16 @@ import './Login.css'
 import './Register.css'
 
 const INDUSTRIES = [
-  'automotive',
-  'aerospace',
-  'machinery',
-  'electronics',
-  'energy',
+  { id: 'automotive', label: 'Automotive' },
+  { id: 'machinery', label: 'Machinery' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'medical', label: 'Medical' },
+  { id: 'raw-materials', label: 'Raw Materials' },
 ]
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
+  'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'gmx.com', 'yandex.com', 'yandex.ru',
+])
 
 /* ── Inner form (needs Stripe context) ───────────────────── */
 function RegisterForm() {
@@ -37,14 +41,14 @@ function RegisterForm() {
   const [showAgreementModal, setShowAgreementModal] = useState(false)
 
   const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const setPlan = useSubscriptionStore((s) => s.setPlan)
-  const setStoreAccountType = useSubscriptionStore((s) => s.setAccountType)
+  const isDomainIndustryRegistered = useAccountRegistry((s) => s.isDomainIndustryRegistered)
+  const registerAccount = useAccountRegistry((s) => s.registerAccount)
   const theme = useSettingsStore((s) => s.theme)
   const { t } = useTranslation()
 
   const primaryAccountType = accountTypes[0] || 'seller'
+  const primaryIndustry = selectedIndustry || 'automotive'
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 
@@ -71,10 +75,19 @@ function RegisterForm() {
     .map((type) => ACCOUNT_TYPES.find((t) => t.id === type)?.label || type)
     .join(', ')
 
+  const isBusinessEmail = (value) => {
+    const normalized = String(value || '').trim().toLowerCase()
+    const parts = normalized.split('@')
+    if (parts.length !== 2) return false
+    const domain = parts[1]
+    return Boolean(domain && domain.includes('.') && !PUBLIC_EMAIL_DOMAINS.has(domain))
+  }
+
   /* ── Step 1 validation ─────────────────────────────────── */
   const validateAccount = () => {
     if (!fullName.trim() || fullName.trim().length < 2) return 'Full name must be at least 2 characters'
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address'
+    if (!isBusinessEmail(email)) return 'Please use a business email domain (public email providers are not allowed).'
     if (!phone.trim() || phone.trim().length < 7) return 'Please enter a valid phone number (minimum 7 digits)'
     if (!/^[+\d\s\-()]+$/.test(phone.trim())) return 'Phone number can only contain digits, spaces, dashes, and parentheses'
     if (!password || password.length < 8) return 'Password must be at least 8 characters'
@@ -99,6 +112,16 @@ function RegisterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (!selectedIndustry) {
+      setError('Please choose one industry.')
+      return
+    }
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    const emailDomain = normalizedEmail.split('@')[1]?.toLowerCase() || ''
+    if (emailDomain && isDomainIndustryRegistered(emailDomain, primaryAccountType, primaryIndustry)) {
+      setError('This business domain is already registered for the selected account type and industry. Choose another industry.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -111,8 +134,21 @@ function RegisterForm() {
         selectedPlan,
         accountType: primaryAccountType,
         accountTypes,
-        selectedIndustry,
+        selectedIndustry: primaryIndustry,
         selectedTier,
+      })
+
+      registerAccount({
+        id: result?.user?.id || `pending-${Date.now()}`,
+        company: company.trim() || fullName.trim() || normalizedEmail.split('@')[0] || 'Business',
+        email: normalizedEmail,
+        contactName: fullName.trim(),
+        accountType: primaryAccountType,
+        plan: selectedPlan,
+        status: result?.emailConfirmationPending ? 'pending_confirmation' : (selectedTier === 'free' ? 'active' : 'pending_payment'),
+        industries: [primaryIndustry],
+        categories: {},
+        registeredAt: new Date().toISOString(),
       })
 
       if (result?.emailConfirmationPending) {
@@ -124,8 +160,8 @@ function RegisterForm() {
       if (selectedTier !== 'free') {
         const checkout = await stripeService.checkout(selectedTier, {
           userId: result?.user?.id || '',
-          userEmail: email.trim().toLowerCase(),
-          industry: selectedIndustry || 'general',
+          userEmail: normalizedEmail,
+          industry: primaryIndustry || 'general',
         })
         if (checkout?.error) {
           setError(checkout.error)
@@ -138,29 +174,6 @@ function RegisterForm() {
     } catch (err) {
       const msg = err?.message || err?.detail || 'Registration failed. Please try again.'
       setError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleSignup = async () => {
-    if (!agreedToTerms) {
-      setError('You must accept the Platform Agreement & NDA to continue')
-      return
-    }
-    if (!authService.isGoogleSSOAvailable) {
-      setError('Google SSO requires Firebase configuration.')
-      return
-    }
-    setError('')
-    setLoading(true)
-    try {
-      await authService.loginWithGoogle()
-      setStoreAccountType(primaryAccountType)
-      setPlan(primaryAccountType === 'buyer' ? 'basic' : 'start')
-      navigate('/main-menu')
-    } catch (err) {
-      setError(err.message || 'Google sign-up failed')
     } finally {
       setLoading(false)
     }
@@ -336,20 +349,7 @@ function RegisterForm() {
                 Next — Choose Plan
               </button>
 
-              {authService.isGoogleSSOAvailable && (
-                <>
-                  <div className="login-divider"><span>or</span></div>
-                  <button type="button" className="login-button login-button-google" onClick={handleGoogleSignup} disabled={loading || !agreedToTerms}>
-                    <svg width="18" height="18" viewBox="0 0 48 48" style={{ marginRight: 8, flexShrink: 0 }}>
-                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                    </svg>
-                    Sign up with Google
-                  </button>
-                </>
-              )}
+              <div className="login-divider"><span>Business email registration only</span></div>
             </form>
           )}
 
@@ -369,18 +369,32 @@ function RegisterForm() {
 
               <div className="form-group">
                 <label htmlFor="reg-industry">Industry</label>
-                <select
-                  id="reg-industry"
-                  value={selectedIndustry}
-                  onChange={(e) => setSelectedIndustry(e.target.value)}
-                  disabled={loading}
-                >
-                  {INDUSTRIES.map((industry) => (
-                    <option key={industry} value={industry}>
-                      {industry.charAt(0).toUpperCase() + industry.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <div className="reg-account-type-toggle reg-account-type-3col">
+                  {INDUSTRIES.map((industry) => {
+                    const active = selectedIndustry === industry.id
+                    return (
+                      <button
+                        key={industry.id}
+                        type="button"
+                        className={`reg-account-type-btn ${active ? 'active' : ''}`}
+                        onClick={() => setSelectedIndustry(industry.id)}
+                        disabled={loading}
+                        style={{ minHeight: 62 }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                          <div className="reg-account-type-label">{industry.label}</div>
+                          {active && <span className="home-industry-badge">Selected</span>}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="reg-domain-hint" style={{ marginTop: 8 }}>
+                  Registration is one industry at a time. After login, choose categories in your industry dashboard according to your plan.
+                </div>
+                <div className="reg-domain-hint" style={{ marginTop: 6 }}>
+                  Selected industry: <strong>{INDUSTRIES.find((x) => x.id === primaryIndustry)?.label || primaryIndustry}</strong>
+                </div>
               </div>
 
               <div className="reg-plans" style={{ gridTemplateColumns: `repeat(${availablePlans.length}, 1fr)` }}>
@@ -422,7 +436,7 @@ function RegisterForm() {
               {isPaidPlan && (
                 <div className="reg-free-note" style={{ borderColor: '#f0c040', background: '#fffbeb' }}>
                   Paid tier selected. After account creation you will be redirected to Stripe Checkout.
-                  Access activates only after webhook confirmation.
+                  Access activates only after webhook confirmation. Each industry registration is billed separately.
                 </div>
               )}
 

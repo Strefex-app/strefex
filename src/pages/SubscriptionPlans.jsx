@@ -5,6 +5,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import stripeService, { PLANS, BILLING_PERIODS, BILLING_DISCOUNT, getPlanPrice, getBillingLabel, getStorageLabel } from '../services/stripeService'
 import { useTransactionStore, getCompanyDomain } from '../store/transactionStore'
 import { useAuthStore } from '../store/authStore'
+import { useIndustryStore } from '../store/industryStore'
 import { analytics } from '../services/analytics'
 import { isStripeConfigured } from '../config/stripe'
 import env from '../config/env'
@@ -28,6 +29,7 @@ export default function SubscriptionPlans() {
   const addTransaction = useTransactionStore((s) => s.addTransaction)
   const transactions = useTransactionStore((s) => s.transactions)
   const user = useAuthStore((s) => s.user)
+  const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const role = useAuthStore((s) => s.role)
   const isSuperAdmin = role === 'superadmin'
   const isCompanyAdmin = role === 'admin' || isSuperAdmin
@@ -187,8 +189,11 @@ export default function SubscriptionPlans() {
   const handleQuickStripeCheckout = async (planId) => {
     setError('')
     setLoading(planId)
+    const checkoutIndustry = Array.isArray(selectedIndustries) && selectedIndustries.length > 0
+      ? selectedIndustries[0]
+      : 'general'
     const result = await stripeService.checkout(planId, {
-      industry: 'general',
+      industry: checkoutIndustry,
       billingPeriod,
     })
     if (result?.error) setError(result.error)

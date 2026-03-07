@@ -28,6 +28,7 @@ const Login = () => {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
+  const [canResendConfirmation, setCanResendConfirmation] = useState(false)
 
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -52,16 +53,38 @@ const Login = () => {
   const handleResetPassword = async () => {
     setError('')
     setInfo('')
+    setCanResendConfirmation(false)
     const normalizedEmail = String(email || '').trim().toLowerCase()
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError('Enter your account email first, then click Forgot password.')
       return
     }
     try {
-      await authService.sendPasswordReset(normalizedEmail)
-      setInfo('Password reset email sent. Please check your inbox.')
+      const result = await authService.sendPasswordReset(normalizedEmail)
+      if (result?.confirmationResent) {
+        setInfo('Your account is not confirmed yet. A new confirmation email was sent.')
+      } else {
+        setInfo('Password reset email sent. Please check your inbox.')
+      }
     } catch (err) {
       setError(getReadableErrorMessage(err, 'Could not send password reset email. Please try again.'))
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    setError('')
+    setInfo('')
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError('Enter your account email first, then click resend confirmation.')
+      return
+    }
+    try {
+      await authService.resendConfirmation(normalizedEmail)
+      setInfo('Confirmation email resent. Please check your inbox.')
+      setCanResendConfirmation(false)
+    } catch (err) {
+      setError(getReadableErrorMessage(err, 'Could not resend confirmation email. Please try again.'))
     }
   }
 
@@ -70,6 +93,7 @@ const Login = () => {
     e.preventDefault()
     setError('')
     setInfo('')
+    setCanResendConfirmation(false)
 
     const normalizedEmail = String(email || '').trim().toLowerCase()
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -91,6 +115,7 @@ const Login = () => {
 
       if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
         setError('Please verify your email before logging in.')
+        setCanResendConfirmation(true)
       } else if (err.code === 'request_timeout' || msg.toLowerCase().includes('timed out')) {
         setError('Login is taking too long. Please check your connection and try again.')
       } else if (err.code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login')) {
@@ -171,15 +196,28 @@ const Login = () => {
                 <input type="checkbox" />
                 <span>{t('login.rememberMe')}</span>
               </label>
-              <button
-                type="button"
-                className="forgot-password"
-                onClick={handleResetPassword}
-                disabled={loading}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-              >
-                {t('login.forgotPassword')}
-              </button>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="forgot-password"
+                  onClick={handleResetPassword}
+                  disabled={loading}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  {t('login.forgotPassword')}
+                </button>
+                {canResendConfirmation && (
+                  <button
+                    type="button"
+                    className="forgot-password"
+                    onClick={handleResendConfirmation}
+                    disabled={loading}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    Resend confirmation
+                  </button>
+                )}
+              </div>
             </div>
 
             <button type="submit" className="login-button" disabled={loading}>
