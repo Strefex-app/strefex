@@ -12,7 +12,18 @@ export default function ProtectedRoute({ children, requiredRole }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const expiresAt = useAuthStore((s) => s.expiresAt)
   const logout = useAuthStore((s) => s.logout)
+  const role = useAuthStore((s) => s.role)
   const location = useLocation()
+
+  const roleHierarchy = {
+    guest: 0,
+    user: 1,
+    manager: 2,
+    auditor_internal: 3,
+    admin: 4,
+    auditor_external: 5,
+    superadmin: 6,
+  }
 
   // Token expired — force logout and redirect
   if (isAuthenticated && expiresAt && Date.now() > expiresAt) {
@@ -22,6 +33,14 @@ export default function ProtectedRoute({ children, requiredRole }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  if (requiredRole) {
+    const currentLevel = roleHierarchy[role] ?? 0
+    const requiredLevel = roleHierarchy[requiredRole] ?? 999
+    if (currentLevel < requiredLevel) {
+      return <Navigate to="/main-menu" replace />
+    }
   }
 
   return children

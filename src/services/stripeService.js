@@ -528,18 +528,29 @@ const stripeService = {
 
     analytics.track('checkout_started', { plan: planId })
     try {
+      let authToken = ''
+      try {
+        const { supabase } = await import('../config/supabase')
+        const { data } = await supabase?.auth?.getSession?.()
+        authToken = data?.session?.access_token || ''
+      } catch {
+        authToken = ''
+      }
+
       const payload = {
         tier: planId,
         billingPeriod: context.billingPeriod || 'monthly',
         industry: context.industry || 'general',
-        userId: context.userId || '',
-        userEmail: context.userEmail || '',
       }
       const controller = new AbortController()
       const timeoutId = window.setTimeout(() => controller.abort(), CHECKOUT_REQUEST_TIMEOUT_MS)
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify(payload),
         signal: controller.signal,
       }).finally(() => {
