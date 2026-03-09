@@ -254,6 +254,16 @@ async function storeSupabaseSession(session, profile) {
 
   // Keep UI account-type context aligned with profile metadata.
   useSubscriptionStore.getState().setAccountType(primaryAccountType)
+  // Keep service expertise selection aligned for service providers.
+  try {
+    const serviceCategories = Array.isArray(metadata.service_categories)
+      ? metadata.service_categories
+      : []
+    const { useServiceStore } = await import('../store/serviceStore')
+    useServiceStore.getState().setServices(serviceCategories)
+  } catch {
+    // Non-blocking
+  }
 
   // After real auth, remove presentation starter examples from workspace data.
   cleanupLaunchStarterExamples().catch(() => {})
@@ -316,6 +326,9 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
     categories: (md.categories && typeof md.categories === 'object')
       ? md.categories
       : (profile?.metadata?.categories || {}),
+    service_categories: Array.isArray(md.service_categories)
+      ? md.service_categories
+      : (Array.isArray(profile?.metadata?.service_categories) ? profile.metadata.service_categories : []),
     tier: md.tier || profile?.metadata?.tier || 'free',
   }
 
@@ -527,6 +540,7 @@ const authService = {
     selectedIndustry = 'general',
     selectedIndustries = null,
     selectedCategories = null,
+    selectedServiceCategories = null,
     selectedTier = 'free',
   }) {
     const normalizedEmail = normalizeEmail(email)
@@ -550,6 +564,9 @@ const authService = {
         void selectedCategories
         return {}
       })()
+      const normalizedServiceCategories = Array.isArray(selectedServiceCategories)
+        ? [...new Set(selectedServiceCategories.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+        : []
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -562,6 +579,7 @@ const authService = {
           industry: primaryIndustry,
           industries: normalizedIndustries,
           categories: normalizedCategories,
+          service_categories: normalizedServiceCategories,
           tier: normalizedTier,
         },
       })
@@ -600,6 +618,7 @@ const authService = {
                 industry: primaryIndustry,
                 industries: normalizedIndustries,
                 categories: normalizedCategories,
+                service_categories: normalizedServiceCategories,
                 tier: normalizedTier,
               },
               email_verified: false,

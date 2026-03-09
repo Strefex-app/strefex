@@ -91,6 +91,24 @@ export default function ServiceHub() {
               ? 'Register your expertise in service categories or request services through Quick Actions.'
               : 'Browse available service categories. Use Quick Actions on the Home page to request a service.'}
           </p>
+          <div style={{ marginTop: 14 }}>
+            <button
+              type="button"
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                color: '#334155',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+              onClick={() => navigate('/service-hub/executive-summary')}
+            >
+              Open Service Provider Executive Summary
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gap: 16 }}>

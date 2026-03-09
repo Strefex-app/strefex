@@ -18,6 +18,11 @@ const INDUSTRIES = [
   { id: 'medical', label: 'Medical' },
   { id: 'raw-materials', label: 'Raw Materials' },
 ]
+const SERVICE_EXPERTISE_OPTIONS = [
+  { id: 'project-management', label: 'Project Management' },
+  { id: 'supplier-services', label: 'Supplier Services' },
+  { id: 'quality-services', label: 'Quality & Compliance' },
+]
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
   'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'gmx.com', 'yandex.com', 'yandex.ru',
@@ -35,6 +40,7 @@ function RegisterForm() {
   const [accountTypes, setAccountTypes] = useState(['seller'])
   const [selectedPlan, setSelectedPlan] = useState('start')
   const [selectedIndustry, setSelectedIndustry] = useState('automotive')
+  const [selectedServiceCategories, setSelectedServiceCategories] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -69,6 +75,17 @@ function RegisterForm() {
     // Registration is for one account direction at a time.
     setAccountTypes([type])
     setSelectedPlan('start')
+    if (type !== 'service_provider') {
+      setSelectedServiceCategories([])
+    }
+  }
+
+  const toggleServiceCategory = (serviceId) => {
+    setSelectedServiceCategories((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
+    )
   }
 
   const accountTypeLabels = accountTypes
@@ -116,6 +133,10 @@ function RegisterForm() {
       setError('Please choose one industry.')
       return
     }
+    if (primaryAccountType === 'service_provider' && selectedServiceCategories.length === 0) {
+      setError('Please select at least one service expertise category.')
+      return
+    }
     const normalizedEmail = String(email || '').trim().toLowerCase()
     const emailDomain = normalizedEmail.split('@')[1]?.toLowerCase() || ''
     if (emailDomain && isDomainIndustryRegistered(emailDomain, primaryAccountType, primaryIndustry)) {
@@ -135,6 +156,7 @@ function RegisterForm() {
         accountType: primaryAccountType,
         accountTypes,
         selectedIndustry: primaryIndustry,
+        selectedServiceCategories,
         selectedTier,
       })
 
@@ -148,6 +170,7 @@ function RegisterForm() {
         status: result?.emailConfirmationPending ? 'pending_confirmation' : (selectedTier === 'free' ? 'active' : 'pending_payment'),
         industries: [primaryIndustry],
         categories: {},
+        serviceCategories: primaryAccountType === 'service_provider' ? selectedServiceCategories : [],
         registeredAt: new Date().toISOString(),
       })
 
@@ -396,6 +419,35 @@ function RegisterForm() {
                   Selected industry: <strong>{INDUSTRIES.find((x) => x.id === primaryIndustry)?.label || primaryIndustry}</strong>
                 </div>
               </div>
+
+              {primaryAccountType === 'service_provider' && (
+                <div className="form-group">
+                  <label>Service Expertise</label>
+                  <div className="reg-account-type-toggle reg-account-type-3col">
+                    {SERVICE_EXPERTISE_OPTIONS.map((service) => {
+                      const active = selectedServiceCategories.includes(service.id)
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          className={`reg-account-type-btn ${active ? 'active' : ''}`}
+                          onClick={() => toggleServiceCategory(service.id)}
+                          disabled={loading}
+                          style={{ minHeight: 62 }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                            <div className="reg-account-type-label">{service.label}</div>
+                            {active && <span className="home-industry-badge">Selected</span>}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="reg-domain-hint" style={{ marginTop: 8 }}>
+                    Select what your company provides (project management, supplier services, quality/buy-off).
+                  </div>
+                </div>
+              )}
 
               <div className="reg-plans" style={{ gridTemplateColumns: `repeat(${availablePlans.length}, 1fr)` }}>
                 {availablePlans.map((plan) => {

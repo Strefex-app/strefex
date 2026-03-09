@@ -17,6 +17,7 @@ import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import { useTier, TIERS } from '../services/featureFlags'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
+import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -70,6 +71,7 @@ const ExecutiveSummary = () => {
       ? s.getSellersByCategory(industryId, categoryId)
       : s.getRegisteredSellers(industryId)
   )
+  const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(industryId))
 
   // Database-backed registered suppliers (cross-device/session source of truth)
   useEffect(() => {
@@ -199,6 +201,15 @@ const ExecutiveSummary = () => {
   }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, canSeeNames])
 
   const metrics = useMemo(() => getIndustryMetrics(industryId, categoryId), [industryId, categoryId])
+  const serviceProviderRows = useMemo(() => {
+    const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
+    return all.map((provider) => ({
+      id: provider.id,
+      company: provider.company || provider.contactName || provider.email || 'Service Provider',
+      serviceCategories: Array.isArray(provider.serviceCategories) ? provider.serviceCategories : [],
+      email: provider.email || '',
+    }))
+  }, [registeredServiceProviders])
   const categories = allCategories
   const rfqs = useMemo(() => getRfqsByIndustry(industryId), [industryId, getRfqsByIndustry])
   const rfqStats = useMemo(() => getRfqStats(industryId), [industryId, getRfqStats])
@@ -461,6 +472,38 @@ const ExecutiveSummary = () => {
             </button>
           </div>
         )}
+
+        <ServiceProviderAvailabilityCard
+          industryLabel={industryLabel}
+          canSeeNames={canSeeNames}
+          providers={serviceProviderRows}
+          cardStyle={{ marginTop: 16 }}
+          onRequestService={(serviceId, label) => {
+            const p = new URLSearchParams({
+              context: 'service',
+              serviceCategory: serviceId,
+              serviceCategoryLabel: label,
+              industry: industryId || '',
+              industryLabel: industryLabel || '',
+              requestSource: 'executive-summary',
+            })
+            navigate(`/services?${p.toString()}`)
+          }}
+          onRequestProvider={(provider, requestMeta) => {
+            const p = new URLSearchParams({
+              context: 'service',
+              serviceCategory: requestMeta?.serviceCategoryId || 'supplier-services',
+              serviceCategoryLabel: requestMeta?.serviceCategoryLabel || 'Supplier Services',
+              industry: industryId || '',
+              industryLabel: industryLabel || '',
+              preferredProviderId: String(provider?.id || ''),
+              preferredProviderName: String(provider?.company || ''),
+              preferredProviderEmail: String(provider?.email || ''),
+              requestSource: 'executive-summary',
+            })
+            navigate(`/services?${p.toString()}`)
+          }}
+        />
 
         {/* Supplier Summary Table */}
         <div className="app-page-card">

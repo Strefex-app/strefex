@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
+import { useServiceStore } from '../store/serviceStore'
 import AppLayout from '../components/AppLayout'
 import './ServiceProviderDashboard.css'
 
@@ -32,6 +33,7 @@ export default function ServiceProviderDashboard() {
   const getProjectStats = useProjectStore((s) => s.getProjectStats)
 
   const allRequests = useServiceRequestStore((s) => s.requests)
+  const selectedServices = useServiceStore((s) => s.selectedServices)
 
   const isSuperAdmin = role === 'superadmin'
   const userEmail = user?.email?.toLowerCase()
@@ -41,12 +43,49 @@ export default function ServiceProviderDashboard() {
     ? allProjects
     : allProjects.filter(p => !p.createdBy || p.createdBy.toLowerCase() === userEmail)
 
+  const mapRequestToServiceCategories = (request) => {
+    const labels = Array.isArray(request?.services) ? request.services.map((v) => String(v || '').toLowerCase()) : []
+    const result = new Set()
+    labels.forEach((label) => {
+      if (label.includes('project management')) result.add('project-management')
+      if (
+        label.includes('buy off') ||
+        label.includes('buy-off') ||
+        label.includes('shipment acceptance') ||
+        label.includes('shipment documentation') ||
+        label.includes('industrialization')
+      ) {
+        result.add('quality-services')
+      }
+      if (
+        label.includes('supplier source') ||
+        label.includes('audit') ||
+        label.includes('trial run') ||
+        label.includes('production follow up') ||
+        label.includes('equipment acceptance')
+      ) {
+        result.add('supplier-services')
+      }
+    })
+    return [...result]
+  }
+  const isRequestFromExecutiveSummary = (request) =>
+    String(request?.requestSource || '').toLowerCase() === 'executive-summary'
+  const isTargetedToProvider = (request) =>
+    Boolean(userEmail) && String(request?.preferredProviderEmail || '').toLowerCase() === userEmail
+
   // Service providers see requests assigned to them OR submitted by them
   const serviceRequests = isSuperAdmin
     ? allRequests
     : allRequests.filter(r =>
         (r.email && r.email.toLowerCase() === userEmail) ||
-        (r.assignedTo && r.assignedTo.toLowerCase() === userEmail)
+        (r.assignedTo && r.assignedTo.toLowerCase() === userEmail) ||
+        isTargetedToProvider(r) ||
+        (
+          Array.isArray(selectedServices) &&
+          selectedServices.length > 0 &&
+          mapRequestToServiceCategories(r).some((serviceId) => selectedServices.includes(serviceId))
+        )
       )
 
   const requestStats = {
@@ -55,6 +94,8 @@ export default function ServiceProviderDashboard() {
     assigned: serviceRequests.filter(r => r.status === 'assigned').length,
     inProgress: serviceRequests.filter(r => r.status === 'in_progress').length,
     completed: serviceRequests.filter(r => r.status === 'completed').length,
+    targeted: serviceRequests.filter((r) => isTargetedToProvider(r)).length,
+    fromSummary: serviceRequests.filter((r) => isRequestFromExecutiveSummary(r)).length,
   }
 
   const [activeTab, setActiveTab] = useState('all')
@@ -124,7 +165,7 @@ export default function ServiceProviderDashboard() {
             </div>
             <div className="spd-kpi-body">
               <span className="spd-kpi-value">{requestStats.total}</span>
-              <span className="spd-kpi-label">Service Requests</span>
+              <span className="spd-kpi-label">Services Received</span>
             </div>
           </div>
           <div className="spd-kpi-card">
@@ -143,6 +184,24 @@ export default function ServiceProviderDashboard() {
             <div className="spd-kpi-body">
               <span className="spd-kpi-value">{requestStats.completed}</span>
               <span className="spd-kpi-label">Completed</span>
+            </div>
+          </div>
+          <div className="spd-kpi-card">
+            <div className="spd-kpi-icon purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" stroke="currentColor" strokeWidth="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </div>
+            <div className="spd-kpi-body">
+              <span className="spd-kpi-value">{requestStats.targeted}</span>
+              <span className="spd-kpi-label">Targeted Requests</span>
+            </div>
+          </div>
+          <div className="spd-kpi-card">
+            <div className="spd-kpi-icon blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M12 3v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>
+            </div>
+            <div className="spd-kpi-body">
+              <span className="spd-kpi-value">{requestStats.fromSummary}</span>
+              <span className="spd-kpi-label">From Executive Summary</span>
             </div>
           </div>
         </div>
@@ -236,6 +295,12 @@ export default function ServiceProviderDashboard() {
                         </div>
                         <div className="spd-req-right">
                           <StatusBadge status={req.status} />
+                          {isRequestFromExecutiveSummary(req) && (
+                            <span className="spd-source-badge">Executive Summary</span>
+                          )}
+                          {isTargetedToProvider(req) && (
+                            <span className="spd-targeted-badge">Targeted</span>
+                          )}
                           {req.priority && (
                             <span className={`spd-priority ${req.priority === 'Urgent' ? 'urgent' : ''}`}>
                               {req.priority}
@@ -261,6 +326,9 @@ export default function ServiceProviderDashboard() {
                             <div><strong>Created:</strong> {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '–'}</div>
                             {req.assignedTo && <div><strong>Assigned To:</strong> {req.assignedTo}</div>}
                             {req.industryId && <div><strong>Industry:</strong> {req.industryId}</div>}
+                            {req.preferredProviderName && <div><strong>Preferred Provider:</strong> {req.preferredProviderName}</div>}
+                            {req.serviceCategoryLabel && <div><strong>Service Category:</strong> {req.serviceCategoryLabel}</div>}
+                            {req.requestSource && <div><strong>Request Source:</strong> {req.requestSource}</div>}
                           </div>
                           {req.description && (
                             <div className="spd-req-desc">

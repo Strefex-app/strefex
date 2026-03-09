@@ -5,6 +5,7 @@ import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useAuthStore } from '../store/authStore'
 import { useTier, TIERS } from '../services/featureFlags'
+import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -18,7 +19,6 @@ const INDUSTRY_LABELS = {
   'green-energy': 'Green Energy',
   'household-products': 'Household Products',
 }
-
 export default function ProductExecutiveSummary() {
   const navigate = useNavigate()
   const { industryId, categoryId, processId } = useParams()
@@ -66,6 +66,16 @@ export default function ProductExecutiveSummary() {
 
   // Registered sellers — adapt to product process context
   const registeredSellers = useAccountRegistry((s) => s.getRegisteredSellers(industryId))
+  const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(industryId))
+  const serviceProviderRows = useMemo(() => {
+    const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
+    return all.map((provider) => ({
+      id: provider.id,
+      company: provider.company || provider.contactName || provider.email || 'Service Provider',
+      serviceCategories: Array.isArray(provider.serviceCategories) ? provider.serviceCategories : [],
+      email: provider.email || '',
+    }))
+  }, [registeredServiceProviders])
 
   if (!category || !process) {
     return (
@@ -219,6 +229,38 @@ export default function ProductExecutiveSummary() {
         {/* ─── SUPPLIERS TAB ─── */}
         {activeTab === 'suppliers' && (
           <div>
+            <ServiceProviderAvailabilityCard
+              industryLabel={industryLabel}
+              canSeeNames={canSeeNames}
+              providers={serviceProviderRows}
+              cardStyle={{ marginBottom: 16 }}
+              onRequestService={(serviceId, label) => {
+                const p = new URLSearchParams({
+                  context: 'service',
+                  serviceCategory: serviceId,
+                  serviceCategoryLabel: label,
+                  industry: industryId || '',
+                  industryLabel: industryLabel || '',
+                  requestSource: 'executive-summary',
+                })
+                navigate(`/services?${p.toString()}`)
+              }}
+              onRequestProvider={(provider, requestMeta) => {
+                const p = new URLSearchParams({
+                  context: 'service',
+                  serviceCategory: requestMeta?.serviceCategoryId || 'supplier-services',
+                  serviceCategoryLabel: requestMeta?.serviceCategoryLabel || 'Supplier Services',
+                  industry: industryId || '',
+                  industryLabel: industryLabel || '',
+                  preferredProviderId: String(provider?.id || ''),
+                  preferredProviderName: String(provider?.company || ''),
+                  preferredProviderEmail: String(provider?.email || ''),
+                  requestSource: 'executive-summary',
+                })
+                navigate(`/services?${p.toString()}`)
+              }}
+            />
+
             <div className="app-page-card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Registered Suppliers — {processLabel}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>

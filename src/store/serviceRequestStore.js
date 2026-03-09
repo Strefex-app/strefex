@@ -84,6 +84,7 @@ export const useServiceRequestStore = create((set, get) => ({
   submitRequest: ({
     services,
     industryId,
+    industryLabel,
     companyName,
     contactName,
     email,
@@ -95,12 +96,19 @@ export const useServiceRequestStore = create((set, get) => ({
     notes,
     attachmentNames,
     accountType,
+    serviceCategoryId,
+    serviceCategoryLabel,
+    preferredProviderId,
+    preferredProviderName,
+    preferredProviderEmail,
+    requestSource,
   }) => {
     const id = `SR-${new Date().getFullYear()}-${String(++_nextId).slice(-6)}`
     const request = {
       id,
       services,
       industryId,
+      industryLabel: industryLabel || null,
       companyName,
       contactName,
       email,
@@ -112,6 +120,12 @@ export const useServiceRequestStore = create((set, get) => ({
       notes,
       attachmentNames: attachmentNames || [],
       accountType: accountType || 'unknown',
+      serviceCategoryId: serviceCategoryId || null,
+      serviceCategoryLabel: serviceCategoryLabel || null,
+      preferredProviderId: preferredProviderId || null,
+      preferredProviderName: preferredProviderName || null,
+      preferredProviderEmail: preferredProviderEmail || null,
+      requestSource: requestSource || null,
       _companyId: getTenantId(),
       _createdBy: getUserId(),
       status: 'new', // new | assigned | in_progress | completed | cancelled

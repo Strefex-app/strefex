@@ -241,6 +241,14 @@ export default function ServiceRequestManagement() {
                     <label>Industry</label>
                     <span style={{ textTransform: 'capitalize' }}>{selected.industryId || '—'}</span>
                   </div>
+                  <div className="srm-detail-field">
+                    <label>Service Category</label>
+                    <span>{selected.serviceCategoryLabel || selected.serviceCategoryId || '—'}</span>
+                  </div>
+                  <div className="srm-detail-field">
+                    <label>Preferred Provider</label>
+                    <span>{selected.preferredProviderName || selected.preferredProviderEmail || '—'}</span>
+                  </div>
                 </div>
 
                 <div className="srm-detail-section">

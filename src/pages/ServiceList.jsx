@@ -34,6 +34,11 @@ const INDUSTRY_OPTIONS = [
 ]
 
 const PRIORITY_OPTIONS = ['Normal', 'High', 'Urgent']
+const SERVICE_CATEGORY_LABELS = {
+  'project-management': 'Project Management',
+  'supplier-services': 'Supplier Services',
+  'quality-services': 'Quality & Compliance',
+}
 
 /** Map service category IDs to the service option groups / ids */
 const SERVICE_CATEGORY_TO_OPTIONS = {
@@ -57,7 +62,14 @@ const ServiceList = () => {
   // ── Service context from query params ──
   const isServiceContext = searchParams.get('context') === 'service'
   const qServiceCategory = searchParams.get('serviceCategory') || ''
-  const qServiceCategoryLabel = searchParams.get('serviceCategoryLabel') || ''
+  const qServiceCategoryLabel = searchParams.get('serviceCategoryLabel') || SERVICE_CATEGORY_LABELS[qServiceCategory] || ''
+  const qIndustry = searchParams.get('industry') || ''
+  const qIndustryLabel = searchParams.get('industryLabel') || ''
+  const qPreferredProviderId = searchParams.get('preferredProviderId') || ''
+  const qPreferredProviderName = searchParams.get('preferredProviderName') || ''
+  const qPreferredProviderEmail = searchParams.get('preferredProviderEmail') || ''
+  const qRequestSource = searchParams.get('requestSource') || ''
+  const hasPreferredProvider = Boolean(qPreferredProviderId || qPreferredProviderName || qPreferredProviderEmail)
 
   // Pre-select services that belong to the chosen service category
   const preselected = (() => {
@@ -66,12 +78,12 @@ const ServiceList = () => {
   })()
 
   const prefillDescription = isServiceContext
-    ? `Service request — ${qServiceCategoryLabel || qServiceCategory}`
+    ? `Service request — ${qServiceCategoryLabel || qServiceCategory}${hasPreferredProvider ? ` | Preferred provider: ${qPreferredProviderName || qPreferredProviderEmail}` : ''}`
     : ''
 
   const [selectedServices, setSelectedServices] = useState(preselected)
   const [formData, setFormData] = useState({
-    industryId: paramIndustryId || '',
+    industryId: paramIndustryId || qIndustry || '',
     companyName: tenant?.name || user?.companyName || '',
     contactName: user?.fullName || user?.name || '',
     email: user?.email || '',
@@ -127,6 +139,7 @@ const ServiceList = () => {
     submitRequest({
       services: serviceLabels,
       industryId: formData.industryId,
+      industryLabel: qIndustryLabel || '',
       companyName: formData.companyName || user?.companyName || '',
       contactName: formData.contactName || user?.fullName || user?.name || '',
       email: formData.email || user?.email || '',
@@ -138,6 +151,12 @@ const ServiceList = () => {
       notes: formData.notes,
       attachmentNames: attachments.map((f) => f.name),
       accountType: accountType || 'unknown',
+      serviceCategoryId: qServiceCategory || null,
+      serviceCategoryLabel: qServiceCategoryLabel || null,
+      preferredProviderId: qPreferredProviderId || null,
+      preferredProviderName: qPreferredProviderName || null,
+      preferredProviderEmail: qPreferredProviderEmail || null,
+      requestSource: qRequestSource || null,
     })
 
     setTimeout(() => {
@@ -227,6 +246,36 @@ const ServiceList = () => {
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 12, color: '#78909c' }}>
               You can adjust the selection below — add or remove individual services as needed.
+            </p>
+          </div>
+        )}
+
+        {/* ── Preferred provider summary (from Executive Summary) ── */}
+        {hasPreferredProvider && (
+          <div className="app-page-card svc-provider-summary-card">
+            <h3 className="svc-provider-summary-title">Preferred Service Provider</h3>
+            <div className="svc-provider-summary-grid">
+              <div className="svc-provider-summary-item">
+                <div className="svc-provider-summary-label">Provider</div>
+                <div className="svc-provider-summary-value">{qPreferredProviderName || 'Selected provider'}</div>
+              </div>
+              {qPreferredProviderEmail && (
+                <div className="svc-provider-summary-item">
+                  <div className="svc-provider-summary-label">Provider Email</div>
+                  <div className="svc-provider-summary-value">{qPreferredProviderEmail}</div>
+                </div>
+              )}
+              <div className="svc-provider-summary-item">
+                <div className="svc-provider-summary-label">Service Category</div>
+                <div className="svc-provider-summary-value">{qServiceCategoryLabel || qServiceCategory || 'Service'}</div>
+              </div>
+              <div className="svc-provider-summary-item">
+                <div className="svc-provider-summary-label">Industry</div>
+                <div className="svc-provider-summary-value">{qIndustryLabel || qIndustry || formData.industryId || 'Not selected'}</div>
+              </div>
+            </div>
+            <p className="svc-provider-summary-note">
+              This request will be tracked as a targeted provider request in the service provider dashboard and request management.
             </p>
           </div>
         )}
