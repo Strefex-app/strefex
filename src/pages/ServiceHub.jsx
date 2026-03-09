@@ -1,11 +1,14 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useServiceStore } from '../store/serviceStore'
+import { useAccountRegistry } from '../store/accountRegistry'
 import { getEffectiveLimits } from '../services/stripeService'
 import '../styles/app-page.css'
 import './Home.css'
+import './IndustryHub.css'
 
 const SERVICE_CATEGORIES = [
   {
@@ -64,6 +67,19 @@ export default function ServiceHub() {
   const selectedServices = useServiceStore((s) => s.selectedServices)
   const selectService = useServiceStore((s) => s.selectService)
   const isServiceSelected = useServiceStore((s) => s.isServiceSelected)
+  const registeredProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders())
+  const providerCount = Array.isArray(registeredProviders) ? registeredProviders.length : 0
+  const totalServiceItems = useMemo(
+    () => SERVICE_CATEGORIES.reduce((sum, cat) => sum + cat.items.length, 0),
+    []
+  )
+  const avgRating = useMemo(() => {
+    const ratings = (registeredProviders || [])
+      .map((p) => Number(p?.rating))
+      .filter((v) => Number.isFinite(v) && v > 0)
+    if (ratings.length === 0) return 4.6
+    return Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
+  }, [registeredProviders])
 
   return (
     <AppLayout>
@@ -84,30 +100,51 @@ export default function ServiceHub() {
                 <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
-            Service
+            Service Providers
           </h2>
           <p className="app-page-subtitle">
             {isServiceProvider
-              ? 'Register your expertise in service categories or request services through Quick Actions.'
-              : 'Browse available service categories. Use Quick Actions on the Home page to request a service.'}
+              ? 'Browse service categories and register your expertise with the same executive summary workflow as Product and Equipment.'
+              : 'Browse service provider categories and open executive summary per service path.'}
           </p>
-          <div style={{ marginTop: 14 }}>
-            <button
-              type="button"
-              style={{
-                padding: '8px 16px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-                background: '#fff',
-                color: '#334155',
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/service-hub/executive-summary')}
-            >
-              Open Service Provider Executive Summary
-            </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+          <div className="industry-hub-indicator-card">
+            <div className="industry-hub-indicator-icon blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9L12 2L21 9V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V9Z" stroke="currentColor" strokeWidth="2"/><path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2"/></svg>
+            </div>
+            <div>
+              <div className="industry-hub-indicator-value">{SERVICE_CATEGORIES.length}</div>
+              <div className="industry-hub-indicator-label">Categories</div>
+            </div>
+          </div>
+          <div className="industry-hub-indicator-card">
+            <div className="industry-hub-indicator-icon green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </div>
+            <div>
+              <div className="industry-hub-indicator-value">{totalServiceItems}</div>
+              <div className="industry-hub-indicator-label">Service Items</div>
+            </div>
+          </div>
+          <div className="industry-hub-indicator-card">
+            <div className="industry-hub-indicator-icon purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2"/></svg>
+            </div>
+            <div>
+              <div className="industry-hub-indicator-value">{providerCount > 0 ? `${providerCount}+` : '0'}</div>
+              <div className="industry-hub-indicator-label">Providers</div>
+            </div>
+          </div>
+          <div className="industry-hub-indicator-card">
+            <div className="industry-hub-indicator-icon orange">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.7 6.2L21 9l-4.5 4.3L17.5 20 12 16.9 6.5 20l1-6.7L3 9l6.3-.8L12 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <div className="industry-hub-indicator-value">{avgRating}</div>
+              <div className="industry-hub-indicator-label">Avg Rating</div>
+            </div>
           </div>
         </div>
 
@@ -118,14 +155,18 @@ export default function ServiceHub() {
             const canPick = slotsLeft > 0 || allServicesOpen
 
             return (
-              <div key={cat.id} className="app-page-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{
-                  padding: '24px 28px',
-                  borderLeft: `4px solid ${cat.color}`,
-                  display: 'flex', gap: 20, alignItems: 'flex-start',
+              <div
+                key={cat.id}
+                className="app-page-card"
+                style={{
+                  padding: '20px 22px',
+                  borderRadius: 14,
+                  border: '1.5px solid #e2e8f0',
+                  background: '#fff',
                 }}>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                   <span style={{
-                    width: 56, height: 56, borderRadius: 14,
+                    width: 48, height: 48, borderRadius: 12,
                     background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: cat.color, flexShrink: 0,
                   }}>
@@ -133,22 +174,37 @@ export default function ServiceHub() {
                   </span>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1a1a2e' }}>{cat.label}</h3>
-                      {chosen && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}>Registered</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{cat.label}</span>
+                      {chosen && <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: `${cat.color}16`, color: cat.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Registered</span>}
                     </div>
-                    <p style={{ margin: '0 0 12px', fontSize: 14, color: '#666', lineHeight: 1.5 }}>{cat.description}</p>
+                    <p style={{ margin: '2px 0 12px', fontSize: 13, color: '#666', lineHeight: 1.45 }}>{cat.description}</p>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                      {cat.items.map((item, idx) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                      {cat.items.slice(0, 4).map((item, idx) => (
                         <span key={idx} style={{
-                          fontSize: 12, padding: '4px 10px', borderRadius: 6,
+                          fontSize: 11, padding: '3px 8px', borderRadius: 5,
                           background: '#f1f5f9', color: '#475569', fontWeight: 500,
                         }}>
                           {item}
                         </span>
                       ))}
+                      {cat.items.length > 4 && (
+                        <span style={{
+                          fontSize: 11, padding: '3px 8px', borderRadius: 5,
+                          background: '#f1f5f9', color: '#888', fontWeight: 500,
+                        }}>
+                          +{cat.items.length - 4} more
+                        </span>
+                      )}
                     </div>
+
+                    <span style={{
+                      fontSize: 13, fontWeight: 600, color: cat.color,
+                      display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10,
+                    }}>
+                      {cat.items.length} service items → Executive Summary
+                    </span>
 
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       {/* Service Provider: registration button */}
@@ -167,7 +223,19 @@ export default function ServiceHub() {
                         </button>
                       )}
 
-                      {/* Request Service button (for everyone) */}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/service-hub/executive-summary')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '7px 12px', borderRadius: 8, border: 'none',
+                          background: cat.color, color: '#fff',
+                          fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                        }}
+                      >
+                        Executive Summary
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -184,10 +252,9 @@ export default function ServiceHub() {
                           fontWeight: 600, fontSize: 13, cursor: 'pointer',
                         }}
                       >
-                        Request a Service
+                        Browse Services
                       </button>
 
-                      {/* Add Supplier button */}
                       <button
                         type="button"
                         onClick={() => {
@@ -204,7 +271,7 @@ export default function ServiceHub() {
                           color: cat.color, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                         }}
                       >
-                        Add Supplier
+                        Request a Service
                       </button>
                     </div>
                   </div>
