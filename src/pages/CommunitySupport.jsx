@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import { analytics } from '../services/analytics'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
+import { tenantKey } from '../utils/tenantStorage'
 import './CommunitySupport.css'
 
 /* ── Ticket categories ────────────────────────────────────── */
@@ -26,10 +27,10 @@ const PRIORITIES = [
 /* ── Support ticket store (in-memory, will be replaced by backend) ── */
 const STORAGE_KEY = 'strefex-support-tickets'
 const loadTickets = () => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  try { return JSON.parse(localStorage.getItem(tenantKey(STORAGE_KEY)) || '[]') } catch { return [] }
 }
 const saveTickets = (tickets) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets)) } catch { /* */ }
+  try { localStorage.setItem(tenantKey(STORAGE_KEY), JSON.stringify(tickets)) } catch { /* */ }
 }
 
 export default function CommunitySupport() {

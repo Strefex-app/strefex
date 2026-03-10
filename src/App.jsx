@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore'
 import { useSubscriptionStore } from './services/featureFlags'
 import ProtectedRoute from './components/ProtectedRoute'
+import AccountTypeRoute from './components/AccountTypeRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import AnalyticsProvider from './components/AnalyticsProvider'
 import UpgradePrompt from './components/UpgradePrompt'
@@ -114,6 +115,11 @@ import AuditLogs from './pages/AuditLogs'
 const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
 const Admin = ({ children }) => <ProtectedRoute requiredRole="admin">{children}</ProtectedRoute>
 const SuperAdmin = ({ children }) => <ProtectedRoute requiredRole="superadmin">{children}</ProtectedRoute>
+const AccountType = ({ children, allowed }) => (
+  <P>
+    <AccountTypeRoute allowed={allowed}>{children}</AccountTypeRoute>
+  </P>
+)
 const Industry = ({ children, requiredTier = 'free' }) => (
   <P>
     <IndustryGuard requiredTier={requiredTier}>{children}</IndustryGuard>
@@ -196,9 +202,9 @@ function App() {
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
-          <Route path="/seller-dashboard" element={<P><SellerDashboard /></P>} />
-          <Route path="/buyer-dashboard" element={<P><BuyerDashboard /></P>} />
-          <Route path="/service-provider-dashboard" element={<P><ServiceProviderDashboard /></P>} />
+          <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
+          <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
+          <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
 
           {/* ── Wallet & Payments ──────────────────────────── */}

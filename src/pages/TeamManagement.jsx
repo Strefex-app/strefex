@@ -50,8 +50,8 @@ export default function TeamManagement() {
         )
       }
     }
-    // Fallback: try first active account of current type
-    return registryAccounts.find((a) => a.accountType === accountType && a.status !== 'canceled')
+    // No domain match means no account context for this tenant.
+    return null
   }, [registryAccounts, currentEmail, accountType])
 
   // Team members from registry + owning account admin

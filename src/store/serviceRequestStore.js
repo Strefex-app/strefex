@@ -63,6 +63,18 @@ function filterBySafe(list) {
   )
 }
 
+function canManageRequest(request) {
+  const role = getUserRole()
+  const userId = getUserId()
+  const companyId = getTenantId()
+  if (!request) return false
+  if (role === 'superadmin') return true
+  const requestCompany = request._companyId || getCompanyDomain(request.email)
+  if (requestCompany !== companyId) return false
+  if (role === 'admin' || role === 'manager') return true
+  return String(request.assignedTo || '').toLowerCase() === userId
+}
+
 let _nextId = Date.now()
 
 export const useServiceRequestStore = create((set, get) => ({
@@ -166,6 +178,8 @@ export const useServiceRequestStore = create((set, get) => ({
    * Assign a service request to a manager or user
    */
   assignRequest: (requestId, assigneeEmail, assignerEmail) => {
+    const current = get().requests.find((r) => r.id === requestId)
+    if (!canManageRequest(current)) return
     const updated = get().requests.map((r) =>
       r.id === requestId
         ? {
@@ -205,6 +219,8 @@ export const useServiceRequestStore = create((set, get) => ({
    * Update request status
    */
   updateRequestStatus: (requestId, status, note, updaterEmail) => {
+    const current = get().requests.find((r) => r.id === requestId)
+    if (!canManageRequest(current)) return
     const updated = get().requests.map((r) => {
       if (r.id !== requestId) return r
       const adminNotes = [...(r.adminNotes || [])]
@@ -225,6 +241,8 @@ export const useServiceRequestStore = create((set, get) => ({
    * Add admin note to a request
    */
   addNote: (requestId, note, authorEmail) => {
+    const current = get().requests.find((r) => r.id === requestId)
+    if (!canManageRequest(current)) return
     const updated = get().requests.map((r) => {
       if (r.id !== requestId) return r
       const adminNotes = [...(r.adminNotes || []), {
@@ -256,7 +274,7 @@ export const useServiceRequestStore = create((set, get) => ({
    * Get unread notifications for admins/managers
    */
   getUnreadNotifications: (readerEmail) => {
-    return get().notifications.filter(
+    return get().getSafeNotifications().filter(
       (n) => !(n.readBy || []).includes(readerEmail)
     )
   },
@@ -265,20 +283,33 @@ export const useServiceRequestStore = create((set, get) => ({
    * Get requests by user email
    */
   getRequestsByUser: (email) => {
-    return get().requests.filter((r) => r.email === email)
+    return filterBySafe(get().requests).filter((r) => r.email === email)
   },
 
   /**
    * Get requests assigned to a specific person
    */
   getAssignedRequests: (email) => {
-    return get().requests.filter((r) => r.assignedTo === email)
+    return filterBySafe(get().requests).filter((r) => r.assignedTo === email)
   },
 
   /**
    * Get all requests — ⚠️ RAW, only use in superadmin pages.
    */
   getAllRequests: () => get().requests,
+  getSafeNotifications: () => {
+    const role = getUserRole()
+    const userId = getUserId()
+    const companyId = getTenantId()
+    const all = get().notifications
+    if (role === 'superadmin' || role === 'auditor_external') return all
+    const companyFiltered = all.filter((n) => {
+      const domain = getCompanyDomain(n.fromEmail || n.targetEmail || '')
+      return domain === companyId
+    })
+    if (role === 'admin' || role === 'manager' || role === 'auditor_internal') return companyFiltered
+    return companyFiltered.filter((n) => String(n.targetEmail || '').toLowerCase() === userId)
+  },
 
   /**
    * SAFE — returns only requests the current user is allowed to see

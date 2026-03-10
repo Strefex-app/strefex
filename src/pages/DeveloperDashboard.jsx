@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '../store/authStore'
 import AppLayout from '../components/AppLayout'
+import { tenantKey } from '../utils/tenantStorage'
 import './DeveloperDashboard.css'
 
 /* ── Shared storage with CommunitySupport ────────────────── */
 const STORAGE_KEY = 'strefex-support-tickets'
 const loadAllTickets = () => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  try { return JSON.parse(localStorage.getItem(tenantKey(STORAGE_KEY)) || '[]') } catch { return [] }
 }
 const saveTickets = (tickets) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets)) } catch { /* */ }
+  try { localStorage.setItem(tenantKey(STORAGE_KEY), JSON.stringify(tickets)) } catch { /* */ }
 }
 
 const CATEGORIES = [

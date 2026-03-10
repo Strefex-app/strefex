@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useTranslation } from '../i18n/useTranslation'
+import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
 import './AppLayout.css'
 
@@ -81,7 +82,8 @@ export default function AppLayout({ children }) {
 
   /* ── Preview session countdown (10-min) ─────────────────── */
   useEffect(() => {
-    const expiresRaw = localStorage.getItem('strefex-preview-expires')
+    const previewKey = tenantKey('strefex-preview-expires')
+    const expiresRaw = localStorage.getItem(previewKey)
     if (!expiresRaw) { setPreviewTimeLeft(null); return }
     const expiresAt = Number(expiresRaw)
     if (isNaN(expiresAt)) { setPreviewTimeLeft(null); return }
@@ -90,7 +92,7 @@ export default function AppLayout({ children }) {
       const remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000))
       if (remaining <= 0) {
         // Session expired — clean up and log out
-        localStorage.removeItem('strefex-preview-expires')
+        localStorage.removeItem(previewKey)
         setPreviewTimeLeft(null)
         logout()
         navigate('/login')
@@ -104,7 +106,7 @@ export default function AppLayout({ children }) {
   }, [logout, navigate])
 
   const handleLogout = () => {
-    localStorage.removeItem('strefex-preview-expires')
+    localStorage.removeItem(tenantKey('strefex-preview-expires'))
     logout()
     navigate('/login')
   }
@@ -211,7 +213,7 @@ export default function AppLayout({ children }) {
             <button
               type="button"
               className="preview-timer-register-btn"
-              onClick={() => { localStorage.removeItem('strefex-preview-expires'); logout(); navigate('/register') }}
+              onClick={() => { localStorage.removeItem(tenantKey('strefex-preview-expires')); logout(); navigate('/register') }}
             >
               Register Now
             </button>

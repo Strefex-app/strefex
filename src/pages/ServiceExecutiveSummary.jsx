@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import ServiceProviderAvailabilityCard, { SERVICE_CATEGORY_LABELS } from '../components/ServiceProviderAvailabilityCard'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
 import { useTier, TIERS, useSubscriptionStore } from '../services/featureFlags'
+import { tenantKey } from '../utils/tenantStorage'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -22,6 +23,7 @@ const INDUSTRIES = [
 
 export default function ServiceExecutiveSummary() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
@@ -29,6 +31,12 @@ export default function ServiceExecutiveSummary() {
   const accountType = useSubscriptionStore((s) => s.accountType)
   const submitServiceRequest = useServiceRequestStore((s) => s.submitRequest)
   const [selectedIndustry, setSelectedIndustry] = useState('automotive')
+  const initialServiceCategory = (() => {
+    const fromQuery = String(searchParams.get('serviceCategory') || '').trim().toLowerCase()
+    if (fromQuery && SERVICE_CATEGORY_LABELS[fromQuery]) return fromQuery
+    return 'all'
+  })()
+  const [selectedServiceCategory, setSelectedServiceCategory] = useState(initialServiceCategory)
   const [selectedProviderIds, setSelectedProviderIds] = useState(new Set())
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [requestForm, setRequestForm] = useState({
@@ -43,7 +51,7 @@ export default function ServiceExecutiveSummary() {
 
   const isPreviewSession = (() => {
     try {
-      const exp = localStorage.getItem('strefex-preview-expires')
+      const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
       return exp && Date.now() < Number(exp)
     } catch {
       return false
@@ -64,20 +72,24 @@ export default function ServiceExecutiveSummary() {
       email: provider.email || '',
     }))
   }, [registeredServiceProviders])
+  const filteredProviderRows = useMemo(() => {
+    if (selectedServiceCategory === 'all') return providerRows
+    return providerRows.filter((provider) => (provider.serviceCategories || []).includes(selectedServiceCategory))
+  }, [providerRows, selectedServiceCategory])
 
   const serviceTypeCount = useMemo(() => {
     const set = new Set()
-    providerRows.forEach((p) => (p.serviceCategories || []).forEach((id) => set.add(id)))
+    filteredProviderRows.forEach((p) => (p.serviceCategories || []).forEach((id) => set.add(id)))
     return set.size
-  }, [providerRows])
+  }, [filteredProviderRows])
 
   const industryLabel = INDUSTRIES.find((x) => x.id === selectedIndustry)?.label || selectedIndustry
-  const selectedProviders = providerRows.filter((p) => selectedProviderIds.has(p.id))
+  const selectedProviders = filteredProviderRows.filter((p) => selectedProviderIds.has(p.id))
 
   useEffect(() => {
     setSelectedProviderIds(new Set())
     setIsSubmitted(false)
-  }, [selectedIndustry])
+  }, [selectedIndustry, selectedServiceCategory])
 
   const toggleProviderSelection = (providerId) => {
     setSelectedProviderIds((prev) => {
@@ -90,12 +102,14 @@ export default function ServiceExecutiveSummary() {
 
   const openRequestModal = () => {
     if (selectedProviderIds.size === 0 || !canSendRequests) return
-    const first = providerRows.find((p) => selectedProviderIds.has(p.id))
-    const defaultServiceCategory = first?.serviceCategories?.[0] || 'supplier-services'
+    const first = filteredProviderRows.find((p) => selectedProviderIds.has(p.id))
+    const defaultServiceCategory = selectedServiceCategory !== 'all'
+      ? selectedServiceCategory
+      : (first?.serviceCategories?.[0] || 'supplier-services')
     setRequestForm((prev) => ({
       ...prev,
       serviceCategoryId: defaultServiceCategory,
-      title: prev.title || `Service Request — ${industryLabel}`,
+      title: prev.title || `Service Request — ${industryLabel} (${SERVICE_CATEGORY_LABELS[defaultServiceCategory] || defaultServiceCategory})`,
     }))
     setShowRequestModal(true)
   }
@@ -169,14 +183,14 @@ export default function ServiceExecutiveSummary() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div className="app-page-card exec-stat-card">
             <div className="exec-stat-info">
-              <span className="exec-stat-value">{providerRows.length}</span>
-              <span className="exec-stat-label">Registered Providers</span>
+              <span className="exec-stat-value">{filteredProviderRows.length}</span>
+              <span className="exec-stat-label">Matched Providers</span>
             </div>
           </div>
           <div className="app-page-card exec-stat-card">
             <div className="exec-stat-info">
               <span className="exec-stat-value">{serviceTypeCount}</span>
-              <span className="exec-stat-label">Service Types Offered</span>
+              <span className="exec-stat-label">Service Types In Selection</span>
             </div>
           </div>
         </div>
@@ -201,10 +215,41 @@ export default function ServiceExecutiveSummary() {
           </div>
         </div>
 
+        <div className="app-page-card" style={{ marginBottom: 16 }}>
+          <h3 className="exec-section-title" style={{ marginBottom: 10 }}>Service</h3>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="exec-btn-secondary"
+              style={{
+                background: selectedServiceCategory === 'all' ? '#eef2ff' : undefined,
+                borderColor: selectedServiceCategory === 'all' ? '#c7d2fe' : undefined,
+              }}
+              onClick={() => setSelectedServiceCategory('all')}
+            >
+              All Services
+            </button>
+            {Object.entries(SERVICE_CATEGORY_LABELS).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className="exec-btn-secondary"
+                style={{
+                  background: selectedServiceCategory === id ? '#eef2ff' : undefined,
+                  borderColor: selectedServiceCategory === id ? '#c7d2fe' : undefined,
+                }}
+                onClick={() => setSelectedServiceCategory(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ServiceProviderAvailabilityCard
           industryLabel={industryLabel}
           canSeeNames={canSeeNames}
-          providers={providerRows}
+          providers={filteredProviderRows}
           onRequestService={canSendRequests ? (serviceId, label) => {
             const p = new URLSearchParams({
               context: 'service',
@@ -217,10 +262,16 @@ export default function ServiceExecutiveSummary() {
             navigate(`/services?${p.toString()}`)
           } : undefined}
           onRequestProvider={canSendRequests ? (provider, requestMeta) => {
+            const targetedServiceId = selectedServiceCategory !== 'all'
+              ? selectedServiceCategory
+              : (requestMeta?.serviceCategoryId || 'supplier-services')
+            const targetedServiceLabel = selectedServiceCategory !== 'all'
+              ? (SERVICE_CATEGORY_LABELS[selectedServiceCategory] || selectedServiceCategory)
+              : (requestMeta?.serviceCategoryLabel || 'Supplier Services')
             const p = new URLSearchParams({
               context: 'service',
-              serviceCategory: requestMeta?.serviceCategoryId || 'supplier-services',
-              serviceCategoryLabel: requestMeta?.serviceCategoryLabel || 'Supplier Services',
+              serviceCategory: targetedServiceId,
+              serviceCategoryLabel: targetedServiceLabel,
               industry: selectedIndustry,
               industryLabel,
               preferredProviderId: String(provider?.id || ''),
@@ -235,7 +286,7 @@ export default function ServiceExecutiveSummary() {
         <div className="app-page-card" style={{ marginTop: 16 }}>
           <div className="exec-table-header-row">
             <h3 className="exec-section-title" style={{ marginBottom: 0 }}>
-              Service Provider Summary ({providerRows.length})
+              Service Provider Summary ({filteredProviderRows.length})
             </h3>
             {canSendRequests && selectedProviderIds.size > 0 && (
               <button type="button" className="exec-multi-rfq-btn" onClick={openRequestModal}>
@@ -250,10 +301,10 @@ export default function ServiceExecutiveSummary() {
                   <th className="exec-th-check">
                     <input
                       type="checkbox"
-                      checked={providerRows.length > 0 && selectedProviderIds.size === providerRows.length}
+                      checked={filteredProviderRows.length > 0 && selectedProviderIds.size === filteredProviderRows.length}
                       onChange={() => {
-                        if (selectedProviderIds.size === providerRows.length) setSelectedProviderIds(new Set())
-                        else setSelectedProviderIds(new Set(providerRows.map((p) => p.id)))
+                        if (selectedProviderIds.size === filteredProviderRows.length) setSelectedProviderIds(new Set())
+                        else setSelectedProviderIds(new Set(filteredProviderRows.map((p) => p.id)))
                       }}
                       disabled={!canSendRequests}
                       title="Select all providers"
@@ -266,7 +317,7 @@ export default function ServiceExecutiveSummary() {
                 </tr>
               </thead>
               <tbody>
-                {providerRows.map((provider, idx) => (
+                {filteredProviderRows.map((provider, idx) => (
                   <tr key={provider.id} className={selectedProviderIds.has(provider.id) ? 'rfq-checked' : ''}>
                     <td className="exec-td-check">
                       <input
@@ -307,7 +358,9 @@ export default function ServiceExecutiveSummary() {
                             setSelectedProviderIds(new Set([provider.id]))
                             setRequestForm((prev) => ({
                               ...prev,
-                              serviceCategoryId: provider?.serviceCategories?.[0] || 'supplier-services',
+                              serviceCategoryId: selectedServiceCategory !== 'all'
+                                ? selectedServiceCategory
+                                : (provider?.serviceCategories?.[0] || 'supplier-services'),
                               title: prev.title || `Service Request — ${industryLabel}`,
                             }))
                             setShowRequestModal(true)

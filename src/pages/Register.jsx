@@ -58,6 +58,12 @@ function RegisterForm() {
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 
+  const getDefaultPlanForAccountType = (type) => {
+    const plansForType = getPlansForAccountType(type)
+    if (type === 'buyer') return plansForType.find((p) => p.id === 'basic')?.id || plansForType[0]?.id || 'basic'
+    return plansForType.find((p) => p.id === 'start')?.id || plansForType[0]?.id || 'start'
+  }
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
@@ -74,11 +80,17 @@ function RegisterForm() {
   const handleAccountTypeSelect = (type) => {
     // Registration is for one account direction at a time.
     setAccountTypes([type])
-    setSelectedPlan('start')
+    setSelectedPlan(getDefaultPlanForAccountType(type))
     if (type !== 'service_provider') {
       setSelectedServiceCategories([])
     }
   }
+
+  useEffect(() => {
+    if (!availablePlans.some((plan) => plan.id === selectedPlan)) {
+      setSelectedPlan(getDefaultPlanForAccountType(primaryAccountType))
+    }
+  }, [availablePlans, selectedPlan, primaryAccountType])
 
   const toggleServiceCategory = (serviceId) => {
     setSelectedServiceCategories((prev) =>
@@ -131,6 +143,10 @@ function RegisterForm() {
     setError('')
     if (!selectedIndustry) {
       setError('Please choose one industry.')
+      return
+    }
+    if (!availablePlans.some((plan) => plan.id === selectedPlan)) {
+      setError('Please choose a valid plan for this account type.')
       return
     }
     if (primaryAccountType === 'service_provider' && selectedServiceCategories.length === 0) {

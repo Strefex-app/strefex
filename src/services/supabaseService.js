@@ -201,9 +201,27 @@ export const profilesService = {
   async updateProfile(updates) {
     if (!isSupabaseConfigured) return null
     const user = (await supabase.auth.getUser()).data.user
+    const allowedKeys = new Set([
+      'company_id',
+      'full_name',
+      'phone',
+      'role',
+      'avatar_url',
+      'email_verified',
+      'phone_verified',
+      'status',
+      'invited_by',
+      'metadata',
+    ])
+    const safeUpdates = Object.fromEntries(
+      Object.entries(updates || {}).filter(([key]) => allowedKeys.has(key))
+    )
+    if (Object.keys(safeUpdates).length === 0) {
+      return null
+    }
     const { data, error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(safeUpdates)
       .eq('id', user?.id)
       .select()
       .single()

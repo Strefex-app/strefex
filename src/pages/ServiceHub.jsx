@@ -61,7 +61,9 @@ export default function ServiceHub() {
   const planId = useSubscriptionStore((s) => s.planId)
   const isServiceProvider = accountType === 'service_provider' && !isSuperAdmin
   const limits = getEffectiveLimits(planId, accountType)
-  const maxServiceCategories = isSuperAdmin ? Infinity : (limits.maxServiceCategories ?? 1)
+  const maxServiceCategories = (isSuperAdmin || isServiceProvider)
+    ? Infinity
+    : (limits.maxServiceCategories ?? 1)
   const allServicesOpen = maxServiceCategories === Infinity
 
   const selectedServices = useServiceStore((s) => s.selectedServices)
@@ -225,7 +227,13 @@ export default function ServiceHub() {
 
                       <button
                         type="button"
-                        onClick={() => navigate('/service-hub/executive-summary')}
+                        onClick={() => {
+                          const p = new URLSearchParams({
+                            serviceCategory: cat.id,
+                            serviceCategoryLabel: cat.label,
+                          })
+                          navigate(`/service-hub/executive-summary?${p.toString()}`)
+                        }}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '7px 12px', borderRadius: 8, border: 'none',

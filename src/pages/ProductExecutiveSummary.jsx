@@ -5,6 +5,7 @@ import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useAuthStore } from '../store/authStore'
 import { useTier, TIERS } from '../services/featureFlags'
+import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
@@ -29,7 +30,7 @@ export default function ProductExecutiveSummary() {
   const isPremium = useTier(TIERS.PREMIUM)
   const isPreviewSession = (() => {
     try {
-      const exp = localStorage.getItem('strefex-preview-expires')
+      const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()

@@ -13,6 +13,8 @@
  */
 
 const CODE_TTL_MS = 5 * 60 * 1000
+import { tenantKey } from '../utils/tenantStorage'
+
 const VERIFIED_KEY = 'strefex-verified-contacts'
 
 const _pending = { email: null, phone: null }
@@ -100,11 +102,11 @@ export function clearPendingVerification() {
  */
 function markVerified(type, value) {
   try {
-    const raw = localStorage.getItem(VERIFIED_KEY)
+    const raw = localStorage.getItem(tenantKey(VERIFIED_KEY))
     const data = raw ? JSON.parse(raw) : {}
     if (!data[type]) data[type] = []
     if (!data[type].includes(value)) data[type].push(value)
-    localStorage.setItem(VERIFIED_KEY, JSON.stringify(data))
+    localStorage.setItem(tenantKey(VERIFIED_KEY), JSON.stringify(data))
   } catch { /* silent */ }
 }
 
@@ -113,7 +115,7 @@ function markVerified(type, value) {
  */
 export function isContactVerified(type, value) {
   try {
-    const raw = localStorage.getItem(VERIFIED_KEY)
+    const raw = localStorage.getItem(tenantKey(VERIFIED_KEY))
     if (!raw) return false
     const data = JSON.parse(raw)
     return data[type]?.includes(value.trim().toLowerCase?.() ?? value.trim()) ?? false

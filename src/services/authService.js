@@ -32,6 +32,7 @@ import {
   createPendingSubscription,
 } from './subscriptionService'
 import { useIndustryStore } from '../store/industryStore'
+import { tenantKey } from '../utils/tenantStorage'
 
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider'])
@@ -104,14 +105,34 @@ function isDomainIndustryTakenFromRegistry(email, accountType, industryId) {
   try {
     const domain = getEmailDomain(email)
     if (!domain || !industryId) return false
-    const raw = localStorage.getItem('strefex-account-registry')
-    const accounts = raw ? JSON.parse(raw) : []
-    return Array.isArray(accounts) && accounts.some((a) =>
+    const safeType = String(accountType || '').toLowerCase()
+    const safeIndustry = String(industryId || '').toLowerCase()
+
+    const scopedRaw = localStorage.getItem(tenantKey('strefex-account-registry'))
+    const legacyRaw = localStorage.getItem('strefex-account-registry')
+    const indexRaw = localStorage.getItem('strefex-account-registry-index')
+    const scopedAccounts = scopedRaw ? JSON.parse(scopedRaw) : []
+    const legacyAccounts = legacyRaw ? JSON.parse(legacyRaw) : []
+    const indexRows = indexRaw ? JSON.parse(indexRaw) : []
+    const allAccounts = [
+      ...(Array.isArray(scopedAccounts) ? scopedAccounts : []),
+      ...(Array.isArray(legacyAccounts) ? legacyAccounts : []),
+    ]
+
+    const inAccounts = allAccounts.some((a) =>
       a?.status !== 'canceled' &&
-      String(a?.accountType || '') === String(accountType || '') &&
+      String(a?.accountType || '').toLowerCase() === safeType &&
       String(a?.email || '').split('@')[1]?.toLowerCase() === domain &&
       Array.isArray(a?.industries) &&
-      a.industries.includes(industryId)
+      a.industries.map((v) => String(v || '').toLowerCase()).includes(safeIndustry)
+    )
+    if (inAccounts) return true
+
+    return Array.isArray(indexRows) && indexRows.some((row) =>
+      row?.status !== 'canceled' &&
+      String(row?.domain || '').toLowerCase() === domain &&
+      String(row?.accountType || '').toLowerCase() === safeType &&
+      String(row?.industryId || '').toLowerCase() === safeIndustry
     )
   } catch {
     return false
@@ -208,7 +229,11 @@ async function storeSupabaseSession(session, profile) {
     ? metadata.account_types
     : []
   const fallbackAccountType = normalizeAccountType(
-    metadata.account_type || user?.user_metadata?.account_type || metadataAccountTypes[0] || 'seller'
+    metadata.account_type ||
+      user?.user_metadata?.account_type ||
+      profile?.companies?.account_type ||
+      metadataAccountTypes[0] ||
+      'seller'
   )
   const accountTypes = normalizeAccountTypes(metadataAccountTypes, fallbackAccountType)
   const primaryAccountType = accountTypes[0] || fallbackAccountType
@@ -224,6 +249,7 @@ async function storeSupabaseSession(session, profile) {
       role,
       phone: profile?.phone,
       accountTypes,
+      accountType: primaryAccountType,
       primaryAccountType,
     },
     tenant: profile?.company_id
@@ -287,7 +313,10 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   const fullName = (md.full_name || profile?.full_name || '').trim()
   const phone = md.phone || profile?.phone || null
   const primaryMetadataAccountType = normalizeAccountType(
-    md.account_type || profile?.metadata?.account_type || 'seller'
+    md.account_type ||
+      profile?.metadata?.account_type ||
+      profile?.companies?.account_type ||
+      'seller'
   )
 
   let companyId = profile?.company_id || null
@@ -396,6 +425,7 @@ function storeSession(backendResponse) {
           fullName: user.full_name ?? user.fullName,
           role,
           accountTypes: normalizedAccountTypes,
+          accountType: primaryAccountType,
           primaryAccountType,
         }
       : null,
@@ -403,6 +433,8 @@ function storeSession(backendResponse) {
       ? { id: tenant.id, name: tenant.name, slug: tenant.slug }
       : null,
   })
+  // Keep dashboard/feature context aligned with authenticated account direction.
+  useSubscriptionStore.getState().setAccountType(primaryAccountType)
 
   analytics.track('user_login', {
     method: isFirebaseConfigured ? 'firebase' : 'direct',
@@ -768,9 +800,14 @@ const authService = {
             phone: profile.phone,
             accountTypes: normalizeAccountTypes(
               profile?.metadata?.account_types,
-              profile?.metadata?.account_type || 'seller'
+              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
             ),
-            primaryAccountType: normalizeAccountType(profile?.metadata?.account_type || 'seller'),
+            accountType: normalizeAccountType(
+              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
+            ),
+            primaryAccountType: normalizeAccountType(
+              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
+            ),
           })
           return profile
         }

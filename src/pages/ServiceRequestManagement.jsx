@@ -21,6 +21,8 @@ const PRIORITY_COLORS = {
   Urgent: '#e74c3c',
 }
 
+const getDomain = (email) => String(email || '').split('@')[1]?.toLowerCase() || ''
+
 export default function ServiceRequestManagement() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -29,13 +31,14 @@ export default function ServiceRequestManagement() {
   const isAdmin = role === 'admin' || isSuperAdmin
   const isManager = role === 'manager' || isAdmin
 
-  const requests = useServiceRequestStore((s) => s.requests)
+  const requests = useServiceRequestStore((s) => s.getSafeRequests())
   const assignRequest = useServiceRequestStore((s) => s.assignRequest)
   const updateRequestStatus = useServiceRequestStore((s) => s.updateRequestStatus)
   const addNote = useServiceRequestStore((s) => s.addNote)
   const getStats = useServiceRequestStore((s) => s.getStats)
 
   const accounts = useAccountRegistry((s) => s.accounts)
+  const myDomain = getDomain(user?.email)
 
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
@@ -73,6 +76,8 @@ export default function ServiceRequestManagement() {
   const assignableMembers = useMemo(() => {
     const members = []
     accounts.forEach((acct) => {
+      const accountDomain = getDomain(acct.email)
+      if (!isSuperAdmin && myDomain && accountDomain !== myDomain) return
       // Add the main account holder
       if (acct.email) members.push({ email: acct.email, name: acct.contactName || acct.company, role: 'admin' })
       // Add team members who are managers
@@ -91,7 +96,7 @@ export default function ServiceRequestManagement() {
       seen.add(m.email)
       return true
     })
-  }, [accounts])
+  }, [accounts, isSuperAdmin, myDomain])
 
   const handleAssign = (requestId) => {
     if (!assignEmail) return

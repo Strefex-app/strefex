@@ -17,6 +17,7 @@ import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import { useTier, TIERS } from '../services/featureFlags'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
+import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
@@ -31,7 +32,7 @@ const ExecutiveSummary = () => {
   // Preview sessions (via "Preview Platform" on login page) can see the page but NOT names
   const isPreviewSession = (() => {
     try {
-      const exp = localStorage.getItem('strefex-preview-expires')
+      const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()

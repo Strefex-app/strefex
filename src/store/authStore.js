@@ -137,9 +137,16 @@ const rehydrateAllTenantStores = () => {
       try {
         const subKey = tenantKey('strefex-subscription')
         const sub = JSON.parse(localStorage.getItem(subKey) || '{}')
+        const auth = get()
+        const fallbackAccountType = String(
+          auth?.user?.primaryAccountType ||
+          auth?.user?.accountType ||
+          (Array.isArray(auth?.user?.accountTypes) ? auth.user.accountTypes[0] : '') ||
+          'seller'
+        ).toLowerCase()
         featureMod.useSubscriptionStore.setState({
           planId: sub.planId || 'start',
-          accountType: sub.accountType || 'seller',
+          accountType: sub.accountType || fallbackAccountType,
           status: sub.status || 'active',
           trialEndsAt: sub.trialEndsAt || null,
           overrides: sub.overrides || {},

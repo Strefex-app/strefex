@@ -18,8 +18,8 @@ export default function ProtectedRoute({ children, requiredRole }) {
   const roleHierarchy = {
     guest: 0,
     user: 1,
-    manager: 2,
-    auditor_internal: 3,
+    auditor_internal: 2,
+    manager: 3,
     admin: 4,
     auditor_external: 5,
     superadmin: 6,
@@ -36,6 +36,13 @@ export default function ProtectedRoute({ children, requiredRole }) {
   }
 
   if (requiredRole) {
+    // Auditors are intentionally read-only and must not inherit manager/admin powers.
+    if (
+      (role === 'auditor_internal' || role === 'auditor_external') &&
+      (requiredRole === 'manager' || requiredRole === 'admin' || requiredRole === 'superadmin')
+    ) {
+      return <Navigate to="/main-menu" replace />
+    }
     const currentLevel = roleHierarchy[role] ?? 0
     const requiredLevel = roleHierarchy[requiredRole] ?? 999
     if (currentLevel < requiredLevel) {

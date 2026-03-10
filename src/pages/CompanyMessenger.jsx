@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
+import { tenantKey } from '../utils/tenantStorage'
 import './CompanyMessenger.css'
 
 /* ── Storage (per-tenant isolation) ──────────────────────── */
-const getStorageKey = (slug) => `strefex-messenger-${slug || 'default'}`
+const getStorageKey = (slug) => tenantKey(`strefex-messenger-${slug || 'default'}`)
 
 const loadConversations = (slug) => {
   try { return JSON.parse(localStorage.getItem(getStorageKey(slug)) || '[]') } catch { return [] }

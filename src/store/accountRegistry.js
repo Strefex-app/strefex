@@ -19,27 +19,165 @@
 import { create } from 'zustand'
 
 const REGISTRY_KEY = 'strefex-account-registry'
+const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
+
+const sanitizeScope = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+
+const getSessionPrimaryAccountType = (user) => {
+  const direct = sanitizeScope(user?.primaryAccountType || user?.accountType)
+  if (direct) return direct
+  if (Array.isArray(user?.accountTypes) && user.accountTypes.length > 0) {
+    const first = sanitizeScope(user.accountTypes[0])
+    if (first) return first
+  }
+  return 'seller'
+}
+
+const getCompanyScope = () => {
+  try {
+    const raw = localStorage.getItem('strefex-auth')
+    if (!raw) return 'guest'
+    const parsed = JSON.parse(raw)
+    const tenant = parsed?.tenant || {}
+    const user = parsed?.user || {}
+    const accountType = getSessionPrimaryAccountType(user)
+    const withType = (base) => {
+      const safeBase = sanitizeScope(base)
+      if (!safeBase) return 'guest'
+      return `${safeBase}::${accountType}`
+    }
+    if (tenant?.id) return withType(tenant.id)
+    if (tenant?.slug) return withType(tenant.slug)
+    if (user?.email) {
+      const domain = String(user.email).split('@')[1]
+      if (domain) return withType(domain)
+    }
+    if (user?.companyName) return withType(user.companyName)
+  } catch {
+    // no-op
+  }
+  return 'guest'
+}
+
+const getRegistryKey = () => `${REGISTRY_KEY}::${getCompanyScope()}`
+
+const getAuthRole = () => {
+  try {
+    const raw = localStorage.getItem('strefex-auth')
+    if (!raw) return 'guest'
+    const parsed = JSON.parse(raw)
+    return String(parsed?.role || 'guest').toLowerCase()
+  } catch {
+    return 'guest'
+  }
+}
+
+const getSessionEmailDomain = () => {
+  try {
+    const raw = localStorage.getItem('strefex-auth')
+    if (!raw) return ''
+    const parsed = JSON.parse(raw)
+    const domain = String(parsed?.user?.email || '').split('@')[1] || ''
+    return sanitizeScope(domain)
+  } catch {
+    return ''
+  }
+}
 
 /* ── Helpers ──────────────────────────────────────────── */
 
 const loadRegistry = () => {
   try {
-    const raw = localStorage.getItem(REGISTRY_KEY)
-    if (raw) return JSON.parse(raw)
+    const scopedRaw = localStorage.getItem(getRegistryKey())
+    if (scopedRaw) return JSON.parse(scopedRaw)
+
+    // Backward compatibility: migrate legacy global registry into scoped storage.
+    const legacyRaw = localStorage.getItem(REGISTRY_KEY)
+    if (!legacyRaw) return null
+    const legacyAccounts = JSON.parse(legacyRaw)
+    if (!Array.isArray(legacyAccounts) || legacyAccounts.length === 0) return null
+
+    const role = getAuthRole()
+    if (role === 'superadmin') return legacyAccounts
+
+    const scope = getCompanyScope()
+    if (!scope || scope === 'guest') return null
+    const [scopeDomainOrTenant, scopeAccountType] = String(scope).split('::')
+    const sessionDomain = getSessionEmailDomain()
+    const migrated = legacyAccounts.filter((a) =>
+      (
+        String(a?.email || '').split('@')[1]?.toLowerCase() === scopeDomainOrTenant ||
+        (sessionDomain && String(a?.email || '').split('@')[1]?.toLowerCase() === sessionDomain) ||
+        sanitizeScope(a?.companyId || a?.id || '') === scopeDomainOrTenant
+      ) &&
+      (!scopeAccountType || String(a?.accountType || '').toLowerCase() === scopeAccountType)
+    )
+    if (migrated.length > 0) {
+      localStorage.setItem(getRegistryKey(), JSON.stringify(migrated))
+    }
+    return migrated
   } catch { /* */ }
   return null
 }
 
 const saveRegistry = (accounts) => {
   try {
-    localStorage.setItem(REGISTRY_KEY, JSON.stringify(accounts))
+    localStorage.setItem(getRegistryKey(), JSON.stringify(accounts))
   } catch { /* silent */ }
+}
+
+const loadRegistryIndex = () => {
+  try {
+    const raw = localStorage.getItem(REGISTRY_INDEX_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const saveRegistryIndex = (rows) => {
+  try {
+    localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(rows))
+  } catch { /* silent */ }
+}
+
+const mergeRegistryIndex = (accounts) => {
+  const existing = loadRegistryIndex()
+  const map = new Map()
+  existing.forEach((row) => {
+    const key = `${row.domain}::${row.accountType}::${row.industryId}`
+    map.set(key, row)
+  })
+  ;(accounts || []).forEach((a) => {
+    const domain = String(a?.email || '').split('@')[1]?.toLowerCase()
+    const accountType = String(a?.accountType || '').toLowerCase()
+    if (!domain || !accountType) return
+    const industries = Array.isArray(a?.industries) && a.industries.length > 0 ? a.industries : ['general']
+    industries.forEach((industryId) => {
+      const safeIndustry = String(industryId || 'general').toLowerCase()
+      const key = `${domain}::${accountType}::${safeIndustry}`
+      map.set(key, {
+        domain,
+        accountType,
+        industryId: safeIndustry,
+        status: a?.status || 'active',
+        updatedAt: new Date().toISOString(),
+      })
+    })
+  })
+  const next = [...map.values()]
+  saveRegistryIndex(next)
+  return next
 }
 
 /* ── Zustand store ────────────────────────────────────── */
 
+const initialAccounts = loadRegistry() || []
+mergeRegistryIndex(initialAccounts)
+
 export const useAccountRegistry = create((set, get) => ({
-  accounts: loadRegistry() || [],
+  accounts: initialAccounts,
 
   registerAccount: (account) => {
     const accounts = get().accounts
@@ -52,6 +190,7 @@ export const useAccountRegistry = create((set, get) => ({
       next = [...accounts, account]
     }
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return next[idx >= 0 ? idx : next.length - 1]
   },
@@ -63,6 +202,7 @@ export const useAccountRegistry = create((set, get) => ({
     const next = [...accounts]
     next[idx] = { ...next[idx], ...updates }
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return next[idx]
   },
@@ -85,6 +225,7 @@ export const useAccountRegistry = create((set, get) => ({
     const next = [...accounts]
     next[idx] = acct
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return acct
   },
@@ -111,6 +252,7 @@ export const useAccountRegistry = create((set, get) => ({
     const next = [...accounts]
     next[idx] = acct
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return acct
   },
@@ -124,6 +266,7 @@ export const useAccountRegistry = create((set, get) => ({
     const next = [...accounts]
     next[idx] = acct
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return acct
   },
@@ -139,6 +282,7 @@ export const useAccountRegistry = create((set, get) => ({
     const next = [...accounts]
     next[idx] = acct
     saveRegistry(next)
+    mergeRegistryIndex(next)
     set({ accounts: next })
     return acct
   },
@@ -150,21 +294,38 @@ export const useAccountRegistry = create((set, get) => ({
 
   isDomainRegistered: (domain, accountType) => {
     if (!domain) return false
-    return get().accounts.some((a) =>
+    const safeDomain = domain.toLowerCase()
+    const safeType = String(accountType || '').toLowerCase()
+    const localMatch = get().accounts.some((a) =>
       a.accountType === accountType &&
-      a.email?.split('@')[1]?.toLowerCase() === domain.toLowerCase() &&
+      a.email?.split('@')[1]?.toLowerCase() === safeDomain &&
       a.status !== 'canceled'
+    )
+    if (localMatch) return true
+    return loadRegistryIndex().some((row) =>
+      row.domain === safeDomain &&
+      row.accountType === safeType &&
+      row.status !== 'canceled'
     )
   },
 
   isDomainIndustryRegistered: (domain, accountType, industryId) => {
     if (!domain || !industryId) return false
     const safeDomain = domain.toLowerCase()
-    return get().accounts.some((a) =>
+    const safeType = String(accountType || '').toLowerCase()
+    const safeIndustry = String(industryId || '').toLowerCase()
+    const localMatch = get().accounts.some((a) =>
       a.accountType === accountType &&
       a.email?.split('@')[1]?.toLowerCase() === safeDomain &&
       (a.industries || []).includes(industryId) &&
       a.status !== 'canceled'
+    )
+    if (localMatch) return true
+    return loadRegistryIndex().some((row) =>
+      row.domain === safeDomain &&
+      row.accountType === safeType &&
+      row.industryId === safeIndustry &&
+      row.status !== 'canceled'
     )
   },
 

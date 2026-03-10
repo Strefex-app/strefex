@@ -7,6 +7,7 @@ import { useTransactionStore, getCompanyDomain } from '../store/transactionStore
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAccountRegistry } from '../store/accountRegistry'
+import { tenantKey } from '../utils/tenantStorage'
 import '../styles/app-page.css'
 import './Notifications.css'
 
@@ -52,7 +53,7 @@ export default function Notifications() {
   const myDomain = getCompanyDomain(user?.email)
 
   /* ── Service request notifications ── */
-  const serviceNotifications = useServiceRequestStore((s) => s.notifications)
+  const serviceNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
   const markNotificationRead = useServiceRequestStore((s) => s.markNotificationRead)
 
   // Scope service notifications: superuser sees all, company admin/manager sees own company only
@@ -181,11 +182,10 @@ export default function Notifications() {
   /* ── Handlers: STREFEX superuser (platform approval) ── */
   const handlePlatformApprove = (txId) => {
     const approvedTx = platformApprovePlan(txId, user?.email)
-    if (approvedTx?.planTo && approvedTx?.userEmail) {
-      // Persist plan activation for the target user
-      const targetEmail = approvedTx.userEmail.toLowerCase().replace(/[^a-z0-9@._\-]/g, '')
+    if (approvedTx?.planTo) {
+      // Persist activation only in current tenant scope.
       try {
-        const key = `strefex-subscription::${targetEmail}`
+        const key = tenantKey('strefex-subscription')
         const raw = localStorage.getItem(key)
         const current = raw ? JSON.parse(raw) : {}
         current.planId = approvedTx.planTo
