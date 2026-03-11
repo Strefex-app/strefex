@@ -119,6 +119,7 @@ const GRANTABLE_FEATURES = [
   { key: 'profileContacts',       label: 'Profile Contacts',       tier: 3, tierLabel: 'Premium' },
   // Enterprise-tier features (grantable to lower-plan accounts)
   { key: 'enterpriseManagement',  label: 'Enterprise Management',  tier: 4, tierLabel: 'Enterprise' },
+  { key: 'fullCompanyVisibility', label: 'Full Company Visibility', tier: 4, tierLabel: 'Enterprise' },
   { key: 'procurement',           label: 'Procurement',            tier: 4, tierLabel: 'Enterprise' },
   { key: 'contractManagement',    label: 'Contract Management',    tier: 4, tierLabel: 'Enterprise' },
   { key: 'spendAnalysis',         label: 'Spend Analysis',         tier: 4, tierLabel: 'Enterprise' },

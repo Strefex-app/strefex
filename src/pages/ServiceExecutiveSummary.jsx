@@ -5,7 +5,7 @@ import ServiceProviderAvailabilityCard, { SERVICE_CATEGORY_LABELS } from '../com
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
-import { useTier, TIERS, useSubscriptionStore } from '../services/featureFlags'
+import { useFeatureFlag, useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
@@ -27,7 +27,7 @@ export default function ServiceExecutiveSummary() {
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
-  const isPremium = useTier(TIERS.PREMIUM)
+  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
   const accountType = useSubscriptionStore((s) => s.accountType)
   const submitServiceRequest = useServiceRequestStore((s) => s.submitRequest)
   const [selectedIndustry, setSelectedIndustry] = useState('automotive')
@@ -58,7 +58,7 @@ export default function ServiceExecutiveSummary() {
     }
   })()
 
-  const canSeeNames = (isPremium || isSuperAdmin) && !isPreviewSession
+  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
   const canSendRequests = isSuperAdmin || accountType === 'buyer' || accountType === 'seller'
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(selectedIndustry))

@@ -15,7 +15,7 @@ import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndu
 import { useAccountRegistry } from '../store/accountRegistry'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
-import { useTier, TIERS } from '../services/featureFlags'
+import { useFeatureFlag } from '../services/featureFlags'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
@@ -28,7 +28,7 @@ const ExecutiveSummary = () => {
 
   /* ── Plan-based visibility ──────────────────────────────── */
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const isPremium = useTier(TIERS.PREMIUM)
+  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
   // Preview sessions (via "Preview Platform" on login page) can see the page but NOT names
   const isPreviewSession = (() => {
     try {
@@ -36,7 +36,7 @@ const ExecutiveSummary = () => {
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()
-  const canSeeNames = (isPremium || isSuperAdmin) && !isPreviewSession
+  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
 
   // Build navigation context — Executive Summary now lives under equipment category
   const goBack = () => navigate(-1)
@@ -466,7 +466,7 @@ const ExecutiveSummary = () => {
               </svg>
             </div>
             <div className="exec-upgrade-banner-text">
-              <strong>Supplier names are hidden.</strong> Upgrade to <span className="exec-highlight-premium">Premium</span> to reveal supplier identities. You can still compare all metrics and send RFQs to multiple sellers for price comparison.
+              <strong>Supplier names are hidden.</strong> Upgrade to <span className="exec-highlight-premium">Enterprise</span> to reveal supplier identities. You can still compare all metrics and send RFQs to multiple sellers for price comparison.
             </div>
             <button type="button" className="exec-upgrade-btn" onClick={() => navigate('/plans')}>
               Upgrade Plan

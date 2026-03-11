@@ -4,7 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useAuthStore } from '../store/authStore'
-import { useTier, TIERS } from '../services/featureFlags'
+import { useFeatureFlag } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
@@ -27,14 +27,14 @@ export default function ProductExecutiveSummary() {
   const category = getManufacturingCategory(categoryId, industryId)
 
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const isPremium = useTier(TIERS.PREMIUM)
+  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
   const isPreviewSession = (() => {
     try {
       const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()
-  const canSeeNames = (isPremium || isSuperAdmin) && !isPreviewSession
+  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
 
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -266,7 +266,7 @@ export default function ProductExecutiveSummary() {
               <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Registered Suppliers — {processLabel}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>
                 Suppliers registered for {processLabel} in the {industryLabel} industry.
-                {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Upgrade to Premium to see supplier names and full details.</span>}
+                {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Upgrade to Enterprise to see supplier names and full details.</span>}
               </p>
 
               <div style={{
