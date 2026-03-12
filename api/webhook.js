@@ -74,16 +74,41 @@ async function reserveWebhookEvent(event) {
   const payload = {
     event_id: event.id,
     event_type: event.type,
-    processed_at: new Date().toISOString(),
+    processed_at: null,
   }
   const { error } = await supabaseAdmin.from('stripe_webhook_events').insert(payload)
   if (!error) return { duplicate: false }
 
   const msg = String(error.message || '').toLowerCase()
   if (msg.includes('duplicate') || msg.includes('unique') || msg.includes('already exists')) {
-    return { duplicate: true }
+    const { data } = await supabaseAdmin
+      .from('stripe_webhook_events')
+      .select('processed_at')
+      .eq('event_id', event.id)
+      .maybeSingle()
+    return {
+      duplicate: true,
+      processed: Boolean(data?.processed_at),
+    }
   }
   throw error
+}
+
+async function markWebhookProcessed(eventId) {
+  if (!supabaseAdmin || !eventId) return
+  await supabaseAdmin
+    .from('stripe_webhook_events')
+    .update({ processed_at: new Date().toISOString() })
+    .eq('event_id', eventId)
+}
+
+async function releaseWebhookReservation(eventId) {
+  if (!supabaseAdmin || !eventId) return
+  await supabaseAdmin
+    .from('stripe_webhook_events')
+    .delete()
+    .eq('event_id', eventId)
+    .is('processed_at', null)
 }
 
 async function upsertSubscriptionRow({
@@ -203,56 +228,69 @@ export default async function handler(req, res) {
   try {
     const reservation = await reserveWebhookEvent(event)
     if (reservation.duplicate) {
-      logEvent('info', requestId, 'duplicate_event', { eventId: event.id, eventType: event.type })
-      return res.status(200).json({ received: true, duplicate: true, requestId })
+      if (reservation.processed) {
+        logEvent('info', requestId, 'duplicate_event_processed', { eventId: event.id, eventType: event.type })
+        return res.status(200).json({ received: true, duplicate: true, requestId })
+      }
+      // A delivery is currently being processed or previously failed without cleanup.
+      // Return non-2xx so Stripe retries instead of silently dropping this event.
+      logEvent('warn', requestId, 'duplicate_event_inflight', { eventId: event.id, eventType: event.type })
+      return res.status(409).json({ error: 'Event is in progress, retry later', requestId })
     }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object
-      const { userId, industry, industries, tier } = extractMetadata(session)
-      await upsertSubscriptionRow({
-        userId,
-        industry,
-        industries,
-        tier,
-        stripeSubscriptionId: session.subscription || null,
-        stripeCustomerId: session.customer || null,
-        status: 'active',
-      })
-    }
+    try {
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object
+        const { userId, industry, industries, tier } = extractMetadata(session)
+        await upsertSubscriptionRow({
+          userId,
+          industry,
+          industries,
+          tier,
+          stripeSubscriptionId: session.subscription || null,
+          stripeCustomerId: session.customer || null,
+          status: 'active',
+        })
+      }
 
-    if (
-      event.type === 'customer.subscription.created'
-      || event.type === 'customer.subscription.updated'
-      || event.type === 'customer.subscription.deleted'
-    ) {
-      const subscription = event.data.object
-      const { userId, industry, industries, tier } = extractMetadata(subscription)
-      await upsertSubscriptionRow({
-        userId,
-        industry,
-        industries,
-        tier,
-        stripeSubscriptionId: subscription.id,
-        stripeCustomerId: subscription.customer || null,
-        status: normalizeStatus(
-          event.type === 'customer.subscription.deleted'
-            ? 'canceled'
-            : subscription.status
-        ),
-      })
-    }
+      if (
+        event.type === 'customer.subscription.created'
+        || event.type === 'customer.subscription.updated'
+        || event.type === 'customer.subscription.deleted'
+      ) {
+        const subscription = event.data.object
+        const { userId, industry, industries, tier } = extractMetadata(subscription)
+        await upsertSubscriptionRow({
+          userId,
+          industry,
+          industries,
+          tier,
+          stripeSubscriptionId: subscription.id,
+          stripeCustomerId: subscription.customer || null,
+          status: normalizeStatus(
+            event.type === 'customer.subscription.deleted'
+              ? 'canceled'
+              : subscription.status
+          ),
+        })
+      }
 
-    if (event.type === 'invoice.payment_failed') {
-      const invoice = event.data.object
-      await upsertSubscriptionRow({
-        userId: null,
-        industry: 'general',
-        tier: '',
-        stripeSubscriptionId: invoice?.subscription || null,
-        stripeCustomerId: invoice?.customer || null,
-        status: 'past_due',
-      })
+      if (event.type === 'invoice.payment_failed') {
+        const invoice = event.data.object
+        await upsertSubscriptionRow({
+          userId: null,
+          industry: 'general',
+          tier: '',
+          stripeSubscriptionId: invoice?.subscription || null,
+          stripeCustomerId: invoice?.customer || null,
+          status: 'past_due',
+        })
+      }
+
+      await markWebhookProcessed(event.id)
+    } catch (processingErr) {
+      await releaseWebhookReservation(event.id)
+      throw processingErr
     }
 
     logEvent('info', requestId, 'event_processed', { eventId: event.id, eventType: event.type })

@@ -493,9 +493,34 @@ export default function SuperAdminDashboard() {
     try { localStorage.setItem(SEC_KEY, JSON.stringify(updated)) } catch { /* */ }
   }
 
+  const normalizedAccounts = useMemo(() => {
+    const merged = [...accounts, ...registryAccounts]
+    return merged.map((a, idx) => ({
+      ...a,
+      id: a.id || `acct-${idx + 1}`,
+      company: a.company || a.companyName || 'Business Account',
+      email: a.email || '',
+      name: a.name || a.contactName || a.fullName || '—',
+      accountType: a.accountType || 'seller',
+      plan: a.plan || 'start',
+      status: a.status || 'active',
+      registeredAt: a.registeredAt || new Date().toISOString(),
+      lastActive: a.lastActive || a.registeredAt || new Date().toISOString(),
+      industries: Array.isArray(a.industries)
+        ? a.industries
+        : (Array.isArray(a.industry) ? a.industry : (a.industry ? [a.industry] : [])),
+      categories: a.categories || {},
+      users: Number(a.users || 0),
+      projects: Number(a.projects || 0),
+      auditorDocuments: a.auditorDocuments || a.metadata?.auditor_documents || '',
+      auditorVerificationStatus: a.auditorVerificationStatus || a.metadata?.auditor_verification_status || null,
+      registryLookupKey: a.id || a.email,
+    }))
+  }, [accounts, registryAccounts])
+
   /* ── Filtered account list ──────────────────────────── */
   const filteredAccounts = useMemo(() => {
-    let list = [...accounts]
+    let list = [...normalizedAccounts]
     if (filterPlan !== 'all') list = list.filter((a) => a.plan === filterPlan)
     if (filterType !== 'all') list = list.filter((a) => a.accountType === filterType)
     if (search.trim()) {
@@ -508,7 +533,7 @@ export default function SuperAdminDashboard() {
       )
     }
     return list.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt))
-  }, [accounts, filterPlan, filterType, search])
+  }, [normalizedAccounts, filterPlan, filterType, search])
 
   /* ── Tab: Overview ──────────────────────────────────── */
   const renderOverview = () => (
@@ -728,6 +753,7 @@ export default function SuperAdminDashboard() {
           <option value="buyer">Buyers</option>
           <option value="seller">Sellers</option>
           <option value="service_provider">Service Providers</option>
+          <option value="auditor">Auditors</option>
         </select>
         <select className="sad-select" value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)}>
           <option value="all">All Plans</option>
@@ -770,7 +796,7 @@ export default function SuperAdminDashboard() {
                     <div className="sad-contact-email">{a.email}</div>
                   </td>
                   <td>
-                    <span className={`sad-type-badge ${a.accountType}`}>{a.accountType === 'buyer' ? 'Buyer' : a.accountType === 'service_provider' ? 'Service' : 'Seller'}</span>
+                    <span className={`sad-type-badge ${a.accountType}`}>{a.accountType === 'buyer' ? 'Buyer' : a.accountType === 'service_provider' ? 'Service' : a.accountType === 'auditor' ? 'Auditor' : 'Seller'}</span>
                   </td>
                   <td>
                     <span className="sad-plan-badge" style={{ background: planColor(a.plan) + '1a', color: planColor(a.plan) }}>
@@ -783,7 +809,7 @@ export default function SuperAdminDashboard() {
                   </td>
                   <td>
                     <div className="sad-cell-tags">
-                      {(a.industry || []).map((ind) => {
+                      {(a.industries || []).map((ind) => {
                         const meta = INDUSTRIES.find((i) => i.id === ind)
                         return <span key={ind} className="sad-mini-tag" style={{ color: meta?.color }}>{meta?.label || ind}</span>
                       })}
@@ -820,7 +846,7 @@ export default function SuperAdminDashboard() {
           <div className="sad-detail-grid">
             <div className="sad-detail-item"><span className="sad-detail-label">Account ID</span><span className="sad-detail-value">{selectedAccount.id}</span></div>
             <div className="sad-detail-item"><span className="sad-detail-label">Contact Person</span><span className="sad-detail-value">{selectedAccount.name}</span></div>
-            <div className="sad-detail-item"><span className="sad-detail-label">Account Type</span><span className="sad-detail-value">{selectedAccount.accountType === 'buyer' ? 'Buyer' : selectedAccount.accountType === 'service_provider' ? 'Service Provider' : 'Seller'}</span></div>
+            <div className="sad-detail-item"><span className="sad-detail-label">Account Type</span><span className="sad-detail-value">{selectedAccount.accountType === 'buyer' ? 'Buyer' : selectedAccount.accountType === 'service_provider' ? 'Service Provider' : selectedAccount.accountType === 'auditor' ? 'Auditor' : 'Seller'}</span></div>
             <div className="sad-detail-item"><span className="sad-detail-label">Plan</span><span className="sad-detail-value" style={{ color: planColor(selectedAccount.plan) }}>{PLANS.find((p) => p.id === selectedAccount.plan)?.name}</span></div>
             <div className="sad-detail-item"><span className="sad-detail-label">Status</span><span className="sad-detail-value">{selectedAccount.status}</span></div>
             <div className="sad-detail-item"><span className="sad-detail-label">Users</span><span className="sad-detail-value">{selectedAccount.users}</span></div>
@@ -832,7 +858,7 @@ export default function SuperAdminDashboard() {
           <div className="sad-detail-section">
             <h4>Industries</h4>
             <div className="sad-detail-tags">
-              {(selectedAccount.industry || []).map((ind) => {
+              {(selectedAccount.industries || []).map((ind) => {
                 const meta = INDUSTRIES.find((i) => i.id === ind)
                 return <span key={ind} className="sad-tag" style={{ borderColor: meta?.color, color: meta?.color }}>{meta?.label || ind}</span>
               })}
@@ -850,6 +876,52 @@ export default function SuperAdminDashboard() {
               </div>
             ))}
           </div>
+          {selectedAccount.accountType === 'auditor' && (
+            <div className="sad-detail-section">
+              <h4>Auditor Verification</h4>
+              <div className="sad-detail-grid">
+                <div className="sad-detail-item">
+                  <span className="sad-detail-label">Verification Status</span>
+                  <span className="sad-detail-value">
+                    {selectedAccount.auditorVerificationStatus || selectedAccount.status || 'pending_review'}
+                  </span>
+                </div>
+              </div>
+              <div style={{ marginTop: 10, fontSize: 13, color: '#555', whiteSpace: 'pre-wrap' }}>
+                {selectedAccount.auditorDocuments || 'No auditor documents submitted yet.'}
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="sad-btn-primary"
+                  onClick={() => {
+                    const next = updateRegistryAccount(selectedAccount.registryLookupKey, {
+                      status: 'verified',
+                      auditorVerificationStatus: 'verified',
+                      verifiedAt: new Date().toISOString(),
+                    })
+                    if (next) setSelectedAccount((prev) => ({ ...prev, ...next }))
+                  }}
+                >
+                  Verify Auditor
+                </button>
+                <button
+                  type="button"
+                  className="sad-btn-secondary"
+                  onClick={() => {
+                    const next = updateRegistryAccount(selectedAccount.registryLookupKey, {
+                      status: 'pending_verification',
+                      auditorVerificationStatus: 'rejected',
+                      verifiedAt: null,
+                    })
+                    if (next) setSelectedAccount((prev) => ({ ...prev, ...next }))
+                  }}
+                >
+                  Reject / Needs Update
+                </button>
+              </div>
+            </div>
+          )}
           {(selectedAccount.teamMembers?.length > 0) && (
             <div className="sad-detail-section">
               <h4>Team Members ({selectedAccount.teamMembers.length})</h4>

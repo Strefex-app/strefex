@@ -190,7 +190,7 @@ export default function AppLayout({ children }) {
                   onClick={(e) => { e.stopPropagation(); navigate('/plans') }}
                   title="Click to manage subscription"
                 >
-                  {accountType === 'buyer' ? 'B' : accountType === 'service_provider' ? 'SP' : 'S'} · {currentPlanId === 'start' ? 'Free' : currentPlanId.charAt(0).toUpperCase() + currentPlanId.slice(1)}
+                  {accountType === 'buyer' ? 'B' : accountType === 'service_provider' ? 'SP' : accountType === 'auditor' ? 'A' : 'S'} · {currentPlanId === 'start' ? 'Free' : currentPlanId.charAt(0).toUpperCase() + currentPlanId.slice(1)}
                 </span>
               </span>
             </div>

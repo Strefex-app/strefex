@@ -23,6 +23,9 @@ const SERVICE_EXPERTISE_OPTIONS = [
   { id: 'supplier-services', label: 'Supplier Services' },
   { id: 'quality-services', label: 'Quality & Compliance' },
 ]
+const AUDITOR_EXPERTISE_OPTIONS = [
+  { id: 'supplier-audit', label: 'Supplier Audit' },
+]
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
   'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'gmx.com', 'yandex.com', 'yandex.ru',
@@ -41,6 +44,7 @@ function RegisterForm() {
   const [selectedPlan, setSelectedPlan] = useState('start')
   const [selectedIndustry, setSelectedIndustry] = useState('automotive')
   const [selectedServiceCategories, setSelectedServiceCategories] = useState([])
+  const [auditorDocuments, setAuditorDocuments] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -81,9 +85,11 @@ function RegisterForm() {
     // Registration is for one account direction at a time.
     setAccountTypes([type])
     setSelectedPlan(getDefaultPlanForAccountType(type))
-    if (type !== 'service_provider') {
-      setSelectedServiceCategories([])
+    if (type === 'auditor') {
+      setSelectedServiceCategories(['supplier-audit'])
+      return
     }
+    if (type !== 'service_provider') setSelectedServiceCategories([])
   }
 
   useEffect(() => {
@@ -153,6 +159,10 @@ function RegisterForm() {
       setError('Please select at least one service expertise category.')
       return
     }
+    if (primaryAccountType === 'auditor' && auditorDocuments.trim().length < 20) {
+      setError('Please provide auditor verification documents/details for superadmin review (minimum 20 characters).')
+      return
+    }
     const normalizedEmail = String(email || '').trim().toLowerCase()
     const emailDomain = normalizedEmail.split('@')[1]?.toLowerCase() || ''
     if (emailDomain && isDomainIndustryRegistered(emailDomain, primaryAccountType, primaryIndustry)) {
@@ -173,8 +183,15 @@ function RegisterForm() {
         accountTypes,
         selectedIndustry: primaryIndustry,
         selectedServiceCategories,
+        auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         selectedTier,
       })
+
+      const registrationStatus = result?.emailConfirmationPending
+        ? 'pending_confirmation'
+        : primaryAccountType === 'auditor'
+          ? 'pending_verification'
+          : (selectedTier === 'free' ? 'active' : 'pending_payment')
 
       registerAccount({
         id: result?.user?.id || `pending-${Date.now()}`,
@@ -183,10 +200,11 @@ function RegisterForm() {
         contactName: fullName.trim(),
         accountType: primaryAccountType,
         plan: selectedPlan,
-        status: result?.emailConfirmationPending ? 'pending_confirmation' : (selectedTier === 'free' ? 'active' : 'pending_payment'),
+        status: registrationStatus,
         industries: [primaryIndustry],
         categories: {},
         serviceCategories: primaryAccountType === 'service_provider' ? selectedServiceCategories : [],
+        auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
       })
 
@@ -340,10 +358,25 @@ function RegisterForm() {
                       <div className="reg-account-type-desc">Provide services & maintenance</div>
                     </div>
                   </button>
+                  <button
+                    type="button"
+                    className={`reg-account-type-btn ${accountTypes.includes('auditor') ? 'active' : ''}`}
+                    onClick={() => handleAccountTypeSelect('auditor')}
+                    disabled={loading}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M12 2l7 4v6c0 5-3.4 9.4-7 10-3.6-.6-7-5-7-10V6l7-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div>
+                      <div className="reg-account-type-label">Auditor</div>
+                      <div className="reg-account-type-desc">Independent supplier audit company</div>
+                    </div>
+                  </button>
                 </div>
                 <div className="reg-domain-hint">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                  One business domain can register as Seller <strong>and</strong> Buyer <strong>and</strong> Service Provider separately. Invite team members from within the platform.
+                  One business domain can register as Seller, Buyer, Service Provider, and Auditor separately. Invite team members from within the platform.
                 </div>
               </div>
               <div className="form-group">
@@ -461,6 +494,48 @@ function RegisterForm() {
                   </div>
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
                     Select what your company provides (project management, supplier services, quality/buy-off).
+                  </div>
+                </div>
+              )}
+
+              {primaryAccountType === 'auditor' && (
+                <div className="form-group">
+                  <label>Auditor Service Expertise</label>
+                  <div className="reg-account-type-toggle reg-account-type-3col">
+                    {AUDITOR_EXPERTISE_OPTIONS.map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        className="reg-account-type-btn active"
+                        disabled
+                        style={{ minHeight: 62, cursor: 'default' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                          <div className="reg-account-type-label">{service.label}</div>
+                          <span className="home-industry-badge">Required</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="reg-domain-hint" style={{ marginTop: 8 }}>
+                    Auditor companies are registered for Supplier Audit requests.
+                  </div>
+                </div>
+              )}
+
+              {primaryAccountType === 'auditor' && (
+                <div className="form-group">
+                  <label htmlFor="reg-auditor-docs">Verification Documents / Credentials</label>
+                  <textarea
+                    id="reg-auditor-docs"
+                    value={auditorDocuments}
+                    onChange={(e) => setAuditorDocuments(e.target.value)}
+                    placeholder="List audit certificates, legal entity details, accreditation IDs, and links for superadmin verification."
+                    rows={4}
+                    disabled={loading}
+                  />
+                  <div className="reg-domain-hint" style={{ marginTop: 8 }}>
+                    Submission is reviewed by platform superadmin before auditor nomination.
                   </div>
                 </div>
               )}

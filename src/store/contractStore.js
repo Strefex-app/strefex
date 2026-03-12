@@ -3,13 +3,28 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
+import { createTenantStorage, getUserId, getUserRole, getTenantId, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
 /* Seed data removed for production — contracts start empty */
 
 const CONTRACT_TYPES = ['supply', 'service', 'framework', 'nda', 'license', 'lease', 'consulting', 'other']
 const CONTRACT_STATUSES = ['draft', 'pending_approval', 'active', 'expiring_soon', 'expired', 'terminated', 'renewed']
+
+function canMutateContract(contract = null, { requireDeleteLevel = false } = {}) {
+  const role = getUserRole()
+  const tenantId = getTenantId()
+  if (role === 'guest' || isAuditor(role)) return false
+  if (!guardCanEdit(role)) return false
+  if (requireDeleteLevel && !['manager', 'admin', 'superadmin'].includes(role)) return false
+  if (!contract) return true
+  if (role === 'superadmin') return true
+  // Contracts are tenant-scoped; keep a defensive check for legacy rows.
+  if (contract._companyId && tenantId && contract._companyId !== tenantId) {
+    return false
+  }
+  return true
+}
 
 const useContractStore = create(
   persist(
@@ -85,9 +100,11 @@ const useContractStore = create(
       },
 
       addContract: (data) => {
+        if (!canMutateContract()) return null
         const contract = {
           id: `CTR-2026-${String(get().contracts.length + 6).padStart(3, '0')}`,
           ...data,
+          _companyId: getTenantId(),
           _createdBy: getUserId(),
           status: data.status || 'draft',
           documents: data.documents || [],
@@ -99,14 +116,18 @@ const useContractStore = create(
         return contract.id
       },
 
-      updateContract: (id, data) =>
+      updateContract: (id, data) => {
+        const current = get().getById(id)
+        if (!current || !canMutateContract(current)) return false
         set((s) => ({
           contracts: s.contracts.map((c) => c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c),
-        })),
+        }))
+        return true
+      },
 
       renewContract: (id) => {
         const old = get().getById(id)
-        if (!old) return null
+        if (!old || !canMutateContract(old, { requireDeleteLevel: true })) return null
         const endDate = new Date(old.endDate)
         const newStart = new Date(endDate)
         newStart.setDate(newStart.getDate() + 1)
@@ -133,12 +154,16 @@ const useContractStore = create(
         return newContract.id
       },
 
-      terminateContract: (id, reason) =>
+      terminateContract: (id, reason) => {
+        const old = get().getById(id)
+        if (!old || !canMutateContract(old, { requireDeleteLevel: true })) return false
         set((s) => ({
           contracts: s.contracts.map((c) =>
             c.id === id ? { ...c, status: 'terminated', notes: `${c.notes}\n\nTerminated: ${reason}`, updatedAt: new Date().toISOString() } : c
           ),
-        })),
+        }))
+        return true
+      },
     }),
     { name: 'strefex-contracts', storage: createTenantStorage() }
   )
@@ -175,6 +200,7 @@ if (typeof window !== 'undefined') {
             owner: 'Admin',
             department: 'Procurement',
             terms: 'Starter contract for launch presentation.',
+            _companyId: getTenantId(),
             _createdBy: getUserId(),
             documents: [],
             milestones: [],

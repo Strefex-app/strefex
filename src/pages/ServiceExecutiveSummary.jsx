@@ -20,6 +20,7 @@ const INDUSTRIES = [
   { id: 'green-energy', label: 'Green Energy' },
   { id: 'household-products', label: 'Household Products' },
 ]
+const SERVICE_FILTER_IDS = ['project-management', 'supplier-services', 'quality-services']
 
 export default function ServiceExecutiveSummary() {
   const navigate = useNavigate()
@@ -62,16 +63,31 @@ export default function ServiceExecutiveSummary() {
   const canSendRequests = isSuperAdmin || accountType === 'buyer' || accountType === 'seller'
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(selectedIndustry))
+  const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors(selectedIndustry, { onlyVerified: true }))
 
-  const providerRows = useMemo(() => {
+  const serviceProviderRows = useMemo(() => {
     const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
     return all.map((provider) => ({
       id: provider.id,
       company: provider.company || provider.contactName || provider.email || 'Service Provider',
       serviceCategories: Array.isArray(provider.serviceCategories) ? provider.serviceCategories : [],
       email: provider.email || '',
+      providerType: 'service_provider',
     }))
   }, [registeredServiceProviders])
+  const auditorRows = useMemo(() => {
+    const all = Array.isArray(registeredAuditors) ? registeredAuditors : []
+    return all.map((auditor) => ({
+      id: auditor.id,
+      company: auditor.company || auditor.contactName || auditor.email || 'Auditor',
+      serviceCategories: ['supplier-audit'],
+      email: auditor.email || '',
+      providerType: 'auditor',
+    }))
+  }, [registeredAuditors])
+  const providerRows = useMemo(() => {
+    return [...serviceProviderRows, ...auditorRows]
+  }, [serviceProviderRows, auditorRows])
   const filteredProviderRows = useMemo(() => {
     if (selectedServiceCategory === 'all') return providerRows
     return providerRows.filter((provider) => (provider.serviceCategories || []).includes(selectedServiceCategory))
@@ -85,6 +101,8 @@ export default function ServiceExecutiveSummary() {
 
   const industryLabel = INDUSTRIES.find((x) => x.id === selectedIndustry)?.label || selectedIndustry
   const selectedProviders = filteredProviderRows.filter((p) => selectedProviderIds.has(p.id))
+  const isAuditMode = selectedServiceCategory === 'supplier-audit'
+  const selectedEntityLabel = isAuditMode ? 'Auditor' : 'Provider'
 
   useEffect(() => {
     setSelectedProviderIds(new Set())
@@ -117,6 +135,7 @@ export default function ServiceExecutiveSummary() {
   const getServiceLabelsForCategory = (serviceCategoryId) => {
     if (serviceCategoryId === 'project-management') return ['Project Management — Standard']
     if (serviceCategoryId === 'quality-services') return ['Buy Off', 'Shipment Acceptance']
+    if (serviceCategoryId === 'supplier-audit') return ['Supplier Audit']
     return ['Supplier Source', 'Audit']
   }
 
@@ -178,13 +197,22 @@ export default function ServiceExecutiveSummary() {
           <p style={{ margin: 0, color: '#666', fontSize: 14 }}>
             Find registered service providers and send targeted service requests by industry.
           </p>
+          <div style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="exec-btn-secondary"
+              onClick={() => navigate(`/auditor-hub/executive-summary?industry=${selectedIndustry}`)}
+            >
+              Open Auditor Executive Summary
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div className="app-page-card exec-stat-card">
             <div className="exec-stat-info">
               <span className="exec-stat-value">{filteredProviderRows.length}</span>
-              <span className="exec-stat-label">Matched Providers</span>
+              <span className="exec-stat-label">{isAuditMode ? 'Matched Auditors' : 'Matched Providers'}</span>
             </div>
           </div>
           <div className="app-page-card exec-stat-card">
@@ -229,7 +257,7 @@ export default function ServiceExecutiveSummary() {
             >
               All Services
             </button>
-            {Object.entries(SERVICE_CATEGORY_LABELS).map(([id, label]) => (
+            {SERVICE_FILTER_IDS.map((id) => (
               <button
                 key={id}
                 type="button"
@@ -240,7 +268,7 @@ export default function ServiceExecutiveSummary() {
                 }}
                 onClick={() => setSelectedServiceCategory(id)}
               >
-                {label}
+                {SERVICE_CATEGORY_LABELS[id]}
               </button>
             ))}
           </div>
@@ -250,6 +278,10 @@ export default function ServiceExecutiveSummary() {
           industryLabel={industryLabel}
           canSeeNames={canSeeNames}
           providers={filteredProviderRows}
+          title={isAuditMode ? `Verified Auditors for ${industryLabel}` : `Service Providers for ${industryLabel}`}
+          subtitle={isAuditMode
+            ? 'Select verified auditor companies by industry and send Supplier Audit RFQs.'
+            : 'Request project management, buy-off and related supplier services from registered providers in this industry.'}
           onRequestService={canSendRequests ? (serviceId, label) => {
             const p = new URLSearchParams({
               context: 'service',
@@ -286,11 +318,11 @@ export default function ServiceExecutiveSummary() {
         <div className="app-page-card" style={{ marginTop: 16 }}>
           <div className="exec-table-header-row">
             <h3 className="exec-section-title" style={{ marginBottom: 0 }}>
-              Service Provider Summary ({filteredProviderRows.length})
+              {isAuditMode ? 'Auditor Summary' : 'Service Provider Summary'} ({filteredProviderRows.length})
             </h3>
             {canSendRequests && selectedProviderIds.size > 0 && (
               <button type="button" className="exec-multi-rfq-btn" onClick={openRequestModal}>
-                Send Service Request to {selectedProviderIds.size} Provider{selectedProviderIds.size > 1 ? 's' : ''}
+                Send {isAuditMode ? 'Supplier Audit RFQ' : 'Service Request'} to {selectedProviderIds.size} {selectedEntityLabel}{selectedProviderIds.size > 1 ? 's' : ''}
               </button>
             )}
           </div>
@@ -310,7 +342,7 @@ export default function ServiceExecutiveSummary() {
                       title="Select all providers"
                     />
                   </th>
-                  <th>Provider</th>
+                  <th>{isAuditMode ? 'Auditor' : 'Provider'}</th>
                   <th>Service Expertise</th>
                   <th>Contact</th>
                   <th>Actions</th>
@@ -328,7 +360,7 @@ export default function ServiceExecutiveSummary() {
                         title="Select provider"
                       />
                     </td>
-                    <td>{canSeeNames ? provider.company : `Service Provider #${String(idx + 1).padStart(2, '0')}`}</td>
+                    <td>{canSeeNames ? provider.company : `${isAuditMode ? 'Auditor' : 'Service Provider'} #${String(idx + 1).padStart(2, '0')}`}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {(provider.serviceCategories.length > 0 ? provider.serviceCategories : ['supplier-services']).map((serviceId) => (
@@ -366,7 +398,7 @@ export default function ServiceExecutiveSummary() {
                             setShowRequestModal(true)
                           }}
                         >
-                          Request
+                          {isAuditMode ? 'Request Audit' : 'Request'}
                         </button>
                       ) : (
                         <span style={{ fontSize: 12, color: '#999' }}>Buyer/Seller only</span>
@@ -385,7 +417,7 @@ export default function ServiceExecutiveSummary() {
               Service request submitted successfully.
             </div>
             <div style={{ fontSize: 13, color: '#4e6b4e', marginTop: 4 }}>
-              Your targeted request was sent to selected providers from the executive summary.
+              Your targeted request was sent to selected {isAuditMode ? 'auditors' : 'providers'} from the executive summary.
             </div>
           </div>
         )}
@@ -394,7 +426,7 @@ export default function ServiceExecutiveSummary() {
           <div className="exec-modal-overlay" onClick={() => !isSubmitting && setShowRequestModal(false)}>
             <div className="exec-modal" onClick={(e) => e.stopPropagation()}>
               <div className="exec-modal-header">
-                <h3>Create Service Request</h3>
+                <h3>{isAuditMode ? 'Create Supplier Audit RFQ' : 'Create Service Request'}</h3>
                 <button type="button" className="exec-btn-secondary" onClick={() => setShowRequestModal(false)} disabled={isSubmitting}>
                   Close
                 </button>
@@ -451,7 +483,7 @@ export default function ServiceExecutiveSummary() {
                   />
                 </div>
                 <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
-                  This request will be sent to <strong>{selectedProviders.length}</strong> selected provider{selectedProviders.length !== 1 ? 's' : ''}.
+                  This request will be sent to <strong>{selectedProviders.length}</strong> selected {selectedEntityLabel.toLowerCase()}{selectedProviders.length !== 1 ? 's' : ''}.
                 </div>
               </div>
               <div className="exec-modal-footer">
@@ -464,7 +496,7 @@ export default function ServiceExecutiveSummary() {
                   onClick={handleCreateServiceRequest}
                   disabled={isSubmitting || !requestForm.title.trim() || selectedProviders.length === 0}
                 >
-                  {isSubmitting ? 'Sending...' : `Send to ${selectedProviders.length} Provider${selectedProviders.length !== 1 ? 's' : ''}`}
+                  {isSubmitting ? 'Sending...' : `Send to ${selectedProviders.length} ${selectedEntityLabel}${selectedProviders.length !== 1 ? 's' : ''}`}
                 </button>
               </div>
             </div>

@@ -68,7 +68,7 @@ async function resolveCheckoutPriceId(rawRef, billingPeriod = 'monthly') {
       })
       return pickPriceForPeriod(prices.data || [], billingPeriod)
     }
-    return priceObj.id
+    return ''
   }
 
   // Support product IDs by resolving to an active recurring price for the period.
@@ -82,6 +82,26 @@ async function resolveCheckoutPriceId(rawRef, billingPeriod = 'monthly') {
   }
 
   return ''
+}
+
+function getTierPriceRef(tier, billingPeriod) {
+  const normalizedTier = String(tier || '').trim().toUpperCase()
+  const normalizedPeriod = String(billingPeriod || 'monthly').trim().toLowerCase()
+  const periodSuffix = normalizedPeriod === 'annual' || normalizedPeriod === 'yearly'
+    ? 'ANNUAL'
+    : normalizedPeriod === 'triennial' || normalizedPeriod === '3y' || normalizedPeriod === '3-year' || normalizedPeriod === '3years'
+      ? 'TRIENNIAL'
+      : 'MONTHLY'
+
+  const periodRef = process.env[`STRIPE_PRICE_ID_${normalizedTier}_${periodSuffix}`]
+    || process.env[`STRIPE_PRODUCT_ID_${normalizedTier}_${periodSuffix}`]
+    || ''
+  if (String(periodRef || '').trim()) return String(periodRef).trim()
+
+  const genericRef = process.env[`STRIPE_PRICE_ID_${normalizedTier}`]
+    || process.env[`STRIPE_PRODUCT_ID_${normalizedTier}`]
+    || ''
+  return String(genericRef || '').trim()
 }
 
 function sanitizeReturnUrl(inputUrl, origin, fallback) {
@@ -240,7 +260,6 @@ export default async function handler(req, res) {
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const {
-      priceId: incomingPriceId,
       industry = 'general',
       industries = [],
       tier = '',
@@ -254,26 +273,22 @@ export default async function handler(req, res) {
     const primaryIndustry = normalizedIndustries[0] || 'general'
     const industryCount = 1
 
-    // Accept either price IDs (price_*) or product IDs (prod_*) from env.
-    const serverPriceRefByTier = {
-      basic: process.env.STRIPE_PRICE_ID_BASIC || process.env.STRIPE_PRODUCT_ID_BASIC || '',
-      standard: process.env.STRIPE_PRICE_ID_STANDARD || process.env.STRIPE_PRODUCT_ID_STANDARD || '',
-      premium: process.env.STRIPE_PRICE_ID_PREMIUM || process.env.STRIPE_PRODUCT_ID_PREMIUM || '',
-      enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || process.env.STRIPE_PRODUCT_ID_ENTERPRISE || '',
-    }
     const resolvedTier = String(tier || '').trim().toLowerCase()
     if (!ALLOWED_TIERS.has(resolvedTier)) {
       logEvent('warn', requestId, 'invalid_tier', { tier: resolvedTier || null })
       return res.status(400).json({ error: 'Invalid subscription tier', requestId })
     }
-    const incomingRef = String(incomingPriceId || '').trim()
-    const configuredRef = String(serverPriceRefByTier[resolvedTier] || '').trim()
-    const priceId = await resolveCheckoutPriceId(incomingRef || configuredRef, billingPeriod)
+    const configuredRef = getTierPriceRef(resolvedTier, billingPeriod)
+    const priceId = await resolveCheckoutPriceId(configuredRef, billingPeriod)
 
     if (!priceId) {
-      logEvent('warn', requestId, 'missing_price_mapping', { tier: resolvedTier, billingPeriod })
+      logEvent('warn', requestId, 'missing_price_mapping', {
+        tier: resolvedTier,
+        billingPeriod,
+        configuredRef: configuredRef || null,
+      })
       return res.status(400).json({
-        error: 'Stripe price is not configured for this tier. Use a valid price_* ID or a product with active recurring prices.',
+        error: 'Stripe price is not configured for this tier and billing period.',
         requestId,
       })
     }

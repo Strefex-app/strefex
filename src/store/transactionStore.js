@@ -72,6 +72,21 @@ function filterByCurrentCompanyRole(txList) {
   )
 }
 
+function canMutateWithinCompany(tx) {
+  const role = getUserRole()
+  const companyId = getTenantId()
+  if (!tx) return false
+  if (role === 'superadmin') return true
+  if (role === 'auditor_internal' || role === 'auditor_external' || role === 'guest') return false
+  const txCompany = tx.companyDomain || getCompanyDomain(tx.userEmail) || tx._companyId || ''
+  return txCompany === companyId
+}
+
+function canRunCompanyApproval(tx) {
+  const role = getUserRole()
+  return (role === 'admin' || role === 'superadmin') && canMutateWithinCompany(tx)
+}
+
 let _nextId = Date.now()
 
 export const useTransactionStore = create((set, get) => ({
@@ -120,11 +135,14 @@ export const useTransactionStore = create((set, get) => ({
 
   /** Update transaction status generically. */
   updateTransactionStatus: (txId, status) => {
+    const current = get().transactions.find((tx) => tx.id === txId)
+    if (!canMutateWithinCompany(current)) return null
     const updated = get().transactions.map((tx) =>
       tx.id === txId ? { ...tx, status, updatedAt: new Date().toISOString() } : tx
     )
     persistTx(updated)
     set({ transactions: updated })
+    return updated.find((tx) => tx.id === txId) || null
   },
 
   /* ═══════════════════════════════════════════════════════════
@@ -132,6 +150,7 @@ export const useTransactionStore = create((set, get) => ({
    * ═══════════════════════════════════════════════════════════ */
 
   assignTask: (txId, assigneeEmail, assigneeName, assignerEmail) => {
+    if (getUserRole() !== 'superadmin') return null
     const updated = get().transactions.map((tx) =>
       tx.id === txId
         ? {
@@ -147,14 +166,23 @@ export const useTransactionStore = create((set, get) => ({
     )
     persistTx(updated)
     set({ transactions: updated })
+    return updated.find((tx) => tx.id === txId) || null
   },
 
   updateTaskStatus: (txId, taskStatus) => {
+    const role = getUserRole()
+    const userId = getUserId()
+    const current = get().transactions.find((tx) => tx.id === txId)
+    if (!current) return null
+    const isAssignee = String(current.assignedTo || '').toLowerCase() === userId
+    const canManage = role === 'superadmin' || ((role === 'admin' || role === 'manager') && canMutateWithinCompany(current))
+    if (!isAssignee && !canManage) return null
     const updated = get().transactions.map((tx) =>
       tx.id === txId ? { ...tx, taskStatus, updatedAt: new Date().toISOString() } : tx
     )
     persistTx(updated)
     set({ transactions: updated })
+    return updated.find((tx) => tx.id === txId) || null
   },
 
   getUnassignedServiceTasks: () =>
@@ -179,6 +207,8 @@ export const useTransactionStore = create((set, get) => ({
    * requested → company_approved
    */
   companyApprovePlan: (txId, adminEmail) => {
+    const current = get().transactions.find((tx) => tx.id === txId)
+    if (!canRunCompanyApproval(current)) return null
     let result = null
     const updated = get().transactions.map((tx) => {
       if (tx.id !== txId) return tx
@@ -201,6 +231,8 @@ export const useTransactionStore = create((set, get) => ({
    * requested → rejected_by_company
    */
   companyRejectPlan: (txId, adminEmail, reason) => {
+    const current = get().transactions.find((tx) => tx.id === txId)
+    if (!canRunCompanyApproval(current)) return null
     const updated = get().transactions.map((tx) =>
       tx.id === txId
         ? {
@@ -214,6 +246,7 @@ export const useTransactionStore = create((set, get) => ({
     )
     persistTx(updated)
     set({ transactions: updated })
+    return updated.find((tx) => tx.id === txId) || null
   },
 
   /**
@@ -222,6 +255,8 @@ export const useTransactionStore = create((set, get) => ({
    * (Also used for admin-initiated upgrades that go straight to pending_platform_approval.)
    */
   markPlanPaid: (txId, adminEmail, method) => {
+    const current = get().transactions.find((tx) => tx.id === txId)
+    if (!canRunCompanyApproval(current)) return null
     let result = null
     const updated = get().transactions.map((tx) => {
       if (tx.id !== txId) return tx
@@ -245,6 +280,7 @@ export const useTransactionStore = create((set, get) => ({
    * pending_platform_approval | pending_approval → paid  (plan activated)
    */
   platformApprovePlan: (txId, superadminEmail) => {
+    if (getUserRole() !== 'superadmin') return null
     let result = null
     const updated = get().transactions.map((tx) => {
       if (tx.id !== txId) return tx
@@ -267,6 +303,7 @@ export const useTransactionStore = create((set, get) => ({
    * → rejected_by_platform
    */
   platformRejectPlan: (txId, superadminEmail, reason) => {
+    if (getUserRole() !== 'superadmin') return null
     const updated = get().transactions.map((tx) =>
       tx.id === txId
         ? {
@@ -280,6 +317,7 @@ export const useTransactionStore = create((set, get) => ({
     )
     persistTx(updated)
     set({ transactions: updated })
+    return updated.find((tx) => tx.id === txId) || null
   },
 
   /* ── Backward-compat aliases (used by SuperAdminDashboard) ── */

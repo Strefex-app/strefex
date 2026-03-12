@@ -213,7 +213,7 @@ export default function ProductExecutiveSummary() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Add Supplier
                 </button>
-                <button type="button" onClick={() => navigate(`/industry/${industryId}/audit-request`)} style={{
+                <button type="button" onClick={() => navigate(`/auditor-hub/executive-summary?industry=${industryId}`)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '10px 20px', borderRadius: 8,
                   border: '1px solid #e2e8f0', background: '#fff',

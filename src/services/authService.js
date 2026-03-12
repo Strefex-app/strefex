@@ -35,7 +35,7 @@ import { useIndustryStore } from '../store/industryStore'
 import { tenantKey } from '../utils/tenantStorage'
 
 const AUTH_TIMEOUT_MS = 12000
-const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider'])
+const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
   'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
@@ -361,8 +361,10 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
     tier: md.tier || profile?.metadata?.tier || 'free',
   }
 
-  const allowedRoles = new Set(['superadmin', 'auditor_external', 'admin', 'auditor_internal', 'manager', 'user'])
-  const metadataRoleRaw = md.invited_role || md.role || ''
+  // Never trust role claims from self-controlled registration metadata.
+  // Only tenant roles intended for invites are allowed here.
+  const allowedRoles = new Set(['admin', 'manager', 'user'])
+  const metadataRoleRaw = md.invited ? (md.invited_role || '') : ''
   const metadataRole = allowedRoles.has(String(metadataRoleRaw).toLowerCase())
     ? String(metadataRoleRaw).toLowerCase()
     : ''
@@ -573,6 +575,7 @@ const authService = {
     selectedIndustries = null,
     selectedCategories = null,
     selectedServiceCategories = null,
+    auditorDocuments = '',
     selectedTier = 'free',
   }) {
     const normalizedEmail = normalizeEmail(email)
@@ -599,6 +602,10 @@ const authService = {
       const normalizedServiceCategories = Array.isArray(selectedServiceCategories)
         ? [...new Set(selectedServiceCategories.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
         : []
+      const normalizedAuditorDocuments = String(auditorDocuments || '').trim()
+      const effectiveServiceCategories = primaryAccountType === 'auditor'
+        ? ['supplier-audit']
+        : normalizedServiceCategories
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -611,7 +618,9 @@ const authService = {
           industry: primaryIndustry,
           industries: normalizedIndustries,
           categories: normalizedCategories,
-          service_categories: normalizedServiceCategories,
+          service_categories: effectiveServiceCategories,
+          auditor_documents: normalizedAuditorDocuments,
+          auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
           tier: normalizedTier,
         },
       })
@@ -650,7 +659,9 @@ const authService = {
                 industry: primaryIndustry,
                 industries: normalizedIndustries,
                 categories: normalizedCategories,
-                service_categories: normalizedServiceCategories,
+                service_categories: effectiveServiceCategories,
+                auditor_documents: normalizedAuditorDocuments,
+                auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
                 tier: normalizedTier,
               },
               email_verified: false,

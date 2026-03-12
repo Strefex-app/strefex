@@ -1,7 +1,7 @@
 /**
  * Persistent account registry.
  *
- * Stores every registered buyer, seller, and service provider with their:
+ * Stores every registered buyer, seller, service provider, and auditor with their:
  *   - Company info, contact, account type, plan
  *   - Selected industries and equipment categories
  *   - Registration date, status
@@ -9,7 +9,7 @@
  *
  * Business rules:
  *   - One domain (e.g. @company.com) can have ONE account per direction
- *     (one Seller, one Buyer, and one Service Provider).
+ *     (one Seller, one Buyer, one Service Provider, and one Auditor).
  *   - Team members are invited by the account admin and do NOT create
  *     separate business accounts.
  *
@@ -366,6 +366,20 @@ export const useAccountRegistry = create((set, get) => ({
     return sps
   },
 
+  getRegisteredAuditors: (industryId = null, { onlyVerified = false } = {}) => {
+    let auditors = get().accounts.filter((a) => a.accountType === 'auditor' && a.status !== 'canceled')
+    if (industryId) {
+      auditors = auditors.filter((a) => (a.industries || []).includes(industryId))
+    }
+    if (onlyVerified) {
+      auditors = auditors.filter((a) => {
+        const status = String(a.status || '').toLowerCase()
+        return status === 'active' || status === 'verified'
+      })
+    }
+    return auditors
+  },
+
   getServiceProvidersByCategory: (serviceCategoryId) => {
     return get().accounts.filter((a) =>
       a.accountType === 'service_provider' &&
@@ -418,6 +432,7 @@ export const useAccountRegistry = create((set, get) => ({
       sellers: all.filter((a) => a.accountType === 'seller').length,
       buyers: all.filter((a) => a.accountType === 'buyer').length,
       serviceProviders: all.filter((a) => a.accountType === 'service_provider').length,
+      auditors: all.filter((a) => a.accountType === 'auditor').length,
       active: all.filter((a) => a.status === 'active').length,
       totalTeamMembers: all.reduce((s, a) => s + (a.teamMembers?.length || 0), 0),
     }

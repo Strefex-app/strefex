@@ -2,7 +2,10 @@ export const SERVICE_CATEGORY_LABELS = {
   'project-management': 'Project Management',
   'supplier-services': 'Supplier Services',
   'quality-services': 'Quality & Compliance',
+  'supplier-audit': 'Supplier Audit',
 }
+
+const SERVICE_PROVIDER_CATEGORY_IDS = ['project-management', 'supplier-services', 'quality-services']
 
 export default function ServiceProviderAvailabilityCard({
   industryLabel,
@@ -11,23 +14,25 @@ export default function ServiceProviderAvailabilityCard({
   onRequestService,
   onRequestProvider,
   cardStyle = null,
+  title = null,
+  subtitle = null,
 }) {
   return (
     <div className="app-page-card" style={cardStyle || undefined}>
-      <h3 className="exec-section-title">Service Providers for {industryLabel}</h3>
+      <h3 className="exec-section-title">{title || `Service Providers for ${industryLabel}`}</h3>
       <p style={{ margin: '6px 0 14px', fontSize: 13, color: '#666' }}>
-        Request project management, buy-off and related supplier services from registered providers in this industry.
+        {subtitle || 'Request project management, buy-off and related supplier services from registered providers in this industry.'}
       </p>
       {onRequestService && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          {Object.entries(SERVICE_CATEGORY_LABELS).map(([serviceId, label]) => (
+          {SERVICE_PROVIDER_CATEGORY_IDS.map((serviceId) => (
             <button
               key={serviceId}
               type="button"
               className="exec-btn-secondary"
-              onClick={() => onRequestService?.(serviceId, label)}
+              onClick={() => onRequestService?.(serviceId, SERVICE_CATEGORY_LABELS[serviceId])}
             >
-              Request {label}
+              Request {SERVICE_CATEGORY_LABELS[serviceId]}
             </button>
           ))}
         </div>

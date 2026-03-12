@@ -410,11 +410,20 @@ const SERVICE_PROVIDER_LIMIT_OVERRIDES = {
   enterprise: { maxIndustries: 0, maxCategories: 0, maxServiceCategories: Infinity },
 }
 
+const AUDITOR_LIMIT_OVERRIDES = {
+  start:      { maxIndustries: 1, maxCategories: 0, maxServiceCategories: 1, multipleIndustries: false, executiveSummary: false },
+  basic:      { maxIndustries: 1, maxCategories: 0, maxServiceCategories: Infinity, executiveSummary: false },
+  standard:   { maxIndustries: 1, maxCategories: 0, maxServiceCategories: Infinity, executiveSummary: false },
+  premium:    { maxIndustries: 1, maxCategories: 0, maxServiceCategories: Infinity, executiveSummary: false },
+  enterprise: { maxIndustries: 1, maxCategories: 0, maxServiceCategories: Infinity, executiveSummary: false },
+}
+
 /* ── Account type constants ──────────────────────────────── */
 export const ACCOUNT_TYPES = [
   { id: 'seller', label: 'Seller', shortLabel: 'S', description: 'Sell equipment & services' },
   { id: 'buyer', label: 'Buyer', shortLabel: 'B', description: 'Source equipment & suppliers' },
   { id: 'service_provider', label: 'Service Provider', shortLabel: 'SP', description: 'Provide services & maintenance' },
+  { id: 'auditor', label: 'Auditor', shortLabel: 'A', description: 'Provide independent supplier audits' },
 ]
 
 export function getPlanById(planId) {
@@ -441,6 +450,11 @@ export function getEffectiveLimits(planId, accountType) {
     return { ...base, ...overrides, executiveSummary: false }
   }
 
+  if (accountType === 'auditor') {
+    const overrides = AUDITOR_LIMIT_OVERRIDES[planId] || {}
+    return { ...base, ...overrides, executiveSummary: false }
+  }
+
   // Sellers: cannot see executive summary page (they get RFQ notifications instead)
   return { ...base, executiveSummary: false }
 }
@@ -457,7 +471,7 @@ export function getPlansForAccountType(accountType) {
   if (accountType === 'buyer') {
     return PLANS.filter((p) => !p.sellerOnly)
   }
-  return PLANS // sellers and service_providers have all plans
+  return PLANS // sellers, service providers, and auditors have all plans
 }
 
 /**

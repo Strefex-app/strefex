@@ -26,6 +26,24 @@ const STATUS_LABELS = {
   rejected: 'Rejected',
 }
 
+const APPROVER_ROLES = new Set(['manager', 'admin', 'superadmin'])
+const READ_ONLY_ROLES = new Set(['guest', 'auditor_internal', 'auditor_external'])
+
+function isManageRole(role) {
+  return role === 'admin' || role === 'superadmin'
+}
+
+function canMutateTemplate(role) {
+  return !READ_ONLY_ROLES.has(String(role || '').toLowerCase())
+}
+
+function canEditTemplateRecord(record, role, userId) {
+  if (!canMutateTemplate(role) || !record) return false
+  const owner = String(record._createdBy || '').toLowerCase() === String(userId || '').toLowerCase()
+  if (isManageRole(role)) return true
+  return owner
+}
+
 const INITIAL_TEMPLATES = [
   { id: 'tpl-001', name: 'Purchase Requisition (PR)', category: 'Procurement', description: 'Standard purchase requisition form with multi-level approval chain fields.', format: 'DOCX', pages: 2, downloads: 342, rating: 4.8, tags: ['requisition', 'approval', 'procurement'], icon: '📋', featured: true, files: [{ id: 'f1', name: 'PR_Template_v3.docx', size: 245760, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }, { id: 'f2', name: 'PR_Instructions.pdf', size: 189440, type: 'application/pdf' }], status: 'approved', _createdBy: 'system', _createdByName: 'STREFEX', _createdByRole: 'admin', _companyId: '', _createdAt: '2025-06-01T00:00:00Z', _approvedBy: 'system', _approvedAt: '2025-06-01T00:00:00Z', _rejectionNote: '' },
   { id: 'tpl-002', name: 'Purchase Order (PO)', category: 'Procurement', description: 'Professional PO template with line items, payment terms, and delivery instructions.', format: 'DOCX', pages: 3, downloads: 567, rating: 4.9, tags: ['po', 'order', 'vendor'], icon: '📦', featured: true, files: [{ id: 'f3', name: 'PO_Template_Standard.docx', size: 312320, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }], status: 'approved', _createdBy: 'system', _createdByName: 'STREFEX', _createdByRole: 'admin', _companyId: '', _createdAt: '2025-06-01T00:00:00Z', _approvedBy: 'system', _approvedAt: '2025-06-01T00:00:00Z', _rejectionNote: '' },
@@ -128,6 +146,7 @@ export const useTemplateStore = create(
       addTemplate: (data) => {
         const userId = getUserId()
         const role = getUserRole()
+        if (!canMutateTemplate(role)) return null
         const companyName = getCompanyName()
         const companyId = getTenantId()
         const now = new Date().toISOString()
@@ -150,25 +169,47 @@ export const useTemplateStore = create(
       },
 
       updateTemplate: (id, data) => {
+        const role = getUserRole()
+        const userId = getUserId()
+        const current = get().templates.find((t) => t.id === id)
+        if (!canEditTemplateRecord(current, role, userId)) return false
+        if (current?.status === 'pending_approval' && !isManageRole(role)) return false
         set((s) => ({
           templates: s.templates.map((t) => t.id === id ? { ...t, ...data } : t),
         }))
+        return true
       },
 
       deleteTemplate: (id) => {
+        const role = getUserRole()
+        const userId = getUserId()
+        const current = get().templates.find((t) => t.id === id)
+        if (!canEditTemplateRecord(current, role, userId)) return false
         set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }))
+        return true
       },
 
       submitForApproval: (id) => {
+        const role = getUserRole()
+        const userId = getUserId()
+        const current = get().templates.find((t) => t.id === id)
+        if (!canEditTemplateRecord(current, role, userId)) return false
+        if (!['draft', 'rejected'].includes(String(current?.status || ''))) return false
         set((s) => ({
           templates: s.templates.map((t) =>
             t.id === id ? { ...t, status: 'pending_approval', _rejectionNote: '' } : t
           ),
         }))
+        return true
       },
 
       approveTemplate: (id) => {
+        const role = getUserRole()
+        if (!APPROVER_ROLES.has(role)) return false
         const userId = getUserId()
+        const current = get().templates.find((t) => t.id === id)
+        if (!current || current.status !== 'pending_approval') return false
+        if (String(current._createdBy || '').toLowerCase() === String(userId || '').toLowerCase()) return false
         const now = new Date().toISOString()
         set((s) => ({
           templates: s.templates.map((t) =>
@@ -177,23 +218,35 @@ export const useTemplateStore = create(
               : t
           ),
         }))
+        return true
       },
 
       rejectTemplate: (id, note) => {
+        const role = getUserRole()
+        if (!APPROVER_ROLES.has(role)) return false
         const userId = getUserId()
+        const current = get().templates.find((t) => t.id === id)
+        if (!current || current.status !== 'pending_approval') return false
+        if (String(current._createdBy || '').toLowerCase() === String(userId || '').toLowerCase()) return false
         set((s) => ({
           templates: s.templates.map((t) =>
             t.id === id
-              ? { ...t, status: 'rejected', _approvedBy: '', _approvedAt: '', _rejectionNote: note || 'Rejected by manager' }
+              ? { ...t, status: 'rejected', _approvedBy: userId, _approvedAt: '', _rejectionNote: note || 'Rejected by manager' }
               : t
           ),
         }))
+        return true
       },
 
       toggleFeatured: (id) => {
+        const role = getUserRole()
+        if (!isManageRole(role)) return false
+        const current = get().templates.find((t) => t.id === id)
+        if (!current || current.status !== 'approved') return false
         set((s) => ({
           templates: s.templates.map((t) => t.id === id ? { ...t, featured: !t.featured } : t),
         }))
+        return true
       },
 
       incrementDownloads: (id) => {

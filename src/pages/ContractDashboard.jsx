@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import useContractStore from '../store/contractStore'
-import { filterByCompanyRole, hasMinRole } from '../utils/companyGuard'
+import { filterByCompanyRole, canDelete, canEdit } from '../utils/companyGuard'
 import './ContractDashboard.css'
 
 const TYPE_META = {
@@ -89,7 +89,7 @@ export default function ContractDashboard() {
             <h1 className="ctr-title">Contract Management</h1>
             <p className="ctr-subtitle">Track contracts, renewal alerts & lifecycle management</p>
           </div>
-          {hasMinRole('manager') && <button className="ctr-btn primary" onClick={() => setShowNewForm(!showNewForm)}>{showNewForm ? 'Cancel' : '+ New Contract'}</button>}
+          {canEdit() && <button className="ctr-btn primary" onClick={() => setShowNewForm(!showNewForm)}>{showNewForm ? 'Cancel' : '+ New Contract'}</button>}
         </div>
 
         {/* KPIs */}
@@ -211,13 +211,13 @@ export default function ContractDashboard() {
                       )}
                       {c.notes && <div className="ctr-detail-section"><strong>Notes:</strong> {c.notes}</div>}
                       <div className="ctr-detail-actions">
-                        {(c.status === 'active' || c.status === 'expiring_soon') && hasMinRole('manager') && (
+                        {(c.status === 'active' || c.status === 'expiring_soon') && canEdit() && (
                           <button className="ctr-btn primary" onClick={(e) => { e.stopPropagation(); renewContract(c.id); flash(`${c.id} renewed`) }}>Renew</button>
                         )}
-                        {c.status !== 'terminated' && c.status !== 'expired' && c.status !== 'renewed' && hasMinRole('admin') && (
+                        {c.status !== 'terminated' && c.status !== 'expired' && c.status !== 'renewed' && canDelete() && (
                           <button className="ctr-btn danger" onClick={(e) => { e.stopPropagation(); terminateContract(c.id, `Terminated by ${user?.email || 'admin'}`); flash(`${c.id} terminated`) }}>Terminate</button>
                         )}
-                        {!hasMinRole('manager') && <span style={{ color: '#999', fontSize: 12 }}>Contact your manager to modify contracts</span>}
+                        {!canEdit() && <span style={{ color: '#999', fontSize: 12 }}>Contact your manager to modify contracts</span>}
                       </div>
                     </div>
                   )}

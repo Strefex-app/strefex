@@ -91,6 +91,7 @@ import EquipmentHub from './pages/EquipmentHub'
 import ProductHub from './pages/ProductHub'
 import ServiceHub from './pages/ServiceHub'
 import ServiceExecutiveSummary from './pages/ServiceExecutiveSummary'
+import AuditorExecutiveSummary from './pages/AuditorExecutiveSummary'
 import ProductIndustryLanding from './pages/ProductIndustryLanding'
 import ProductSubcategoryPage from './pages/ProductSubcategoryPage'
 import ProductExecutiveSummary from './pages/ProductExecutiveSummary'
@@ -224,6 +225,7 @@ function App() {
           <Route path="/product-hub/:industryId/:categoryId/:processId/executive-summary" element={<P><ProductExecutiveSummary /></P>} />
           <Route path="/service-hub" element={<P><ServiceHub /></P>} />
           <Route path="/service-hub/executive-summary" element={<P><ServiceExecutiveSummary /></P>} />
+          <Route path="/auditor-hub/executive-summary" element={<P><AuditorExecutiveSummary /></P>} />
 
           {/* ── Industry routes ───────────────────────────── */}
           <Route path="/machinery-industry" element={<P><MachineryIndustry /></P>} />

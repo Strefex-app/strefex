@@ -108,6 +108,7 @@ export const useSubscriptionStore = create((set, get) => ({
 
   /** Start a 14-day free trial of enterprise (full access). */
   startTrial: () => {
+    if (!_isSuperAdmin()) return
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
     const data = { planId: 'enterprise', status: 'trialing', trialEndsAt, accountType: get().accountType, billingPeriod: get().billingPeriod, overrides: get().overrides, promoCode: get().promoCode }
     persistSub(data)
@@ -130,6 +131,7 @@ export const useSubscriptionStore = create((set, get) => ({
    * Used by superadmin to give extra time.
    */
   extendTrial: (extraDays) => {
+    if (!_isSuperAdmin()) return
     const current = get().trialEndsAt ? new Date(get().trialEndsAt) : new Date()
     const base = current > new Date() ? current : new Date()
     const trialEndsAt = new Date(base.getTime() + extraDays * 24 * 60 * 60 * 1000).toISOString()
@@ -146,6 +148,7 @@ export const useSubscriptionStore = create((set, get) => ({
    * Returns true if the code was accepted.
    */
   applyPromoCode: (code) => {
+    if (!_isSuperAdmin()) return false
     const normalized = (code || '').trim().toUpperCase()
     if (!normalized) return false
     const promo = getPromoConfig(normalized)
