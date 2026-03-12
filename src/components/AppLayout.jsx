@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useSubscriptionStore } from '../services/featureFlags'
+import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useTranslation } from '../i18n/useTranslation'
 import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
@@ -53,8 +54,13 @@ export default function AppLayout({ children }) {
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const currentPlanId = useSubscriptionStore((s) => s.planId)
   const accountType = useSubscriptionStore((s) => s.accountType)
+  const safeNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
+  const normalizedUserEmail = String(user?.email || '').toLowerCase()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [previewTimeLeft, setPreviewTimeLeft] = useState(null) // seconds remaining
+  const unreadNotificationCount = (safeNotifications || []).filter(
+    (n) => !(n.readBy || []).includes(normalizedUserEmail)
+  ).length
 
   /* Keep data-theme in sync on every render */
   useEffect(() => {
@@ -172,7 +178,12 @@ export default function AppLayout({ children }) {
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                   onClick={() => navigate(item.path)}
                 >
-                  <span className="sidebar-nav-icon">{getNavIcon(item.icon)}</span>
+                  <span className="sidebar-nav-icon">
+                    {getNavIcon(item.icon)}
+                    {item.id === 'notifications' && unreadNotificationCount > 0 && (
+                      <span className="sidebar-notif-badge">+{unreadNotificationCount > 99 ? '99' : unreadNotificationCount}</span>
+                    )}
+                  </span>
                   <span className="sidebar-nav-label">{item.tKey ? t(item.tKey) : item.label}</span>
                 </button>
               )

@@ -17,6 +17,7 @@ import { getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantS
 
 const STORAGE_KEY = 'strefex-service-requests'
 const NOTIF_KEY = 'strefex-service-notifications'
+const GLOBAL_NOTIF_KEY = 'strefex-service-notifications-global'
 
 const load = (key) => {
   try {
@@ -33,10 +34,65 @@ const save = (key, data) => {
   } catch { /* silent */ }
 }
 
+const loadGlobal = () => {
+  try {
+    const raw = localStorage.getItem(GLOBAL_NOTIF_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const saveGlobal = (data) => {
+  try {
+    localStorage.setItem(GLOBAL_NOTIF_KEY, JSON.stringify(data))
+  } catch { /* silent */ }
+}
+
 /** Extract company domain from email */
 const getCompanyDomain = (email) => {
   if (!email) return ''
   return (email.split('@')[1] || '').toLowerCase()
+}
+const getTenantCompanyScope = (tenantId) => String(tenantId || '').split('::')[0].toLowerCase()
+
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
+
+const dedupeById = (items) => {
+  const map = new Map()
+  ;(items || []).forEach((item) => {
+    if (!item?.id) return
+    if (!map.has(item.id)) map.set(item.id, item)
+  })
+  return [...map.values()]
+}
+
+const isAssignableAuditorOrServiceProvider = (email) => {
+  const targetEmail = normalizeEmail(email)
+  if (!targetEmail) return false
+  const supportedTypes = new Set(['auditor', 'service_provider'])
+  try {
+    const rows = []
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      if (key === 'strefex-account-registry' || key.startsWith('strefex-account-registry::')) {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) rows.push(...parsed)
+      }
+    }
+    return rows.some((acct) => {
+      const accountType = String(acct?.accountType || '').toLowerCase()
+      if (!supportedTypes.has(accountType)) return false
+      if (normalizeEmail(acct?.email) === targetEmail) return true
+      return Array.isArray(acct?.teamMembers) && acct.teamMembers.some((tm) => normalizeEmail(tm?.email) === targetEmail)
+    })
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -80,6 +136,7 @@ let _nextId = Date.now()
 export const useServiceRequestStore = create((set, get) => ({
   requests: load(STORAGE_KEY),
   notifications: load(NOTIF_KEY),
+  globalNotifications: loadGlobal(),
 
   canEditServiceRequest: () => {
     const r = getUserRole()
@@ -157,6 +214,8 @@ export const useServiceRequestStore = create((set, get) => ({
       id: `SNOTIF-${String(_nextId).slice(-6)}`,
       type: 'new_service_request',
       requestId: id,
+      requestCompanyId: request._companyId,
+      requestCompanyDomain: getCompanyDomain(email),
       title: `New Service Request from ${companyName || contactName}`,
       message: `${services.length} service(s) requested: ${services.join(', ')}`,
       priority,
@@ -178,6 +237,7 @@ export const useServiceRequestStore = create((set, get) => ({
    * Assign a service request to a manager or user
    */
   assignRequest: (requestId, assigneeEmail, assignerEmail) => {
+    const targetAssignee = normalizeEmail(assigneeEmail)
     const current = get().requests.find((r) => r.id === requestId)
     if (!canManageRequest(current)) return
     const updated = get().requests.map((r) =>
@@ -185,7 +245,7 @@ export const useServiceRequestStore = create((set, get) => ({
         ? {
             ...r,
             status: 'assigned',
-            assignedTo: assigneeEmail,
+            assignedTo: targetAssignee,
             assignedBy: assignerEmail,
             assignedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -196,23 +256,30 @@ export const useServiceRequestStore = create((set, get) => ({
 
     // Create notification for the assignee
     const req = updated.find((r) => r.id === requestId)
+    const reqCategory = String(req?.serviceCategoryId || '').toLowerCase()
+    const isAuditRequest = reqCategory === 'supplier-audit' || (req?.services || []).some((s) => String(s || '').toLowerCase().includes('audit'))
+    const isAuditorOrServiceProvider = isAssignableAuditorOrServiceProvider(targetAssignee)
     const notif = {
       id: `SNOTIF-${String(++_nextId).slice(-6)}`,
-      type: 'request_assigned',
+      type: isAuditRequest && isAuditorOrServiceProvider ? 'audit_request_assigned' : 'request_assigned',
       requestId,
-      title: `Service request assigned to you`,
+      requestCompanyId: req?._companyId || null,
+      requestCompanyDomain: getCompanyDomain(req?.email),
+      title: isAuditRequest ? 'Audit request assigned to you' : 'Service request assigned to you',
       message: `Request ${requestId} from ${req?.companyName || req?.contactName} has been assigned to you by ${assignerEmail}`,
       priority: req?.priority || 'Normal',
       fromEmail: assignerEmail,
-      targetEmail: assigneeEmail,
+      targetEmail: targetAssignee,
       read: false,
       readBy: [],
       createdAt: new Date().toISOString(),
     }
     const updatedNotifs = [notif, ...get().notifications]
     save(NOTIF_KEY, updatedNotifs)
+    const updatedGlobalNotifs = dedupeById([notif, ...get().globalNotifications])
+    saveGlobal(updatedGlobalNotifs)
 
-    set({ requests: updated, notifications: updatedNotifs })
+    set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
   },
 
   /**
@@ -260,22 +327,31 @@ export const useServiceRequestStore = create((set, get) => ({
    * Mark notification as read
    */
   markNotificationRead: (notifId, readerEmail) => {
+    const normalizedReader = normalizeEmail(readerEmail)
     const updated = get().notifications.map((n) => {
       if (n.id !== notifId) return n
       const readBy = [...(n.readBy || [])]
-      if (!readBy.includes(readerEmail)) readBy.push(readerEmail)
+      if (!readBy.includes(normalizedReader)) readBy.push(normalizedReader)
+      return { ...n, read: true, readBy }
+    })
+    const updatedGlobal = get().globalNotifications.map((n) => {
+      if (n.id !== notifId) return n
+      const readBy = [...(n.readBy || [])]
+      if (!readBy.includes(normalizedReader)) readBy.push(normalizedReader)
       return { ...n, read: true, readBy }
     })
     save(NOTIF_KEY, updated)
-    set({ notifications: updated })
+    saveGlobal(updatedGlobal)
+    set({ notifications: updated, globalNotifications: updatedGlobal })
   },
 
   /**
    * Get unread notifications for admins/managers
    */
   getUnreadNotifications: (readerEmail) => {
+    const normalizedReader = normalizeEmail(readerEmail)
     return get().getSafeNotifications().filter(
-      (n) => !(n.readBy || []).includes(readerEmail)
+      (n) => !(n.readBy || []).includes(normalizedReader)
     )
   },
 
@@ -300,15 +376,32 @@ export const useServiceRequestStore = create((set, get) => ({
   getSafeNotifications: () => {
     const role = getUserRole()
     const userId = getUserId()
+    const normalizedUserId = normalizeEmail(userId)
     const companyId = getTenantId()
+    const companyScope = getTenantCompanyScope(companyId)
     const all = get().notifications
-    if (role === 'superadmin' || role === 'auditor_external') return all
+    const globalAll = get().globalNotifications || []
+    const globalDirect = (get().globalNotifications || []).filter(
+      (n) => normalizeEmail(n.targetEmail) === normalizedUserId
+    )
+    if (role === 'superadmin' || role === 'auditor_external') return dedupeById([...all, ...globalAll])
+    const directlyAssigned = all.filter((n) => normalizeEmail(n.targetEmail) === normalizedUserId)
     const companyFiltered = all.filter((n) => {
-      const domain = getCompanyDomain(n.fromEmail || n.targetEmail || '')
-      return domain === companyId
+      const fromDomain = getCompanyDomain(n.fromEmail || '')
+      const targetDomain = getCompanyDomain(n.targetEmail || '')
+      const requestDomain = String(n.requestCompanyDomain || '').toLowerCase()
+      const requestCompanyId = String(n.requestCompanyId || '').toLowerCase()
+      return (
+        fromDomain === companyScope ||
+        targetDomain === companyScope ||
+        requestDomain === companyScope ||
+        requestCompanyId === String(companyId || '').toLowerCase()
+      )
     })
-    if (role === 'admin' || role === 'manager' || role === 'auditor_internal') return companyFiltered
-    return companyFiltered.filter((n) => String(n.targetEmail || '').toLowerCase() === userId)
+    if (role === 'admin' || role === 'manager' || role === 'auditor_internal') {
+      return dedupeById([...directlyAssigned, ...companyFiltered, ...globalDirect])
+    }
+    return dedupeById([...directlyAssigned, ...globalDirect])
   },
 
   /**

@@ -56,17 +56,28 @@ export default function Notifications() {
   const serviceNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
   const markNotificationRead = useServiceRequestStore((s) => s.markNotificationRead)
 
-  // Scope service notifications: superuser sees all, company admin/manager sees own company only
+  // Scope service notifications:
+  // - superadmin: all unread
+  // - admin/manager/auditor_internal: company unread + direct assignments
+  // - everyone else: direct assignments only
   const scopedServiceNotifs = useMemo(() => {
+    const myEmail = String(user?.email || '').toLowerCase()
     const unread = serviceNotifications.filter(
-      (n) => !(n.readBy || []).includes(user?.email)
+      (n) => !(n.readBy || []).includes(myEmail)
     )
     if (isSuperAdmin) return unread
-    if (!isManager || !myDomain) return []
-    return unread.filter(
-      (n) => getCompanyDomain(n.fromEmail) === myDomain
+    const direct = unread.filter((n) => String(n.targetEmail || '').toLowerCase() === myEmail)
+    if (!myDomain) return direct
+    const companyScoped = unread.filter(
+      (n) => getCompanyDomain(n.fromEmail || n.targetEmail || '') === myDomain
     )
-  }, [serviceNotifications, isSuperAdmin, isManager, myDomain, user?.email])
+    if (isManager || role === 'auditor_internal') {
+      const map = new Map()
+      ;[...direct, ...companyScoped].forEach((n) => map.set(n.id, n))
+      return [...map.values()]
+    }
+    return direct
+  }, [serviceNotifications, isSuperAdmin, isManager, myDomain, role, user?.email])
 
   /* ── Transactions ── */
   const allTransactions = useTransactionStore((s) => s.transactions)
@@ -693,10 +704,10 @@ export default function Notifications() {
         {/* ═══════════════════════════════════════════════════════
          *  8. SERVICE REQUEST NOTIFICATIONS (company-scoped)
          * ═══════════════════════════════════════════════════════ */}
-        {isManager && scopedServiceNotifs.length > 0 && (
+        {scopedServiceNotifs.length > 0 && (
           <div className="app-page-card">
             <h3 className="notif-section-title">
-              Service Requests
+              Service Requests & Assignments
               <span className="notif-badge">{scopedServiceNotifs.length} new</span>
             </h3>
             <div className="notif-list">
@@ -706,7 +717,7 @@ export default function Notifications() {
                   className="notif-item info"
                   onClick={() => {
                     markNotificationRead(n.id, user?.email)
-                    navigate('/service-requests')
+                    if (isManager) navigate('/service-requests')
                   }}
                 >
                   <span className="notif-icon service">
@@ -731,7 +742,7 @@ export default function Notifications() {
         )}
 
         {/* ═══════════════════════════════════════════════════════
-         *  9. REGULAR USER: Your Upgrade Request Status
+         *  10. REGULAR USER: Your Upgrade Request Status
          * ═══════════════════════════════════════════════════════ */}
         {userPendingRequest && (
           <div className="app-page-card">
@@ -772,7 +783,7 @@ export default function Notifications() {
         )}
 
         {/* ═══════════════════════════════════════════════════════
-         *  10. RECENT TRANSACTIONS (company-scoped for admin, user-scoped for user)
+         *  11. RECENT TRANSACTIONS (company-scoped for admin, user-scoped for user)
          * ═══════════════════════════════════════════════════════ */}
         {recentTransactions.length > 0 && (
           <div className="app-page-card">
@@ -820,7 +831,7 @@ export default function Notifications() {
         )}
 
         {/* ═══════════════════════════════════════════════════════
-         *  11. EMPTY STATE
+         *  12. EMPTY STATE
          * ═══════════════════════════════════════════════════════ */}
         {!hasAnyContent && (
           <div className="app-page-card">

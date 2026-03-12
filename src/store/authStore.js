@@ -164,9 +164,15 @@ const rehydrateAllTenantStores = () => {
       try {
         const reqKey = tenantKey('strefex-service-requests')
         const notifKey = tenantKey('strefex-service-notifications')
+        const globalNotifKey = 'strefex-service-notifications-global'
         const reqData = JSON.parse(localStorage.getItem(reqKey) || '[]')
         const notifData = JSON.parse(localStorage.getItem(notifKey) || '[]')
-        svcReqMod.useServiceRequestStore.setState({ requests: reqData, notifications: notifData })
+        const globalNotifData = JSON.parse(localStorage.getItem(globalNotifKey) || '[]')
+        svcReqMod.useServiceRequestStore.setState({
+          requests: reqData,
+          notifications: notifData,
+          globalNotifications: Array.isArray(globalNotifData) ? globalNotifData : [],
+        })
       } catch { /* silent */ }
 
     } catch { /* silent — defensive against import failures */ }
