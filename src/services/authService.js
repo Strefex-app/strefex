@@ -36,6 +36,7 @@ import { tenantKey } from '../utils/tenantStorage'
 
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
+const VALID_ROLES = new Set(['superadmin', 'auditor_external', 'admin', 'auditor_internal', 'manager', 'user', 'guest'])
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
   'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
@@ -84,6 +85,39 @@ function normalizeAccountTypes(values, preferredPrimary = 'seller') {
   if (normalized.includes(primary)) return [primary]
   if (normalized.length > 0) return [normalized[0]]
   return [primary]
+}
+
+function normalizeRole(value, fallback = 'user') {
+  const normalized = String(value || '').trim().toLowerCase()
+  return VALID_ROLES.has(normalized) ? normalized : fallback
+}
+
+function getRegistryAccountByEmail(email) {
+  const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return null
+  try {
+    const rows = []
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      if (key === 'strefex-account-registry' || key.startsWith('strefex-account-registry::')) {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) rows.push(...parsed)
+      }
+    }
+    const byEmail = rows.filter((a) => normalizeEmail(a?.email) === normalizedEmail && a?.status !== 'canceled')
+    if (byEmail.length === 0) return null
+    byEmail.sort((a, b) => {
+      const at = new Date(a?.registeredAt || a?.updatedAt || 0).getTime()
+      const bt = new Date(b?.registeredAt || b?.updatedAt || 0).getTime()
+      return bt - at
+    })
+    return byEmail[0] || null
+  } catch {
+    return null
+  }
 }
 
 function isBusinessEmail(email) {
@@ -223,13 +257,18 @@ async function cleanupLaunchStarterExamples() {
  */
 async function storeSupabaseSession(session, profile) {
   const user = session?.user
-  const role = capRole(profile?.role || 'user', user?.email)
+  const registryAccount = getRegistryAccountByEmail(user?.email)
+  const role = capRole(
+    normalizeRole(registryAccount?.role || profile?.role || 'user'),
+    user?.email
+  )
   const metadata = profile?.metadata || {}
   const metadataAccountTypes = Array.isArray(metadata.account_types)
     ? metadata.account_types
     : []
   const fallbackAccountType = normalizeAccountType(
-    metadata.account_type ||
+    registryAccount?.accountType ||
+      metadata.account_type ||
       user?.user_metadata?.account_type ||
       profile?.companies?.account_type ||
       metadataAccountTypes[0] ||
@@ -802,34 +841,61 @@ const authService = {
       if (isSupabaseConfigured) {
         const profile = await profilesService.getMyProfile()
         if (profile) {
+          const current = useAuthStore.getState()
+          const registryAccount = getRegistryAccountByEmail(profile?.email || current?.user?.email)
+          const effectiveRole = capRole(
+            normalizeRole(registryAccount?.role || profile?.role || current?.role || 'user'),
+            profile?.email || current?.user?.email
+          )
+          const effectiveAccountType = normalizeAccountType(
+            registryAccount?.accountType ||
+              profile?.metadata?.account_type ||
+              profile?.companies?.account_type ||
+              current?.user?.accountType ||
+              'seller'
+          )
+          const effectiveAccountTypes = normalizeAccountTypes(
+            profile?.metadata?.account_types,
+            effectiveAccountType
+          )
           const store = useAuthStore.getState()
-          store.setUser?.({
-            id: profile.id,
-            email: profile.email,
-            fullName: profile.full_name,
-            role: profile.role,
-            phone: profile.phone,
-            accountTypes: normalizeAccountTypes(
-              profile?.metadata?.account_types,
-              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
-            ),
-            accountType: normalizeAccountType(
-              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
-            ),
-            primaryAccountType: normalizeAccountType(
-              profile?.metadata?.account_type || profile?.companies?.account_type || 'seller'
-            ),
+          store.login?.({
+            role: effectiveRole,
+            token: current?.token || null,
+            expiresAt: current?.expiresAt || null,
+            user: {
+              ...(current?.user || {}),
+              id: profile.id,
+              email: profile.email,
+              fullName: profile.full_name,
+              role: effectiveRole,
+              phone: profile.phone,
+              accountTypes: effectiveAccountTypes,
+              accountType: effectiveAccountType,
+              primaryAccountType: effectiveAccountType,
+            },
+            tenant: current?.tenant || null,
           })
+          useSubscriptionStore.getState().setAccountType(effectiveAccountType)
           return profile
         }
       }
       const user = await authApi.me()
       const store = useAuthStore.getState()
-      store.setUser?.({
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        role: user.role,
+      const effectiveRole = capRole(normalizeRole(user?.role), user?.email)
+      const current = useAuthStore.getState()
+      store.login?.({
+        role: effectiveRole,
+        token: current?.token || null,
+        expiresAt: current?.expiresAt || null,
+        user: {
+          ...(current?.user || {}),
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          role: effectiveRole,
+        },
+        tenant: current?.tenant || null,
       })
       return user
     } catch {

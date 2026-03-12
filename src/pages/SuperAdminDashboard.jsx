@@ -10,6 +10,7 @@ import useRfqStore from '../store/rfqStore'
 import useAuditStore, { MODULES as AUDIT_MODULES, SEVERITIES as AUDIT_SEVERITIES } from '../store/auditStore'
 import { useAuthStore } from '../store/authStore'
 import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAuth'
+import authService from '../services/authService'
 import './SuperAdminDashboard.css'
 
 /* ── Local storage keys (shared with stores) ─────────── */
@@ -243,6 +244,14 @@ export default function SuperAdminDashboard() {
 
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const updateRegistryAccount = useAccountRegistry((s) => s.updateAccount)
+
+  const syncCurrentSessionIfAffected = useCallback((updatedEmail) => {
+    const currentEmail = String(useAuthStore.getState().user?.email || '').toLowerCase()
+    const targetEmail = String(updatedEmail || '').toLowerCase()
+    if (!currentEmail || !targetEmail || currentEmail !== targetEmail) return
+    // Force auth/session refresh so new role/account type applies immediately.
+    authService.refreshProfile().catch(() => {})
+  }, [])
 
   /* ── Trial & promo grants state ──────────────────────── */
   const [trialGrants, setTrialGrants] = useState(loadTrialGrants)
@@ -900,7 +909,10 @@ export default function SuperAdminDashboard() {
                       auditorVerificationStatus: 'verified',
                       verifiedAt: new Date().toISOString(),
                     })
-                    if (next) setSelectedAccount((prev) => ({ ...prev, ...next }))
+                    if (next) {
+                      setSelectedAccount((prev) => ({ ...prev, ...next }))
+                      syncCurrentSessionIfAffected(next.email || selectedAccount.email)
+                    }
                   }}
                 >
                   Verify Auditor
@@ -914,7 +926,10 @@ export default function SuperAdminDashboard() {
                       auditorVerificationStatus: 'rejected',
                       verifiedAt: null,
                     })
-                    if (next) setSelectedAccount((prev) => ({ ...prev, ...next }))
+                    if (next) {
+                      setSelectedAccount((prev) => ({ ...prev, ...next }))
+                      syncCurrentSessionIfAffected(next.email || selectedAccount.email)
+                    }
                   }}
                 >
                   Reject / Needs Update
@@ -1491,7 +1506,8 @@ export default function SuperAdminDashboard() {
     // Update in account registry
     const acct = registryAccounts.find((a) => a.email === userEmail)
     if (acct) {
-      updateRegistryAccount(userEmail, { role: newRole })
+      const updated = updateRegistryAccount(userEmail, { role: newRole })
+      syncCurrentSessionIfAffected(updated?.email || userEmail)
     } else {
       // Try as team member
       registryAccounts.forEach((a) => {
@@ -1502,6 +1518,7 @@ export default function SuperAdminDashboard() {
               m.email === userEmail ? { ...m, role: newRole } : m
             )
             updateRegistryAccount(a.email, { teamMembers: updated })
+            syncCurrentSessionIfAffected(userEmail)
           }
         }
       })
