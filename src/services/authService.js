@@ -82,9 +82,11 @@ function normalizeAccountTypes(values, preferredPrimary = 'seller') {
   const normalized = Array.isArray(values)
     ? values.map((v) => normalizeAccountType(v, '')).filter(Boolean)
     : []
-  if (normalized.includes(primary)) return [primary]
-  if (normalized.length > 0) return [normalized[0]]
-  return [primary]
+  // Always keep the resolved primary account type first.
+  // This prevents stale metadata arrays (e.g. ['seller']) from overriding
+  // superadmin-updated account direction (e.g. 'auditor').
+  const deduped = [primary, ...normalized.filter((v) => v !== primary)]
+  return deduped.slice(0, 1)
 }
 
 function normalizeRole(value, fallback = 'user') {
@@ -338,6 +340,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!user) return profile
 
   const md = user.user_metadata || {}
+  const registryAccount = getRegistryAccountByEmail(user?.email)
   const superadminEmail = isSuperadminEmail(user?.email)
   const hasRegistrationMetadata = Boolean(md.tier || md.account_type || md.company_name || md.industry)
   if (!hasRegistrationMetadata) {
@@ -352,7 +355,8 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   const fullName = (md.full_name || profile?.full_name || '').trim()
   const phone = md.phone || profile?.phone || null
   const primaryMetadataAccountType = normalizeAccountType(
-    md.account_type ||
+    registryAccount?.accountType ||
+      md.account_type ||
       profile?.metadata?.account_type ||
       profile?.companies?.account_type ||
       'seller'
@@ -411,7 +415,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
 
   // Preserve privileged role for the STREFEX superadmin account.
   // For invited users, prefer role from metadata instead of forcing admin.
-  let nextRole = profile?.role || 'user'
+  let nextRole = normalizeRole(registryAccount?.role || profile?.role || 'user')
   if (!profile?.role) {
     if (metadataRole) {
       nextRole = metadataRole

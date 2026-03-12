@@ -182,12 +182,13 @@ export const useAccountRegistry = create((set, get) => ({
   registerAccount: (account) => {
     const accounts = get().accounts
     const idx = accounts.findIndex((a) => a.id === account.id || a.email === account.email)
+    const stamped = { ...account, updatedAt: new Date().toISOString() }
     let next
     if (idx >= 0) {
       next = [...accounts]
-      next[idx] = { ...accounts[idx], ...account }
+      next[idx] = { ...accounts[idx], ...stamped }
     } else {
-      next = [...accounts, account]
+      next = [...accounts, stamped]
     }
     saveRegistry(next)
     mergeRegistryIndex(next)
@@ -200,7 +201,7 @@ export const useAccountRegistry = create((set, get) => ({
     const idx = accounts.findIndex((a) => a.id === idOrEmail || a.email === idOrEmail)
     if (idx < 0) return null
     const next = [...accounts]
-    next[idx] = { ...next[idx], ...updates }
+    next[idx] = { ...next[idx], ...updates, updatedAt: new Date().toISOString() }
     saveRegistry(next)
     mergeRegistryIndex(next)
     set({ accounts: next })
