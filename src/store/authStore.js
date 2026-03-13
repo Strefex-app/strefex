@@ -74,7 +74,6 @@ const rehydrateAllTenantStores = () => {
         contractMod,
         procurementMod,
         vendorMod,
-        walletMod,
         auditMod,
         templateMod,
       ] = await Promise.all([
@@ -86,7 +85,6 @@ const rehydrateAllTenantStores = () => {
         import('./contractStore'),
         import('./procurementStore'),
         import('./vendorStore'),
-        import('./walletStore'),
         import('./auditStore'),
         import('./templateStore'),
       ])
@@ -100,7 +98,6 @@ const rehydrateAllTenantStores = () => {
         contractMod.default,
         procurementMod.default,
         vendorMod.default,
-        walletMod.default,
         auditMod.default,
         templateMod.useTemplateStore,
       ]

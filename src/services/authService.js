@@ -111,9 +111,22 @@ function getRegistryAccountByEmail(email) {
     }
     const byEmail = rows.filter((a) => normalizeEmail(a?.email) === normalizedEmail && a?.status !== 'canceled')
     if (byEmail.length === 0) return null
+    const scoreAccount = (a) => {
+      let score = 0
+      const accountType = String(a?.accountType || '').toLowerCase()
+      const role = String(a?.role || '').toLowerCase()
+      const verification = String(a?.auditorVerificationStatus || a?.status || '').toLowerCase()
+      if (accountType === 'auditor') score += 50
+      if (verification === 'verified' || verification === 'active') score += 20
+      if (verification === 'pending_review' || verification === 'pending_verification') score += 10
+      if (role === 'auditor_external' || role === 'auditor_internal') score += 8
+      return score
+    }
     byEmail.sort((a, b) => {
-      const at = new Date(a?.registeredAt || a?.updatedAt || 0).getTime()
-      const bt = new Date(b?.registeredAt || b?.updatedAt || 0).getTime()
+      const scoreDiff = scoreAccount(b) - scoreAccount(a)
+      if (scoreDiff !== 0) return scoreDiff
+      const at = new Date(a?.updatedAt || a?.registeredAt || 0).getTime()
+      const bt = new Date(b?.updatedAt || b?.registeredAt || 0).getTime()
       return bt - at
     })
     return byEmail[0] || null

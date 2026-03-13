@@ -523,7 +523,8 @@ export default function SuperAdminDashboard() {
       projects: Number(a.projects || 0),
       auditorDocuments: a.auditorDocuments || a.metadata?.auditor_documents || '',
       auditorVerificationStatus: a.auditorVerificationStatus || a.metadata?.auditor_verification_status || null,
-      registryLookupKey: a.id || a.email,
+      // Prefer email for registry updates because account IDs can differ across merged sources.
+      registryLookupKey: a.email || a.id,
     }))
   }, [accounts, registryAccounts])
 
@@ -905,6 +906,8 @@ export default function SuperAdminDashboard() {
                   className="sad-btn-primary"
                   onClick={() => {
                     const next = updateRegistryAccount(selectedAccount.registryLookupKey, {
+                      accountType: 'auditor',
+                      role: 'auditor_external',
                       status: 'verified',
                       auditorVerificationStatus: 'verified',
                       verifiedAt: new Date().toISOString(),

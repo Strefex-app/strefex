@@ -30,7 +30,6 @@ const SIDEBAR_NAV = [
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },
   { id: 'ai-insights', label: 'AI Insights', path: '/ai-insights', icon: 'ai', requiredPlan: 'aiInsights' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: 'templates', requiredPlan: 'templateLibrary' },
-  { id: 'wallet', label: 'Wallet', path: '/wallet', icon: 'wallet' },
   { id: 'payment', tKey: 'nav.payment', path: '/payment', icon: 'card' },
   { id: 'plans', tKey: 'nav.plans', path: '/plans', icon: 'plan' },
   { id: 'settings', tKey: 'nav.settings', path: '/settings', icon: 'settings' },
@@ -165,10 +164,6 @@ export default function AppLayout({ children }) {
                   location.pathname.startsWith('/production') ||
                   location.pathname.startsWith('/cost-management') ||
                   location.pathname.startsWith('/enterprise')
-                )) ||
-                (item.id === 'wallet' && (
-                  location.pathname.startsWith('/wallet') ||
-                  location.pathname.startsWith('/send-payment')
                 )) ||
                 (item.id === 'templates' && location.pathname.startsWith('/templates')) ||
                 (item.id === 'ai-insights' && location.pathname.startsWith('/ai-insights'))

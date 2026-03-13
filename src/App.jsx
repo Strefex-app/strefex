@@ -99,8 +99,6 @@ import SellerDashboard from './pages/SellerDashboard'
 import BuyerDashboard from './pages/BuyerDashboard'
 import ServiceProviderDashboard from './pages/ServiceProviderDashboard'
 import RfqComparison from './pages/RfqComparison'
-import WalletPage from './pages/Wallet'
-import SendPayment from './pages/SendPayment'
 import VendorManagement from './pages/VendorManagement'
 import VendorDetail from './pages/VendorDetail'
 import ProcurementDashboard from './pages/ProcurementDashboard'
@@ -207,10 +205,6 @@ function App() {
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
-
-          {/* ── Wallet & Payments ──────────────────────────── */}
-          <Route path="/wallet" element={<ProtectedRoute requiredRole="manager"><WalletPage /></ProtectedRoute>} />
-          <Route path="/send-payment" element={<ProtectedRoute requiredRole="manager"><SendPayment /></ProtectedRoute>} />
 
           {/* ── Vendor Management ────────────────────────── */}
           <Route path="/vendors" element={<P><VendorManagement /></P>} />

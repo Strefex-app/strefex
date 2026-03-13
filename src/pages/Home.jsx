@@ -36,7 +36,6 @@ const QUICK_ACTIONS = [
   { id: 'audit', tKey: 'home.audit', path: '/audit-request', icon: 'monitor' },
   { id: 'project-mgmt', tKey: 'home.projectManagement', path: '/project-management', icon: 'gantt' },
   { id: 'vendors', label: 'Vendor Master', path: '/vendors', icon: 'vendors' },
-  { id: 'wallet', label: 'Wallet & Payments', path: '/wallet', icon: 'wallet' },
 ]
 
 const getQuickActionIcon = (iconName) => <Icon name={iconName} size={20} />

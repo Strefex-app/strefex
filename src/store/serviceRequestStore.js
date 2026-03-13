@@ -38,7 +38,34 @@ const loadGlobal = () => {
   try {
     const raw = localStorage.getItem(GLOBAL_NOTIF_KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
+    const globalRows = Array.isArray(parsed) ? parsed : []
+
+    // Backfill older assignment notifications from tenant-scoped keys
+    // so previously sent assignments can still appear for assignees.
+    const migrated = []
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key || !key.startsWith(`${NOTIF_KEY}::`)) continue
+      try {
+        const tenantRaw = localStorage.getItem(key)
+        const tenantRows = tenantRaw ? JSON.parse(tenantRaw) : []
+        if (!Array.isArray(tenantRows)) continue
+        tenantRows.forEach((n) => {
+          const type = String(n?.type || '').toLowerCase()
+          const hasTarget = Boolean(normalizeEmail(n?.targetEmail))
+          if ((type === 'request_assigned' || type === 'audit_request_assigned') && hasTarget) {
+            migrated.push(n)
+          }
+        })
+      } catch {
+        // Ignore malformed tenant notification buckets.
+      }
+    }
+    const merged = dedupeById([...globalRows, ...migrated])
+    if (merged.length !== globalRows.length) {
+      saveGlobal(merged)
+    }
+    return merged
   } catch {
     return []
   }

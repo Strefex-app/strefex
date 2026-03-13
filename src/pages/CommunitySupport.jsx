@@ -12,7 +12,7 @@ const CATEGORIES = [
   { id: 'bug', label: 'Bug Report', icon: 'alert', color: '#192A56' },
   { id: 'feature', label: 'Feature Request', icon: 'ai', color: '#192A56' },
   { id: 'question', label: 'Question', icon: 'info', color: '#192A56' },
-  { id: 'billing', label: 'Billing & Plans', icon: 'wallet', color: '#192A56' },
+  { id: 'billing', label: 'Billing & Plans', icon: 'card', color: '#192A56' },
   { id: 'feedback', label: 'General Feedback', icon: 'edit', color: '#192A56' },
   { id: 'account', label: 'Account Issue', icon: 'key', color: '#192A56' },
 ]
