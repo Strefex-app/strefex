@@ -15,7 +15,6 @@ import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndu
 import { useAccountRegistry } from '../store/accountRegistry'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
-import { useFeatureFlag } from '../services/featureFlags'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
@@ -28,7 +27,7 @@ const ExecutiveSummary = () => {
 
   /* ── Plan-based visibility ──────────────────────────────── */
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
+  const user = useAuthStore((s) => s.user)
   // Preview sessions (via "Preview Platform" on login page) can see the page but NOT names
   const isPreviewSession = (() => {
     try {
@@ -36,7 +35,8 @@ const ExecutiveSummary = () => {
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()
-  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
+  // Requesters see anonymized supplier/provider identities; only superadmin can unmask.
+  const canSeeNames = isSuperAdmin && !isPreviewSession
 
   // Build navigation context — Executive Summary now lives under equipment category
   const goBack = () => navigate(-1)
@@ -278,8 +278,11 @@ const ExecutiveSummary = () => {
       industryId,
       suppliers: targetSupplierIds,
       attachments: attachments.map(a => a.name),
+      buyerEmail: user?.email || '',
+      buyerCompany: user?.companyName || user?.company || user?.email || 'Buyer',
     }
-    addRfq(rfq)
+    const created = addRfq(rfq)
+    if (created?.id) sendRfq(created.id)
     setShowRfqModal(false)
     setSelectedForRfq(new Set())
     setNewRfq({
@@ -466,11 +469,8 @@ const ExecutiveSummary = () => {
               </svg>
             </div>
             <div className="exec-upgrade-banner-text">
-              <strong>Supplier names are hidden.</strong> Upgrade to <span className="exec-highlight-premium">Enterprise</span> to reveal supplier identities. You can still compare all metrics and send RFQs to multiple sellers for price comparison.
+              <strong>Supplier names are hidden for requester accounts.</strong> You can still compare all metrics and send RFQs to multiple sellers for price comparison.
             </div>
-            <button type="button" className="exec-upgrade-btn" onClick={() => navigate('/plans')}>
-              Upgrade Plan
-            </button>
           </div>
         )}
 

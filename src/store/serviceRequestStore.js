@@ -95,6 +95,33 @@ const dedupeById = (items) => {
   return [...map.values()]
 }
 
+const pushNotification = (existing, notif) => [notif, ...(existing || [])]
+
+const buildRequestNotification = ({
+  idSeed,
+  type,
+  request,
+  title,
+  message,
+  priority,
+  fromEmail,
+  targetEmail,
+}) => ({
+  id: `SNOTIF-${String(idSeed).slice(-6)}`,
+  type,
+  requestId: request?.id || null,
+  requestCompanyId: request?._companyId || null,
+  requestCompanyDomain: getCompanyDomain(request?.email),
+  title,
+  message,
+  priority: priority || request?.priority || 'Normal',
+  fromEmail: normalizeEmail(fromEmail),
+  targetEmail: normalizeEmail(targetEmail),
+  read: false,
+  readBy: [],
+  createdAt: new Date().toISOString(),
+})
+
 const isAssignableAuditorOrServiceProvider = (email) => {
   const targetEmail = normalizeEmail(email)
   if (!targetEmail) return false
@@ -200,6 +227,8 @@ export const useServiceRequestStore = create((set, get) => ({
     requestSource,
   }) => {
     const id = `SR-${new Date().getFullYear()}-${String(++_nextId).slice(-6)}`
+    const normalizedPreferredProviderEmail = normalizeEmail(preferredProviderEmail)
+    const autoAssignable = normalizedPreferredProviderEmail && isAssignableAuditorOrServiceProvider(normalizedPreferredProviderEmail)
     const request = {
       id,
       services,
@@ -220,14 +249,14 @@ export const useServiceRequestStore = create((set, get) => ({
       serviceCategoryLabel: serviceCategoryLabel || null,
       preferredProviderId: preferredProviderId || null,
       preferredProviderName: preferredProviderName || null,
-      preferredProviderEmail: preferredProviderEmail || null,
+      preferredProviderEmail: normalizedPreferredProviderEmail || null,
       requestSource: requestSource || null,
       _companyId: getTenantId(),
       _createdBy: getUserId(),
-      status: 'new', // new | assigned | in_progress | completed | cancelled
-      assignedTo: null, // email of assigned manager/admin
-      assignedBy: null, // email of admin who assigned
-      assignedAt: null,
+      status: autoAssignable ? 'assigned' : 'new', // new | assigned | on_hold | in_progress | completed | cancelled | recalled
+      assignedTo: autoAssignable ? normalizedPreferredProviderEmail : null, // email of assigned manager/admin
+      assignedBy: autoAssignable ? 'auto-routing' : null, // email of admin who assigned
+      assignedAt: autoAssignable ? new Date().toISOString() : null,
       adminNotes: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -236,8 +265,7 @@ export const useServiceRequestStore = create((set, get) => ({
     const updated = [request, ...get().requests]
     save(STORAGE_KEY, updated)
 
-    // Create notification for admins/managers
-    const notif = {
+    const adminNotif = {
       id: `SNOTIF-${String(_nextId).slice(-6)}`,
       type: 'new_service_request',
       requestId: id,
@@ -250,13 +278,31 @@ export const useServiceRequestStore = create((set, get) => ({
       fromName: contactName,
       fromCompany: companyName,
       read: false,
-      readBy: [], // emails of people who have read it
+      readBy: [],
       createdAt: new Date().toISOString(),
     }
-    const updatedNotifs = [notif, ...get().notifications]
+    const assigneeNotif = autoAssignable
+      ? buildRequestNotification({
+          idSeed: ++_nextId,
+          type: String(serviceCategoryId || '').toLowerCase() === 'supplier-audit' ? 'audit_request_assigned' : 'request_assigned',
+          request,
+          title: String(serviceCategoryId || '').toLowerCase() === 'supplier-audit'
+            ? 'Audit request assigned to you'
+            : 'Service request assigned to you',
+          message: `Request ${id} from ${companyName || contactName} has been routed to you.`,
+          fromEmail: email,
+          targetEmail: normalizedPreferredProviderEmail,
+        })
+      : null
+    const notifBatch = assigneeNotif ? [adminNotif, assigneeNotif] : [adminNotif]
+    const updatedNotifs = [...notifBatch, ...get().notifications]
     save(NOTIF_KEY, updatedNotifs)
+    const updatedGlobalNotifs = assigneeNotif
+      ? dedupeById([assigneeNotif, ...get().globalNotifications])
+      : get().globalNotifications
 
-    set({ requests: updated, notifications: updatedNotifs })
+    if (assigneeNotif) saveGlobal(updatedGlobalNotifs)
+    set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
     return request
   },
 
@@ -286,24 +332,30 @@ export const useServiceRequestStore = create((set, get) => ({
     const reqCategory = String(req?.serviceCategoryId || '').toLowerCase()
     const isAuditRequest = reqCategory === 'supplier-audit' || (req?.services || []).some((s) => String(s || '').toLowerCase().includes('audit'))
     const isAuditorOrServiceProvider = isAssignableAuditorOrServiceProvider(targetAssignee)
-    const notif = {
-      id: `SNOTIF-${String(++_nextId).slice(-6)}`,
+    const notif = buildRequestNotification({
+      idSeed: ++_nextId,
       type: isAuditRequest && isAuditorOrServiceProvider ? 'audit_request_assigned' : 'request_assigned',
-      requestId,
-      requestCompanyId: req?._companyId || null,
-      requestCompanyDomain: getCompanyDomain(req?.email),
+      request: req,
       title: isAuditRequest ? 'Audit request assigned to you' : 'Service request assigned to you',
       message: `Request ${requestId} from ${req?.companyName || req?.contactName} has been assigned to you by ${assignerEmail}`,
-      priority: req?.priority || 'Normal',
       fromEmail: assignerEmail,
       targetEmail: targetAssignee,
-      read: false,
-      readBy: [],
-      createdAt: new Date().toISOString(),
-    }
-    const updatedNotifs = [notif, ...get().notifications]
+    })
+    const requestorNotif = req?.email && normalizeEmail(req.email) !== targetAssignee
+      ? buildRequestNotification({
+          idSeed: ++_nextId,
+          type: 'request_assignment_updated',
+          request: req,
+          title: 'Your request has been assigned',
+          message: `Request ${requestId} is now assigned to ${targetAssignee}.`,
+          fromEmail: assignerEmail,
+          targetEmail: req.email,
+        })
+      : null
+    const notifsToAdd = requestorNotif ? [notif, requestorNotif] : [notif]
+    const updatedNotifs = [...notifsToAdd, ...get().notifications]
     save(NOTIF_KEY, updatedNotifs)
-    const updatedGlobalNotifs = dedupeById([notif, ...get().globalNotifications])
+    const updatedGlobalNotifs = dedupeById([...notifsToAdd, ...get().globalNotifications])
     saveGlobal(updatedGlobalNotifs)
 
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
@@ -328,6 +380,39 @@ export const useServiceRequestStore = create((set, get) => ({
       return { ...r, status, adminNotes, updatedAt: new Date().toISOString() }
     })
     save(STORAGE_KEY, updated)
+    const nextReq = updated.find((r) => r.id === requestId)
+    const lifecycleNotifs = []
+    if (nextReq?.email) {
+      lifecycleNotifs.push(buildRequestNotification({
+        idSeed: ++_nextId,
+        type: 'request_status_updated',
+        request: nextReq,
+        title: `Request ${requestId} status updated`,
+        message: `Your request is now ${status.replace('_', ' ')}.${note ? ` Note: ${note}` : ''}`,
+        fromEmail: updaterEmail,
+        targetEmail: nextReq.email,
+      }))
+    }
+    const assigneeEmail = normalizeEmail(nextReq?.assignedTo)
+    if (assigneeEmail && assigneeEmail !== normalizeEmail(nextReq?.email)) {
+      lifecycleNotifs.push(buildRequestNotification({
+        idSeed: ++_nextId,
+        type: 'request_status_updated_assignee',
+        request: nextReq,
+        title: `Assigned request ${requestId} updated`,
+        message: `Request ${requestId} is now ${status.replace('_', ' ')}.${note ? ` Note: ${note}` : ''}`,
+        fromEmail: updaterEmail,
+        targetEmail: assigneeEmail,
+      }))
+    }
+    if (lifecycleNotifs.length > 0) {
+      const updatedNotifs = [...lifecycleNotifs, ...get().notifications]
+      const updatedGlobal = dedupeById([...lifecycleNotifs, ...get().globalNotifications])
+      save(NOTIF_KEY, updatedNotifs)
+      saveGlobal(updatedGlobal)
+      set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobal })
+      return
+    }
     set({ requests: updated })
   },
 
@@ -380,6 +465,19 @@ export const useServiceRequestStore = create((set, get) => ({
     return get().getSafeNotifications().filter(
       (n) => !(n.readBy || []).includes(normalizedReader)
     )
+  },
+  getNotificationSummary: (readerEmail) => {
+    const normalizedReader = normalizeEmail(readerEmail)
+    const all = [...get().getSafeNotifications()].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    )
+    const unread = all.filter((n) => !(n.readBy || []).includes(normalizedReader))
+    return {
+      all,
+      unread,
+      totalCount: all.length,
+      unreadCount: unread.length,
+    }
   },
 
   /**
@@ -446,9 +544,11 @@ export const useServiceRequestStore = create((set, get) => ({
       total: all.length,
       new: all.filter((r) => r.status === 'new').length,
       assigned: all.filter((r) => r.status === 'assigned').length,
+      onHold: all.filter((r) => r.status === 'on_hold').length,
       inProgress: all.filter((r) => r.status === 'in_progress').length,
       completed: all.filter((r) => r.status === 'completed').length,
       cancelled: all.filter((r) => r.status === 'cancelled').length,
+      recalled: all.filter((r) => r.status === 'recalled').length,
     }
   },
 }))

@@ -37,7 +37,7 @@ export default function SellerDashboard() {
   const allProjects = useProjectStore((s) => s.projects)
   const getProjectStats = useProjectStore((s) => s.getProjectStats)
 
-  const allReceivedRfqs = useRfqStore((s) => s.receivedRfqs)
+  const allReceivedRfqs = useRfqStore((s) => s.getSafeReceivedRfqs())
   const respondToRfq = useRfqStore((s) => s.respondToRfq)
   const declineRfq = useRfqStore((s) => s.declineRfq)
 
@@ -49,9 +49,7 @@ export default function SellerDashboard() {
     ? allProjects
     : allProjects.filter(p => !p.createdBy || p.createdBy.toLowerCase() === userEmail)
 
-  const receivedRfqs = isSuperAdmin
-    ? allReceivedRfqs
-    : allReceivedRfqs // seller-specific by design; in production filter by seller account
+  const receivedRfqs = allReceivedRfqs
 
   const receivedStats = {
     total: receivedRfqs.length,

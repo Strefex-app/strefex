@@ -4,7 +4,6 @@ import AppLayout from '../components/AppLayout'
 import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useAuthStore } from '../store/authStore'
-import { useFeatureFlag } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
@@ -27,14 +26,14 @@ export default function ProductExecutiveSummary() {
   const category = getManufacturingCategory(categoryId, industryId)
 
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
   const isPreviewSession = (() => {
     try {
       const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
       return exp && Date.now() < Number(exp)
     } catch { return false }
   })()
-  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
+  // Requesters see anonymized supplier/provider identities; only superadmin can unmask.
+  const canSeeNames = isSuperAdmin && !isPreviewSession
 
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -266,7 +265,7 @@ export default function ProductExecutiveSummary() {
               <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Registered Suppliers — {processLabel}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>
                 Suppliers registered for {processLabel} in the {industryLabel} industry.
-                {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Upgrade to Enterprise to see supplier names and full details.</span>}
+                {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Requester view keeps identities masked. Superadmin can view full details.</span>}
               </p>
 
               <div style={{

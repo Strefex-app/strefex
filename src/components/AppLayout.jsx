@@ -53,13 +53,12 @@ export default function AppLayout({ children }) {
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const currentPlanId = useSubscriptionStore((s) => s.planId)
   const accountType = useSubscriptionStore((s) => s.accountType)
-  const safeNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
-  const normalizedUserEmail = String(user?.email || '').toLowerCase()
+  const requestNotifSummary = useServiceRequestStore((s) =>
+    s.getNotificationSummary(user?.email)
+  )
   const [mobileOpen, setMobileOpen] = useState(false)
   const [previewTimeLeft, setPreviewTimeLeft] = useState(null) // seconds remaining
-  const unreadNotificationCount = (safeNotifications || []).filter(
-    (n) => !(n.readBy || []).includes(normalizedUserEmail)
-  ).length
+  const unreadNotificationCount = requestNotifSummary?.unreadCount || 0
 
   /* Keep data-theme in sync on every render */
   useEffect(() => {

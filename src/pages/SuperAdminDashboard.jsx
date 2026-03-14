@@ -1315,12 +1315,20 @@ export default function SuperAdminDashboard() {
           <div className="sad-kpi-label">Assigned</div>
         </div>
         <div className="sad-kpi-card">
+          <div className="sad-kpi-val" style={{ color: '#616161' }}>{srStats.onHold || 0}</div>
+          <div className="sad-kpi-label">On Hold</div>
+        </div>
+        <div className="sad-kpi-card">
           <div className="sad-kpi-val" style={{ color: '#7b1fa2' }}>{srStats.inProgress}</div>
           <div className="sad-kpi-label">In Progress</div>
         </div>
         <div className="sad-kpi-card">
           <div className="sad-kpi-val" style={{ color: '#2e7d32' }}>{srStats.completed}</div>
           <div className="sad-kpi-label">Completed</div>
+        </div>
+        <div className="sad-kpi-card">
+          <div className="sad-kpi-val" style={{ color: '#ff8f00' }}>{srStats.recalled || 0}</div>
+          <div className="sad-kpi-label">Recalled</div>
         </div>
       </div>
 
@@ -1333,7 +1341,7 @@ export default function SuperAdminDashboard() {
             {/* List */}
             <div className="sad-panel-list">
               {serviceRequests.map((r) => {
-                const sc = { new: '#1565c0', assigned: '#e65100', in_progress: '#7b1fa2', completed: '#2e7d32', cancelled: '#c62828' }
+                const sc = { new: '#1565c0', assigned: '#e65100', on_hold: '#616161', in_progress: '#7b1fa2', completed: '#2e7d32', cancelled: '#c62828', recalled: '#ff8f00' }
                 return (
                   <div key={r.id} className={`sad-panel-item ${srSelectedRequest?.id === r.id ? 'selected' : ''}`} onClick={() => setSrSelectedRequest(r)}>
                     <div className="sad-panel-item-top">
@@ -1396,9 +1404,11 @@ export default function SuperAdminDashboard() {
                       style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
                     >
                       <option value="">Change Status</option>
+                      <option value="on_hold">On Hold</option>
                       <option value="in_progress">In Progress</option>
                       <option value="completed">Completed</option>
                       <option value="cancelled">Cancelled</option>
+                      <option value="recalled">Recalled</option>
                     </select>
                     <button
                       type="button"

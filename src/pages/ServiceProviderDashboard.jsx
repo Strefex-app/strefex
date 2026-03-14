@@ -11,8 +11,10 @@ import './ServiceProviderDashboard.css'
 const STATUS_MAP = {
   new:         { label: 'New',         color: '#e65100', bg: 'rgba(230,81,0,.08)' },
   assigned:    { label: 'Assigned',    color: '#000888', bg: 'rgba(0,8,136,.08)' },
+  on_hold:     { label: 'On Hold',     color: '#616161', bg: 'rgba(97,97,97,.08)' },
   in_progress: { label: 'In Progress', color: '#1565c0', bg: 'rgba(21,101,192,.08)' },
   completed:   { label: 'Completed',   color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
+  recalled:    { label: 'Recalled',    color: '#ff8f00', bg: 'rgba(255,143,0,.08)' },
   cancelled:   { label: 'Cancelled',   color: '#888',    bg: 'rgba(136,136,136,.08)' },
 }
 
@@ -33,6 +35,8 @@ export default function ServiceProviderDashboard() {
   const getProjectStats = useProjectStore((s) => s.getProjectStats)
 
   const allRequests = useServiceRequestStore((s) => s.requests)
+  const updateRequestStatus = useServiceRequestStore((s) => s.updateRequestStatus)
+  const addNote = useServiceRequestStore((s) => s.addNote)
   const selectedServices = useServiceStore((s) => s.selectedServices)
 
   const isSuperAdmin = role === 'superadmin'
@@ -100,6 +104,8 @@ export default function ServiceProviderDashboard() {
 
   const [activeTab, setActiveTab] = useState('all')
   const [expandedReq, setExpandedReq] = useState(null)
+  const [feedbackStatusByReq, setFeedbackStatusByReq] = useState({})
+  const [feedbackNoteByReq, setFeedbackNoteByReq] = useState({})
 
   const filteredRequests = activeTab === 'all'
     ? serviceRequests
@@ -258,6 +264,7 @@ export default function ServiceProviderDashboard() {
                   { id: 'all', label: 'All', count: requestStats.total },
                   { id: 'new', label: 'New', count: requestStats.new },
                   { id: 'assigned', label: 'Assigned', count: requestStats.assigned },
+                  { id: 'on_hold', label: 'On Hold', count: serviceRequests.filter(r => r.status === 'on_hold').length },
                   { id: 'in_progress', label: 'In Progress', count: requestStats.inProgress },
                   { id: 'completed', label: 'Completed', count: requestStats.completed },
                 ].map(tab => (
@@ -345,6 +352,62 @@ export default function ServiceProviderDashboard() {
                                   <span className="spd-note-meta">— {n.by}, {new Date(n.at).toLocaleDateString()}</span>
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {(isSuperAdmin || (req.assignedTo && req.assignedTo.toLowerCase() === userEmail)) && (
+                            <div className="spd-admin-notes" style={{ marginTop: 10 }}>
+                              <strong>Send Feedback to Requestor</strong>
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                                <select
+                                  value={feedbackStatusByReq[req.id] || ''}
+                                  onChange={(e) => setFeedbackStatusByReq((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                                  style={{ minWidth: 160, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+                                >
+                                  <option value="">Update status...</option>
+                                  <option value="on_hold">On Hold</option>
+                                  <option value="in_progress">In Progress</option>
+                                  <option value="completed">Completed</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  className="spd-link-btn"
+                                  onClick={() => {
+                                    const nextStatus = feedbackStatusByReq[req.id]
+                                    const nextNote = String(feedbackNoteByReq[req.id] || '').trim()
+                                    if (!nextStatus) return
+                                    updateRequestStatus(req.id, nextStatus, nextNote || null, user?.email || userEmail)
+                                    setFeedbackStatusByReq((prev) => ({ ...prev, [req.id]: '' }))
+                                    setFeedbackNoteByReq((prev) => ({ ...prev, [req.id]: '' }))
+                                  }}
+                                  disabled={!feedbackStatusByReq[req.id]}
+                                >
+                                  Send Status Feedback
+                                </button>
+                              </div>
+                              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                <input
+                                  type="text"
+                                  value={feedbackNoteByReq[req.id] || ''}
+                                  onChange={(e) => setFeedbackNoteByReq((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                                  placeholder="Add note for requester..."
+                                  style={{ flex: 1, minWidth: 220, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+                                />
+                                <button
+                                  type="button"
+                                  className="spd-link-btn"
+                                  onClick={() => {
+                                    const nextNote = String(feedbackNoteByReq[req.id] || '').trim()
+                                    if (!nextNote) return
+                                    addNote(req.id, nextNote, user?.email || userEmail)
+                                    setFeedbackNoteByReq((prev) => ({ ...prev, [req.id]: '' }))
+                                  }}
+                                  disabled={!String(feedbackNoteByReq[req.id] || '').trim()}
+                                >
+                                  Send Note
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>

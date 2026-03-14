@@ -4,7 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
-import { useFeatureFlag, useSubscriptionStore } from '../services/featureFlags'
+import { useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
@@ -26,7 +26,6 @@ export default function AuditorExecutiveSummary() {
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
-  const hasFullCompanyVisibility = useFeatureFlag('fullCompanyVisibility')
   const accountType = useSubscriptionStore((s) => s.accountType)
   const submitServiceRequest = useServiceRequestStore((s) => s.submitRequest)
 
@@ -53,7 +52,8 @@ export default function AuditorExecutiveSummary() {
     }
   })()
 
-  const canSeeNames = (hasFullCompanyVisibility || isSuperAdmin) && !isPreviewSession
+  // Requesters see anonymized auditor identities; only superadmin can unmask.
+  const canSeeNames = isSuperAdmin && !isPreviewSession
   const canSendRequests = isSuperAdmin || accountType === 'buyer' || accountType === 'seller'
 
   const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors(selectedIndustry, { onlyVerified: true }))
@@ -247,7 +247,7 @@ export default function AuditorExecutiveSummary() {
                         Supplier Audit
                       </span>
                     </td>
-                    <td>{canSeeNames ? (auditor.email || '—') : 'Hidden by plan'}</td>
+                    <td>{canSeeNames ? (auditor.email || '—') : 'Hidden for requester'}</td>
                     <td>
                       {canSendRequests ? (
                         <button

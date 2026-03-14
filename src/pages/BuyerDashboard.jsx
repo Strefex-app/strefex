@@ -30,7 +30,7 @@ export default function BuyerDashboard() {
   const allProjects = useProjectStore((s) => s.projects)
   const getProjectStats = useProjectStore((s) => s.getProjectStats)
 
-  const allRfqs = useRfqStore((s) => s.rfqs)
+  const allRfqs = useRfqStore((s) => s.getSafeRfqs())
 
   const isSuperAdmin = role === 'superadmin'
   const userEmail = user?.email?.toLowerCase()

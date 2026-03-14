@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Icon from './Icon'
 import { useAuthStore } from '../store/authStore'
@@ -9,13 +8,10 @@ const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const userEmail = useAuthStore((s) => s.user?.email)
-  const safeNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
-  const normalizedUserEmail = String(userEmail || '').toLowerCase()
-
-  const unreadCount = useMemo(() => {
-    if (!normalizedUserEmail) return 0
-    return safeNotifications.filter((n) => !(n.readBy || []).includes(normalizedUserEmail)).length
-  }, [safeNotifications, normalizedUserEmail])
+  const requestNotifSummary = useServiceRequestStore((s) =>
+    s.getNotificationSummary(userEmail)
+  )
+  const unreadCount = requestNotifSummary?.unreadCount || 0
 
   const navItems = [
     { id: 'home', label: 'Home', icon: 'home', path: '/main-menu' },

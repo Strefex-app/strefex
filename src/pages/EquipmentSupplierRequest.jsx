@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
+import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getEquipmentForIndustryCategory } from '../data/equipmentByIndustryCategory'
 import '../styles/app-page.css'
@@ -20,6 +21,7 @@ const EquipmentSupplierRequest = () => {
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
+  const submitRequest = useServiceRequestStore((s) => s.submitRequest)
 
   // ── Product context from query params ──
   const isProductContext = searchParams.get('context') === 'product'
@@ -77,11 +79,38 @@ const EquipmentSupplierRequest = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    /* TODO: send to backend — formData */
+    const industryLabel = INDUSTRY_OPTIONS.find((opt) => opt.id === formData.industryId)?.label || formData.industryId
+    const selectedCategory = categories.find((cat) => cat.id === formData.categoryId)?.name || formData.categoryId
+    const selectedEquipment = equipmentList.find((eq) => eq.id === formData.equipmentId)?.name || formData.equipmentId
+    const serviceLabel = isProductContext ? 'Product Supplier Quote Request' : 'Equipment Supplier Selection'
+    const serviceItems = isProductContext
+      ? [`Product Quote: ${qProductCategory}${qProcess ? ` / ${qProcess}` : ''}`]
+      : [`Equipment: ${selectedEquipment || 'N/A'}`]
+    submitRequest({
+      services: serviceItems,
+      industryId: formData.industryId,
+      industryLabel,
+      companyName: formData.companyName,
+      contactName: user?.fullName || formData.companyName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      preferredDate: '',
+      priority: isProductContext ? 'High' : 'Normal',
+      description: isProductContext
+        ? `Quote request for ${qProductCategory}${qProcess ? ` / ${qProcess}` : ''} in ${qIndustryLabel || qIndustry}.`
+        : `Equipment type: ${selectedCategory || 'N/A'}; Equipment: ${selectedEquipment || 'N/A'}.`,
+      notes: formData.notes || '',
+      attachmentNames: [],
+      accountType: user?.accountType || 'buyer',
+      serviceCategoryId: isProductContext ? 'product-quote' : 'equipment-sourcing',
+      serviceCategoryLabel: serviceLabel,
+      requestSource: isProductContext ? 'product-equipment-request' : 'equipment-request-page',
+    })
     setTimeout(() => {
       setIsSubmitting(false)
       setIsSubmitted(true)
-    }, 800)
+    }, 250)
   }
 
   if (isSubmitted) {

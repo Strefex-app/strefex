@@ -19,7 +19,11 @@ const RequestService = () => {
   const handleServiceClick = (serviceId) => {
     if (serviceId === 'project-management') navigate('/project-management')
     else if (serviceId === 'request-audit') navigate('/audit-request')
-    else { /* unhandled service – no-op until backend is wired */ }
+    else if (serviceId === 'find-supplier') navigate('/equipment-request')
+    else if (serviceId === 'request-trial') navigate('/plans')
+    else if (serviceId === 'production-follow-up') navigate('/services?context=service&serviceCategory=supplier-services&serviceCategoryLabel=Supplier+Services')
+    else if (serviceId === 'industrialisation') navigate('/services?context=service&serviceCategory=project-management&serviceCategoryLabel=Project+Management')
+    else navigate('/services')
   }
 
   return (

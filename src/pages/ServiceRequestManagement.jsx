@@ -10,9 +10,11 @@ import './ServiceRequestManagement.css'
 const STATUS_COLORS = {
   new: { bg: '#e3f2fd', color: '#1565c0', label: 'New' },
   assigned: { bg: '#fff3e0', color: '#e65100', label: 'Assigned' },
+  on_hold: { bg: '#f5f5f5', color: '#616161', label: 'On Hold' },
   in_progress: { bg: '#f3e5f5', color: '#7b1fa2', label: 'In Progress' },
   completed: { bg: '#e8f5e9', color: '#2e7d32', label: 'Completed' },
   cancelled: { bg: '#fce4ec', color: '#c62828', label: 'Cancelled' },
+  recalled: { bg: '#fff8e1', color: '#ff8f00', label: 'Recalled' },
 }
 
 const PRIORITY_COLORS = {
@@ -136,8 +138,10 @@ export default function ServiceRequestManagement() {
           <div className="srm-stat"><span className="srm-stat-value">{stats.total}</span><span className="srm-stat-label">Total</span></div>
           <div className="srm-stat srm-stat-new"><span className="srm-stat-value">{stats.new}</span><span className="srm-stat-label">New</span></div>
           <div className="srm-stat srm-stat-assigned"><span className="srm-stat-value">{stats.assigned}</span><span className="srm-stat-label">Assigned</span></div>
+          <div className="srm-stat"><span className="srm-stat-value">{stats.onHold || 0}</span><span className="srm-stat-label">On Hold</span></div>
           <div className="srm-stat srm-stat-progress"><span className="srm-stat-value">{stats.inProgress}</span><span className="srm-stat-label">In Progress</span></div>
           <div className="srm-stat srm-stat-complete"><span className="srm-stat-value">{stats.completed}</span><span className="srm-stat-label">Completed</span></div>
+          <div className="srm-stat"><span className="srm-stat-value">{stats.recalled || 0}</span><span className="srm-stat-label">Recalled</span></div>
         </div>
 
         {/* Filters */}
@@ -153,9 +157,11 @@ export default function ServiceRequestManagement() {
             <option value="">All Statuses</option>
             <option value="new">New</option>
             <option value="assigned">Assigned</option>
+            <option value="on_hold">On Hold</option>
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="recalled">Recalled</option>
           </select>
           <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="srm-select">
             <option value="">All Priorities</option>
@@ -316,9 +322,11 @@ export default function ServiceRequestManagement() {
                     <div className="srm-status-form">
                       <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="srm-select">
                         <option value="">Change status...</option>
+                        <option value="on_hold">On Hold</option>
                         <option value="in_progress">In Progress</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
+                        {isSuperAdmin && <option value="recalled">Recalled</option>}
                       </select>
                       <button type="button" className="srm-btn-primary" onClick={() => handleStatusUpdate(selected.id)} disabled={!newStatus}>
                         Update

@@ -3,6 +3,43 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
+const toArray = (value) => (Array.isArray(value) ? value : [])
+const normalizeId = (value) => String(value || '').trim().toLowerCase()
+
+function findAccountEmailById(accountId) {
+  const targetId = normalizeId(accountId)
+  if (!targetId) return ''
+  try {
+    const rows = []
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      if (key === 'strefex-account-registry' || key.startsWith('strefex-account-registry::')) {
+        const raw = localStorage.getItem(key)
+        const parsed = raw ? JSON.parse(raw) : []
+        if (Array.isArray(parsed)) rows.push(...parsed)
+      }
+    }
+    const matched = rows.find((acct) => normalizeId(acct?.id) === targetId)
+    return normalizeEmail(matched?.email)
+  } catch {
+    return ''
+  }
+}
+
+function getSafeReceivedForCurrentUser(rows) {
+  const role = getUserRole()
+  const userId = normalizeEmail(getUserId())
+  if (role === 'superadmin' || role === 'auditor_external') return rows
+  if (role === 'admin' || role === 'auditor_internal') return rows
+  return toArray(rows).filter((r) => {
+    const sellerEmail = normalizeEmail(r?.sellerEmail)
+    const sellerId = normalizeId(r?.sellerId)
+    return (sellerEmail && sellerEmail === userId) || (sellerId && sellerId === userId)
+  })
+}
+
 const useRfqStore = create(
   persist(
     (set, get) => ({
@@ -10,7 +47,7 @@ const useRfqStore = create(
       receivedRfqs: [],
 
       getSafeRfqs: () => filterByCompanyRole(get().rfqs, { creatorField: 'buyerEmail' }),
-      getSafeReceivedRfqs: () => filterByCompanyRole(get().receivedRfqs, { creatorField: '_createdBy' }),
+      getSafeReceivedRfqs: () => getSafeReceivedForCurrentUser(get().receivedRfqs),
       canEditRfq: () => guardCanEdit(),
       isReadOnly: () => isAuditor(),
 
@@ -51,21 +88,23 @@ const useRfqStore = create(
         }
       },
 
-      addRfq: (rfq) => set((state) => ({
-        rfqs: [
-          ...state.rfqs,
-          {
-            ...rfq,
-            id: `rfq-${Date.now()}`,
-            createdAt: new Date().toISOString().split('T')[0],
-            _createdBy: getUserId(),
-            status: 'draft',
-            responses: 0,
-            attachments: rfq.attachments || [],
-            sellerResponses: [],
-          },
-        ],
-      })),
+      addRfq: (rfq) => {
+        const created = {
+          ...rfq,
+          id: `rfq-${Date.now()}`,
+          createdAt: new Date().toISOString().split('T')[0],
+          _createdBy: getUserId(),
+          buyerEmail: normalizeEmail(rfq?.buyerEmail || getUserId()),
+          status: 'draft',
+          responses: 0,
+          attachments: rfq.attachments || [],
+          sellerResponses: [],
+        }
+        set((state) => ({
+          rfqs: [...state.rfqs, created],
+        }))
+        return created
+      },
 
       updateRfq: (id, updates) => set((state) => ({
         rfqs: state.rfqs.map(rfq =>
@@ -73,13 +112,68 @@ const useRfqStore = create(
         ),
       })),
 
-      sendRfq: (id) => set((state) => ({
-        rfqs: state.rfqs.map(rfq =>
+      sendRfq: (id) => set((state) => {
+        const sentAt = new Date().toISOString().split('T')[0]
+        const target = state.rfqs.find((rfq) => rfq.id === id)
+        if (!target) return state
+
+        const updatedRfqs = state.rfqs.map((rfq) =>
           rfq.id === id
-            ? { ...rfq, status: 'sent', sentAt: new Date().toISOString().split('T')[0] }
+            ? { ...rfq, status: 'sent', sentAt }
             : rfq
-        ),
-      })),
+        )
+
+        const invited = toArray(target.suppliers)
+        const existingKeys = new Set(
+          state.receivedRfqs.map((r) => `${r.rfqId || ''}::${String(r.sellerId || '').toLowerCase()}::${normalizeEmail(r.sellerEmail)}`)
+        )
+        const generatedReceived = invited.map((supplier, idx) => {
+          if (typeof supplier === 'string') {
+            const resolvedEmail = findAccountEmailById(supplier)
+            return {
+              id: `rrfq-${Date.now()}-${idx}`,
+              rfqId: target.id,
+              title: target.title,
+              buyerCompany: target.buyerCompany || target.companyName || 'Buyer',
+              buyerEmail: normalizeEmail(target.buyerEmail || target._createdBy),
+              industryId: target.industryId,
+              categoryId: target.categoryId,
+              requirements: target.requirements || {},
+              dueDate: target.dueDate || null,
+              receivedAt: sentAt,
+              status: 'pending',
+              sellerId: supplier,
+              sellerEmail: resolvedEmail,
+            }
+          }
+          return {
+            id: `rrfq-${Date.now()}-${idx}`,
+            rfqId: target.id,
+            title: target.title,
+            buyerCompany: target.buyerCompany || target.companyName || 'Buyer',
+            buyerEmail: normalizeEmail(target.buyerEmail || target._createdBy),
+            industryId: target.industryId,
+            categoryId: target.categoryId,
+            requirements: target.requirements || {},
+            dueDate: target.dueDate || null,
+            receivedAt: sentAt,
+            status: 'pending',
+            sellerId: String(supplier?.id || supplier?.sellerId || ''),
+            sellerEmail: normalizeEmail(supplier?.email || supplier?.sellerEmail),
+          }
+        })
+        const receivedToAdd = generatedReceived.filter((r) => {
+          const key = `${r.rfqId || ''}::${String(r.sellerId || '').toLowerCase()}::${normalizeEmail(r.sellerEmail)}`
+          if (existingKeys.has(key)) return false
+          existingKeys.add(key)
+          return true
+        })
+
+        return {
+          rfqs: updatedRfqs,
+          receivedRfqs: [...state.receivedRfqs, ...receivedToAdd],
+        }
+      }),
 
       deleteRfq: (id) => set((state) => ({
         rfqs: state.rfqs.filter(rfq => rfq.id !== id),
@@ -101,26 +195,85 @@ const useRfqStore = create(
         ),
       })),
 
-      respondToRfq: (receivedRfqId, response) => set((state) => ({
-        receivedRfqs: state.receivedRfqs.map(r =>
+      respondToRfq: (receivedRfqId, response) => set((state) => {
+        const responderEmail = normalizeEmail(getUserId())
+        const respondedAt = new Date().toISOString().split('T')[0]
+        const target = state.receivedRfqs.find((r) => r.id === receivedRfqId)
+        if (!target) return state
+
+        const receivedRfqs = state.receivedRfqs.map((r) =>
           r.id === receivedRfqId
             ? {
                 ...r,
                 status: 'responded',
+                sellerEmail: normalizeEmail(r.sellerEmail || responderEmail),
                 myResponse: {
                   ...response,
-                  respondedAt: new Date().toISOString().split('T')[0],
+                  respondedAt,
                 },
               }
             : r
-        ),
-      })),
+        )
 
-      declineRfq: (receivedRfqId) => set((state) => ({
-        receivedRfqs: state.receivedRfqs.map(r =>
-          r.id === receivedRfqId ? { ...r, status: 'declined' } : r
-        ),
-      })),
+        const rfqs = state.rfqs.map((rfq) => {
+          if (rfq.id !== target.rfqId) return rfq
+          const nextResponses = toArray(rfq.sellerResponses).filter((entry) => {
+            const entryEmail = normalizeEmail(entry?.sellerEmail)
+            if (entryEmail) return entryEmail !== responderEmail
+            return String(entry?.sellerId || '') !== String(target.sellerId || '')
+          })
+          nextResponses.push({
+            sellerId: target.sellerId || responderEmail,
+            sellerName: target.sellerName || target.sellerCompany || target.sellerEmail || responderEmail || 'Seller',
+            sellerEmail: normalizeEmail(target.sellerEmail || responderEmail),
+            price: Number(response?.price || 0),
+            leadTime: Number(response?.leadTime || 0),
+            warranty: response?.warranty || '',
+            notes: response?.notes || '',
+            respondedAt,
+          })
+          return {
+            ...rfq,
+            status: rfq.status === 'draft' ? 'active' : rfq.status,
+            sellerResponses: nextResponses,
+            responses: nextResponses.length,
+          }
+        })
+
+        return { receivedRfqs, rfqs }
+      }),
+
+      declineRfq: (receivedRfqId) => set((state) => {
+        const declinerEmail = normalizeEmail(getUserId())
+        const declinedAt = new Date().toISOString().split('T')[0]
+        const target = state.receivedRfqs.find((r) => r.id === receivedRfqId)
+        if (!target) return state
+        const receivedRfqs = state.receivedRfqs.map((r) =>
+          r.id === receivedRfqId ? { ...r, status: 'declined', sellerEmail: normalizeEmail(r.sellerEmail || declinerEmail), declinedAt } : r
+        )
+        const rfqs = state.rfqs.map((rfq) => {
+          if (rfq.id !== target.rfqId) return rfq
+          const nextResponses = toArray(rfq.sellerResponses).filter((entry) => {
+            const entryEmail = normalizeEmail(entry?.sellerEmail)
+            if (entryEmail) return entryEmail !== declinerEmail
+            return String(entry?.sellerId || '') !== String(target.sellerId || '')
+          })
+          nextResponses.push({
+            sellerId: target.sellerId || declinerEmail,
+            sellerName: target.sellerName || target.sellerCompany || target.sellerEmail || declinerEmail || 'Seller',
+            sellerEmail: normalizeEmail(target.sellerEmail || declinerEmail),
+            status: 'declined',
+            notes: 'Seller declined this RFQ.',
+            respondedAt: declinedAt,
+          })
+          return {
+            ...rfq,
+            sellerResponses: nextResponses,
+            responses: nextResponses.length,
+          }
+        })
+        return { receivedRfqs, rfqs }
+      }),
     }),
     {
       name: 'strefex-rfq-storage',

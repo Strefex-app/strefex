@@ -1,6 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import useRfqStore from '../store/rfqStore'
 import AppLayout from '../components/AppLayout'
+import { useAuthStore } from '../store/authStore'
+import { tenantKey } from '../utils/tenantStorage'
 import './RfqComparison.css'
 
 /* ── Star rating renderer ─────────────────────────────────── */
@@ -24,6 +26,18 @@ export default function RfqComparison() {
   const { rfqId } = useParams()
   const navigate = useNavigate()
   const rfq = useRfqStore((s) => s.getRfqById)(rfqId)
+  const role = useAuthStore((s) => s.role)
+  const isSuperAdmin = role === 'superadmin'
+  const isPreviewSession = (() => {
+    try {
+      const exp = localStorage.getItem(tenantKey('strefex-preview-expires'))
+      return exp && Date.now() < Number(exp)
+    } catch {
+      return false
+    }
+  })()
+  // RFQ requester comparisons keep seller identities masked. Superadmin can unmask.
+  const canSeeNames = isSuperAdmin && !isPreviewSession
 
   if (!rfq) {
     return (
@@ -93,11 +107,13 @@ export default function RfqComparison() {
               <thead>
                 <tr>
                   <th className="rc-th-sticky">Criteria</th>
-                  {responses.map((r) => (
+                  {responses.map((r, idx) => (
                     <th key={r.sellerId}>
                       <div className="rc-seller-header">
-                        <span className="rc-seller-name">{r.sellerName}</span>
-                        <span className="rc-seller-email">{r.sellerEmail}</span>
+                        <span className="rc-seller-name">
+                          {canSeeNames ? r.sellerName : `Seller #${String(idx + 1).padStart(2, '0')}`}
+                        </span>
+                        <span className="rc-seller-email">{canSeeNames ? r.sellerEmail : 'Hidden by plan'}</span>
                       </div>
                     </th>
                   ))}

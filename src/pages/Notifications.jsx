@@ -53,31 +53,13 @@ export default function Notifications() {
   const myDomain = getCompanyDomain(user?.email)
 
   /* ── Service request notifications ── */
-  const serviceNotifications = useServiceRequestStore((s) => s.getSafeNotifications())
   const markNotificationRead = useServiceRequestStore((s) => s.markNotificationRead)
+  const requestNotifSummary = useServiceRequestStore((s) =>
+    s.getNotificationSummary(user?.email)
+  )
 
-  // Scope service notifications:
-  // - superadmin: all unread
-  // - admin/manager/auditor_internal: company unread + direct assignments
-  // - everyone else: direct assignments only
-  const scopedServiceNotifs = useMemo(() => {
-    const myEmail = String(user?.email || '').toLowerCase()
-    const unread = serviceNotifications.filter(
-      (n) => !(n.readBy || []).includes(myEmail)
-    )
-    if (isSuperAdmin) return unread
-    const direct = unread.filter((n) => String(n.targetEmail || '').toLowerCase() === myEmail)
-    if (!myDomain) return direct
-    const companyScoped = unread.filter(
-      (n) => getCompanyDomain(n.fromEmail || n.targetEmail || '') === myDomain
-    )
-    if (isManager || role === 'auditor_internal') {
-      const map = new Map()
-      ;[...direct, ...companyScoped].forEach((n) => map.set(n.id, n))
-      return [...map.values()]
-    }
-    return direct
-  }, [serviceNotifications, isSuperAdmin, isManager, myDomain, role, user?.email])
+  const requestNotifications = requestNotifSummary?.all || []
+  const unreadRequestNotifCount = requestNotifSummary?.unreadCount || 0
 
   /* ── Transactions ── */
   const allTransactions = useTransactionStore((s) => s.transactions)
@@ -313,7 +295,7 @@ export default function Notifications() {
   const hasExhibitionContent = allNotifications.length > 0 || scheduled.length > 0
   const hasCompanyAdminContent = companyPendingRequests.length > 0 || companyPendingPlatform.length > 0
   const hasSuperuserContent = platformPendingApprovals.length > 0 || unassignedTasks.length > 0 || assignedTasks.length > 0
-  const hasServiceNotifs = scopedServiceNotifs.length > 0
+  const hasServiceNotifs = requestNotifications.length > 0
   const hasUserRequest = !!userPendingRequest
   const hasTransactions = recentTransactions.length > 0
   const hasAnyContent = hasExhibitionContent || hasCompanyAdminContent || hasSuperuserContent || hasServiceNotifs || hasUserRequest || hasTransactions
@@ -702,19 +684,25 @@ export default function Notifications() {
         )}
 
         {/* ═══════════════════════════════════════════════════════
-         *  8. SERVICE REQUEST NOTIFICATIONS (company-scoped)
+         *  8. SERVICE/AUDIT REQUEST NOTIFICATIONS (all available)
          * ═══════════════════════════════════════════════════════ */}
-        {scopedServiceNotifs.length > 0 && (
+        {requestNotifications.length > 0 && (
           <div className="app-page-card">
             <h3 className="notif-section-title">
               Service Requests & Assignments
-              <span className="notif-badge">{scopedServiceNotifs.length} new</span>
+              <span className="notif-badge">
+                {unreadRequestNotifCount > 0
+                  ? `${unreadRequestNotifCount} new`
+                  : `${requestNotifications.length} total`}
+              </span>
             </h3>
             <div className="notif-list">
-              {scopedServiceNotifs.map((n) => (
+              {requestNotifications.map((n) => {
+                const isUnread = !(n.readBy || []).includes(String(user?.email || '').toLowerCase())
+                return (
                 <div
                   key={n.id}
-                  className="notif-item info"
+                  className={`notif-item info${isUnread ? ' notif-item-unread' : ''}`}
                   onClick={() => {
                     markNotificationRead(n.id, user?.email)
                     if (isManager) navigate('/service-requests')
@@ -730,13 +718,15 @@ export default function Notifications() {
                     <div className="notif-name">{n.title}</div>
                     <div className="notif-message">{n.message}</div>
                     <div className="notif-meta">
+                      {isUnread && <span className="notif-unread-pill">New</span>}
                       <span style={{ color: n.priority === 'Urgent' ? '#e74c3c' : n.priority === 'High' ? '#e67e22' : '#3498db', fontWeight: 600 }}>{n.priority}</span>
                       <span className="notif-dot">·</span>
                       <span>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

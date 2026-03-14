@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import { useAuthStore } from '../store/authStore'
+import { useServiceRequestStore } from '../store/serviceRequestStore'
 import '../styles/app-page.css'
 import './AuditRequest.css'
 
@@ -24,6 +26,8 @@ const AUDIT_STANDARD_OPTIONS = [
 const AuditRequest = () => {
   const navigate = useNavigate()
   const { industryId: paramIndustryId } = useParams()
+  const user = useAuthStore((s) => s.user)
+  const submitRequest = useServiceRequestStore((s) => s.submitRequest)
   const [formData, setFormData] = useState({
     auditDate: '',
     industryId: paramIndustryId || '',
@@ -57,11 +61,34 @@ const AuditRequest = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    /* TODO: send to backend — { ...formData, attachments } */
+    const industryLabel = INDUSTRY_OPTIONS.find((opt) => opt.id === formData.industryId)?.label || formData.industryId
+    const standard = formData.auditStandard === 'Custom / Other' && formData.otherStandard
+      ? formData.otherStandard
+      : formData.auditStandard
+    const supplierSummary = `Supplier: ${formData.supplierCompanyName}; Contact: ${formData.supplierContactName}; Email: ${formData.supplierEmail}; Phone: ${formData.supplierPhone}; Address: ${formData.supplierAddress}`
+    submitRequest({
+      services: ['Supplier Audit'],
+      industryId: formData.industryId,
+      industryLabel,
+      companyName: user?.companyName || user?.fullName || 'Requesting Company',
+      contactName: user?.fullName || formData.supplierContactName || 'Requester',
+      email: user?.email || formData.supplierEmail || '',
+      phone: user?.phone || formData.supplierPhone || '',
+      address: user?.address || '',
+      preferredDate: formData.auditDate || '',
+      priority: 'High',
+      description: `Audit standard: ${standard || 'N/A'}. ${supplierSummary}`,
+      notes: formData.notes || '',
+      attachmentNames: attachments.map((f) => f.name),
+      accountType: user?.accountType || 'buyer',
+      serviceCategoryId: 'supplier-audit',
+      serviceCategoryLabel: 'Supplier Audit',
+      requestSource: 'audit-request-page',
+    })
     setTimeout(() => {
       setIsSubmitting(false)
       setIsSubmitted(true)
-    }, 800)
+    }, 250)
   }
 
   if (isSubmitted) {
