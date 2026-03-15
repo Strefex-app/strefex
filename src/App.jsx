@@ -259,7 +259,7 @@ function App() {
           {/* ── Communication & Support ────────────────────── */}
           <Route path="/support" element={<P><CommunitySupport /></P>} />
           <Route path="/messenger" element={<PlanGate feature="messenger" planName="Premium"><CompanyMessenger /></PlanGate>} />
-          <Route path="/service-requests" element={<ProtectedRoute requiredRole="manager"><ServiceRequestManagement /></ProtectedRoute>} />
+          <Route path="/service-requests" element={<P><ServiceRequestManagement /></P>} />
           <Route path="/developer" element={<SuperAdmin><DeveloperDashboard /></SuperAdmin>} />
           <Route path="/admin-dashboard" element={<SuperAdmin><SuperAdminDashboard /></SuperAdmin>} />
 

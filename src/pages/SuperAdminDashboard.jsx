@@ -237,7 +237,7 @@ export default function SuperAdminDashboard() {
   const totalRevenue = useTransactionStore((s) => s.getTotalRevenue)()
   const pendingPayments = useTransactionStore((s) => s.getPendingPayments)()
 
-  const serviceRequests = useServiceRequestStore((s) => s.requests)
+  const serviceRequests = useServiceRequestStore((s) => s.getAllRequests())
   const srStats = useServiceRequestStore((s) => s.getStats)()
   const assignRequest = useServiceRequestStore((s) => s.assignRequest)
   const updateRequestStatus = useServiceRequestStore((s) => s.updateRequestStatus)

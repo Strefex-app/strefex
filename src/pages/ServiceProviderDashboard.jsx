@@ -34,7 +34,7 @@ export default function ServiceProviderDashboard() {
   const allProjects = useProjectStore((s) => s.projects)
   const getProjectStats = useProjectStore((s) => s.getProjectStats)
 
-  const allRequests = useServiceRequestStore((s) => s.requests)
+  const allRequests = useServiceRequestStore((s) => s.getAllRequests())
   const updateRequestStatus = useServiceRequestStore((s) => s.updateRequestStatus)
   const addNote = useServiceRequestStore((s) => s.addNote)
   const selectedServices = useServiceStore((s) => s.selectedServices)

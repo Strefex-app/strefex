@@ -24,7 +24,7 @@ const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
-  { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests', minRole: 'manager' },
+  { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
   { id: 'notifications', tKey: 'nav.notifications', path: '/notifications', icon: 'notifications' },
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },

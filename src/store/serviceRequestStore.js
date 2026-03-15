@@ -34,6 +34,12 @@ const save = (key, data) => {
   } catch { /* silent */ }
 }
 
+const saveByFullKey = (fullKey, data) => {
+  try {
+    localStorage.setItem(fullKey, JSON.stringify(data))
+  } catch { /* silent */ }
+}
+
 const loadGlobal = () => {
   try {
     const raw = localStorage.getItem(GLOBAL_NOTIF_KEY)
@@ -93,6 +99,60 @@ const dedupeById = (items) => {
     if (!map.has(item.id)) map.set(item.id, item)
   })
   return [...map.values()]
+}
+
+const stripStorageMeta = (request) => {
+  const next = { ...request }
+  delete next._storageKey
+  return next
+}
+
+const loadRequestsByRole = () => {
+  const role = getUserRole()
+  const scopedKey = tenantKey(STORAGE_KEY)
+  const canSeeAllTenants = role === 'superadmin' || role === 'auditor_external'
+
+  if (!canSeeAllTenants) {
+    const scoped = load(STORAGE_KEY)
+    return scoped.map((r) => ({ ...r, _storageKey: scopedKey }))
+  }
+
+  const merged = []
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i)
+    if (!key || !key.startsWith(`${STORAGE_KEY}::`)) continue
+    try {
+      const raw = localStorage.getItem(key)
+      const rows = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(rows)) continue
+      rows.forEach((row) => merged.push({ ...row, _storageKey: key }))
+    } catch {
+      // ignore malformed tenant buckets
+    }
+  }
+
+  return dedupeById(merged)
+}
+
+const persistRequestsByRole = (requests) => {
+  const role = getUserRole()
+  const scopedKey = tenantKey(STORAGE_KEY)
+  const canWriteCrossTenant = role === 'superadmin' || role === 'auditor_external'
+  if (!canWriteCrossTenant) {
+    const ownRows = (requests || [])
+      .filter((r) => !r._storageKey || r._storageKey === scopedKey)
+      .map(stripStorageMeta)
+    save(STORAGE_KEY, ownRows)
+    return
+  }
+
+  const grouped = new Map()
+  ;(requests || []).forEach((r) => {
+    const targetKey = r._storageKey || `${STORAGE_KEY}::${r._companyId || getTenantId()}`
+    if (!grouped.has(targetKey)) grouped.set(targetKey, [])
+    grouped.get(targetKey).push(stripStorageMeta(r))
+  })
+  grouped.forEach((rows, fullKey) => saveByFullKey(fullKey, rows))
 }
 
 const pushNotification = (existing, notif) => [notif, ...(existing || [])]
@@ -188,7 +248,7 @@ function canManageRequest(request) {
 let _nextId = Date.now()
 
 export const useServiceRequestStore = create((set, get) => ({
-  requests: load(STORAGE_KEY),
+  requests: loadRequestsByRole(),
   notifications: load(NOTIF_KEY),
   globalNotifications: loadGlobal(),
 
@@ -226,6 +286,7 @@ export const useServiceRequestStore = create((set, get) => ({
     preferredProviderEmail,
     requestSource,
   }) => {
+    const currentRequests = loadRequestsByRole()
     const id = `SR-${new Date().getFullYear()}-${String(++_nextId).slice(-6)}`
     const normalizedPreferredProviderEmail = normalizeEmail(preferredProviderEmail)
     const autoAssignable = normalizedPreferredProviderEmail && isAssignableAuditorOrServiceProvider(normalizedPreferredProviderEmail)
@@ -252,6 +313,7 @@ export const useServiceRequestStore = create((set, get) => ({
       preferredProviderEmail: normalizedPreferredProviderEmail || null,
       requestSource: requestSource || null,
       _companyId: getTenantId(),
+      _storageKey: tenantKey(STORAGE_KEY),
       _createdBy: getUserId(),
       status: autoAssignable ? 'assigned' : 'new', // new | assigned | on_hold | in_progress | completed | cancelled | recalled
       assignedTo: autoAssignable ? normalizedPreferredProviderEmail : null, // email of assigned manager/admin
@@ -262,8 +324,8 @@ export const useServiceRequestStore = create((set, get) => ({
       updatedAt: new Date().toISOString(),
     }
 
-    const updated = [request, ...get().requests]
-    save(STORAGE_KEY, updated)
+    const updated = [request, ...currentRequests]
+    persistRequestsByRole(updated)
 
     const adminNotif = {
       id: `SNOTIF-${String(_nextId).slice(-6)}`,
@@ -294,14 +356,28 @@ export const useServiceRequestStore = create((set, get) => ({
           targetEmail: normalizedPreferredProviderEmail,
         })
       : null
-    const notifBatch = assigneeNotif ? [adminNotif, assigneeNotif] : [adminNotif]
+    const requestorNotif = buildRequestNotification({
+      idSeed: ++_nextId,
+      type: 'request_submitted',
+      request,
+      title: 'Your service request has been submitted',
+      message: autoAssignable
+        ? `Request ${id} was submitted and routed to ${preferredProviderName || normalizedPreferredProviderEmail || 'provider'}.`
+        : `Request ${id} was submitted and is awaiting assignment.`,
+      fromEmail: email,
+      targetEmail: email,
+    })
+    const notifBatch = assigneeNotif
+      ? [adminNotif, assigneeNotif, requestorNotif]
+      : [adminNotif, requestorNotif]
     const updatedNotifs = [...notifBatch, ...get().notifications]
     save(NOTIF_KEY, updatedNotifs)
-    const updatedGlobalNotifs = assigneeNotif
-      ? dedupeById([assigneeNotif, ...get().globalNotifications])
-      : get().globalNotifications
-
-    if (assigneeNotif) saveGlobal(updatedGlobalNotifs)
+    const updatedGlobalNotifs = dedupeById(
+      assigneeNotif
+        ? [assigneeNotif, requestorNotif, ...get().globalNotifications]
+        : [requestorNotif, ...get().globalNotifications]
+    )
+    saveGlobal(updatedGlobalNotifs)
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
     return request
   },
@@ -310,10 +386,11 @@ export const useServiceRequestStore = create((set, get) => ({
    * Assign a service request to a manager or user
    */
   assignRequest: (requestId, assigneeEmail, assignerEmail) => {
+    const currentRequests = loadRequestsByRole()
     const targetAssignee = normalizeEmail(assigneeEmail)
-    const current = get().requests.find((r) => r.id === requestId)
+    const current = currentRequests.find((r) => r.id === requestId)
     if (!canManageRequest(current)) return
-    const updated = get().requests.map((r) =>
+    const updated = currentRequests.map((r) =>
       r.id === requestId
         ? {
             ...r,
@@ -325,7 +402,7 @@ export const useServiceRequestStore = create((set, get) => ({
           }
         : r
     )
-    save(STORAGE_KEY, updated)
+    persistRequestsByRole(updated)
 
     // Create notification for the assignee
     const req = updated.find((r) => r.id === requestId)
@@ -365,9 +442,10 @@ export const useServiceRequestStore = create((set, get) => ({
    * Update request status
    */
   updateRequestStatus: (requestId, status, note, updaterEmail) => {
-    const current = get().requests.find((r) => r.id === requestId)
+    const currentRequests = loadRequestsByRole()
+    const current = currentRequests.find((r) => r.id === requestId)
     if (!canManageRequest(current)) return
-    const updated = get().requests.map((r) => {
+    const updated = currentRequests.map((r) => {
       if (r.id !== requestId) return r
       const adminNotes = [...(r.adminNotes || [])]
       if (note) {
@@ -379,7 +457,7 @@ export const useServiceRequestStore = create((set, get) => ({
       }
       return { ...r, status, adminNotes, updatedAt: new Date().toISOString() }
     })
-    save(STORAGE_KEY, updated)
+    persistRequestsByRole(updated)
     const nextReq = updated.find((r) => r.id === requestId)
     const lifecycleNotifs = []
     if (nextReq?.email) {
@@ -420,9 +498,10 @@ export const useServiceRequestStore = create((set, get) => ({
    * Add admin note to a request
    */
   addNote: (requestId, note, authorEmail) => {
-    const current = get().requests.find((r) => r.id === requestId)
+    const currentRequests = loadRequestsByRole()
+    const current = currentRequests.find((r) => r.id === requestId)
     if (!canManageRequest(current)) return
-    const updated = get().requests.map((r) => {
+    const updated = currentRequests.map((r) => {
       if (r.id !== requestId) return r
       const adminNotes = [...(r.adminNotes || []), {
         text: note,
@@ -431,7 +510,7 @@ export const useServiceRequestStore = create((set, get) => ({
       }]
       return { ...r, adminNotes, updatedAt: new Date().toISOString() }
     })
-    save(STORAGE_KEY, updated)
+    persistRequestsByRole(updated)
     set({ requests: updated })
   },
 
@@ -497,7 +576,7 @@ export const useServiceRequestStore = create((set, get) => ({
   /**
    * Get all requests — ⚠️ RAW, only use in superadmin pages.
    */
-  getAllRequests: () => get().requests,
+  getAllRequests: () => loadRequestsByRole(),
   getSafeNotifications: () => {
     const role = getUserRole()
     const userId = getUserId()
@@ -533,13 +612,13 @@ export const useServiceRequestStore = create((set, get) => ({
    * SAFE — returns only requests the current user is allowed to see
    * based on their company & role hierarchy.
    */
-  getSafeRequests: () => filterBySafe(get().requests),
+  getSafeRequests: () => filterBySafe(loadRequestsByRole()),
 
   /**
    * Get safe request stats (filtered by company & role)
    */
   getStats: () => {
-    const all = filterBySafe(get().requests)
+    const all = filterBySafe(loadRequestsByRole())
     return {
       total: all.length,
       new: all.filter((r) => r.status === 'new').length,
