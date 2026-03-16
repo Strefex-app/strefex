@@ -32,6 +32,8 @@ import ExecutiveSummary from './pages/ExecutiveSummary'
 import IndustryHub from './pages/IndustryHub'
 import IndustryOverview from './pages/IndustryOverview'
 import IndustryEquipmentLanding from './pages/IndustryEquipmentLanding'
+import IndustryEquipmentCategory from './pages/IndustryEquipmentCategory'
+import IndustryEquipmentSuppliers from './pages/IndustryEquipmentSuppliers'
 import Profile from './pages/Profile'
 import AddSupplier from './pages/AddSupplier'
 import AdminApproval from './pages/AdminApproval'
@@ -96,6 +98,9 @@ import AuditorExecutiveSummary from './pages/AuditorExecutiveSummary'
 import ProductIndustryLanding from './pages/ProductIndustryLanding'
 import ProductSubcategoryPage from './pages/ProductSubcategoryPage'
 import ProductExecutiveSummary from './pages/ProductExecutiveSummary'
+import RawMaterialsLanding from './pages/RawMaterialsLanding'
+import RawMaterialsCategory from './pages/RawMaterialsCategory'
+import MaterialSuppliers from './pages/MaterialSuppliers'
 import SellerDashboard from './pages/SellerDashboard'
 import BuyerDashboard from './pages/BuyerDashboard'
 import ServiceProviderDashboard from './pages/ServiceProviderDashboard'
@@ -240,7 +245,12 @@ function App() {
           <Route path="/industry/:industryId/overview" element={<Industry requiredTier="free"><IndustryOverview /></Industry>} />
           <Route path="/industry/:industryId/dashboard" element={<Industry requiredTier="basic"><Dashboard /></Industry>} />
           <Route path="/industry/:industryId/equipment" element={<Industry requiredTier="basic"><IndustryEquipmentLanding /></Industry>} />
+          <Route path="/industry/:industryId/equipment/:categoryId" element={<Industry requiredTier="basic"><IndustryEquipmentCategory /></Industry>} />
+          <Route path="/industry/:industryId/equipment/:categoryId/:itemId/suppliers" element={<Industry requiredTier="basic"><IndustryEquipmentSuppliers /></Industry>} />
           <Route path="/industry/:industryId/equipment/:categoryId/executive-summary" element={<Industry requiredTier="free"><ExecutiveSummary /></Industry>} />
+          <Route path="/raw-materials" element={<P><RawMaterialsLanding /></P>} />
+          <Route path="/raw-materials/:category" element={<P><RawMaterialsCategory /></P>} />
+          <Route path="/raw-materials/:category/:materialId/suppliers" element={<P><MaterialSuppliers /></P>} />
 
           {/* ── Management Hub ────────────────────────────── */}
           <Route path="/management" element={<P><ManagementHub /></P>} />

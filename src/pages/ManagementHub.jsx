@@ -88,6 +88,7 @@ const MANAGEMENT_MODULES = [
     icon: 'cost',
     featureKey: 'spendAnalysis',
     planLabel: 'Enterprise',
+    minRole: 'manager',
   },
   {
     id: 'compliance',
@@ -106,6 +107,7 @@ const MANAGEMENT_MODULES = [
     icon: 'erp',
     featureKey: 'erpIntegrations',
     planLabel: 'Enterprise',
+    minRole: 'admin',
   },
   {
     id: 'audit-logs',
@@ -125,6 +127,7 @@ const MANAGEMENT_MODULES = [
     icon: 'ai',
     featureKey: 'aiInsights',
     planLabel: 'Enterprise',
+    minRole: 'manager',
   },
 ]
 

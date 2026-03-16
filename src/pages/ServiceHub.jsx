@@ -271,7 +271,7 @@ export default function ServiceHub() {
                             serviceCategory: cat.id,
                             serviceCategoryLabel: cat.label,
                           })
-                          navigate(`/add-supplier?${p.toString()}`)
+                          navigate(`/request-service?${p.toString()}`)
                         }}
                         style={{
                           padding: '8px 20px', borderRadius: 8,

@@ -2,10 +2,22 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
+import { isSupabaseConfigured, rfqsService } from '../services/supabaseService'
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 const toArray = (value) => (Array.isArray(value) ? value : [])
 const normalizeId = (value) => String(value || '').trim().toLowerCase()
+
+const getAuthSnapshot = () => {
+  try {
+    return JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+  } catch {
+    return {}
+  }
+}
+
+const getAuthCompanyId = () => getAuthSnapshot()?.tenant?.id || null
+const getAuthUserDbId = () => getAuthSnapshot()?.user?.id || null
 
 function findAccountEmailById(accountId) {
   const targetId = normalizeId(accountId)
@@ -38,6 +50,51 @@ function getSafeReceivedForCurrentUser(rows) {
     const sellerId = normalizeId(r?.sellerId)
     return (sellerEmail && sellerEmail === userId) || (sellerId && sellerId === userId)
   })
+}
+
+const toDbRfqPayload = (rfq) => ({
+  company_id: getAuthCompanyId(),
+  created_by: getAuthUserDbId(),
+  title: rfq?.title || '',
+  industry_id: rfq?.industryId || null,
+  category_id: rfq?.categoryId || null,
+  buyer_email: normalizeEmail(rfq?.buyerEmail || rfq?._createdBy),
+  buyer_company: rfq?.buyerCompany || rfq?.companyName || null,
+  due_date: rfq?.dueDate || null,
+  status: rfq?.status || 'draft',
+  suppliers: Array.isArray(rfq?.suppliers) ? rfq.suppliers : [],
+  requirements: rfq?.requirements || {},
+  attachments: Array.isArray(rfq?.attachments) ? rfq.attachments : [],
+  responses: Array.isArray(rfq?.sellerResponses) ? rfq.sellerResponses : [],
+  metadata: { local_id: rfq?.id || null, response_count: Number(rfq?.responses || 0) },
+  sent_at: rfq?.sentAt || null,
+  created_at: rfq?.createdAt || null,
+  updated_at: new Date().toISOString(),
+})
+
+const persistRfqsToDatabase = async (rfqs) => {
+  if (!isSupabaseConfigured) return
+  const companyId = getAuthCompanyId()
+  if (!companyId) return
+  const rows = Array.isArray(rfqs) ? rfqs : []
+  for (let i = 0; i < rows.length; i += 1) {
+    const payload = toDbRfqPayload(rows[i])
+    if (!payload.company_id) continue
+    try {
+      const existing = await rfqsService.list(companyId, {
+        limit: 1,
+        filters: [['metadata->>local_id', 'eq', String(rows[i]?.id || '')]],
+      })
+      const match = Array.isArray(existing) ? existing[0] : null
+      if (match?.id) {
+        await rfqsService.update(match.id, payload)
+      } else {
+        await rfqsService.create(payload)
+      }
+    } catch {
+      // Keep local fallback behavior.
+    }
+  }
 }
 
 const useRfqStore = create(
@@ -103,14 +160,17 @@ const useRfqStore = create(
         set((state) => ({
           rfqs: [...state.rfqs, created],
         }))
+        void persistRfqsToDatabase([...get().rfqs, created])
         return created
       },
 
-      updateRfq: (id, updates) => set((state) => ({
-        rfqs: state.rfqs.map(rfq =>
+      updateRfq: (id, updates) => set((state) => {
+        const rfqs = state.rfqs.map(rfq =>
           rfq.id === id ? { ...rfq, ...updates } : rfq
-        ),
-      })),
+        )
+        void persistRfqsToDatabase(rfqs)
+        return { rfqs }
+      }),
 
       sendRfq: (id) => set((state) => {
         const sentAt = new Date().toISOString().split('T')[0]
@@ -169,10 +229,12 @@ const useRfqStore = create(
           return true
         })
 
-        return {
+        const next = {
           rfqs: updatedRfqs,
           receivedRfqs: [...state.receivedRfqs, ...receivedToAdd],
         }
+        void persistRfqsToDatabase(next.rfqs)
+        return next
       }),
 
       deleteRfq: (id) => set((state) => ({
@@ -240,6 +302,7 @@ const useRfqStore = create(
           }
         })
 
+        void persistRfqsToDatabase(rfqs)
         return { receivedRfqs, rfqs }
       }),
 
@@ -272,6 +335,7 @@ const useRfqStore = create(
             responses: nextResponses.length,
           }
         })
+        void persistRfqsToDatabase(rfqs)
         return { receivedRfqs, rfqs }
       }),
     }),

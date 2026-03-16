@@ -43,6 +43,20 @@ function getAuthSession() {
   }
 }
 
+function getCurrentAccountType(session) {
+  const source = session || getAuthSession()
+  return (
+    String(
+      source?.user?.primaryAccountType ||
+      source?.user?.accountType ||
+      (Array.isArray(source?.user?.accountTypes) ? source.user.accountTypes[0] : '') ||
+      'seller'
+    )
+      .toLowerCase()
+      .replace(/[^a-z0-9._\-]/g, '') || 'seller'
+  )
+}
+
 /**
  * Get a stable, filesystem-safe COMPANY-level tenant identifier.
  * All users within the same company get the same tenantId, ensuring
@@ -56,26 +70,15 @@ export function getTenantId() {
   if (!session) return 'guest'
 
   const { user, tenant } = session
-  const accountType = String(
-    user?.primaryAccountType ||
-    user?.accountType ||
-    (Array.isArray(user?.accountTypes) ? user.accountTypes[0] : '') ||
-    'seller'
-  )
-    .toLowerCase()
-    .replace(/[^a-z0-9._\-]/g, '') || 'seller'
-
-  const withAccountScope = (base) => `${base}::${accountType}`
 
   // Priority 1: explicit tenant/company ID from backend
   if (tenant?.id) {
-    const base = String(tenant.id).toLowerCase().replace(/[^a-z0-9._\-]/g, '')
-    return withAccountScope(base)
+    return String(tenant.id).toLowerCase().replace(/[^a-z0-9._\-]/g, '')
   }
 
   // Priority 2: tenant slug
   if (tenant?.slug) {
-    return withAccountScope(tenant.slug.toLowerCase().replace(/[^a-z0-9._\-]/g, ''))
+    return tenant.slug.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
   }
 
   // Priority 3: derive company from email domain (e.g. john@acme.com → acme.com)
@@ -84,15 +87,13 @@ export function getTenantId() {
   if (user?.email) {
     const domain = user.email.split('@')[1]
     if (domain) {
-      const base = domain.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
-      return withAccountScope(base)
+      return domain.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
     }
   }
 
   // Priority 4: company name from user profile (fallback for non-email logins)
   if (user?.companyName) {
-    const base = user.companyName.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
-    return withAccountScope(base)
+    return user.companyName.toLowerCase().replace(/[^a-z0-9._\-]/g, '')
   }
 
   return 'guest'
@@ -136,12 +137,35 @@ export function tenantKey(baseKey) {
   return `${baseKey}::${getTenantId()}`
 }
 
+export function getLegacyTenantIds() {
+  const tenantId = getTenantId()
+  const session = getAuthSession()
+  if (!session || tenantId === 'guest') return []
+  const types = new Set([
+    getCurrentAccountType(session),
+    ...((Array.isArray(session?.user?.accountTypes) ? session.user.accountTypes : [])
+      .map((v) => String(v || '').toLowerCase().replace(/[^a-z0-9._\-]/g, ''))
+      .filter(Boolean)),
+  ])
+  return [...types].map((type) => `${tenantId}::${type}`)
+}
+
 /**
  * A localStorage-compatible object that automatically prefixes every
  * key with the tenant ID.  Drop-in replacement for `localStorage`.
  */
 const tenantLocalStorage = {
-  getItem: (name) => localStorage.getItem(tenantKey(name)),
+  getItem: (name) => {
+    const canonicalKey = tenantKey(name)
+    const canonical = localStorage.getItem(canonicalKey)
+    if (canonical != null) return canonical
+    const legacyTenantIds = getLegacyTenantIds()
+    for (let i = 0; i < legacyTenantIds.length; i += 1) {
+      const legacyValue = localStorage.getItem(`${name}::${legacyTenantIds[i]}`)
+      if (legacyValue != null) return legacyValue
+    }
+    return null
+  },
   setItem: (name, value) => localStorage.setItem(tenantKey(name), value),
   removeItem: (name) => localStorage.removeItem(tenantKey(name)),
 }

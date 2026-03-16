@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { tenantKey } from '../utils/tenantStorage'
+import { getLegacyTenantIds, tenantKey } from '../utils/tenantStorage'
 import { isSuperadminEmail } from '../services/superadminAuth'
 
 /* ── helpers ─────────────────────────────────────────────── */
@@ -44,6 +44,21 @@ const clear = () => {
     localStorage.removeItem(STORAGE_KEY)
   } catch {
     /* silent */
+  }
+}
+
+const readTenantScopedRaw = (baseKey, fallback = null) => {
+  try {
+    const canonical = localStorage.getItem(tenantKey(baseKey))
+    if (canonical != null) return canonical
+    const legacyTenantIds = getLegacyTenantIds()
+    for (let i = 0; i < legacyTenantIds.length; i += 1) {
+      const legacyRaw = localStorage.getItem(`${baseKey}::${legacyTenantIds[i]}`)
+      if (legacyRaw != null) return legacyRaw
+    }
+    return fallback
+  } catch {
+    return fallback
   }
 }
 
@@ -116,24 +131,20 @@ const rehydrateAllTenantStores = () => {
 
       // industryStore
       try {
-        const indKey = tenantKey('strefex-selected-industries')
-        const catKey = tenantKey('strefex-selected-categories')
-        const industries = JSON.parse(localStorage.getItem(indKey) || '[]')
-        const categories = JSON.parse(localStorage.getItem(catKey) || '{}')
+        const industries = JSON.parse(readTenantScopedRaw('strefex-selected-industries', '[]') || '[]')
+        const categories = JSON.parse(readTenantScopedRaw('strefex-selected-categories', '{}') || '{}')
         industryMod.useIndustryStore.setState({ selectedIndustries: industries, selectedCategories: categories })
       } catch { /* silent */ }
 
       // serviceStore
       try {
-        const svcKey = tenantKey('strefex-selected-services')
-        const services = JSON.parse(localStorage.getItem(svcKey) || '[]')
+        const services = JSON.parse(readTenantScopedRaw('strefex-selected-services', '[]') || '[]')
         serviceMod.useServiceStore.setState({ selectedServices: services })
       } catch { /* silent */ }
 
       // subscriptionStore
       try {
-        const subKey = tenantKey('strefex-subscription')
-        const sub = JSON.parse(localStorage.getItem(subKey) || '{}')
+        const sub = JSON.parse(readTenantScopedRaw('strefex-subscription', '{}') || '{}')
         const auth = get()
         const fallbackAccountType = String(
           auth?.user?.primaryAccountType ||
@@ -152,8 +163,7 @@ const rehydrateAllTenantStores = () => {
 
       // transactionStore — reload from tenant-scoped key
       try {
-        const txKey = tenantKey('strefex-transactions')
-        const txData = JSON.parse(localStorage.getItem(txKey) || '[]')
+        const txData = JSON.parse(readTenantScopedRaw('strefex-transactions', '[]') || '[]')
         txMod.useTransactionStore.setState({ transactions: txData })
       } catch { /* silent */ }
 

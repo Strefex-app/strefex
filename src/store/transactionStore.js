@@ -14,14 +14,22 @@
  * by the superuser so the work gets tracked and fulfilled.
  */
 import { create } from 'zustand'
-import { getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
+import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
+import { isSupabaseConfigured, transactionsService } from '../services/supabaseService'
 
 const STORAGE_KEY = 'strefex-transactions'
 
 const loadTransactions = () => {
   try {
-    const raw = localStorage.getItem(tenantKey(STORAGE_KEY))
-    return raw ? JSON.parse(raw) : []
+    const scopedKey = tenantKey(STORAGE_KEY)
+    const raw = localStorage.getItem(scopedKey)
+    if (raw) return JSON.parse(raw)
+    const legacyTenantIds = getLegacyTenantIds()
+    for (let i = 0; i < legacyTenantIds.length; i += 1) {
+      const legacyRaw = localStorage.getItem(`${STORAGE_KEY}::${legacyTenantIds[i]}`)
+      if (legacyRaw) return JSON.parse(legacyRaw)
+    }
+    return []
   } catch {
     return []
   }
@@ -31,6 +39,84 @@ const persistTx = (transactions) => {
   try {
     localStorage.setItem(tenantKey(STORAGE_KEY), JSON.stringify(transactions))
   } catch { /* silent */ }
+}
+
+const getAuthSnapshot = () => {
+  try {
+    return JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+  } catch {
+    return {}
+  }
+}
+
+const getAuthCompanyId = () => getAuthSnapshot()?.tenant?.id || null
+const getAuthUserDbId = () => getAuthSnapshot()?.user?.id || null
+
+const toDbTransactionPayload = (tx) => ({
+  company_id: getAuthCompanyId(),
+  created_by: getAuthUserDbId(),
+  invoice_id: tx?.invoiceId || null,
+  type: tx?.type || null,
+  service: tx?.service || null,
+  amount: Number(tx?.amount || 0),
+  method: tx?.method || null,
+  status: tx?.status || null,
+  user_email: (tx?.userEmail || '').toLowerCase(),
+  company_name: tx?.companyName || null,
+  account_type: tx?.accountType || null,
+  requested_by: (tx?.requestedBy || '').toLowerCase(),
+  plan_from: tx?.planFrom || null,
+  plan_to: tx?.planTo || null,
+  task_status: tx?.taskStatus || null,
+  assigned_to: (tx?.assignedTo || '').toLowerCase() || null,
+  assigned_by: (tx?.assignedBy || '').toLowerCase() || null,
+  assigned_at: tx?.assignedAt || null,
+  approved_by: tx?.platformApprovedBy || tx?.companyApprovedBy || null,
+  approved_at: tx?.platformApprovedAt || tx?.companyApprovedAt || null,
+  rejection_reason: tx?.rejectionReason || null,
+  rejected_by: tx?.rejectedBy || null,
+  paid_by: tx?.paidBy || null,
+  paid_at: tx?.paidAt || null,
+  metadata: {
+    local_id: tx?.id || null,
+    company_domain: tx?.companyDomain || getCompanyDomain(tx?.userEmail),
+    platform_approved_by: tx?.platformApprovedBy || null,
+    platform_approved_at: tx?.platformApprovedAt || null,
+    company_approved_by: tx?.companyApprovedBy || null,
+    company_approved_at: tx?.companyApprovedAt || null,
+  },
+  created_at: tx?.date || null,
+  updated_at: tx?.updatedAt || new Date().toISOString(),
+})
+
+const syncTransactionsToDatabase = async (transactions) => {
+  if (!isSupabaseConfigured) return
+  const companyId = getAuthCompanyId()
+  if (!companyId) return
+  const rows = Array.isArray(transactions) ? transactions : []
+  for (let i = 0; i < rows.length; i += 1) {
+    const payload = toDbTransactionPayload(rows[i])
+    if (!payload.company_id) continue
+    try {
+      const existing = await transactionsService.list(companyId, {
+        limit: 1,
+        filters: [['metadata->>local_id', 'eq', String(rows[i]?.id || '')]],
+      })
+      const match = Array.isArray(existing) ? existing[0] : null
+      if (match?.id) {
+        await transactionsService.update(match.id, payload)
+      } else {
+        await transactionsService.create(payload)
+      }
+    } catch {
+      // local-first fallback
+    }
+  }
+}
+
+const persistAndSync = (transactions) => {
+  persistTx(transactions)
+  void syncTransactionsToDatabase(transactions)
 }
 
 /** Extract company domain from email (e.g. user@acme.com → acme.com) */
@@ -52,6 +138,7 @@ function filterByCurrentCompanyRole(txList) {
   const role = getUserRole()
   const userId = getUserId()
   const companyId = getTenantId()
+  const currentDomain = getCompanyDomain(userId)
 
   // Superadmin and external auditor see all transactions
   if (role === 'superadmin' || role === 'auditor_external') return txList
@@ -59,7 +146,7 @@ function filterByCurrentCompanyRole(txList) {
   // Filter to current company first
   const companyTxs = txList.filter((tx) => {
     const txCompany = tx.companyDomain || getCompanyDomain(tx.userEmail) || ''
-    return txCompany === companyId || tx._companyId === companyId
+    return txCompany === companyId || txCompany === currentDomain || tx._companyId === companyId
   })
 
   // Admin, internal auditor, and manager see all company transactions
@@ -75,11 +162,12 @@ function filterByCurrentCompanyRole(txList) {
 function canMutateWithinCompany(tx) {
   const role = getUserRole()
   const companyId = getTenantId()
+  const currentDomain = getCompanyDomain(getUserId())
   if (!tx) return false
   if (role === 'superadmin') return true
   if (role === 'auditor_internal' || role === 'auditor_external' || role === 'guest') return false
   const txCompany = tx.companyDomain || getCompanyDomain(tx.userEmail) || tx._companyId || ''
-  return txCompany === companyId
+  return txCompany === companyId || txCompany === currentDomain || tx._companyId === companyId
 }
 
 function canRunCompanyApproval(tx) {
@@ -128,7 +216,7 @@ export const useTransactionStore = create((set, get) => ({
       ...tx,
     }
     const updated = [newTx, ...get().transactions]
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return newTx
   },
@@ -140,7 +228,7 @@ export const useTransactionStore = create((set, get) => ({
     const updated = get().transactions.map((tx) =>
       tx.id === txId ? { ...tx, status, updatedAt: new Date().toISOString() } : tx
     )
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return updated.find((tx) => tx.id === txId) || null
   },
@@ -164,7 +252,7 @@ export const useTransactionStore = create((set, get) => ({
           }
         : tx
     )
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return updated.find((tx) => tx.id === txId) || null
   },
@@ -180,7 +268,7 @@ export const useTransactionStore = create((set, get) => ({
     const updated = get().transactions.map((tx) =>
       tx.id === txId ? { ...tx, taskStatus, updatedAt: new Date().toISOString() } : tx
     )
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return updated.find((tx) => tx.id === txId) || null
   },
@@ -221,7 +309,7 @@ export const useTransactionStore = create((set, get) => ({
       }
       return result
     })
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return result
   },
@@ -244,7 +332,7 @@ export const useTransactionStore = create((set, get) => ({
           }
         : tx
     )
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return updated.find((tx) => tx.id === txId) || null
   },
@@ -270,7 +358,7 @@ export const useTransactionStore = create((set, get) => ({
       }
       return result
     })
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return result
   },
@@ -293,7 +381,7 @@ export const useTransactionStore = create((set, get) => ({
       }
       return result
     })
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return result
   },
@@ -315,7 +403,7 @@ export const useTransactionStore = create((set, get) => ({
           }
         : tx
     )
-    persistTx(updated)
+    persistAndSync(updated)
     set({ transactions: updated })
     return updated.find((tx) => tx.id === txId) || null
   },

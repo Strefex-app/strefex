@@ -272,9 +272,8 @@ async function cleanupLaunchStarterExamples() {
  */
 async function storeSupabaseSession(session, profile) {
   const user = session?.user
-  const registryAccount = getRegistryAccountByEmail(user?.email)
   const role = capRole(
-    normalizeRole(registryAccount?.role || profile?.role || 'user'),
+    normalizeRole(profile?.role || 'user'),
     user?.email
   )
   const metadata = profile?.metadata || {}
@@ -282,8 +281,7 @@ async function storeSupabaseSession(session, profile) {
     ? metadata.account_types
     : []
   const fallbackAccountType = normalizeAccountType(
-    registryAccount?.accountType ||
-      metadata.account_type ||
+    metadata.account_type ||
       user?.user_metadata?.account_type ||
       profile?.companies?.account_type ||
       metadataAccountTypes[0] ||
@@ -353,7 +351,6 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!user) return profile
 
   const md = user.user_metadata || {}
-  const registryAccount = getRegistryAccountByEmail(user?.email)
   const superadminEmail = isSuperadminEmail(user?.email)
   const hasRegistrationMetadata = Boolean(md.tier || md.account_type || md.company_name || md.industry)
   if (!hasRegistrationMetadata) {
@@ -368,8 +365,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   const fullName = (md.full_name || profile?.full_name || '').trim()
   const phone = md.phone || profile?.phone || null
   const primaryMetadataAccountType = normalizeAccountType(
-    registryAccount?.accountType ||
-      md.account_type ||
+    md.account_type ||
       profile?.metadata?.account_type ||
       profile?.companies?.account_type ||
       'seller'
@@ -428,7 +424,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
 
   // Preserve privileged role for the STREFEX superadmin account.
   // For invited users, prefer role from metadata instead of forcing admin.
-  let nextRole = normalizeRole(registryAccount?.role || profile?.role || 'user')
+  let nextRole = normalizeRole(profile?.role || 'user')
   if (!profile?.role) {
     if (metadataRole) {
       nextRole = metadataRole
@@ -859,15 +855,14 @@ const authService = {
         const profile = await profilesService.getMyProfile()
         if (profile) {
           const current = useAuthStore.getState()
-          const registryAccount = getRegistryAccountByEmail(profile?.email || current?.user?.email)
           const effectiveRole = capRole(
-            normalizeRole(registryAccount?.role || profile?.role || current?.role || 'user'),
+            normalizeRole(profile?.role || current?.role || 'user'),
             profile?.email || current?.user?.email
           )
           const effectiveAccountType = normalizeAccountType(
-            registryAccount?.accountType ||
-              profile?.metadata?.account_type ||
+            profile?.metadata?.account_type ||
               profile?.companies?.account_type ||
+              current?.user?.primaryAccountType ||
               current?.user?.accountType ||
               'seller'
           )
@@ -961,6 +956,9 @@ const authService = {
     if (isSupabaseConfigured) {
       const { data } = supabaseAuth.onAuthStateChange((event, session) => {
         callback(session?.user || null)
+        if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          authService.refreshProfile().catch(() => {})
+        }
       })
       return data.subscription?.unsubscribe || (() => {})
     }

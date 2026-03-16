@@ -5,10 +5,16 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useSubscriptionStore } from '../services/featureFlags'
+import { useAuthStore } from '../store/authStore'
 import { PLANS, TIERS, getEffectiveLimits, getPlansForAccountType } from '../services/stripeService'
 
 describe('Subscription Tiers', () => {
   beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'user@company.com' },
+    })
     // Reset to seller free/start tier before each test
     useSubscriptionStore.getState().setAccountType('seller')
     useSubscriptionStore.getState().downgrade()
@@ -167,6 +173,11 @@ describe('Subscription Tiers', () => {
 
 describe('Buyer Account Type', () => {
   beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'buyer@company.com' },
+    })
     useSubscriptionStore.getState().setAccountType('buyer')
     useSubscriptionStore.getState().setPlan('basic')
   })
@@ -247,9 +258,14 @@ describe('Free Trial', () => {
   beforeEach(() => {
     useSubscriptionStore.getState().setAccountType('seller')
     useSubscriptionStore.getState().downgrade()
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'superadmin',
+      user: { email: 'strefex@strfgroup.ru' },
+    })
   })
 
-  it('should start a 14-day trial', () => {
+  it('should start a 14-day enterprise trial for superadmin', () => {
     useSubscriptionStore.getState().startTrial()
     const store = useSubscriptionStore.getState()
     expect(store.planId).toBe('enterprise')
@@ -271,7 +287,25 @@ describe('Free Trial', () => {
     expect(hasFeature('aiInsights')).toBe(true)
   })
 
+  it('should not start trial for non-superadmin users', () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'user@company.com' },
+    })
+    const before = useSubscriptionStore.getState()
+    useSubscriptionStore.getState().startTrial()
+    const after = useSubscriptionStore.getState()
+    expect(after.planId).toBe(before.planId)
+    expect(after.status).toBe(before.status)
+  })
+
   it('should downgrade on trial expiry', () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'seller@company.com' },
+    })
     // Manually set an expired trial
     useSubscriptionStore.getState().setPlan('enterprise', 'trialing', new Date(Date.now() - 1000).toISOString())
     const { hasFeature } = useSubscriptionStore.getState()
@@ -283,6 +317,11 @@ describe('Free Trial', () => {
 
 describe('Downgrade Logic', () => {
   beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'seller@company.com' },
+    })
     useSubscriptionStore.getState().setAccountType('seller')
   })
 
@@ -305,6 +344,11 @@ describe('Downgrade Logic', () => {
 
 describe('Dynamic Overrides', () => {
   beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      role: 'user',
+      user: { email: 'seller@company.com' },
+    })
     useSubscriptionStore.getState().setAccountType('seller')
     useSubscriptionStore.getState().downgrade()
   })

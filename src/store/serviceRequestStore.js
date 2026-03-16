@@ -13,7 +13,7 @@
  *   - Superadmin can see all requests (platform level)
  */
 import { create } from 'zustand'
-import { getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
+import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
 
 const STORAGE_KEY = 'strefex-service-requests'
@@ -22,8 +22,15 @@ const GLOBAL_NOTIF_KEY = 'strefex-service-notifications-global'
 
 const load = (key) => {
   try {
-    const raw = localStorage.getItem(tenantKey(key))
-    return raw ? JSON.parse(raw) : []
+    const canonicalKey = tenantKey(key)
+    const raw = localStorage.getItem(canonicalKey)
+    if (raw) return JSON.parse(raw)
+    const legacyTenantIds = getLegacyTenantIds()
+    for (let i = 0; i < legacyTenantIds.length; i += 1) {
+      const legacyRaw = localStorage.getItem(`${key}::${legacyTenantIds[i]}`)
+      if (legacyRaw) return JSON.parse(legacyRaw)
+    }
+    return []
   } catch {
     return []
   }
@@ -187,25 +194,26 @@ const persistReadFlagAcrossTenantNotifBuckets = (notifId, readerEmail) => {
 }
 
 const mapDbRequestToLocal = (row) => {
-  const companyId = String(row?.company_id || row?.request_company_id || getTenantId())
+  const companyId = String(row?.company_id || getTenantId())
+  const metadata = (row?.metadata && typeof row.metadata === 'object') ? row.metadata : {}
   const services = Array.isArray(row?.services)
     ? row.services
-    : String(row?.services || row?.service_labels || '')
+    : String(row?.services || '')
         .split(',')
         .map((v) => v.trim())
         .filter(Boolean)
   const createdAt = row?.created_at || row?.createdAt || new Date().toISOString()
   const updatedAt = row?.updated_at || row?.updatedAt || createdAt
-  const id = String(row?.request_id || row?.external_id || row?.id || '')
+  const id = String(metadata?.local_id || row?.id || '')
   if (!id) return null
   return {
     id,
     services,
     industryId: row?.industry_id || row?.industryId || null,
-    industryLabel: row?.industry_label || row?.industryLabel || null,
+    industryLabel: metadata?.industry_label || null,
     companyName: row?.company_name || row?.companyName || '',
     contactName: row?.contact_name || row?.contactName || '',
-    email: row?.requester_email || row?.email || '',
+    email: row?.email || '',
     phone: row?.phone || '',
     address: row?.address || '',
     preferredDate: row?.preferred_date || row?.preferredDate || '',
@@ -214,15 +222,16 @@ const mapDbRequestToLocal = (row) => {
     notes: row?.notes || '',
     attachmentNames: Array.isArray(row?.attachment_names) ? row.attachment_names : [],
     accountType: row?.account_type || row?.accountType || 'unknown',
-    serviceCategoryId: row?.service_category_id || row?.serviceCategoryId || null,
-    serviceCategoryLabel: row?.service_category_label || row?.serviceCategoryLabel || null,
-    preferredProviderId: row?.preferred_provider_id || row?.preferredProviderId || null,
-    preferredProviderName: row?.preferred_provider_name || row?.preferredProviderName || null,
-    preferredProviderEmail: row?.preferred_provider_email || row?.preferredProviderEmail || null,
-    requestSource: row?.request_source || row?.requestSource || null,
+    serviceCategoryId: metadata?.service_category_id || null,
+    serviceCategoryLabel: metadata?.service_category_label || null,
+    preferredProviderId: metadata?.preferred_provider_id || null,
+    preferredProviderName: metadata?.preferred_provider_name || null,
+    preferredProviderEmail: metadata?.preferred_provider_email || null,
+    requestSource: metadata?.request_source || null,
     _companyId: companyId,
     _storageKey: `${STORAGE_KEY}::${companyId}`,
     _createdBy: row?.created_by || row?._createdBy || '',
+    _dbId: row?.id || null,
     status: row?.status || 'new',
     assignedTo: row?.assigned_to || row?.assignedTo || null,
     assignedBy: row?.assigned_by || row?.assignedBy || null,
@@ -234,14 +243,15 @@ const mapDbRequestToLocal = (row) => {
 }
 
 const mapDbNotificationToLocal = (row) => {
-  const id = String(row?.notification_id || row?.external_id || row?.id || '')
+  const id = String((row?.metadata && row.metadata.local_id) || row?.id || '')
   if (!id) return null
+  const metadata = (row?.metadata && typeof row.metadata === 'object') ? row.metadata : {}
   return {
     id,
     type: row?.type || 'request_update',
-    requestId: row?.request_id || row?.requestId || null,
-    requestCompanyId: row?.company_id || row?.request_company_id || row?.requestCompanyId || null,
-    requestCompanyDomain: row?.request_company_domain || row?.requestCompanyDomain || '',
+    requestId: metadata?.local_request_id || row?.request_id || null,
+    requestCompanyId: row?.company_id || null,
+    requestCompanyDomain: metadata?.request_company_domain || '',
     title: row?.title || 'Request update',
     message: row?.message || '',
     priority: row?.priority || 'Normal',
@@ -250,6 +260,129 @@ const mapDbNotificationToLocal = (row) => {
     read: Boolean(row?.read),
     readBy: Array.isArray(row?.read_by) ? row.read_by : Array.isArray(row?.readBy) ? row.readBy : [],
     createdAt: row?.created_at || row?.createdAt || new Date().toISOString(),
+    _dbId: row?.id || null,
+  }
+}
+
+const toDbRequestPayload = (request) => ({
+  company_id: getAuthCompanyId(),
+  services: Array.isArray(request?.services) ? request.services : [],
+  industry_id: request?.industryId || null,
+  company_name: request?.companyName || null,
+  contact_name: request?.contactName || null,
+  email: normalizeEmail(request?.email),
+  phone: request?.phone || null,
+  address: request?.address || null,
+  preferred_date: request?.preferredDate || null,
+  priority: String(request?.priority || 'normal').toLowerCase(),
+  description: request?.description || '',
+  notes: request?.notes || '',
+  attachment_names: Array.isArray(request?.attachmentNames) ? request.attachmentNames : [],
+  account_type: request?.accountType || null,
+  created_by: getAuthUserId(),
+  status: request?.status || 'new',
+  assigned_to: normalizeEmail(request?.assignedTo),
+  assigned_by: normalizeEmail(request?.assignedBy),
+  assigned_at: request?.assignedAt || null,
+  admin_notes: Array.isArray(request?.adminNotes) ? request.adminNotes : [],
+  metadata: {
+    local_id: request?.id || null,
+    industry_label: request?.industryLabel || null,
+    service_category_id: request?.serviceCategoryId || null,
+    service_category_label: request?.serviceCategoryLabel || null,
+    preferred_provider_id: request?.preferredProviderId || null,
+    preferred_provider_name: request?.preferredProviderName || null,
+    preferred_provider_email: normalizeEmail(request?.preferredProviderEmail),
+    request_source: request?.requestSource || null,
+  },
+  created_at: request?.createdAt || new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+})
+
+const toDbNotificationPayload = (notif) => ({
+  company_id: getAuthCompanyId(),
+  type: notif?.type || 'request_update',
+  request_id: null,
+  title: notif?.title || 'Request update',
+  message: notif?.message || '',
+  priority: String(notif?.priority || 'normal').toLowerCase(),
+  from_email: normalizeEmail(notif?.fromEmail),
+  from_name: null,
+  from_company: null,
+  target_email: normalizeEmail(notif?.targetEmail),
+  read: Boolean(notif?.read),
+  read_by: Array.isArray(notif?.readBy) ? notif.readBy : [],
+  created_at: notif?.createdAt || new Date().toISOString(),
+})
+
+const getAuthSnapshot = () => {
+  try {
+    return JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+  } catch {
+    return {}
+  }
+}
+
+const getAuthCompanyId = () => {
+  const id = getAuthSnapshot()?.tenant?.id
+  return id || null
+}
+
+const getAuthUserId = () => {
+  const id = getAuthSnapshot()?.user?.id
+  return id || null
+}
+
+const persistRequestRecordToDatabase = async (request) => {
+  if (!isSupabaseConfigured || !request?.id) return
+  const companyId = getAuthCompanyId()
+  if (!companyId) return
+  const payload = toDbRequestPayload(request)
+  if (!payload.company_id) return
+  try {
+    const existing = await serviceRequestsService.list(companyId, {
+      limit: 1,
+      filters: [['metadata->>local_id', 'eq', String(request.id)]],
+    })
+    const match = Array.isArray(existing) ? existing[0] : null
+    if (match?.id) {
+      await serviceRequestsService.update(match.id, payload)
+    } else {
+      await serviceRequestsService.create(payload)
+    }
+  } catch {
+    // Local persistence remains available as fallback.
+  }
+}
+
+const persistNotificationBatchToDatabase = async (notifications) => {
+  if (!isSupabaseConfigured) return
+  const companyId = getAuthCompanyId()
+  if (!companyId) return
+  const rows = Array.isArray(notifications) ? notifications : []
+  for (let i = 0; i < rows.length; i += 1) {
+    const payload = toDbNotificationPayload(rows[i])
+    if (!payload.company_id) continue
+    try {
+      const existing = await notificationsService.list(companyId, {
+        limit: 1,
+        filters: [
+          ['type', 'eq', String(rows[i]?.type || 'request_update')],
+          ['target_email', 'eq', normalizeEmail(rows[i]?.targetEmail)],
+          ['created_at', 'eq', rows[i]?.createdAt || payload.created_at],
+        ],
+      })
+      const match = rows[i]?._dbId
+        ? { id: rows[i]._dbId }
+        : (Array.isArray(existing) ? existing[0] : null)
+      if (match?.id) {
+        await notificationsService.update(match.id, payload)
+      } else {
+        await notificationsService.create(payload)
+      }
+    } catch {
+      // Local persistence remains available as fallback.
+    }
   }
 }
 
@@ -335,12 +468,14 @@ function filterBySafe(list) {
   const role = getUserRole()
   const userId = getUserId()
   const companyId = getTenantId()
+  const currentDomain = getCompanyDomain(userId)
 
   // Superadmin and external auditor see all requests
   if (role === 'superadmin' || role === 'auditor_external') return list
 
   const companyFiltered = list.filter((r) =>
-    (r._companyId || getCompanyDomain(r.email)) === companyId
+    (r._companyId || getCompanyDomain(r.email)) === companyId ||
+    getCompanyDomain(r.email) === currentDomain
   )
 
   // Admin, internal auditor, and manager see all company requests
@@ -356,10 +491,11 @@ function canManageRequest(request) {
   const role = getUserRole()
   const userId = getUserId()
   const companyId = getTenantId()
+  const currentDomain = getCompanyDomain(userId)
   if (!request) return false
   if (role === 'superadmin') return true
   const requestCompany = request._companyId || getCompanyDomain(request.email)
-  if (requestCompany !== companyId) return false
+  if (requestCompany !== companyId && getCompanyDomain(request.email) !== currentDomain) return false
   if (role === 'admin' || role === 'manager') return true
   return String(request.assignedTo || '').toLowerCase() === userId
 }
@@ -499,6 +635,8 @@ export const useServiceRequestStore = create((set, get) => ({
         : [requestorNotif, ...get().globalNotifications]
     )
     saveGlobal(updatedGlobalNotifs)
+    void persistRequestRecordToDatabase(request)
+    void persistNotificationBatchToDatabase(notifBatch)
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
     return request
   },
@@ -555,7 +693,9 @@ export const useServiceRequestStore = create((set, get) => ({
     save(NOTIF_KEY, updatedNotifs)
     const updatedGlobalNotifs = dedupeById([...notifsToAdd, ...get().globalNotifications])
     saveGlobal(updatedGlobalNotifs)
-
+    const updatedRequest = updated.find((r) => r.id === requestId)
+    void persistRequestRecordToDatabase(updatedRequest)
+    void persistNotificationBatchToDatabase(notifsToAdd)
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
   },
 
@@ -609,9 +749,12 @@ export const useServiceRequestStore = create((set, get) => ({
       const updatedGlobal = dedupeById([...lifecycleNotifs, ...get().globalNotifications])
       save(NOTIF_KEY, updatedNotifs)
       saveGlobal(updatedGlobal)
+      void persistRequestRecordToDatabase(nextReq)
+      void persistNotificationBatchToDatabase(lifecycleNotifs)
       set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobal })
       return
     }
+    void persistRequestRecordToDatabase(nextReq)
     set({ requests: updated })
   },
 
@@ -632,6 +775,8 @@ export const useServiceRequestStore = create((set, get) => ({
       return { ...r, adminNotes, updatedAt: new Date().toISOString() }
     })
     persistRequestsByRole(updated)
+    const updatedRequest = updated.find((r) => r.id === requestId)
+    void persistRequestRecordToDatabase(updatedRequest)
     set({ requests: updated })
   },
 
@@ -658,6 +803,8 @@ export const useServiceRequestStore = create((set, get) => ({
       save(NOTIF_KEY, updated)
     }
     saveGlobal(updatedGlobal)
+    const synced = [...updated, ...updatedGlobal].filter((n) => n.id === notifId)
+    void persistNotificationBatchToDatabase(synced)
     set({ notifications: updated, globalNotifications: updatedGlobal })
   },
 
@@ -674,9 +821,40 @@ export const useServiceRequestStore = create((set, get) => ({
     if (!isSupabaseConfigured) return
     set({ isRefreshing: true })
     try {
-      const [dbRequestsRaw, dbNotificationsRaw] = await Promise.all([
-        serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => []),
-        notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => []),
+      const role = getUserRole()
+      const companyId = getAuthCompanyId()
+      const userEmail = normalizeEmail(getAuthSnapshot()?.user?.email)
+      const canSeeAll = role === 'superadmin' || role === 'auditor_external'
+
+      const requestsPromise = canSeeAll
+        ? serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+        : (companyId
+          ? serviceRequestsService.list(companyId, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+          : Promise.resolve([]))
+
+      const notificationsByCompanyPromise = canSeeAll
+        ? notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+        : (companyId
+          ? notificationsService.list(companyId, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+          : Promise.resolve([]))
+
+      const notificationsByTargetPromise = canSeeAll || !userEmail
+        ? Promise.resolve([])
+        : notificationsService.list(null, {
+          limit: 500,
+          orderBy: 'created_at',
+          ascending: false,
+          filters: [['target_email', 'eq', userEmail]],
+        }).catch(() => [])
+
+      const [dbRequestsRaw, dbNotificationsByCompanyRaw, dbNotificationsByTargetRaw] = await Promise.all([
+        requestsPromise,
+        notificationsByCompanyPromise,
+        notificationsByTargetPromise,
+      ])
+      const dbNotificationsRaw = dedupeById([
+        ...(Array.isArray(dbNotificationsByCompanyRaw) ? dbNotificationsByCompanyRaw : []),
+        ...(Array.isArray(dbNotificationsByTargetRaw) ? dbNotificationsByTargetRaw : []),
       ])
       const dbRequests = (Array.isArray(dbRequestsRaw) ? dbRequestsRaw : [])
         .map(mapDbRequestToLocal)

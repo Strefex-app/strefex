@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useIndustryStore } from '../store/industryStore'
 import { getEffectiveLimits } from '../services/stripeService'
+import authService from '../services/authService'
 import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './Home.css'
@@ -227,13 +228,14 @@ export default function ProductHub() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowPicker(false)
-                    navigate('/login')
+                    await authService.logout().catch(() => {})
+                    navigate('/register')
                   }}
                   style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#2e7d32', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                 >
-                  Go to Sign In
+                  Sign Out & Register
                 </button>
               </div>
             </div>
