@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { useServiceRequestStore } from './store/serviceRequestStore'
 import { useSubscriptionStore } from './services/featureFlags'
 import ProtectedRoute from './components/ProtectedRoute'
 import AccountTypeRoute from './components/AccountTypeRoute'
@@ -137,6 +138,8 @@ function PlanGate({ feature, planName, children, requiredRole }) {
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const startRequestRefresh = useServiceRequestStore((s) => s.startRefreshSequence)
+  const stopRequestRefresh = useServiceRequestStore((s) => s.stopRefreshSequence)
   const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
@@ -158,6 +161,16 @@ function App() {
     })
     return unsub
   }, [])
+
+  useEffect(() => {
+    if (!sessionChecked) return undefined
+    if (isAuthenticated) {
+      startRequestRefresh()
+      return () => stopRequestRefresh()
+    }
+    stopRequestRefresh()
+    return undefined
+  }, [isAuthenticated, sessionChecked, startRequestRefresh, stopRequestRefresh])
 
   // While verifying the session, show a minimal loading screen
   // to prevent flash of login page or unauthorized protected content

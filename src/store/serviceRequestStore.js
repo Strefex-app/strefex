@@ -14,6 +14,7 @@
  */
 import { create } from 'zustand'
 import { getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
+import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
 
 const STORAGE_KEY = 'strefex-service-requests'
 const NOTIF_KEY = 'strefex-service-notifications'
@@ -101,6 +102,11 @@ const dedupeById = (items) => {
   return [...map.values()]
 }
 
+let _refreshTimer = null
+let _refreshStorageListener = null
+let _refreshFocusListener = null
+let _refreshVisibilityListener = null
+
 const stripStorageMeta = (request) => {
   const next = { ...request }
   delete next._storageKey
@@ -132,6 +138,119 @@ const loadRequestsByRole = () => {
   }
 
   return dedupeById(merged)
+}
+
+const loadNotificationsByRole = () => {
+  const role = getUserRole()
+  const scopedKey = tenantKey(NOTIF_KEY)
+  const canSeeAllTenants = role === 'superadmin' || role === 'auditor_external'
+  if (!canSeeAllTenants) return load(NOTIF_KEY)
+  const merged = []
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i)
+    if (!key || !key.startsWith(`${NOTIF_KEY}::`)) continue
+    try {
+      const raw = localStorage.getItem(key)
+      const rows = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(rows)) continue
+      rows.forEach((row) => merged.push({ ...row, _storageKey: key }))
+    } catch {
+      // ignore malformed tenant buckets
+    }
+  }
+  if (merged.length === 0) return load(NOTIF_KEY).map((n) => ({ ...n, _storageKey: scopedKey }))
+  return dedupeById(merged)
+}
+
+const persistReadFlagAcrossTenantNotifBuckets = (notifId, readerEmail) => {
+  const normalizedReader = normalizeEmail(readerEmail)
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i)
+    if (!key || !key.startsWith(`${NOTIF_KEY}::`)) continue
+    try {
+      const raw = localStorage.getItem(key)
+      const rows = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(rows)) continue
+      let changed = false
+      const next = rows.map((n) => {
+        if (n?.id !== notifId) return n
+        const readBy = Array.isArray(n.readBy) ? [...n.readBy] : []
+        if (!readBy.includes(normalizedReader)) readBy.push(normalizedReader)
+        changed = true
+        return { ...n, read: true, readBy }
+      })
+      if (changed) saveByFullKey(key, next)
+    } catch {
+      // ignore malformed tenant buckets
+    }
+  }
+}
+
+const mapDbRequestToLocal = (row) => {
+  const companyId = String(row?.company_id || row?.request_company_id || getTenantId())
+  const services = Array.isArray(row?.services)
+    ? row.services
+    : String(row?.services || row?.service_labels || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+  const createdAt = row?.created_at || row?.createdAt || new Date().toISOString()
+  const updatedAt = row?.updated_at || row?.updatedAt || createdAt
+  const id = String(row?.request_id || row?.external_id || row?.id || '')
+  if (!id) return null
+  return {
+    id,
+    services,
+    industryId: row?.industry_id || row?.industryId || null,
+    industryLabel: row?.industry_label || row?.industryLabel || null,
+    companyName: row?.company_name || row?.companyName || '',
+    contactName: row?.contact_name || row?.contactName || '',
+    email: row?.requester_email || row?.email || '',
+    phone: row?.phone || '',
+    address: row?.address || '',
+    preferredDate: row?.preferred_date || row?.preferredDate || '',
+    priority: row?.priority || 'Normal',
+    description: row?.description || '',
+    notes: row?.notes || '',
+    attachmentNames: Array.isArray(row?.attachment_names) ? row.attachment_names : [],
+    accountType: row?.account_type || row?.accountType || 'unknown',
+    serviceCategoryId: row?.service_category_id || row?.serviceCategoryId || null,
+    serviceCategoryLabel: row?.service_category_label || row?.serviceCategoryLabel || null,
+    preferredProviderId: row?.preferred_provider_id || row?.preferredProviderId || null,
+    preferredProviderName: row?.preferred_provider_name || row?.preferredProviderName || null,
+    preferredProviderEmail: row?.preferred_provider_email || row?.preferredProviderEmail || null,
+    requestSource: row?.request_source || row?.requestSource || null,
+    _companyId: companyId,
+    _storageKey: `${STORAGE_KEY}::${companyId}`,
+    _createdBy: row?.created_by || row?._createdBy || '',
+    status: row?.status || 'new',
+    assignedTo: row?.assigned_to || row?.assignedTo || null,
+    assignedBy: row?.assigned_by || row?.assignedBy || null,
+    assignedAt: row?.assigned_at || row?.assignedAt || null,
+    adminNotes: Array.isArray(row?.admin_notes) ? row.admin_notes : [],
+    createdAt,
+    updatedAt,
+  }
+}
+
+const mapDbNotificationToLocal = (row) => {
+  const id = String(row?.notification_id || row?.external_id || row?.id || '')
+  if (!id) return null
+  return {
+    id,
+    type: row?.type || 'request_update',
+    requestId: row?.request_id || row?.requestId || null,
+    requestCompanyId: row?.company_id || row?.request_company_id || row?.requestCompanyId || null,
+    requestCompanyDomain: row?.request_company_domain || row?.requestCompanyDomain || '',
+    title: row?.title || 'Request update',
+    message: row?.message || '',
+    priority: row?.priority || 'Normal',
+    fromEmail: row?.from_email || row?.fromEmail || '',
+    targetEmail: row?.target_email || row?.targetEmail || '',
+    read: Boolean(row?.read),
+    readBy: Array.isArray(row?.read_by) ? row.read_by : Array.isArray(row?.readBy) ? row.readBy : [],
+    createdAt: row?.created_at || row?.createdAt || new Date().toISOString(),
+  }
 }
 
 const persistRequestsByRole = (requests) => {
@@ -249,8 +368,10 @@ let _nextId = Date.now()
 
 export const useServiceRequestStore = create((set, get) => ({
   requests: loadRequestsByRole(),
-  notifications: load(NOTIF_KEY),
+  notifications: loadNotificationsByRole(),
   globalNotifications: loadGlobal(),
+  isRefreshing: false,
+  lastRefreshedAt: null,
 
   canEditServiceRequest: () => {
     const r = getUserRole()
@@ -531,9 +652,109 @@ export const useServiceRequestStore = create((set, get) => ({
       if (!readBy.includes(normalizedReader)) readBy.push(normalizedReader)
       return { ...n, read: true, readBy }
     })
-    save(NOTIF_KEY, updated)
+    if (getUserRole() === 'superadmin' || getUserRole() === 'auditor_external') {
+      persistReadFlagAcrossTenantNotifBuckets(notifId, normalizedReader)
+    } else {
+      save(NOTIF_KEY, updated)
+    }
     saveGlobal(updatedGlobal)
     set({ notifications: updated, globalNotifications: updatedGlobal })
+  },
+
+  refreshFromStorage: () => {
+    set({
+      requests: loadRequestsByRole(),
+      notifications: loadNotificationsByRole(),
+      globalNotifications: loadGlobal(),
+      lastRefreshedAt: new Date().toISOString(),
+    })
+  },
+
+  refreshFromDatabase: async () => {
+    if (!isSupabaseConfigured) return
+    set({ isRefreshing: true })
+    try {
+      const [dbRequestsRaw, dbNotificationsRaw] = await Promise.all([
+        serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => []),
+        notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => []),
+      ])
+      const dbRequests = (Array.isArray(dbRequestsRaw) ? dbRequestsRaw : [])
+        .map(mapDbRequestToLocal)
+        .filter(Boolean)
+      const dbNotifications = (Array.isArray(dbNotificationsRaw) ? dbNotificationsRaw : [])
+        .map(mapDbNotificationToLocal)
+        .filter(Boolean)
+
+      if (dbRequests.length > 0) {
+        const merged = dedupeById([...dbRequests, ...loadRequestsByRole()])
+        persistRequestsByRole(merged)
+      }
+      if (dbNotifications.length > 0) {
+        const mergedNotifs = dedupeById([...dbNotifications, ...loadNotificationsByRole()])
+        save(NOTIF_KEY, mergedNotifs)
+      }
+      set({
+        requests: loadRequestsByRole(),
+        notifications: loadNotificationsByRole(),
+        globalNotifications: loadGlobal(),
+        lastRefreshedAt: new Date().toISOString(),
+      })
+    } finally {
+      set({ isRefreshing: false })
+    }
+  },
+
+  startRefreshSequence: () => {
+    const run = () => {
+      get().refreshFromStorage()
+      get().refreshFromDatabase().catch(() => {})
+    }
+    run()
+    if (!_refreshTimer) {
+      _refreshTimer = setInterval(run, 12000)
+    }
+    if (!_refreshStorageListener) {
+      _refreshStorageListener = (e) => {
+        if (!e?.key) return
+        if (
+          e.key.startsWith(`${STORAGE_KEY}::`) ||
+          e.key.startsWith(`${NOTIF_KEY}::`) ||
+          e.key === GLOBAL_NOTIF_KEY
+        ) {
+          run()
+        }
+      }
+      window.addEventListener('storage', _refreshStorageListener)
+    }
+    if (!_refreshFocusListener) {
+      _refreshFocusListener = () => run()
+      window.addEventListener('focus', _refreshFocusListener)
+    }
+    if (!_refreshVisibilityListener) {
+      _refreshVisibilityListener = () => {
+        if (document.visibilityState === 'visible') run()
+      }
+      document.addEventListener('visibilitychange', _refreshVisibilityListener)
+    }
+  },
+
+  stopRefreshSequence: () => {
+    if (_refreshTimer) {
+      clearInterval(_refreshTimer)
+      _refreshTimer = null
+    }
+    if (_refreshStorageListener) {
+      window.removeEventListener('storage', _refreshStorageListener)
+      _refreshStorageListener = null
+    }
+    if (_refreshFocusListener) {
+      window.removeEventListener('focus', _refreshFocusListener)
+      _refreshFocusListener = null
+    }
+    if (_refreshVisibilityListener) {
+      document.removeEventListener('visibilitychange', _refreshVisibilityListener)
+      _refreshVisibilityListener = null
+    }
   },
 
   /**
