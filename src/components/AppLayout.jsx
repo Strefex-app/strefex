@@ -145,7 +145,7 @@ export default function AppLayout({ children }) {
 
       <aside className={`app-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
-          <img src="/assets/strefex-logo.svg" alt="STREFEX" className="sidebar-logo-img" />
+          <img src="/assets/strefex-logo-user-exact.png" alt="STREFEX" className="sidebar-logo-img" />
           <button
             type="button"
             className="sidebar-close-btn"
