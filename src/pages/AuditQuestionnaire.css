@@ -234,7 +234,7 @@
   overflow-x: auto;
 }
 
-.nav-item {
+.audit-q-nav .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -247,11 +247,11 @@
   white-space: nowrap;
 }
 
-.nav-item:hover {
+.audit-q-nav .nav-item:hover {
   background: #f0f2f5;
 }
 
-.nav-item.active {
+.audit-q-nav .nav-item.active {
   background: #fff;
   border-color: var(--nav-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

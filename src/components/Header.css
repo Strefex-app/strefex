@@ -27,13 +27,15 @@
   height: 40px;
   width: auto;
   object-fit: contain;
-  filter: invert(1);
-  mix-blend-mode: multiply;
+  /* Keep logo treatment consistent with navigation surfaces. */
+  filter: brightness(0) invert(1);
+  mix-blend-mode: normal;
+  opacity: 0.95;
 }
 
 [data-theme="dark"] .header-logo .logo-image {
-  filter: none;
-  mix-blend-mode: lighten;
+  filter: brightness(0) invert(1);
+  mix-blend-mode: normal;
 }
 
 .header-actions {

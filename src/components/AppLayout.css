@@ -25,7 +25,9 @@
   height: 40px;
   width: auto;
   object-fit: contain;
-  mix-blend-mode: lighten;
+  filter: brightness(0) invert(1);
+  mix-blend-mode: normal;
+  opacity: 0.95;
 }
 
 .sidebar-close-btn {

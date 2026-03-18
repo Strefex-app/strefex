@@ -31,16 +31,16 @@ const BottomNav = () => {
         return (
           <button
             key={item.id}
-            className={`nav-item ${isActive ? 'active' : ''}`}
+            className={`bottom-nav-item ${isActive ? 'active' : ''}`}
             onClick={() => handleNavClick(item.path)}
           >
-            <div className="nav-icon">
+            <div className="bottom-nav-icon">
               <Icon name={item.icon} size={24} />
               {item.id === 'notifications' && unreadCount > 0 && (
-                <span className="nav-notif-badge">+{unreadCount > 99 ? '99' : unreadCount}</span>
+                <span className="bottom-nav-notif-badge">+{unreadCount > 99 ? '99' : unreadCount}</span>
               )}
             </div>
-            <span className="nav-label">{item.label}</span>
+            <span className="bottom-nav-label">{item.label}</span>
           </button>
         )
       })}
