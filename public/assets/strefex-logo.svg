@@ -1,10 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 100" fill="none">
-  <!-- STR letters in black -->
-  <text x="0" y="82" font-family="Georgia, 'Times New Roman', serif" font-size="92" font-weight="bold" fill="#000000" letter-spacing="-2">STR</text>
-  <!-- Chevron E mark in Navy Blue -->
-  <polygon points="222,18 262,18 240,42 200,42" fill="#192A56"/>
-  <polygon points="210,46 250,46 228,70 188,70" fill="#192A56"/>
-  <polygon points="222,74 262,74 240,98 200,98" fill="#192A56"/>
-  <!-- FEX letters in black -->
-  <text x="268" y="82" font-family="Georgia, 'Times New Roman', serif" font-size="92" font-weight="bold" fill="#000000" letter-spacing="-2">FEX</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 220" fill="none">
+  <!-- Reference brand lockup in white, transparent background -->
+  <text x="30" y="165" font-family="Times New Roman, Georgia, serif" font-size="170" font-weight="700" letter-spacing="-4" fill="#FFFFFF">STR</text>
+  <polygon points="450,58 635,58 660,90 475,90" fill="#FFFFFF"/>
+  <polygon points="462,96 647,96 672,128 487,128" fill="#FFFFFF"/>
+  <polygon points="474,134 659,134 684,166 499,166" fill="#FFFFFF"/>
+  <text x="705" y="165" font-family="Times New Roman, Georgia, serif" font-size="170" font-weight="700" letter-spacing="-4" fill="#FFFFFF">FEX</text>
 </svg>

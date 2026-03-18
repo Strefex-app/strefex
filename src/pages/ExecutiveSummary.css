@@ -22,13 +22,7 @@
   height: 32px;
   width: auto;
   display: block;
-  filter: invert(1);
-  mix-blend-mode: multiply;
-}
-
-[data-theme="dark"] .exec-logo-img {
-  filter: none;
-  mix-blend-mode: lighten;
+  background: transparent;
 }
 
 .exec-subtitle {

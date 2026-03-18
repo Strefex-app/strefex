@@ -326,7 +326,7 @@ const ExecutiveSummary = () => {
           <div className="exec-header">
             <div className="exec-header-left">
               <div className="exec-logo-container">
-                <img src="/assets/strefex-logo.svg" alt="STREFEX" className="exec-logo-img" />
+                <img src="/assets/strefex-logo-black.svg" alt="STREFEX" className="exec-logo-img" />
               </div>
               <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
               <p className="app-page-subtitle">

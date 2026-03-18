@@ -29,7 +29,7 @@
   height: 80px;
   width: auto;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: none;
   mix-blend-mode: normal;
   opacity: 1;
   background: transparent;
