@@ -1020,6 +1020,7 @@ export default function VendorDetail() {
           <div className="vd-header-right">
             <span className="vd-status-badge" style={{ color: sm.color, background: sm.bg }}>{sm.label}</span>
             <div className="vd-header-actions">
+              <button className="vd-btn-sm blue" onClick={() => navigate(`/suppliers/${vendor.id}`)}>Supplier Profile</button>
               {vendor.status === 'pending_approval' && <button className="vd-btn primary small" onClick={() => { approveVendor(vendor.id); flash('Vendor approved') }}>Approve</button>}
               {vendor.status === 'active' && <button className="vd-btn-sm red" onClick={() => { blockVendor(vendor.id, 'Blocked by admin'); flash('Vendor blocked') }}>Block</button>}
               {vendor.status === 'blocked' && <button className="vd-btn-sm green" onClick={() => { setVendorStatus(vendor.id, 'active', 'Reactivated'); flash('Vendor reactivated') }}>Reactivate</button>}

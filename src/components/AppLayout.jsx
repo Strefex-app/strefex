@@ -23,6 +23,9 @@ import './AppLayout.css'
 const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
+  { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
+  { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'vendors' },
+  { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
   { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
@@ -31,6 +34,8 @@ const SIDEBAR_NAV = [
   { id: 'ai-insights', label: 'AI Insights', path: '/ai-insights', icon: 'ai', requiredPlan: 'aiInsights', minRole: 'manager' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: 'templates', requiredPlan: 'templateLibrary' },
   { id: 'admin-approvals', label: 'Admin Approvals', path: '/admin/approvals', icon: 'admin-dashboard', minRole: 'admin' },
+  { id: 'supplier-governance', label: 'Supplier Governance', path: '/admin/supplier-governance', icon: 'admin-dashboard', minRole: 'superadmin' },
+  { id: 'data-ingestion', label: 'Data Ingestion', path: '/admin/data-ingestion', icon: 'admin-dashboard', minRole: 'superadmin' },
   { id: 'payment', tKey: 'nav.payment', path: '/payment', icon: 'card' },
   { id: 'plans', tKey: 'nav.plans', path: '/plans', icon: 'plan' },
   { id: 'settings', tKey: 'nav.settings', path: '/settings', icon: 'settings' },

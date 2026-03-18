@@ -79,4 +79,55 @@ export const emailService = {
       }, 500)
     })
   },
+
+  // RFQ invite email to supplier
+  sendRfqInvite: async ({ email, supplierName, rfqTitle, deadline, buyerName }) => {
+    const emailData = {
+      to: email,
+      subject: `RFQ Invitation - ${rfqTitle}`,
+      body: `
+        Dear ${supplierName || 'Supplier'},
+
+        You have been invited to respond to an RFQ.
+
+        RFQ: ${rfqTitle}
+        Buyer: ${buyerName || 'Buyer'}
+        Deadline: ${deadline ? new Date(deadline).toLocaleString() : 'Not specified'}
+
+        Please sign in to submit your response.
+      `,
+    }
+    if (import.meta.env.DEV) console.log('📧 RFQ invite email:', emailData)
+    return new Promise((resolve) => setTimeout(() => resolve({ success: true, messageId: `email-${Date.now()}` }), 300))
+  },
+
+  // RFQ response notice to buyer
+  sendRfqResponseNotice: async ({ buyerEmail, rfqTitle, supplierName }) => {
+    if (!buyerEmail) return { success: false, skipped: true }
+    const emailData = {
+      to: buyerEmail,
+      subject: `RFQ Response Received - ${rfqTitle}`,
+      body: `
+        A supplier has submitted a response for RFQ "${rfqTitle}".
+        Supplier: ${supplierName || 'Supplier'}
+      `,
+    }
+    if (import.meta.env.DEV) console.log('📧 RFQ response email:', emailData)
+    return new Promise((resolve) => setTimeout(() => resolve({ success: true, messageId: `email-${Date.now()}` }), 300))
+  },
+
+  // RFQ deadline reminder email to supplier
+  sendRfqReminder: async ({ email, rfqTitle, deadline, hoursLeft }) => {
+    if (!email) return { success: false, skipped: true }
+    const emailData = {
+      to: email,
+      subject: `Reminder: RFQ deadline approaching - ${rfqTitle}`,
+      body: `
+        Reminder: RFQ "${rfqTitle}" expires in about ${hoursLeft} hour(s).
+        Deadline: ${deadline ? new Date(deadline).toLocaleString() : 'Not specified'}
+      `,
+    }
+    if (import.meta.env.DEV) console.log('📧 RFQ reminder email:', emailData)
+    return new Promise((resolve) => setTimeout(() => resolve({ success: true, messageId: `email-${Date.now()}` }), 300))
+  },
 }

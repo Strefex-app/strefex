@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import AppLayout from '../components/AppLayout'
+import industrialIntelligenceService from '../services/industrialIntelligenceService'
 import './BuyerDashboard.css'
 
 /* ── Status badge helper ──────────────────────────────────── */
@@ -54,6 +55,14 @@ export default function BuyerDashboard() {
   }
 
   const [activeTab, setActiveTab] = useState('all')
+  const [rfqTracking, setRfqTracking] = useState([])
+
+  useEffect(() => {
+    void industrialIntelligenceService
+      .listBuyerRfqTracking()
+      .then((rows) => setRfqTracking(rows || []))
+      .catch(() => setRfqTracking([]))
+  }, [])
 
   const filteredRfqs = activeTab === 'all'
     ? rfqs
@@ -248,6 +257,42 @@ export default function BuyerDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="bd-card" style={{ marginTop: 16 }}>
+          <div className="bd-card-header">
+            <h2 className="bd-card-title">RFQ Tracking Table</h2>
+          </div>
+          {rfqTracking.length === 0 ? (
+            <div className="bd-empty">No RFQ tracking records yet.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="bd-rfq-track-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>RFQ</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Invited</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Viewed</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Responded</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Closed</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rfqTracking.map((row) => (
+                    <tr key={row.id}>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.title}</td>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.invited_count || 0}</td>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.viewed_count || 0}</td>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.responded_count || 0}</td>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.closed_count || 0}</td>
+                      <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{row.deadline || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

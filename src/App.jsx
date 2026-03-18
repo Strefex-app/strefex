@@ -107,6 +107,12 @@ import ServiceProviderDashboard from './pages/ServiceProviderDashboard'
 import RfqComparison from './pages/RfqComparison'
 import VendorManagement from './pages/VendorManagement'
 import VendorDetail from './pages/VendorDetail'
+import SupplierProfilePage from './pages/SupplierProfilePage'
+import SupplierDashboard from './pages/SupplierDashboard'
+import SupplierGovernanceAdmin from './pages/SupplierGovernanceAdmin'
+import BuyerWorkspace from './pages/BuyerWorkspace'
+import SupplierWorkspace from './pages/SupplierWorkspace'
+import AdminDataIngestion from './pages/AdminDataIngestion'
 import ProcurementDashboard from './pages/ProcurementDashboard'
 import ContractDashboard from './pages/ContractDashboard'
 import SpendAnalysis from './pages/SpendAnalysis'
@@ -221,12 +227,18 @@ function App() {
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
+          <Route path="/dashboard/buyer" element={<P><BuyerWorkspace /></P>} />
+          <Route path="/dashboard/supplier" element={<P><SupplierWorkspace /></P>} />
           <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
 
           {/* ── Vendor Management ────────────────────────── */}
           <Route path="/vendors" element={<P><VendorManagement /></P>} />
           <Route path="/vendors/:vendorId" element={<P><VendorDetail /></P>} />
+          <Route path="/suppliers/:supplierId" element={<P><SupplierProfilePage /></P>} />
+          <Route path="/supplier-dashboard" element={<P><SupplierDashboard /></P>} />
+          <Route path="/admin/supplier-governance" element={<SuperAdmin><SupplierGovernanceAdmin /></SuperAdmin>} />
+          <Route path="/admin/data-ingestion" element={<SuperAdmin><AdminDataIngestion /></SuperAdmin>} />
 
           {/* ── Hub pages (Home → Category → Industries) ──── */}
           <Route path="/equipment-hub" element={<P><EquipmentHub /></P>} />

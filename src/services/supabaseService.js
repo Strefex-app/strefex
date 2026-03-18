@@ -440,6 +440,46 @@ export const costDataService   = createCrudService('cost_data')
 export const enterpriseService = createCrudService('enterprise_data')
 export const fileMetadataService = createCrudService('file_metadata')
 export const subscriptionsService = createCrudService('subscriptions')
+export const supplierClaimsService = createCrudService('supplier_claims')
+export const supplierUsersService = createCrudService('supplier_users')
+export const supplierProfilesService = createCrudService('supplier_profiles')
+export const supplierProductsService = createCrudService('supplier_products')
+export const supplierCertificationsService = createCrudService('supplier_certifications')
+export const changeLogsService = createCrudService('change_logs')
+export const suppliersService = createCrudService('suppliers')
+export const supplierCapabilitiesService = createCrudService('supplier_capabilities')
+export const supplierAuditsService = createCrudService('supplier_audits')
+export const supplierScoresService = createCrudService('supplier_scores')
+export const buyersService = createCrudService('buyers')
+export const buyerUsersService = createCrudService('buyer_users')
+export const rfqSuppliersService = createCrudService('rfq_suppliers')
+export const rfqResponsesService = createCrudService('rfq_responses')
+export const supplierShortlistsService = createCrudService('supplier_shortlists')
+export const dataSourcesService = createCrudService('data_sources')
+export const supplierRawDataService = createCrudService('supplier_raw_data')
+export const supplierEmbeddingsService = createCrudService('supplier_embeddings')
+export const analyticsEventsService = createCrudService('analytics_events')
+
+export const supplierSearchService = {
+  async search(params = {}) {
+    if (!isSupabaseConfigured) return []
+    const payload = {
+      p_query: params.query || null,
+      p_country: params.country || null,
+      p_industry: params.industry || null,
+      p_process: params.process || null,
+      p_certification: params.certification || null,
+      p_min_audit_score: params.minAuditScore ?? null,
+      p_max_risk_score: params.maxRiskScore ?? null,
+      p_sort_by: params.sortBy || 'score',
+      p_limit: params.limit || 20,
+      p_offset: params.offset || 0,
+    }
+    const { data, error } = await supabase.rpc('search_suppliers', payload)
+    if (error) throw error
+    return data || []
+  },
+}
 
 /* ================================================================
    STORAGE — File uploads

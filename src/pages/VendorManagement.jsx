@@ -216,6 +216,7 @@ export default function VendorManagement() {
                     <td>
                       <div className="vm-row-actions" onClick={(e) => e.stopPropagation()}>
                         <button className="vm-btn-sm blue" onClick={() => navigate(`/vendors/${v.id}`)}>View</button>
+                        <button className="vm-btn-sm" onClick={() => navigate(`/suppliers/${v.id}`)}>Supplier Profile</button>
                         {v.status === 'pending_approval' && (
                           <button className="vm-btn-sm green" onClick={() => {
                             approveVendor(v.id)
