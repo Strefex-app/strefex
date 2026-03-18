@@ -1,8 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 220" fill="none">
-  <!-- Reference brand lockup in black, transparent background -->
-  <text x="30" y="165" font-family="Times New Roman, Georgia, serif" font-size="170" font-weight="700" letter-spacing="-4" fill="#101828">STR</text>
-  <polygon points="450,58 635,58 660,90 475,90" fill="#101828"/>
-  <polygon points="462,96 647,96 672,128 487,128" fill="#101828"/>
-  <polygon points="474,134 659,134 684,166 499,166" fill="#101828"/>
-  <text x="705" y="165" font-family="Times New Roman, Georgia, serif" font-size="170" font-weight="700" letter-spacing="-4" fill="#101828">FEX</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" fill="none">
+  <!-- Exact user-provided logo shape, recolored to black with transparent background -->
+  <defs>
+    <mask id="logo-shape-mask" x="0" y="0" width="640" height="180" maskUnits="userSpaceOnUse" style="mask-type:luminance">
+      <image
+        href="/assets/strefex-logo-user-exact.png"
+        x="0"
+        y="0"
+        width="640"
+        height="180"
+        preserveAspectRatio="xMidYMid meet"
+      />
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="640" height="180" fill="#101828" mask="url(#logo-shape-mask)" />
 </svg>
