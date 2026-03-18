@@ -30,7 +30,8 @@
   /* Keep logo treatment consistent with navigation surfaces. */
   filter: brightness(0) invert(1);
   mix-blend-mode: normal;
-  opacity: 0.95;
+  opacity: 1;
+  background: transparent;
 }
 
 [data-theme="dark"] .header-logo .logo-image {

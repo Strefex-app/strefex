@@ -9,7 +9,7 @@ const Header = () => {
     <header className="app-header">
       <div className="header-content">
         <div className="header-logo">
-          <img src="/assets/strefex-logo.png" alt="STREFEX Logo" className="logo-image" />
+          <img src="/assets/strefex-logo.svg" alt="STREFEX Logo" className="logo-image" />
         </div>
         <div className="header-actions">
           <div className="header-search stx-click-feedback">

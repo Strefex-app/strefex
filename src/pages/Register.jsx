@@ -240,7 +240,7 @@ function RegisterForm() {
     <div className="login-container">
       <div className="login-header">
         <div className="login-logo">
-          <img src="/assets/strefex-logo.png" alt="STREFEX Logo" className="logo-image" />
+          <img src="/assets/strefex-logo.svg" alt="STREFEX Logo" className="logo-image" />
         </div>
       </div>
 
