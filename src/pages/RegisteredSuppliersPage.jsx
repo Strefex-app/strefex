@@ -464,14 +464,7 @@ export default function RegisteredSuppliersPage() {
 
         <div className="app-page-card">
           <h2 className="app-page-title">Supplier directory</h2>
-          <p className="app-page-subtitle">
-            Same layout and columns as the <strong>buyer directory</strong> (segment, company, country, contacts).{' '}
-            <strong>Superadmin only.</strong> Plastic &amp; Stamping rows from the buyer directory are mirrored here after
-            migration <strong>020</strong>. Import your <strong>Company list (2025) for platform.xlsx</strong> via XLSX/CSV
-            — headers: Segment (optional), Company name, Country, Contact, Position, Email, Phone, Website, Industry. Run
-            migration <strong>022</strong> to attach presentations (PDF, images, PPT/PPTX, short videos) per supplier in{' '}
-            <strong>Edit</strong>.
-          </p>
+          <p className="app-page-subtitle">Registered supplier contacts.</p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
             <div className="app-page-toolbar-actions">
