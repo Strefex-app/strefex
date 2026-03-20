@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import supplierOwnershipService from '../services/supplierOwnershipService'
@@ -26,10 +26,12 @@ function useQuery() {
 
 export default function SupplierDashboard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const query = useQuery()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const requestedSupplierId = query.get('supplierId')
-  const [loading, setLoading] = useState(true)
+  const [membershipsLoading, setMembershipsLoading] = useState(true)
+  const [snapshotLoading, setSnapshotLoading] = useState(false)
   const [memberships, setMemberships] = useState([])
   const [supplierId, setSupplierId] = useState(requestedSupplierId || '')
   const [snapshot, setSnapshot] = useState(null)
@@ -41,17 +43,29 @@ export default function SupplierDashboard() {
   const [productDraft, setProductDraft] = useState(emptyProduct)
   const [certDraft, setCertDraft] = useState(emptyCertification)
 
-  const loadMemberships = async () => {
-    const rows = await supplierOwnershipService.listMyMemberships()
-    setMemberships(Array.isArray(rows) ? rows : [])
-    if (!supplierId && Array.isArray(rows) && rows.length > 0) {
-      setSupplierId(rows[0].supplier_id)
-    }
-  }
+  /* URL ?supplierId= wins over default membership */
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('supplierId')
+    if (id) setSupplierId(id)
+  }, [location.search])
 
-  const loadSnapshot = async (id) => {
+  const loadMemberships = useCallback(async () => {
+    setMembershipsLoading(true)
+    try {
+      const rows = await supplierOwnershipService.listMyMemberships()
+      setMemberships(Array.isArray(rows) ? rows : [])
+      const fromUrl = new URLSearchParams(location.search).get('supplierId')
+      if (!fromUrl && Array.isArray(rows) && rows.length > 0) {
+        setSupplierId((prev) => prev || rows[0].supplier_id)
+      }
+    } finally {
+      setMembershipsLoading(false)
+    }
+  }, [location.search])
+
+  const loadSnapshot = useCallback(async (id) => {
     if (!id) return
-    setLoading(true)
+    setSnapshotLoading(true)
     setError('')
     try {
       const data = await supplierOwnershipService.getSupplierSnapshot(id)
@@ -63,15 +77,16 @@ export default function SupplierDashboard() {
         phone: data?.profile?.phone || '',
       })
     } catch (err) {
+      setSnapshot(null)
       setError(err?.message || 'Failed to load supplier dashboard.')
     } finally {
-      setLoading(false)
+      setSnapshotLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadMemberships()
-  }, [])
+  }, [loadMemberships])
 
   useEffect(() => {
     if (!isSuperAdmin || !isSupabaseConfigured) {
@@ -99,10 +114,9 @@ export default function SupplierDashboard() {
   }, [isSuperAdmin])
 
   useEffect(() => {
-    if (supplierId) {
-      void loadSnapshot(supplierId)
-    }
-  }, [supplierId])
+    if (!supplierId) return
+    void loadSnapshot(supplierId)
+  }, [supplierId, loadSnapshot])
 
   const role = useMemo(() => {
     const found = memberships.find((m) => m.supplier_id === supplierId)
@@ -178,13 +192,13 @@ export default function SupplierDashboard() {
     }
   }
 
-  if (loading && !snapshot) {
+  if (membershipsLoading) {
     return (
       <AppLayout>
-        <div className="app-page">
+        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
           <div className="app-page-card">
             <h2 className="app-page-title">Supplier Dashboard</h2>
-            <p className="app-page-subtitle">Loading dashboard...</p>
+            <p className="app-page-subtitle">Loading your workspace…</p>
           </div>
         </div>
       </AppLayout>
@@ -195,6 +209,9 @@ export default function SupplierDashboard() {
     return (
       <AppLayout>
         <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+          <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
+            ← Partners
+          </button>
           {isSuperAdmin && (
             <div className="app-page-card app-page-callout" style={{ marginBottom: 16 }}>
               <h2 className="app-page-title">Supplier directory (platform registry)</h2>
@@ -256,6 +273,48 @@ export default function SupplierDashboard() {
     )
   }
 
+  if (snapshotLoading && !snapshot) {
+    return (
+      <AppLayout>
+        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+          <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
+            ← Partners
+          </button>
+          <div className="app-page-card">
+            <h2 className="app-page-title">Supplier Dashboard</h2>
+            <p className="app-page-subtitle">Loading supplier profile…</p>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (supplierId && !snapshotLoading && !snapshot && error) {
+    return (
+      <AppLayout>
+        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+          <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
+            ← Partners
+          </button>
+          <div className="app-page-card">
+            <h2 className="app-page-title">Supplier Dashboard</h2>
+            <p className="app-page-alert app-page-alert--error" role="alert">
+              {error}
+            </p>
+            <div className="app-page-btn-row" style={{ marginTop: 12 }}>
+              <button type="button" className="app-page-btn-primary" onClick={() => void loadSnapshot(supplierId)}>
+                Retry
+              </button>
+              <button type="button" className="app-page-btn-outline" onClick={() => navigate('/vendors')}>
+                Browse suppliers
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
+
   const vendorName = snapshot?.vendor?.general?.companyName || 'Supplier'
   const products = snapshot?.products || []
   const certs = snapshot?.certifications || []
@@ -266,7 +325,9 @@ export default function SupplierDashboard() {
   return (
     <AppLayout>
       <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <button type="button" className="app-page-back-link" onClick={() => navigate(-1)}>← Back</button>
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
+          ← Partners
+        </button>
 
         {isSuperAdmin && (
           <div className="app-page-card app-page-callout" style={{ marginBottom: 12 }}>

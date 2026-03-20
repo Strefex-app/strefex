@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { PLANS, getPlanById, BUYER_TRIAL_DAYS } from '../services/stripeService'
 import { PROMO_CODES } from '../services/featureFlags'
@@ -11,6 +12,7 @@ import useAuditStore, { MODULES as AUDIT_MODULES, SEVERITIES as AUDIT_SEVERITIES
 import { useAuthStore } from '../store/authStore'
 import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAuth'
 import authService from '../services/authService'
+import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
 /* ── Local storage keys (shared with stores) ─────────── */
@@ -221,6 +223,7 @@ function MiniBarChart({ items, maxVal }) {
  *  SUPER ADMIN DASHBOARD
  * ═══════════════════════════════════════════════════════ */
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate()
   const [accounts] = useState(loadDemoAccounts)
   const [tab, setTab] = useState('overview')     // overview | accounts | security | transactions | service-requests | roles | rfq-analytics | feature-grants
   const [search, setSearch] = useState('')
@@ -2228,47 +2231,103 @@ export default function SuperAdminDashboard() {
     }
     const sevColors = { info: '#2980b9', warning: '#e67e22', critical: '#e74c3c' }
     return (
-      <>
-        <div className="sad-kpis" style={{ marginBottom: 16 }}>
-          <div className="sad-kpi-card"><div className="sad-kpi-number">{stats.total}</div><div className="sad-kpi-label">Total Events</div></div>
-          <div className="sad-kpi-card"><div className="sad-kpi-number">{stats.today}</div><div className="sad-kpi-label">Today</div></div>
-          <div className="sad-kpi-card"><div className="sad-kpi-number" style={{ color: '#e74c3c' }}>{stats.critical}</div><div className="sad-kpi-label">Critical</div></div>
-          <div className="sad-kpi-card"><div className="sad-kpi-number" style={{ color: '#e67e22' }}>{stats.warnings}</div><div className="sad-kpi-label">Warnings</div></div>
-          <div className="sad-kpi-card"><div className="sad-kpi-number">{stats.uniqueUsers}</div><div className="sad-kpi-label">Users</div></div>
+      <div className="sad-widget sad-audit-widget">
+        <h2 className="sad-widget-title">System audit log</h2>
+        <p className="sad-audit-widget__desc">Platform-wide audit trail with filters (showing up to 100 events).</p>
+
+        <div className="sad-kpi-row sad-audit-kpis">
+          <div className="sad-kpi-card">
+            <div className="sad-kpi-val">{stats.total}</div>
+            <div className="sad-kpi-label">Total events</div>
+          </div>
+          <div className="sad-kpi-card">
+            <div className="sad-kpi-val">{stats.today}</div>
+            <div className="sad-kpi-label">Today</div>
+          </div>
+          <div className="sad-kpi-card">
+            <div className="sad-kpi-val" style={{ color: '#e74c3c' }}>{stats.critical}</div>
+            <div className="sad-kpi-label">Critical</div>
+          </div>
+          <div className="sad-kpi-card">
+            <div className="sad-kpi-val" style={{ color: '#e67e22' }}>{stats.warnings}</div>
+            <div className="sad-kpi-label">Warnings</div>
+          </div>
+          <div className="sad-kpi-card">
+            <div className="sad-kpi-val">{stats.uniqueUsers}</div>
+            <div className="sad-kpi-label">Users</div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <input placeholder="Search logs..." value={auditSearch} onChange={(e) => setAuditSearch(e.target.value)} style={{ padding: '6px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 12, minWidth: 180 }} />
-          <select value={auditModuleFilter} onChange={(e) => setAuditModuleFilter(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 8, fontSize: 12 }}>
-            <option value="all">All Modules</option>
-            {AUDIT_MODULES.map((m) => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
+
+        <div className="sad-audit-filters">
+          <input
+            className="sad-audit-search"
+            placeholder="Search logs…"
+            value={auditSearch}
+            onChange={(e) => setAuditSearch(e.target.value)}
+          />
+          <select className="sad-audit-select" value={auditModuleFilter} onChange={(e) => setAuditModuleFilter(e.target.value)}>
+            <option value="all">All modules</option>
+            {AUDIT_MODULES.map((m) => (
+              <option key={m} value={m}>
+                {m.charAt(0).toUpperCase() + m.slice(1)}
+              </option>
+            ))}
           </select>
-          <select value={auditSevFilter} onChange={(e) => setAuditSevFilter(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 8, fontSize: 12 }}>
-            <option value="all">All Severities</option>
-            {AUDIT_SEVERITIES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+          <select className="sad-audit-select" value={auditSevFilter} onChange={(e) => setAuditSevFilter(e.target.value)}>
+            <option value="all">All severities</option>
+            {AUDIT_SEVERITIES.map((s) => (
+              <option key={s} value={s}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
-        <div className="sad-section" style={{ overflowX: 'auto' }}>
-          <table className="sad-table" style={{ fontSize: 12 }}>
+
+        <div className="sad-table-wrap sad-audit-table-wrap">
+          <table className="sad-table sad-audit-table">
             <thead>
-              <tr><th>Time</th><th>Severity</th><th>User</th><th>Module</th><th>Action</th><th>Entity</th><th>Description</th></tr>
+              <tr>
+                <th>Time</th>
+                <th>Severity</th>
+                <th>User</th>
+                <th>Module</th>
+                <th>Action</th>
+                <th>Entity</th>
+                <th>Description</th>
+              </tr>
             </thead>
             <tbody>
               {filtered.slice(0, 100).map((l) => (
                 <tr key={l.id}>
-                  <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>{new Date(l.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                  <td><span style={{ color: sevColors[l.severity] || '#888', fontWeight: 800, fontSize: 10, textTransform: 'uppercase' }}>{l.severity}</span></td>
+                  <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>
+                    {new Date(l.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        color: sevColors[l.severity] || '#888',
+                        fontWeight: 800,
+                        fontSize: 10,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {l.severity}
+                    </span>
+                  </td>
                   <td style={{ fontWeight: 600 }}>{l.user}</td>
-                  <td><span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'rgba(0,8,136,.06)', color: '#000888' }}>{l.module}</span></td>
+                  <td>
+                    <span className="sad-audit-module-pill">{l.module}</span>
+                  </td>
                   <td style={{ fontSize: 11 }}>{l.action.replace(/_/g, ' ')}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: '#000888' }}>{l.entity}</td>
-                  <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.description}</td>
+                  <td className="sad-audit-entity">{l.entity}</td>
+                  <td className="sad-audit-desc">{l.description}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && <p style={{ textAlign: 'center', color: '#999', padding: 20 }}>No audit logs match filters.</p>}
+          {filtered.length === 0 && <p className="sad-audit-empty">No audit logs match filters.</p>}
         </div>
-      </>
+      </div>
     )
   }
 
@@ -2516,6 +2575,9 @@ export default function SuperAdminDashboard() {
   return (
     <AppLayout>
       <div className="sad-page">
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/governance')}>
+          ← Admin
+        </button>
         {/* Header */}
         <div className="sad-header">
           <div>

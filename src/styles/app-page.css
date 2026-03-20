@@ -193,10 +193,19 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
+  font-weight: 500;
   color: var(--color-secondary);
   margin-bottom: 16px;
   text-decoration: none;
   cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+button.app-page-back-link {
+  text-align: left;
 }
 
 .app-page-back-link:hover {
@@ -248,9 +257,11 @@
 /* ── Primary / outline buttons (AppLayout pages) ─────────── */
 .app-page-btn-primary,
 .app-page-btn-outline,
+.app-page-btn-secondary,
 .app-page-btn-danger,
 a.app-page-btn-primary,
-a.app-page-btn-outline {
+a.app-page-btn-outline,
+a.app-page-btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -290,6 +301,39 @@ a.app-page-btn-outline {
   border-color: var(--accent);
 }
 
+/* Secondary = same as outline (explicit class for pages that already use "secondary") */
+.app-page-btn-secondary {
+  background: var(--bg-card);
+  color: var(--color-primary);
+  border-color: var(--border-color);
+}
+
+.app-page-btn-secondary:hover:not(:disabled) {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.app-page-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--link-color);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.app-page-btn-ghost:hover:not(:disabled) {
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+
 .app-page-btn-danger {
   background: var(--danger-light);
   color: var(--danger-text);
@@ -310,7 +354,9 @@ a.app-page-btn-outline {
 
 .app-page-btn-primary:disabled,
 .app-page-btn-outline:disabled,
-.app-page-btn-danger:disabled {
+.app-page-btn-secondary:disabled,
+.app-page-btn-danger:disabled,
+.app-page-btn-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -337,6 +383,10 @@ a.app-page-btn-outline {
   color: #067647;
 }
 
+.app-page-alert--info {
+  color: var(--color-secondary);
+}
+
 [data-theme="dark"] .app-page-alert--success {
   color: #6ee7b7;
 }
@@ -358,9 +408,11 @@ a.app-page-btn-outline {
 
   .app-page-btn-primary,
   .app-page-btn-outline,
+  .app-page-btn-secondary,
   .app-page-btn-danger,
   a.app-page-btn-primary,
-  a.app-page-btn-outline {
+  a.app-page-btn-outline,
+  a.app-page-btn-secondary {
     padding: 9px 14px;
     font-size: 13px;
   }

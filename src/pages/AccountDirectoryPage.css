@@ -1,0 +1,54 @@
+/* Account directory — table chrome (page shell matches Seller Dashboard / sd-*) */
+
+.ad-muted {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.ad-table-wrap {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow-x: auto;
+  background: var(--bg-card);
+}
+
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ad-table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  background: var(--bg-surface);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.ad-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--color-secondary);
+  vertical-align: top;
+}
+
+.ad-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ad-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+.ad-card-header-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+  align-self: center;
+}

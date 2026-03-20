@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import Icon from '../../components/Icon'
 import { useAuthStore } from '../../store/authStore'
@@ -9,6 +9,7 @@ import './HubPages.css'
  * Admin & superadmin tools: approvals, governance, data pipeline, consoles.
  */
 export default function GovernanceHub() {
+  const navigate = useNavigate()
   const hasRole = useAuthStore((s) => s.hasRole)
   const isSuperAdmin = hasRole('superadmin')
   const isAdmin = hasRole('admin')
@@ -16,6 +17,9 @@ export default function GovernanceHub() {
   return (
     <AppLayout>
       <div className="app-page hub-landing">
+        <button type="button" className="app-page-back-link" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
         <div className="app-page-card">
           <h1 className="hub-landing__title">Admin</h1>
           <p className="hub-landing__subtitle">

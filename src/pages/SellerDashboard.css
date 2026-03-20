@@ -150,13 +150,24 @@
 .sd-form-actions { display: flex; gap: 10px; margin-top: 12px; }
 .sd-btn {
   padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: all .15s; border: none;
+  cursor: pointer; transition: all .15s;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 .sd-btn:disabled { opacity: .5; cursor: not-allowed; }
 .sd-btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
 .sd-btn-primary:hover:not(:disabled) { background: var(--btn-primary-hover); }
 .sd-btn-danger { background: var(--bg-card); color: var(--danger); border: 1px solid var(--border-color); }
 .sd-btn-danger:hover { background: var(--danger-light); border-color: var(--danger); }
+.sd-btn-outline {
+  background: var(--bg-card);
+  color: var(--color-primary);
+  border: 1px solid var(--border-color);
+}
+.sd-btn-outline:hover:not(:disabled) {
+  background: var(--accent-light);
+  border-color: var(--color-primary);
+}
 
 /* ── Dark mode (tokens resolve automatically) ────────────── */
 [data-theme="dark"] .sd-progress-bar { background: var(--bg-surface-hover); }

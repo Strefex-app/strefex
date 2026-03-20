@@ -19,17 +19,29 @@
   font-size: 13px; font-weight: 600; letter-spacing: .3px;
 }
 
-/* ── Tabs ─────────────────────────────────────────────── */
+/* ── Tabs (compact: one row, scroll on narrow screens) ── */
 .sad-tabs {
-  display: flex; gap: 4px; margin-bottom: 16px;
-  background: var(--bg-card); border-radius: 10px; padding: 4px;
+  display: flex; flex-wrap: nowrap; gap: 2px; margin-bottom: 16px;
+  background: var(--bg-card); border-radius: 10px; padding: 3px;
   box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.sad-tabs::-webkit-scrollbar { height: 6px; }
+.sad-tabs::-webkit-scrollbar-thumb {
+  background: var(--border-color); border-radius: 4px;
 }
 .sad-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 18px; border-radius: 8px; border: none; background: transparent;
-  font-size: 14px; font-weight: 500; color: var(--color-secondary); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  flex: 0 0 auto;
+  padding: 6px 10px; border-radius: 8px; border: none; background: transparent;
+  font-size: 12px; font-weight: 600; color: var(--color-secondary); cursor: pointer;
   transition: all .15s;
+  white-space: nowrap;
+}
+.sad-tab svg {
+  width: 14px; height: 14px; min-width: 14px; flex-shrink: 0;
 }
 .sad-tab:hover { background: var(--bg-surface-hover); color: var(--color-primary); }
 .sad-tab.active { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
@@ -322,9 +334,9 @@
 /* Tab badge (critical count) */
 .sad-tab-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px;
-  background: #e74c3c; color: #fff; font-size: 11px; font-weight: 700;
-  margin-left: 6px;
+  min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+  background: #e74c3c; color: #fff; font-size: 10px; font-weight: 700;
+  margin-left: 4px;
 }
 .sad-tab.active .sad-tab-badge { background: rgba(255,255,255,.25); }
 
@@ -450,6 +462,89 @@
 @media (max-width: 640px) {
   .sad-kpi-card { min-width: 100px; }
   .sad-kpi-card .sad-kpi-val { font-size: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+ *  AUDIT LOG TAB (inside sad-widget)
+ * ═══════════════════════════════════════════════════════ */
+.sad-audit-widget__desc {
+  margin: -6px 0 14px;
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.45;
+}
+.sad-audit-kpis {
+  margin-bottom: 14px;
+}
+.sad-audit-kpis .sad-kpi-card {
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 10px 8px;
+}
+.sad-audit-kpis .sad-kpi-card .sad-kpi-val { font-size: 18px; }
+.sad-audit-kpis .sad-kpi-card .sad-kpi-label { font-size: 10px; }
+.sad-audit-filters {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center;
+}
+.sad-audit-search {
+  flex: 1 1 160px; min-width: 140px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--bg-card);
+  color: var(--color-primary);
+}
+.sad-audit-search:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.sad-audit-select {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 12px;
+  background: var(--bg-card);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.sad-widget .sad-table-wrap.sad-audit-table-wrap {
+  margin-bottom: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+.sad-audit-table { font-size: 12px; }
+.sad-audit-module-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+.sad-audit-entity {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: var(--color-primary);
+}
+.sad-audit-desc {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sad-audit-empty {
+  text-align: center;
+  color: var(--color-muted);
+  padding: 24px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+@media (max-width: 900px) {
+  .sad-audit-kpis .sad-kpi-card .sad-kpi-val { font-size: 16px; }
 }
 
 /* Two-panel master/detail */

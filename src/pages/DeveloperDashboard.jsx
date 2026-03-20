@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useAuthStore } from '../store/authStore'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import '../styles/app-page.css'
 import { tenantKey } from '../utils/tenantStorage'
 import './DeveloperDashboard.css'
 
@@ -30,7 +31,7 @@ const STATUS_OPTIONS = [
 ]
 
 export default function DeveloperDashboard() {
-  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
   const [tickets, setTickets] = useState(loadAllTickets)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -111,6 +112,9 @@ export default function DeveloperDashboard() {
   return (
     <AppLayout>
       <div className="dd-page">
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/governance')}>
+          ← Admin
+        </button>
         {/* Header */}
         <div className="dd-header">
           <div>
