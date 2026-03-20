@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
-import { useAuthStore } from '../store/authStore'
 import SearchFiltersPanel from '../components/SearchFiltersPanel'
 import SupplierCard from '../components/SupplierCard'
 import SupplierComparisonTable from '../components/SupplierComparisonTable'
@@ -10,7 +9,6 @@ import RFQBuilder from '../components/RFQBuilder'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
 
 export default function BuyerWorkspace() {
-  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const [filters, setFilters] = useState({
     query: '',
     country: '',
@@ -135,38 +133,18 @@ export default function BuyerWorkspace() {
           <p className="app-page-subtitle">Search, shortlist, compare, and send RFQs at enterprise scale.</p>
           {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
           {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
-          <p style={{ marginTop: 12 }}>
-            <Link to="/dashboard/buyer/account-directory" className="app-page-btn-secondary">
-              Open account directory
+          <p style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <Link to="/hub/procurement" className="app-page-btn-outline">
+              Buyers
             </Link>
-            <span className="app-page-subtitle" style={{ marginLeft: 12, display: 'inline-block', verticalAlign: 'middle' }}>
-              Your company’s contacts; superadmin sees all accounts.
+            <Link to="/dashboard/buyer/account-directory" className="app-page-btn-primary">
+              Account directory
+            </Link>
+            <span className="app-page-subtitle" style={{ margin: 0, display: 'inline-block', verticalAlign: 'middle' }}>
+              The Buyers hub lists all buyer-side tools; directory is your company’s contacts.
             </span>
           </p>
         </div>
-
-        {isSuperAdmin && (
-          <>
-            <div className="app-page-card app-page-callout">
-              <h3 className="app-page-section-heading">Buyer directory (superadmin)</h3>
-              <p className="app-page-subtitle">
-                Imported plastic & stamping company contacts — confidential, platform use only. Not visible to buyers or other roles.
-              </p>
-              <Link to="/dashboard/buyer/platform-directory" className="app-page-btn-primary">
-                Open buyer directory
-              </Link>
-            </div>
-            <div className="app-page-card app-page-callout">
-              <h3 className="app-page-section-heading">Supplier directory (superadmin)</h3>
-              <p className="app-page-subtitle">
-                Same columns as buyer directory; Plastic/Stamping mirror + XLSX/CSV import (e.g. Company list 2025). Superadmin only.
-              </p>
-              <Link to="/dashboard/buyer/registered-suppliers" className="app-page-btn-primary">
-                Open supplier directory
-              </Link>
-            </div>
-          </>
-        )}
 
         <div className="app-page-card">
           <SearchFiltersPanel filters={filters} onChange={setFilters} onApply={loadSuppliers} />

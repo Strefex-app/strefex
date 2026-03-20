@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import RFQResponseForm from '../components/RFQResponseForm'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
@@ -16,6 +16,7 @@ function getAuthSnapshot() {
 }
 
 export default function SupplierWorkspace() {
+  const navigate = useNavigate()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const [memberships, setMemberships] = useState([])
   const [selectedSupplier, setSelectedSupplier] = useState('')
@@ -88,6 +89,9 @@ export default function SupplierWorkspace() {
   return (
     <AppLayout>
       <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
+          ← Partners
+        </button>
         <div className="app-page-card">
           <h2 className="app-page-title">Supplier Workspace</h2>
           <p className="app-page-subtitle">Manage profile, products, certifications, and RFQ responses.</p>

@@ -416,7 +416,7 @@ export default function Home() {
           <button
             type="button"
             className="home-cta-bar__btn home-cta-bar__btn--primary stx-click-feedback"
-            onClick={() => navigate('/dashboard/buyer')}
+            onClick={() => navigate('/hub/procurement')}
           >
             Send RFQ or quote
           </button>

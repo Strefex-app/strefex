@@ -26,10 +26,10 @@ const BottomNav = () => {
       { id: 'home', label: 'Home', icon: 'home', path: '/main-menu' },
     ]
     if (showBuyerWs) {
-      core.push({ id: 'buyer-ws', label: 'Buyer', icon: 'management', path: '/dashboard/buyer' })
+      core.push({ id: 'buyer-ws', label: 'Buyers', icon: 'package', path: '/hub/procurement' })
     }
     if (showSupplierWs) {
-      core.push({ id: 'supplier-ws', label: 'Supplier', icon: 'vendors', path: '/dashboard/supplier' })
+      core.push({ id: 'supplier-ws', label: 'Partners', icon: 'vendors', path: '/hub/partner' })
     }
     core.push(
       { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
@@ -48,8 +48,18 @@ const BottomNav = () => {
       {navItems.map((item) => {
         const isActive =
           location.pathname === item.path
-          || (item.id === 'buyer-ws' && location.pathname.startsWith('/dashboard/buyer'))
-          || (item.id === 'supplier-ws' && location.pathname.startsWith('/dashboard/supplier'))
+          || (item.id === 'buyer-ws' && (
+            location.pathname.startsWith('/hub/procurement') ||
+            location.pathname.startsWith('/dashboard/buyer')
+          ))
+          || (item.id === 'supplier-ws' && (
+            location.pathname.startsWith('/hub/partner') ||
+            location.pathname.startsWith('/dashboard/supplier') ||
+            location.pathname.startsWith('/supplier-dashboard') ||
+            location.pathname.startsWith('/service-requests') ||
+            location.pathname.startsWith('/service-provider-dashboard') ||
+            location.pathname.startsWith('/seller-dashboard')
+          ))
         return (
           <button
             key={item.id}

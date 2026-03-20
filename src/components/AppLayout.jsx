@@ -23,28 +23,19 @@ import './AppLayout.css'
 const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
-  /* Supplier tools — high in the list so sellers & superadmin see them without scrolling past buyer-only items */
-  { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'management', supplierSide: true },
-  { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors', supplierSide: true },
-  { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
-  { id: 'account-directory', label: 'Account directory', path: '/dashboard/buyer/account-directory', icon: 'management' },
-  { id: 'buyer-platform-directory', label: 'Buyer directory', path: '/dashboard/buyer/platform-directory', icon: 'management', minRole: 'superadmin' },
-  { id: 'registered-suppliers', label: 'Supplier directory', path: '/dashboard/buyer/registered-suppliers', icon: 'admin-dashboard', minRole: 'superadmin' },
+  /* Hubs: Buyers, Partners (seller + SP), Admin */
+  { id: 'procurement-hub', label: 'Buyers', path: '/hub/procurement', icon: 'package' },
+  { id: 'partner-hub', label: 'Partners', path: '/hub/partner', icon: 'vendors', supplierSide: true },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
-  { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
   { id: 'notifications', tKey: 'nav.notifications', path: '/notifications', icon: 'notifications' },
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },
   { id: 'ai-insights', label: 'AI Insights', path: '/ai-insights', icon: 'ai', requiredPlan: 'aiInsights', minRole: 'manager' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: 'templates', requiredPlan: 'templateLibrary' },
-  { id: 'admin-approvals', label: 'Admin Approvals', path: '/admin/approvals', icon: 'admin-dashboard', minRole: 'admin' },
-  { id: 'supplier-governance', label: 'Supplier Governance', path: '/admin/supplier-governance', icon: 'admin-dashboard', minRole: 'superadmin' },
-  { id: 'data-ingestion', label: 'Data Ingestion', path: '/admin/data-ingestion', icon: 'admin-dashboard', minRole: 'superadmin' },
+  { id: 'governance-hub', label: 'Admin', path: '/hub/governance', icon: 'shield', minRole: 'admin' },
   { id: 'payment', tKey: 'nav.payment', path: '/payment', icon: 'card' },
   { id: 'plans', tKey: 'nav.plans', path: '/plans', icon: 'plan' },
   { id: 'settings', tKey: 'nav.settings', path: '/settings', icon: 'settings' },
-  { id: 'admin-dashboard', tKey: 'nav.adminDashboard', path: '/admin-dashboard', icon: 'admin-dashboard', minRole: 'superadmin', hideInPreview: true },
-  { id: 'developer', tKey: 'nav.developer', path: '/developer', icon: 'developer', minRole: 'superadmin', hideInPreview: true },
 ]
 
 /* getNavIcon — uses centralised Icon component */
@@ -170,10 +161,27 @@ export default function AppLayout({ children }) {
             .filter((item) => !item.hideInPreview || previewTimeLeft === null)
             .map((item) => {
               const isActive = location.pathname === item.path ||
-                (item.id === 'supplier-workspace' && location.pathname.startsWith('/dashboard/supplier')) ||
-                (item.id === 'supplier-dashboard' && location.pathname.startsWith('/supplier-dashboard')) ||
-                (item.id === 'buyer-workspace' && location.pathname === '/dashboard/buyer') ||
-                (item.id === 'account-directory' && location.pathname.startsWith('/dashboard/buyer/account-directory')) ||
+                (item.id === 'procurement-hub' && (
+                  location.pathname.startsWith('/hub/procurement') ||
+                  location.pathname.startsWith('/dashboard/buyer')
+                )) ||
+                (item.id === 'partner-hub' && (
+                  location.pathname.startsWith('/hub/partner') ||
+                  location.pathname.startsWith('/dashboard/supplier') ||
+                  location.pathname.startsWith('/supplier-dashboard') ||
+                  location.pathname.startsWith('/service-requests') ||
+                  location.pathname.startsWith('/service-provider-dashboard') ||
+                  location.pathname.startsWith('/seller-dashboard')
+                )) ||
+                (item.id === 'governance-hub' && (
+                  location.pathname.startsWith('/hub/governance') ||
+                  location.pathname.startsWith('/admin/approvals') ||
+                  location.pathname.startsWith('/admin/approve') ||
+                  location.pathname.startsWith('/admin/supplier-governance') ||
+                  location.pathname.startsWith('/admin/data-ingestion') ||
+                  location.pathname.startsWith('/admin-dashboard') ||
+                  location.pathname.startsWith('/developer')
+                )) ||
                 (item.id === 'management' && (
                   location.pathname.startsWith('/management') ||
                   location.pathname.startsWith('/team') ||

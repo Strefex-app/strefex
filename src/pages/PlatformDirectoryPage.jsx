@@ -220,8 +220,8 @@ export default function PlatformDirectoryPage() {
   return (
     <AppLayout>
       <div className="app-page buyer-directory-page">
-        <button type="button" className="app-page-back-link" onClick={() => navigate('/dashboard/buyer')}>
-          ← Back to Buyer Workspace
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/procurement')}>
+          ← Back to Buyers
         </button>
 
         <div className="app-page-card">

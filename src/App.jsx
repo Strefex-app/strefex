@@ -116,6 +116,9 @@ import AdminDataIngestion from './pages/AdminDataIngestion'
 import PlatformDirectoryPage from './pages/PlatformDirectoryPage'
 import RegisteredSuppliersPage from './pages/RegisteredSuppliersPage'
 import AccountDirectoryPage from './pages/AccountDirectoryPage'
+import ProcurementHub from './pages/hubs/ProcurementHub'
+import PartnerHub from './pages/hubs/PartnerHub'
+import GovernanceHub from './pages/hubs/GovernanceHub'
 import ProcurementDashboard from './pages/ProcurementDashboard'
 import ContractDashboard from './pages/ContractDashboard'
 import SpendAnalysis from './pages/SpendAnalysis'
@@ -230,6 +233,9 @@ function App() {
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
+          <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />
+          <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
+          <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
           <Route path="/dashboard/buyer" element={<P><BuyerWorkspace /></P>} />
           <Route path="/dashboard/buyer/account-directory" element={<P><AccountDirectoryPage /></P>} />
           <Route path="/dashboard/buyer/platform-directory" element={<SuperAdmin><PlatformDirectoryPage /></SuperAdmin>} />
