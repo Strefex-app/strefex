@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import RFQResponseForm from '../components/RFQResponseForm'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
 import supplierOwnershipService from '../services/supplierOwnershipService'
+import { useAuthStore } from '../store/authStore'
+import '../styles/app-page.css'
 
 function getAuthSnapshot() {
   try {
@@ -13,6 +16,7 @@ function getAuthSnapshot() {
 }
 
 export default function SupplierWorkspace() {
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const [memberships, setMemberships] = useState([])
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [rfqLinks, setRfqLinks] = useState([])
@@ -87,8 +91,8 @@ export default function SupplierWorkspace() {
         <div className="app-page-card">
           <h2 className="app-page-title">Supplier Workspace</h2>
           <p className="app-page-subtitle">Manage profile, products, certifications, and RFQ responses.</p>
-          {feedback && <p style={{ color: '#067647' }}>{feedback}</p>}
-          {error && <p style={{ color: '#b42318' }}>{error}</p>}
+          {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
+          {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
           <div style={{ display: 'grid', gap: 8 }}>
             <label style={{ fontWeight: 700 }}>Supplier membership</label>
             <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
@@ -100,6 +104,17 @@ export default function SupplierWorkspace() {
               ))}
             </select>
           </div>
+          {memberships.length === 0 && isSuperAdmin && (
+            <div className="app-page-callout" style={{ marginTop: 16, padding: 16 }}>
+              <p className="app-page-body" style={{ margin: 0, fontSize: 14 }}>
+                Superadmin: open the dashboard with a supplier UUID from <strong>Vendors</strong> / Supabase{' '}
+                <code style={{ fontSize: 12 }}>vendors.id</code> or complete a supplier claim so this user has membership.
+              </p>
+              <Link to="/vendors" className="app-page-btn-primary" style={{ marginTop: 12 }}>
+                Go to vendors
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="app-page-card">
@@ -107,9 +122,12 @@ export default function SupplierWorkspace() {
           <p className="app-page-subtitle">
             Use the dedicated supplier profile dashboard to manage editable data and certification submissions.
           </p>
-          <a className="app-page-btn-primary" href={`/supplier-dashboard?supplierId=${encodeURIComponent(selectedSupplier || '')}`}>
+          <Link
+            className="app-page-btn-primary"
+            to={`/supplier-dashboard?supplierId=${encodeURIComponent(selectedSupplier || '')}`}
+          >
             Open Supplier Dashboard
-          </a>
+          </Link>
         </div>
 
         <div className="app-page-card">

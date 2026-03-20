@@ -1,24 +1,43 @@
+import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Icon from './Icon'
 import { useAuthStore } from '../store/authStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
+import { useSubscriptionStore } from '../services/featureFlags'
 import './BottomNav.css'
 
 const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const userEmail = useAuthStore((s) => s.user?.email)
+  const role = useAuthStore((s) => s.role)
+  const accountType = useSubscriptionStore((s) => s.accountType)
   const requestNotifSummary = useServiceRequestStore((s) =>
     s.getNotificationSummary(userEmail)
   )
   const unreadCount = requestNotifSummary?.unreadCount || 0
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: 'home', path: '/main-menu' },
-    { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
-    { id: 'profile', label: 'Profile', icon: 'profile', path: '/profile' },
-    { id: 'notifications', label: 'Notifications', icon: 'notifications', path: '/notifications' },
-  ]
+  const showBuyerWs = role === 'superadmin' || accountType === 'buyer'
+  const showSupplierWs =
+    role === 'superadmin' || accountType === 'seller' || accountType === 'service_provider'
+
+  const navItems = useMemo(() => {
+    const core = [
+      { id: 'home', label: 'Home', icon: 'home', path: '/main-menu' },
+    ]
+    if (showBuyerWs) {
+      core.push({ id: 'buyer-ws', label: 'Buyer', icon: 'management', path: '/dashboard/buyer' })
+    }
+    if (showSupplierWs) {
+      core.push({ id: 'supplier-ws', label: 'Supplier', icon: 'vendors', path: '/dashboard/supplier' })
+    }
+    core.push(
+      { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
+      { id: 'profile', label: 'Profile', icon: 'profile', path: '/profile' },
+      { id: 'notifications', label: 'Alerts', icon: 'notifications', path: '/notifications' },
+    )
+    return core
+  }, [showBuyerWs, showSupplierWs])
 
   const handleNavClick = (path) => {
     navigate(path)
@@ -27,7 +46,10 @@ const BottomNav = () => {
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path
+        const isActive =
+          location.pathname === item.path
+          || (item.id === 'buyer-ws' && location.pathname.startsWith('/dashboard/buyer'))
+          || (item.id === 'supplier-ws' && location.pathname.startsWith('/dashboard/supplier'))
         return (
           <button
             key={item.id}

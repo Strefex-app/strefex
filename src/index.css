@@ -350,6 +350,27 @@ body {
   background: var(--bg-surface);
 }
 
+/* Buyer directory table (matches smp-table token behaviour) */
+[data-theme="dark"] .buyer-dir-table thead th {
+  background: var(--bg-surface);
+  color: var(--color-muted);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .buyer-dir-table tbody td {
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .buyer-dir-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+[data-theme="dark"] .buyer-dir-filters {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
 /* Inputs & selects */
 [data-theme="dark"] input,
 [data-theme="dark"] select,

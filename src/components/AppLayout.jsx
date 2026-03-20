@@ -23,10 +23,12 @@ import './AppLayout.css'
 const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
+  /* Supplier tools — high in the list so sellers & superadmin see them without scrolling past buyer-only items */
+  { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'management', supplierSide: true },
+  { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors', supplierSide: true },
   { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
   { id: 'buyer-platform-directory', label: 'Buyer directory', path: '/dashboard/buyer/platform-directory', icon: 'management', minRole: 'superadmin' },
-  { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'vendors' },
-  { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors' },
+  { id: 'registered-suppliers', label: 'Registered suppliers', path: '/dashboard/buyer/registered-suppliers', icon: 'admin-dashboard', minRole: 'superadmin' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
   { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
@@ -127,6 +129,9 @@ export default function AppLayout({ children }) {
   const roleLabels = { superadmin: 'Super Admin', auditor_external: 'Auditor (External)', admin: 'Admin', auditor_internal: 'Auditor (Internal)', manager: 'Manager', user: 'User' }
   const roleLabel = roleLabels[role] || 'User'
 
+  const showSupplierSideNav =
+    role === 'superadmin' || accountType === 'seller' || accountType === 'service_provider'
+
   return (
     <div className="app-layout">
       {/* Mobile hamburger */}
@@ -158,11 +163,15 @@ export default function AppLayout({ children }) {
         </div>
         <nav className="sidebar-nav">
           {SIDEBAR_NAV
+            .filter((item) => !item.supplierSide || showSupplierSideNav)
             .filter((item) => !item.minRole || hasRole(item.minRole))
             .filter((item) => !item.requiredPlan || hasFeature(item.requiredPlan))
             .filter((item) => !item.hideInPreview || previewTimeLeft === null)
             .map((item) => {
               const isActive = location.pathname === item.path ||
+                (item.id === 'supplier-workspace' && location.pathname.startsWith('/dashboard/supplier')) ||
+                (item.id === 'supplier-dashboard' && location.pathname.startsWith('/supplier-dashboard')) ||
+                (item.id === 'buyer-workspace' && location.pathname.startsWith('/dashboard/buyer')) ||
                 (item.id === 'management' && (
                   location.pathname.startsWith('/management') ||
                   location.pathname.startsWith('/team') ||

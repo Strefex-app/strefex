@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import '../styles/app-page.css'
 import { useAuthStore } from '../store/authStore'
 import SearchFiltersPanel from '../components/SearchFiltersPanel'
 import SupplierCard from '../components/SupplierCard'
@@ -132,26 +133,31 @@ export default function BuyerWorkspace() {
         <div className="app-page-card">
           <h2 className="app-page-title">Buyer Workspace</h2>
           <p className="app-page-subtitle">Search, shortlist, compare, and send RFQs at enterprise scale.</p>
-          {feedback && <p style={{ color: '#067647' }}>{feedback}</p>}
-          {error && <p style={{ color: '#b42318' }}>{error}</p>}
+          {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
+          {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
         </div>
 
         {isSuperAdmin && (
-          <div
-            className="app-page-card"
-            style={{
-              border: '1px solid rgba(0,8,136,.2)',
-              background: 'linear-gradient(135deg, rgba(0,8,136,.06) 0%, rgba(0,8,136,.02) 100%)',
-            }}
-          >
-            <h3 className="app-page-title" style={{ fontSize: 18 }}>Buyer directory (superadmin)</h3>
-            <p className="app-page-subtitle" style={{ marginBottom: 12 }}>
-              Imported plastic & stamping company contacts — confidential, platform use only. Not visible to buyers or other roles.
-            </p>
-            <Link to="/dashboard/buyer/platform-directory" className="app-page-btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
-              Open buyer directory
-            </Link>
-          </div>
+          <>
+            <div className="app-page-card app-page-callout">
+              <h3 className="app-page-section-heading">Buyer directory (superadmin)</h3>
+              <p className="app-page-subtitle">
+                Imported plastic & stamping company contacts — confidential, platform use only. Not visible to buyers or other roles.
+              </p>
+              <Link to="/dashboard/buyer/platform-directory" className="app-page-btn-primary">
+                Open buyer directory
+              </Link>
+            </div>
+            <div className="app-page-card app-page-callout">
+              <h3 className="app-page-section-heading">Registered suppliers (superadmin)</h3>
+              <p className="app-page-subtitle">
+                Internal tooling / supplier registry — superadmin only. Import CSV or manage rows; not shown to buyers until promoted to vendors.
+              </p>
+              <Link to="/dashboard/buyer/registered-suppliers" className="app-page-btn-primary">
+                Open registered suppliers
+              </Link>
+            </div>
+          </>
         )}
 
         <div className="app-page-card">

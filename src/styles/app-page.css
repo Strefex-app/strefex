@@ -28,6 +28,13 @@
   margin: 0 0 4px 0;
 }
 
+/* Slightly larger card section heading (e.g. Buyer Workspace blocks) */
+.app-page-card h3.app-page-section-heading {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
 .app-page-subtitle {
   font-size: 14px;
   color: var(--color-secondary);
@@ -196,8 +203,145 @@
   color: var(--color-primary);
 }
 
+/* ── Toolbar (chips + actions in one row) ───────────────── */
+.app-page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+/* ── Status chips (metrics / labels) ─────────────────────── */
+.app-page-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+}
+
+/* ── Primary / outline buttons (AppLayout pages) ─────────── */
+.app-page-btn-primary,
+.app-page-btn-outline,
+.app-page-btn-danger,
+a.app-page-btn-primary,
+a.app-page-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+  text-decoration: none;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  line-height: 1.2;
+}
+
+.app-page-btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+}
+
+.app-page-btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+.app-page-btn-outline {
+  background: var(--bg-card);
+  color: var(--color-primary);
+  border-color: var(--border-color);
+}
+
+.app-page-btn-outline:hover:not(:disabled) {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.app-page-btn-danger {
+  background: var(--danger-light);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.app-page-btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger-hover);
+}
+
+.app-page-btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-page-btn-primary:disabled,
+.app-page-btn-outline:disabled,
+.app-page-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-page-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ── Inline alerts ───────────────────────────────────────── */
+.app-page-alert {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-page-alert--error {
+  color: var(--danger-text);
+}
+
+.app-page-alert--success {
+  color: #067647;
+}
+
+[data-theme="dark"] .app-page-alert--success {
+  color: #6ee7b7;
+}
+
+/* ── Optional callout card (e.g. superadmin notices) ─────── */
+.app-page-callout {
+  border-left: 4px solid var(--accent);
+  background: var(--bg-card);
+}
+
+.app-page-callout .app-page-btn-primary {
+  margin-top: 4px;
+}
+
 @media (max-width: 640px) {
   .app-page-card {
     padding: 20px;
+  }
+
+  .app-page-btn-primary,
+  .app-page-btn-outline,
+  .app-page-btn-danger,
+  a.app-page-btn-primary,
+  a.app-page-btn-outline {
+    padding: 9px 14px;
+    font-size: 13px;
   }
 }

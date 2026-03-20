@@ -114,6 +114,7 @@ import BuyerWorkspace from './pages/BuyerWorkspace'
 import SupplierWorkspace from './pages/SupplierWorkspace'
 import AdminDataIngestion from './pages/AdminDataIngestion'
 import PlatformDirectoryPage from './pages/PlatformDirectoryPage'
+import RegisteredSuppliersPage from './pages/RegisteredSuppliersPage'
 import ProcurementDashboard from './pages/ProcurementDashboard'
 import ContractDashboard from './pages/ContractDashboard'
 import SpendAnalysis from './pages/SpendAnalysis'
@@ -230,6 +231,7 @@ function App() {
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/dashboard/buyer" element={<P><BuyerWorkspace /></P>} />
           <Route path="/dashboard/buyer/platform-directory" element={<SuperAdmin><PlatformDirectoryPage /></SuperAdmin>} />
+          <Route path="/dashboard/buyer/registered-suppliers" element={<SuperAdmin><RegisteredSuppliersPage /></SuperAdmin>} />
           <Route path="/dashboard/supplier" element={<P><SupplierWorkspace /></P>} />
           <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
