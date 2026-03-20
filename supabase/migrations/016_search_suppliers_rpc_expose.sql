@@ -5,6 +5,42 @@
 -- Causes: missing GRANT EXECUTE for anon/authenticated, or stale PostgREST cache,
 --         or migrations 014/015 not applied on the remote project.
 -- This migration is idempotent with 015.
+--
+-- PREREQUISITES (run in this order on a fresh or partial DB):
+--   1) 013_supplier_ownership_governance.sql  → supplier_profiles, supplier_certifications, …
+--   2) 014_industrial_intelligence_core.sql   → suppliers, supplier_scores, supplier_audits, …
+--   3) 015_phase2_rfq_ingestion_search.sql    → optional but recommended (RFQ columns + prior search_suppliers)
+--   4) This file (016)
+
+DO $guard$
+DECLARE
+  missing text := '';
+BEGIN
+  IF to_regclass('public.suppliers') IS NULL THEN
+    missing := missing || ' public.suppliers';
+  END IF;
+  IF to_regclass('public.supplier_scores') IS NULL THEN
+    missing := missing || ' public.supplier_scores';
+  END IF;
+  IF to_regclass('public.supplier_audits') IS NULL THEN
+    missing := missing || ' public.supplier_audits';
+  END IF;
+  IF to_regclass('public.supplier_capabilities') IS NULL THEN
+    missing := missing || ' public.supplier_capabilities';
+  END IF;
+  IF to_regclass('public.supplier_certifications') IS NULL THEN
+    missing := missing || ' public.supplier_certifications';
+  END IF;
+  IF to_regclass('public.supplier_profiles') IS NULL THEN
+    missing := missing || ' public.supplier_profiles';
+  END IF;
+  IF missing <> '' THEN
+    RAISE EXCEPTION
+      '016_search_suppliers_rpc_expose requires tables that are missing:%. Apply migrations 013 then 014 (then 015) from this repo, then run 016 again.',
+      missing;
+  END IF;
+END
+$guard$;
 
 DROP FUNCTION IF EXISTS public.search_suppliers(TEXT, TEXT, TEXT, TEXT, TEXT, NUMERIC, NUMERIC, TEXT, INTEGER, INTEGER);
 
