@@ -1,0 +1,126 @@
+-- ============================================================
+-- Platform directory (imported company contacts) — superadmin only
+-- Source: Company list (Plastic).pdf + Company list (Stamping).pdf
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.platform_directory_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  segment TEXT NOT NULL,
+  company_name TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'Russia',
+  contact_name TEXT,
+  "position" TEXT,
+  email TEXT,
+  phone TEXT,
+  website TEXT,
+  source_ref TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_directory_segment ON public.platform_directory_contacts (segment);
+CREATE INDEX IF NOT EXISTS idx_platform_directory_company ON public.platform_directory_contacts (lower(company_name));
+
+ALTER TABLE public.platform_directory_contacts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Platform directory superadmin select" ON public.platform_directory_contacts;
+DROP POLICY IF EXISTS "Platform directory superadmin insert" ON public.platform_directory_contacts;
+DROP POLICY IF EXISTS "Platform directory superadmin update" ON public.platform_directory_contacts;
+DROP POLICY IF EXISTS "Platform directory superadmin delete" ON public.platform_directory_contacts;
+
+CREATE POLICY "Platform directory superadmin select"
+  ON public.platform_directory_contacts FOR SELECT
+  USING (public.get_my_role() = 'superadmin');
+
+CREATE POLICY "Platform directory superadmin insert"
+  ON public.platform_directory_contacts FOR INSERT
+  WITH CHECK (public.get_my_role() = 'superadmin');
+
+CREATE POLICY "Platform directory superadmin update"
+  ON public.platform_directory_contacts FOR UPDATE
+  USING (public.get_my_role() = 'superadmin')
+  WITH CHECK (public.get_my_role() = 'superadmin');
+
+CREATE POLICY "Platform directory superadmin delete"
+  ON public.platform_directory_contacts FOR DELETE
+  USING (public.get_my_role() = 'superadmin');
+
+COMMENT ON TABLE public.platform_directory_contacts IS
+  'Imported B2B contacts; visible only to superadmin until promoted to vendors/suppliers.';
+
+-- Idempotent seed: skip rows already present (same company + email + contact)
+INSERT INTO public.platform_directory_contacts (segment, company_name, country, contact_name, "position", email, phone, website, source_ref)
+SELECT
+  e->>'segment',
+  e->>'company_name',
+  coalesce(nullif(trim(e->>'country'), ''), 'Russia'),
+  nullif(trim(e->>'contact_name'), ''),
+  nullif(trim(e->>'position'), ''),
+  nullif(lower(trim(e->>'email')), ''),
+  nullif(trim(e->>'phone'), ''),
+  nullif(trim(e->>'website'), ''),
+  e->>'source_ref'
+FROM jsonb_array_elements($platform_dir_seed$[
+  {"segment": "Plastic", "company_name": "ТКА", "country": "Russia", "contact_name": "Александр Процанов", "position": null, "email": "peotka@tlt.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Сатурно", "country": "Russia", "contact_name": "Елена Богданова", "position": null, "email": "e.bogdanova@saturno-tp.com", "phone": "7 (9171) 28-36-18", "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "АE2", "country": "Russia", "contact_name": "Сергей Медведев", "position": null, "email": "s.medvedev@ae-2.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "APEX", "country": "Russia", "contact_name": "Илья Елисеев", "position": null, "email": "i.eliseev@apextlt.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "СЭД (LLC Krista / ООО Криста)", "country": "Russia", "contact_name": "Марина Москаева", "position": "Специалист по продажам", "email": "mmoskaeva@krista63.ru", "phone": "+7 8464 37 04 92, Mob +7 937 663 25 00", "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "СЭД (LLC Krista / ООО Криста)", "country": "Russia", "contact_name": "Василий Малов", "position": "Зам. тех. директора", "email": "malov.vy@krista63.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "СЭД (LLC Krista / ООО Криста)", "country": "Russia", "contact_name": "Валерий Марченко", "position": "Тех. директор", "email": "marchenko.va@kristagroup.com", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "СЭД (LLC Krista / ООО Криста)", "country": "Russia", "contact_name": "Мартынов Н.Н.", "position": "Коммерческий директор", "email": "nmartynov@kristagroup.com", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Восток-Амфибия", "country": "Russia", "contact_name": "Усанов Геннадий Викторович", "position": "Коммерческий директор", "email": "usanov@amfiby.ru", "phone": "+79674605900, 8(84342)5-69-09", "website": "http://www.amfib.ru/", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Ладапласт-Т", "country": "Russia", "contact_name": "Шипило Павел Михайлович", "position": "Директор по развитию", "email": "ShipiloP@mail.ru", "phone": "7 927 771-31-22, +7 8482 63-59-05", "website": "www.ladaplast.ru", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Ладапласт-Т", "country": "Russia", "contact_name": "Филько Юрий Евгеньевич", "position": "Исполнительный директор", "email": "yf@ladaplast.ru", "phone": "7-927-268-16-41", "website": "www.ladaplast.ru", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Идеал Пласт", "country": "Russia", "contact_name": "Башкин Юрий Анатольевич", "position": "Исполнительный директор", "email": "ideal-vl@mail.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "ООО «АВТОКОМПЛЕКТ»", "country": "Russia", "contact_name": "Алена Лабынцева", "position": "Заместитель директора по экономике", "email": "labyntseva.an@avtocomplekt-tlt.ru", "phone": "79272137661", "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "ГК «СТАНДАРТПЛАСТ»", "country": "Russia", "contact_name": "Василий Морев", "position": "Руководитель направления промышленные предприятия", "email": "v_morev@stplus.ru", "phone": "7-999-730-10-32", "website": "www.stp-world.com / www.stp-russia.ru", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Автокомпонент", "country": "Russia", "contact_name": "Безручкин Антон Иванович", "position": "Директор по проектам", "email": "a.bezruchkin@autocomponent.info", "phone": null, "website": "www.autocomponent.info", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "КинельАгропласт", "country": "Russia", "contact_name": "Дмитрий Вячеславович Муратов", "position": "Зам. генерального директора", "email": "dmuratov@mail.kiap.ru", "phone": null, "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "МС Автомотив", "country": "Russia", "contact_name": "Vadim Islamov", "position": "Project management", "email": "vadim.islamov@msa.group", "phone": "7 962 518 36 09", "website": null, "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Plastic", "company_name": "Альта Северо-Запад", "country": "Russia", "contact_name": "Николай Станиславов", "position": "Технический директор", "email": "n.stanislavov@alta-car.ru", "phone": "+7 (812) 539 54 65, моб. +7 (967) 342 24 94", "website": "https://alta-car.ru/", "source_ref": "Company list (Plastic).pdf"},
+  {"segment": "Stamping", "company_name": "DAAZ / ДААЗ", "country": "Russia", "contact_name": "Albert Gabaidulin", "position": "Technical Director", "email": "albert.gabaidulin@oat-group.ru", "phone": "8 965-695-4-84", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "DAAZ / ДААЗ", "country": "Russia", "contact_name": "Плаксин Михаил Александрович", "position": null, "email": "mikhail.plaksin@oat-group.ru", "phone": null, "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "DAAZ / ДААЗ", "country": "Russia", "contact_name": "Natalia Banketova", "position": "Инженер по подготовке производства", "email": "natalia.banketova@oat-group.ru", "phone": "7 (84235) 5-20-73", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Гестамп", "country": "Russia", "contact_name": "Evgeniya V. Nakhutsrishvili", "position": null, "email": "enakhutsrishvili@ru.gestamp.com", "phone": null, "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Магна Петерформ", "country": "Russia", "contact_name": "Starostin, Vladimir", "position": null, "email": "vladimir.starostin@magna.com", "phone": null, "website": "http://www.hysmould.cn", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Эджевит ОКТЕМ", "position": "Генеральный директор", "email": "eoktem@coskunoz.ru", "phone": "7 937 003 92 72", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Askin OZCICEK", "position": "Russia project manager", "email": "aozcicek@coskunoz.com", "phone": "90 224 324 54 08", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Марсель Прокофьев", "position": "Директор по продажам", "email": "mprokofyev@coskunoz.ru", "phone": "7 937 585 01 48", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Ильдар Мамлеев", "position": "Начальник отдела продаж", "email": "imamleev@coskunoz.ru", "phone": "7 937 004 66 96", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Петр Шишкин", "position": "Директор по качеству", "email": "pshishkin@coskunoz.ru", "phone": "7 937 281 17 18", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Сабина Картал", "position": "Специалист по продажам", "email": "skartal@coskunoz.ru", "phone": null, "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Юрий Лобанов", "position": "Руководитель проекта", "email": "ylobanov@coskunoz.ru", "phone": null, "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Джошкуноз (Coskunoz)", "country": "Russia", "contact_name": "Фатих Коджакайа", "position": "Коммерческий директор", "email": "fkocakaya@mmk-coskunoz.ru", "phone": "7 927 455 01 70", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ББС", "country": "Russia", "contact_name": "Виктория Нестерова", "position": null, "email": "victoria.nesterova@b2b-s.ru", "phone": null, "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ТМЗ", "country": "Russia", "contact_name": "Давыдов Александр", "position": "Генеральный директор", "email": "office@tmz-tlt.ru", "phone": "+7 902 373 64 31", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "«ЭНЕРГОТЕХМАШ» ГК «Акрон Холдинг»", "country": "Russia", "contact_name": "Новоженин Александр Владимирович", "position": "Руководитель группы по продажам автокомпонентов", "email": "novozhenin_av@akron-holding.ru", "phone": "89178213472", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ТЗТО", "country": "Russia", "contact_name": "Anna ILYINA / Анна Ильина", "position": "Key Account Manager", "email": "A.Ilina@groupdsk.ru", "phone": "7 927 213 4043", "website": "www.groupdsk.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ТЗТО", "country": "Russia", "contact_name": "Станислав Федортов", "position": "Директор по продажам и маркетингу", "email": "s.fedotov@groupdsk.ru", "phone": "7 929 710 28 42", "website": "www.groupdsk.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ООО РОБОЛА", "country": "Russia", "contact_name": "Рожков Роман Юрьевич", "position": "Генеральный директор", "email": "r.rozhkov@robola.ru", "phone": "7 927 774 78 31", "website": "www.robola.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ООО РОБОЛА", "country": "Russia", "contact_name": "Царев Алексей Иванович", "position": "Зам. ген. дира по развитию", "email": "tsarev@robola.ru", "phone": "7 927 787 41 67", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ООО РОБОЛА", "country": "Russia", "contact_name": "Андрей Нагорнов / Andrei Nagornov", "position": "Зам. ген. дира по коммерции", "email": "a.nagornov@robola.ru", "phone": "79 631 186 771", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ЛМЗ-Прогресс", "country": "Russia", "contact_name": "Кириченко Роман Вячеславович", "position": null, "email": "info@redroller.ru", "phone": "89372170471", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ЛМЗ-Прогресс", "country": "Russia", "contact_name": "Очкасов Андрей Георгиевич", "position": null, "email": "info@redroller.ru", "phone": "89027402733", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ПОЛАД", "country": "Russia", "contact_name": "Светлов Евгений Александрович", "position": "Директор по развитию", "email": "kurganskyvy@polad.ru", "phone": null, "website": "www.polad.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ПОЛАД", "country": "Russia", "contact_name": "Путин Иван / Ivan Putin", "position": "Руководитель проектов", "email": "putinia@polad.ru", "phone": "7 (8482) 701-501, моб. +7-961-390-09-46", "website": "www.polad.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ПОЛАД", "country": "Russia", "contact_name": "Пахомов Алексей Юрьевич", "position": "Зам. директора по проектам", "email": "pahomovau@polad.ru", "phone": "7 (8482) 701-501 ext. 14-91, 7 929 716 43 41", "website": "www.polad.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ПОЛАД", "country": "Russia", "contact_name": "Вольф Владислав Борисович", "position": "Руководитель проектов", "email": "volfvb@polad.ru", "phone": "78482701501, 79278992571", "website": "www.polad.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ПОЛАД", "country": "Russia", "contact_name": "Чуваков Николай", "position": "Руководитель проекта", "email": "chuvakovni@polad.ru", "phone": "78482701501, 79626140128", "website": "www.polad.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "МИКРОТЕХ", "country": "Russia", "contact_name": "Громотков Дмитрий Вячеславович", "position": "Директор", "email": "Dg@microtech.ru", "phone": "7 903 013 04 20", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "МИКРОТЕХ", "country": "Russia", "contact_name": "Терешко Игорь Александрович", "position": "Директор по качеству", "email": "igor.tereshko@microtech.ru", "phone": "7 906 641 0435", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Альфа Автоматив Технолоджиз / ААТ", "country": "Russia", "contact_name": "Неклюдов Сергей Владимирович", "position": "Менеджер по продажам и развитию бизнеса", "email": "s.nekludov@aat.moscow", "phone": "7-495-783-17-45 доб. 176, 7-962-983-89-85", "website": null, "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "Лада-пласт-Т", "country": "Russia", "contact_name": "Филько Юрий Евгеньевич", "position": "Исполнительный директор", "email": "yf@ladaplast.ru", "phone": "7-927-268-16-41", "website": "www.ladaplast.ru", "source_ref": "Company list (Stamping).pdf"},
+  {"segment": "Stamping", "company_name": "ВМ Автомотив", "country": "Russia", "contact_name": "Dizhenin Vasiliy", "position": "Генеральный директор", "email": "v.dizhenin@wmautomotive.ru", "phone": "7 9270254364", "website": null, "source_ref": "Company list (Stamping).pdf"}
+]
+$platform_dir_seed$::jsonb) AS t(e)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.platform_directory_contacts p
+  WHERE lower(trim(p.company_name)) = lower(trim(e->>'company_name'))
+    AND coalesce(lower(trim(p.email)), '') = coalesce(lower(trim(e->>'email')), '')
+    AND coalesce(lower(trim(p.contact_name)), '') = coalesce(lower(trim(e->>'contact_name')), '')
+    AND p.segment = (e->>'segment')
+);
+
+NOTIFY pgrst, 'reload schema';

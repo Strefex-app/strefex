@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import { useAuthStore } from '../store/authStore'
 import SearchFiltersPanel from '../components/SearchFiltersPanel'
 import SupplierCard from '../components/SupplierCard'
 import SupplierComparisonTable from '../components/SupplierComparisonTable'
@@ -7,6 +9,7 @@ import RFQBuilder from '../components/RFQBuilder'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
 
 export default function BuyerWorkspace() {
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const [filters, setFilters] = useState({
     query: '',
     country: '',
@@ -132,6 +135,24 @@ export default function BuyerWorkspace() {
           {feedback && <p style={{ color: '#067647' }}>{feedback}</p>}
           {error && <p style={{ color: '#b42318' }}>{error}</p>}
         </div>
+
+        {isSuperAdmin && (
+          <div
+            className="app-page-card"
+            style={{
+              border: '1px solid rgba(0,8,136,.2)',
+              background: 'linear-gradient(135deg, rgba(0,8,136,.06) 0%, rgba(0,8,136,.02) 100%)',
+            }}
+          >
+            <h3 className="app-page-title" style={{ fontSize: 18 }}>Buyer directory (superadmin)</h3>
+            <p className="app-page-subtitle" style={{ marginBottom: 12 }}>
+              Imported plastic & stamping company contacts — confidential, platform use only. Not visible to buyers or other roles.
+            </p>
+            <Link to="/dashboard/buyer/platform-directory" className="app-page-btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+              Open buyer directory
+            </Link>
+          </div>
+        )}
 
         <div className="app-page-card">
           <SearchFiltersPanel filters={filters} onChange={setFilters} onApply={loadSuppliers} />

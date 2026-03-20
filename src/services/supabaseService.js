@@ -459,6 +459,8 @@ export const dataSourcesService = createCrudService('data_sources')
 export const supplierRawDataService = createCrudService('supplier_raw_data')
 export const supplierEmbeddingsService = createCrudService('supplier_embeddings')
 export const analyticsEventsService = createCrudService('analytics_events')
+/** Superadmin-only RLS — imported B2B directory (plastic / stamping lists) */
+export const platformDirectoryContactsService = createCrudService('platform_directory_contacts')
 
 /** PostgREST / Supabase when RPC is missing, renamed, or not granted to the JWT role */
 function isSearchSuppliersRpcUnavailable(error) {

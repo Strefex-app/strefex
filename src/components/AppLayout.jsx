@@ -24,6 +24,7 @@ const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
   { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
+  { id: 'buyer-platform-directory', label: 'Buyer directory', path: '/dashboard/buyer/platform-directory', icon: 'management', minRole: 'superadmin' },
   { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'vendors' },
   { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
