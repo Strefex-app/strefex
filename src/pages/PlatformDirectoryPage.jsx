@@ -87,6 +87,15 @@ export default function PlatformDirectoryPage() {
     void loadRows({ showSpinner: true })
   }, [loadRows])
 
+  const segmentChoices = useMemo(() => {
+    const set = new Set()
+    rows.forEach((r) => {
+      if (r.segment) set.add(String(r.segment))
+    })
+    ;['Plastic', 'Stamping'].forEach((s) => set.add(s))
+    return ['all', ...[...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))]
+  }, [rows])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return rows.filter((r) => {
@@ -217,8 +226,8 @@ export default function PlatformDirectoryPage() {
         <div className="app-page-card">
           <h2 className="app-page-title">Buyer directory</h2>
           <p className="app-page-subtitle">
-            Imported B2B contacts (plastic & stamping company lists), available from the buyer area.{' '}
-            <strong>Visible only to superadmin.</strong> Confidential — do not share outside STREFEX operations.
+            B2B contacts: legacy Plastic &amp; Stamping PDFs plus <strong>Company list (2025) for platform.pdf</strong>{' '}
+            (tooling, equipment, materials, engineering, etc.). <strong>Superadmin only.</strong> Confidential.
           </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
@@ -265,9 +274,11 @@ export default function PlatformDirectoryPage() {
             <div className="buyer-dir-field">
               <span className="buyer-dir-label">Segment</span>
               <select value={segment} onChange={(e) => setSegment(e.target.value)} aria-label="Filter by segment">
-                <option value="all">All</option>
-                <option value="Plastic">Plastic</option>
-                <option value="Stamping">Stamping</option>
+                {segmentChoices.map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'all' ? 'All segments' : s}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="buyer-dir-field buyer-dir-field--grow">
@@ -367,15 +378,25 @@ export default function PlatformDirectoryPage() {
               <div className="buyer-dir-form-grid">
                 <div className="buyer-dir-field">
                   <label htmlFor="bd-segment">Segment *</label>
-                  <select
+                  <input
                     id="bd-segment"
+                    list="bd-segment-suggestions"
                     value={form.segment}
                     onChange={(e) => setForm((f) => ({ ...f, segment: e.target.value }))}
+                    placeholder="e.g. Plastic, Stamping, Tool maker"
                     required
-                  >
-                    <option value="Plastic">Plastic</option>
-                    <option value="Stamping">Stamping</option>
-                  </select>
+                  />
+                  <datalist id="bd-segment-suggestions">
+                    <option value="Plastic" />
+                    <option value="Stamping" />
+                    <option value="Tool maker" />
+                    <option value="CF maker" />
+                    <option value="Carmaker" />
+                    <option value="Engineering" />
+                    <option value="Materials" />
+                    <option value="Paint & Coating" />
+                    <option value="Company list (2025)" />
+                  </datalist>
                 </div>
                 <div className="buyer-dir-field">
                   <label htmlFor="bd-company">Company name *</label>
