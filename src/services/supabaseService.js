@@ -460,6 +460,178 @@ export const supplierRawDataService = createCrudService('supplier_raw_data')
 export const supplierEmbeddingsService = createCrudService('supplier_embeddings')
 export const analyticsEventsService = createCrudService('analytics_events')
 
+/** PostgREST / Supabase when RPC is missing, renamed, or not granted to the JWT role */
+function isSearchSuppliersRpcUnavailable(error) {
+  if (!error) return false
+  const code = String(error.code || '')
+  const msg = String(error.message || '').toLowerCase()
+  return (
+    code === 'PGRST202'
+    || code === '42883'
+    || msg.includes('schema cache')
+    || msg.includes('search_suppliers')
+    || msg.includes('could not find the function')
+  )
+}
+
+/**
+ * Fallback when `search_suppliers` RPC is not deployed or not exposed.
+ * Mirrors the RPC result shape used by Buyer workspace / SupplierCard.
+ */
+async function searchSuppliersWithoutRpc(params = {}) {
+  const limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100)
+  const offset = Math.max(Number(params.offset) || 0, 0)
+  const rawQ = String(params.query || '').trim()
+  const country = String(params.country || '').trim()
+  const industry = String(params.industry || '').trim()
+  const process = String(params.process || '').trim().toLowerCase()
+  const certification = String(params.certification || '').trim().toLowerCase()
+  const minAudit =
+    params.minAuditScore != null && params.minAuditScore !== '' ? Number(params.minAuditScore) : null
+  const maxRisk =
+    params.maxRiskScore != null && params.maxRiskScore !== '' ? Number(params.maxRiskScore) : null
+  const sortBy = String(params.sortBy || 'score').toLowerCase()
+
+  let q = supabase
+    .from('suppliers')
+    .select('id, display_name, country, industry, description, created_at, vendor_id, legal_name')
+  if (country) q = q.eq('country', country)
+  if (industry) q = q.eq('industry', industry)
+  if (rawQ) {
+    const esc = rawQ.replace(/%/g, '').replace(/_/g, '')
+    q = q.or(`display_name.ilike.%${esc}%,legal_name.ilike.%${esc}%,industry.ilike.%${esc}%`)
+  }
+
+  const fetchCap = Math.min(offset + limit + 200, 800)
+  q = q.limit(fetchCap)
+
+  const { data: supplierRows, error: e1 } = await q
+  if (e1) throw e1
+  let rows = supplierRows || []
+
+  if (process) {
+    const { data: caps, error: e2 } = await supabase
+      .from('supplier_capabilities')
+      .select('supplier_id, process')
+      .limit(3000)
+    if (e2) throw e2
+    const allowed = new Set(
+      (caps || [])
+        .filter((c) => String(c.process || '').trim().toLowerCase() === process)
+        .map((c) => c.supplier_id),
+    )
+    rows = rows.filter((s) => allowed.has(s.id))
+  }
+
+  if (certification) {
+    const { data: certs, error: e3 } = await supabase
+      .from('supplier_certifications')
+      .select('supplier_id, certification_name, status')
+      .eq('status', 'verified')
+      .limit(3000)
+    if (e3) throw e3
+    const vendorIds = new Set(
+      (certs || [])
+        .filter((c) => String(c.certification_name || '').trim().toLowerCase() === certification)
+        .map((c) => c.supplier_id),
+    )
+    rows = rows.filter((s) => s.vendor_id && vendorIds.has(s.vendor_id))
+  }
+
+  const ids = rows.map((r) => r.id).filter(Boolean)
+  if (!ids.length) return []
+
+  const [{ data: scoreRows }, { data: auditRows }] = await Promise.all([
+    supabase
+      .from('supplier_scores')
+      .select('supplier_id, overall_score, risk_score, calculated_at')
+      .in('supplier_id', ids)
+      .order('calculated_at', { ascending: false }),
+    supabase
+      .from('supplier_audits')
+      .select('supplier_id, audit_score, audited_at')
+      .in('supplier_id', ids)
+      .order('audited_at', { ascending: false }),
+  ])
+
+  const latestScore = new Map()
+  ;(scoreRows || []).forEach((r) => {
+    if (!latestScore.has(r.supplier_id)) latestScore.set(r.supplier_id, r)
+  })
+  const latestAudit = new Map()
+  ;(auditRows || []).forEach((r) => {
+    if (!latestAudit.has(r.supplier_id)) latestAudit.set(r.supplier_id, r)
+  })
+
+  const vids = [...new Set(rows.map((r) => r.vendor_id).filter(Boolean))]
+  const profileByVendor = new Map()
+  if (vids.length) {
+    const { data: profs, error: e4 } = await supabase
+      .from('supplier_profiles')
+      .select('supplier_id, profile_completeness')
+      .in('supplier_id', vids)
+    if (e4) throw e4
+    ;(profs || []).forEach((p) => profileByVendor.set(p.supplier_id, Number(p.profile_completeness || 0)))
+  }
+
+  const qLower = rawQ.toLowerCase()
+  let out = rows.map((s) => {
+    const sc = latestScore.get(s.id) || {}
+    const au = latestAudit.get(s.id) || {}
+    const overall = Number(sc.overall_score || 0)
+    const risk = Number(sc.risk_score || 0)
+    const auditScore = Number(au.audit_score || 0)
+    const completeness = s.vendor_id ? (profileByVendor.get(s.vendor_id) || 0) : 0
+    const boosted = Math.round((overall + completeness * 0.2) * 100) / 100
+    let relevance = 0
+    if (qLower) {
+      const n = (s.display_name || '').toLowerCase()
+      const l = (s.legal_name || '').toLowerCase()
+      if (n.includes(qLower) || l.includes(qLower)) relevance = 2
+      else if ((s.industry || '').toLowerCase().includes(qLower)) relevance = 1
+    }
+    return {
+      supplier_id: s.id,
+      display_name: s.display_name,
+      country: s.country,
+      industry: s.industry,
+      description: s.description,
+      overall_score: overall,
+      risk_score: risk,
+      latest_audit_score: auditScore,
+      profile_completeness: completeness,
+      boosted_score: boosted,
+      created_at: s.created_at,
+      relevance,
+    }
+  })
+
+  if (minAudit != null && !Number.isNaN(minAudit)) {
+    out = out.filter((r) => Number(r.latest_audit_score || 0) >= minAudit)
+  }
+  if (maxRisk != null && !Number.isNaN(maxRisk)) {
+    out = out.filter((r) => Number(r.risk_score || 0) <= maxRisk)
+  }
+
+  if (sortBy === 'newest') {
+    out.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+  } else if (sortBy === 'relevance') {
+    out.sort(
+      (a, b) =>
+        (b.relevance || 0) - (a.relevance || 0)
+        || (b.boosted_score || 0) - (a.boosted_score || 0),
+    )
+  } else {
+    out.sort(
+      (a, b) =>
+        (b.boosted_score || 0) - (a.boosted_score || 0)
+        || String(a.display_name || '').localeCompare(String(b.display_name || '')),
+    )
+  }
+
+  return out.slice(offset, offset + limit)
+}
+
 export const supplierSearchService = {
   async search(params = {}) {
     if (!isSupabaseConfigured) return []
@@ -476,8 +648,11 @@ export const supplierSearchService = {
       p_offset: params.offset || 0,
     }
     const { data, error } = await supabase.rpc('search_suppliers', payload)
-    if (error) throw error
-    return data || []
+    if (!error) return data || []
+    if (isSearchSuppliersRpcUnavailable(error)) {
+      return searchSuppliersWithoutRpc(params)
+    }
+    throw error
   },
 }
 
