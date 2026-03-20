@@ -1,0 +1,706 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
+import AppLayout from '../components/AppLayout'
+import {
+  isSupabaseConfigured,
+  accountDirectoryEntriesService,
+  companiesService,
+} from '../services/supabaseService'
+import { extractDirectoryFromPlatform } from '../services/accountDirectoryService'
+import industrialIntelligenceService from '../services/industrialIntelligenceService'
+import { useAuthStore } from '../store/authStore'
+import '../styles/app-page.css'
+import './PlatformDirectoryPage.css'
+
+const INDUSTRY_HUB_OPTIONS = [
+  { id: '', label: '— Industry hub —' },
+  { id: 'automotive', label: 'Automotive' },
+  { id: 'machinery', label: 'Machinery' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'medical', label: 'Medical' },
+  { id: 'raw-materials', label: 'Raw materials' },
+  { id: 'oil-gas', label: 'Oil & gas' },
+  { id: 'green-energy', label: 'Green energy' },
+  { id: 'household-products', label: 'Household products' },
+]
+
+const ENTRY_TYPES = [
+  { value: 'contact', label: 'Contact' },
+  { value: 'customer', label: 'Customer' },
+  { value: 'equipment_supplier', label: 'Equipment supplier' },
+  { value: 'other', label: 'Other' },
+]
+
+const EMPTY_FORM = {
+  entry_type: 'contact',
+  company_name: '',
+  contact_name: '',
+  position: '',
+  email: '',
+  phone: '',
+  website: '',
+  country: '',
+  industry_hub_id: '',
+  industry_label: '',
+  category_id: '',
+  source_ref: '',
+  visible_in_exec_summary_superadmin: false,
+}
+
+function trimOrNull(v) {
+  const t = String(v ?? '').trim()
+  return t === '' ? null : t
+}
+
+function getStoredCompanyId() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+    return raw?.user?.companyId || raw?.tenant?.id || null
+  } catch {
+    return null
+  }
+}
+
+function normalizeHeader(h) {
+  return String(h || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function pickCell(row, keys) {
+  const map = {}
+  Object.keys(row).forEach((k) => {
+    map[normalizeHeader(k)] = row[k]
+  })
+  for (const key of keys) {
+    const v = map[normalizeHeader(key)]
+    if (v != null && String(v).trim() !== '') return String(v).trim()
+  }
+  return ''
+}
+
+function parseSpreadsheetRows(jsonRows) {
+  return (jsonRows || []).map((row) => {
+    const company_name =
+      pickCell(row, ['company', 'company name', 'organization', 'supplier', 'customer', 'name']) ||
+      pickCell(row, ['company_name'])
+    const email = pickCell(row, ['email', 'e-mail', 'mail'])
+    return {
+      company_name,
+      contact_name: pickCell(row, ['contact', 'contact name', 'person', 'full name']),
+      position: pickCell(row, ['position', 'title', 'role']),
+      email,
+      phone: pickCell(row, ['phone', 'tel', 'mobile']),
+      website: pickCell(row, ['website', 'url', 'web']),
+      country: pickCell(row, ['country', 'nation']),
+      industry_label: pickCell(row, ['industry', 'sector']),
+      source_ref: pickCell(row, ['source', 'source_ref', 'notes']),
+    }
+  })
+}
+
+export default function AccountDirectoryPage() {
+  const navigate = useNavigate()
+  const fileInputRef = useRef(null)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const myCompanyId = getStoredCompanyId()
+
+  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState([])
+  const [companies, setCompanies] = useState([])
+  const [filterCompanyId, setFilterCompanyId] = useState('')
+  const [rfqIssuerCompanyId, setRfqIssuerCompanyId] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [query, setQuery] = useState('')
+  const [error, setError] = useState('')
+  const [feedback, setFeedback] = useState('')
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [extractBusy, setExtractBusy] = useState(false)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importTargetCompanyId, setImportTargetCompanyId] = useState('')
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [rfqOpen, setRfqOpen] = useState(false)
+  const [rfqTitle, setRfqTitle] = useState('')
+  const [rfqDescription, setRfqDescription] = useState('')
+  const [rfqDeadline, setRfqDeadline] = useState('')
+  const [rfqBusy, setRfqBusy] = useState(false)
+
+  const listCompanyId = useMemo(() => {
+    if (isSuperAdmin && filterCompanyId) return filterCompanyId
+    return myCompanyId
+  }, [isSuperAdmin, filterCompanyId, myCompanyId])
+
+  const loadCompanies = useCallback(async () => {
+    if (!isSuperAdmin || !isSupabaseConfigured) return
+    try {
+      const data = await companiesService.list()
+      const list = Array.isArray(data) ? data : []
+      setCompanies(list)
+      setImportTargetCompanyId((prev) => prev || myCompanyId || list[0]?.id || '')
+      setRfqIssuerCompanyId((prev) => prev || myCompanyId || list[0]?.id || '')
+    } catch {
+      setCompanies([])
+    }
+  }, [isSuperAdmin, myCompanyId])
+
+  const loadRows = useCallback(
+    async (opts = { showSpinner: true }) => {
+      if (!isSupabaseConfigured) {
+        setRows([])
+        setError('Supabase is not configured.')
+        setLoading(false)
+        return
+      }
+      if (opts.showSpinner) setLoading(true)
+      setError('')
+      try {
+        let data
+        if (isSuperAdmin && !filterCompanyId) {
+          data = await accountDirectoryEntriesService.list(null, {
+            orderBy: 'company_name',
+            ascending: true,
+          })
+        } else if (listCompanyId) {
+          data = await accountDirectoryEntriesService.list(listCompanyId, {
+            orderBy: 'updated_at',
+            ascending: false,
+          })
+        } else {
+          data = []
+        }
+        setRows(Array.isArray(data) ? data : [])
+      } catch (err) {
+        setRows([])
+        setError(err?.message || 'Failed to load directory.')
+      } finally {
+        if (opts.showSpinner) setLoading(false)
+      }
+    },
+    [isSuperAdmin, filterCompanyId, listCompanyId],
+  )
+
+  useEffect(() => {
+    void loadCompanies()
+  }, [loadCompanies])
+
+  useEffect(() => {
+    void loadRows({ showSpinner: true })
+  }, [loadRows])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return rows.filter((r) => {
+      if (typeFilter !== 'all' && r.entry_type !== typeFilter) return false
+      if (!q) return true
+      const hay = [
+        r.company_name,
+        r.contact_name,
+        r.email,
+        r.country,
+        r.source_ref,
+        r.metadata?.source_company_id,
+        r.metadata?.source_buyer_id,
+        r.metadata?.source_supplier_id,
+      ]
+        .map((x) => String(x || '').toLowerCase())
+        .join(' ')
+      return hay.includes(q)
+    })
+  }, [rows, query, typeFilter])
+
+  const companyNameById = useMemo(() => {
+    const m = new Map()
+    companies.forEach((c) => m.set(c.id, c.name || c.id))
+    return m
+  }, [companies])
+
+  const openCreate = () => {
+    if (isSuperAdmin && !filterCompanyId) {
+      setFeedback('Select a company in “Scope company” before adding a new row.')
+      return
+    }
+    setEditingId(null)
+    setForm({
+      ...EMPTY_FORM,
+      visible_in_exec_summary_superadmin: isSuperAdmin,
+    })
+    setModalOpen(true)
+  }
+
+  const openEdit = (row) => {
+    setEditingId(row.id)
+    setForm({
+      entry_type: row.entry_type || 'contact',
+      company_name: row.company_name || '',
+      contact_name: row.contact_name || '',
+      position: row.position || '',
+      email: row.email || '',
+      phone: row.phone || '',
+      website: row.website || '',
+      country: row.country || '',
+      industry_hub_id: row.industry_hub_id || '',
+      industry_label: row.industry_label || '',
+      category_id: row.category_id || '',
+      source_ref: row.source_ref || '',
+      visible_in_exec_summary_superadmin: Boolean(row.visible_in_exec_summary_superadmin),
+    })
+    setModalOpen(true)
+  }
+
+  const saveRow = async (e) => {
+    e.preventDefault()
+    let company_id
+    if (editingId) {
+      const prev = rows.find((r) => r.id === editingId)
+      company_id = prev?.company_id
+    } else if (isSuperAdmin) {
+      company_id = filterCompanyId || null
+    } else {
+      company_id = myCompanyId
+    }
+    if (!company_id) {
+      setFeedback('Missing company: pick scope company (superadmin) or ensure your profile has company_id.')
+      return
+    }
+    setSaving(true)
+    setFeedback('')
+    try {
+      const payload = {
+        company_id,
+        entry_type: form.entry_type || 'contact',
+        company_name: String(form.company_name || '').trim(),
+        contact_name: trimOrNull(form.contact_name),
+        position: trimOrNull(form.position),
+        email: trimOrNull(form.email)?.toLowerCase() ?? null,
+        phone: trimOrNull(form.phone),
+        website: trimOrNull(form.website),
+        country: trimOrNull(form.country),
+        industry_hub_id: trimOrNull(form.industry_hub_id),
+        industry_label: trimOrNull(form.industry_label),
+        category_id: trimOrNull(form.category_id),
+        source_ref: trimOrNull(form.source_ref),
+        visible_in_exec_summary_superadmin: Boolean(form.visible_in_exec_summary_superadmin),
+        metadata: {},
+      }
+      if (!payload.company_name) throw new Error('Company name is required.')
+      if (editingId) {
+        await accountDirectoryEntriesService.update(editingId, payload)
+        setFeedback('Updated.')
+      } else {
+        await accountDirectoryEntriesService.create(payload)
+        setFeedback('Added.')
+      }
+      setModalOpen(false)
+      await loadRows({ showSpinner: false })
+    } catch (err) {
+      setFeedback(err?.message || 'Save failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const runExtract = async () => {
+    setExtractBusy(true)
+    setFeedback('')
+    try {
+      const res = await extractDirectoryFromPlatform()
+      setFeedback(
+        `Extract complete: +${res?.inserted_customers ?? 0} customers, +${res?.inserted_equipment_suppliers ?? 0} equipment suppliers.`,
+      )
+      await loadRows({ showSpinner: false })
+    } catch (err) {
+      setFeedback(err?.message || 'Extract failed (superadmin only).')
+    } finally {
+      setExtractBusy(false)
+    }
+  }
+
+  const onPickSpreadsheet = async (e) => {
+    const file = e.target?.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImportBusy(true)
+    setFeedback('')
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      const parsed = parseSpreadsheetRows(json).filter((r) => r.company_name || r.email)
+      if (parsed.length === 0) throw new Error('No recognizable rows (need Company / Email columns).')
+
+      const target =
+        importTargetCompanyId ||
+        (!isSuperAdmin ? myCompanyId : '') ||
+        (isSuperAdmin && companies[0]?.id) ||
+        ''
+      if (!target) throw new Error('Select target company for import.')
+
+      let n = 0
+      for (const r of parsed) {
+        if (!r.company_name && !r.email) continue
+        await accountDirectoryEntriesService.create({
+          company_id: target,
+          entry_type: 'contact',
+          company_name: r.company_name || r.email || 'Unknown',
+          contact_name: trimOrNull(r.contact_name),
+          position: trimOrNull(r.position),
+          email: trimOrNull(r.email)?.toLowerCase() ?? null,
+          phone: trimOrNull(r.phone),
+          website: trimOrNull(r.website),
+          country: trimOrNull(r.country),
+          industry_hub_id: null,
+          industry_label: trimOrNull(r.industry_label),
+          source_ref: trimOrNull(r.source_ref) || `import:${file.name}`,
+          visible_in_exec_summary_superadmin: isSuperAdmin,
+          metadata: { import_file: file.name },
+        })
+        n += 1
+      }
+      setFeedback(`Imported ${n} rows into company ${companyNameById.get(target) || target}.`)
+      await loadRows({ showSpinner: false })
+    } catch (err) {
+      setFeedback(err?.message || 'Import failed.')
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const sendRfq = async (e) => {
+    e.preventDefault()
+    if (!isSuperAdmin) return
+    const issuer = rfqIssuerCompanyId || myCompanyId
+    if (!issuer) {
+      setFeedback('Choose issuing company for the RFQ.')
+      return
+    }
+    const picked = filtered.filter((r) => selectedIds.has(r.id))
+    setRfqBusy(true)
+    setFeedback('')
+    try {
+      await industrialIntelligenceService.createRfqFromDirectorySelection({
+        buyerCompanyId: issuer,
+        title: rfqTitle,
+        description: rfqDescription,
+        deadline: rfqDeadline || null,
+        directoryEntries: picked,
+        requirements: {},
+        skipCompletenessCheck: true,
+      })
+      setFeedback(`RFQ sent to ${picked.length} contacts (stubs created on issuing company).`)
+      setRfqOpen(false)
+      setRfqTitle('')
+      setRfqDescription('')
+      setRfqDeadline('')
+      setSelectedIds(new Set())
+    } catch (err) {
+      setFeedback(err?.message || 'RFQ failed.')
+    } finally {
+      setRfqBusy(false)
+    }
+  }
+
+  return (
+    <AppLayout>
+      <div className="app-page platform-directory-page">
+        <div className="app-page-header">
+          <div>
+            <button type="button" className="app-page-back" onClick={() => navigate(-1)}>
+              ← Back
+            </button>
+            <h1 className="app-page-title">Account directory</h1>
+            <p className="app-page-subtitle">
+              Each organization sees only its own entries. Superadmin sees every account with source metadata (extract,
+              import, manual). Tag industries for superadmin executive-summary rollups. Import{' '}
+              <strong>Company list (2025) for platform.xlsx</strong> after choosing the target company.
+            </p>
+          </div>
+        </div>
+
+        {error ? <div className="app-page-alert app-page-alert-error">{error}</div> : null}
+        {feedback ? <div className="app-page-alert app-page-alert-info">{feedback}</div> : null}
+
+        <div className="platform-directory-toolbar">
+          {isSuperAdmin ? (
+            <label className="platform-directory-filter">
+              Scope company
+              <select value={filterCompanyId} onChange={(e) => setFilterCompanyId(e.target.value)}>
+                <option value="">All accounts</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name || c.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <label className="platform-directory-filter">
+            Type
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+              <option value="all">All</option>
+              {ENTRY_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            className="platform-directory-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search name, email, source…"
+          />
+          <button type="button" className="app-page-btn-primary" onClick={openCreate}>
+            Add entry
+          </button>
+          {isSuperAdmin ? (
+            <button type="button" className="app-page-btn-secondary" disabled={extractBusy} onClick={() => void runExtract()}>
+              {extractBusy ? 'Extracting…' : 'Extract customers & suppliers'}
+            </button>
+          ) : null}
+          {isSuperAdmin ? (
+            <>
+              <label className="platform-directory-filter">
+                Import into company
+                <select value={importTargetCompanyId} onChange={(e) => setImportTargetCompanyId(e.target.value)}>
+                  <option value="">— Select —</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || c.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(ev) => void onPickSpreadsheet(ev)} />
+              <button
+                type="button"
+                className="app-page-btn-secondary"
+                disabled={importBusy}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {importBusy ? 'Importing…' : 'Import XLSX / CSV'}
+              </button>
+            </>
+          ) : (
+            <>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(ev) => void onPickSpreadsheet(ev)} />
+              <button
+                type="button"
+                className="app-page-btn-secondary"
+                disabled={importBusy || !myCompanyId}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {importBusy ? 'Importing…' : 'Import XLSX / CSV'}
+              </button>
+            </>
+          )}
+          {isSuperAdmin ? (
+            <button type="button" className="app-page-btn-secondary" onClick={() => setRfqOpen(true)}>
+              RFQ to selected ({selectedIds.size})
+            </button>
+          ) : null}
+        </div>
+
+        {loading ? (
+          <p className="platform-directory-muted">Loading…</p>
+        ) : (
+          <div className="platform-directory-table-wrap">
+            <table className="platform-directory-table">
+              <thead>
+                <tr>
+                  {isSuperAdmin ? <th style={{ width: 36 }} /> : null}
+                  {isSuperAdmin && !filterCompanyId ? <th>Account</th> : null}
+                  <th>Type</th>
+                  <th>Company</th>
+                  <th>Contact</th>
+                  <th>Email</th>
+                  <th>Industry</th>
+                  <th>Exec (SA)</th>
+                  <th>Source</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => (
+                  <tr key={r.id}>
+                    {isSuperAdmin ? (
+                      <td>
+                        <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => toggleSelect(r.id)} />
+                      </td>
+                    ) : null}
+                    {isSuperAdmin && !filterCompanyId ? (
+                      <td>{companyNameById.get(r.company_id) || r.company_id}</td>
+                    ) : null}
+                    <td>{r.entry_type}</td>
+                    <td>{r.company_name}</td>
+                    <td>
+                      {r.contact_name}
+                      {r.position ? <span className="platform-directory-muted"> — {r.position}</span> : null}
+                    </td>
+                    <td>{r.email || '—'}</td>
+                    <td>{r.industry_hub_id || r.industry_label || '—'}</td>
+                    <td>{r.visible_in_exec_summary_superadmin ? 'Yes' : '—'}</td>
+                    <td>
+                      <span className="platform-directory-muted" title={JSON.stringify(r.metadata || {})}>
+                        {r.source_ref || r.metadata?.source_company_id || '—'}
+                      </span>
+                    </td>
+                    <td>
+                      <button type="button" className="app-page-btn-ghost" onClick={() => openEdit(r)}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {rfqOpen && isSuperAdmin ? (
+          <div className="vm-modal-overlay" role="presentation" onClick={() => setRfqOpen(false)}>
+            <div className="vm-modal" role="dialog" onClick={(ev) => ev.stopPropagation()}>
+              <h2 className="vm-modal-title">Send RFQ (superadmin)</h2>
+              <p className="vm-modal-desc">
+                Creates vendor + supplier stubs on the issuing company for each selected email, then sends the RFQ.
+              </p>
+              <label className="vm-field">
+                Issuing company
+                <select value={rfqIssuerCompanyId} onChange={(e) => setRfqIssuerCompanyId(e.target.value)}>
+                  <option value="">— Select —</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || c.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <form onSubmit={(ev) => void sendRfq(ev)} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                <input value={rfqTitle} onChange={(e) => setRfqTitle(e.target.value)} placeholder="RFQ title *" required />
+                <textarea value={rfqDescription} onChange={(e) => setRfqDescription(e.target.value)} placeholder="Description" rows={3} />
+                <input type="date" value={rfqDeadline} onChange={(e) => setRfqDeadline(e.target.value)} />
+                <div className="platform-directory-muted">Selected rows: {selectedIds.size}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" className="app-page-btn-primary" disabled={rfqBusy || selectedIds.size === 0}>
+                    {rfqBusy ? 'Sending…' : 'Send RFQ'}
+                  </button>
+                  <button type="button" className="app-page-btn-secondary" onClick={() => setRfqOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {modalOpen ? (
+          <div className="vm-modal-overlay" role="presentation" onClick={() => setModalOpen(false)}>
+            <div className="vm-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
+              <h2 className="vm-modal-title">{editingId ? 'Edit entry' : 'New entry'}</h2>
+              <form onSubmit={(e) => void saveRow(e)} style={{ display: 'grid', gap: 10 }}>
+                <label className="vm-field">
+                  Type
+                  <select value={form.entry_type} onChange={(e) => setForm({ ...form, entry_type: e.target.value })}>
+                    {ENTRY_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <input
+                  value={form.company_name}
+                  onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+                  placeholder="Company name *"
+                  required
+                />
+                <input
+                  value={form.contact_name}
+                  onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                  placeholder="Contact name"
+                />
+                <input
+                  value={form.position}
+                  onChange={(e) => setForm({ ...form, position: e.target.value })}
+                  placeholder="Position"
+                />
+                <input
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="Email"
+                />
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone" />
+                <input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="Website" />
+                <input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="Country" />
+                <label className="vm-field">
+                  Industry hub (for superadmin rollups)
+                  <select
+                    value={form.industry_hub_id}
+                    onChange={(e) => setForm({ ...form, industry_hub_id: e.target.value })}
+                  >
+                    {INDUSTRY_HUB_OPTIONS.map((o) => (
+                      <option key={o.id || 'x'} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <input
+                  value={form.industry_label}
+                  onChange={(e) => setForm({ ...form, industry_label: e.target.value })}
+                  placeholder="Industry label (free text)"
+                />
+                <input
+                  value={form.category_id}
+                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                  placeholder="Category id (optional)"
+                />
+                <input
+                  value={form.source_ref}
+                  onChange={(e) => setForm({ ...form, source_ref: e.target.value })}
+                  placeholder="Source reference"
+                />
+                {isSuperAdmin ? (
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.visible_in_exec_summary_superadmin}
+                      onChange={(e) =>
+                        setForm({ ...form, visible_in_exec_summary_superadmin: e.target.checked })
+                      }
+                    />
+                    Visible in superadmin executive-summary rollups
+                  </label>
+                ) : null}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" className="app-page-btn-primary" disabled={saving}>
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button type="button" className="app-page-btn-secondary" onClick={() => setModalOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </AppLayout>
+  )
+}

@@ -27,6 +27,7 @@ const SIDEBAR_NAV = [
   { id: 'supplier-workspace', label: 'Supplier Workspace', path: '/dashboard/supplier', icon: 'management', supplierSide: true },
   { id: 'supplier-dashboard', label: 'Supplier Dashboard', path: '/supplier-dashboard', icon: 'vendors', supplierSide: true },
   { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
+  { id: 'account-directory', label: 'Account directory', path: '/dashboard/buyer/account-directory', icon: 'management' },
   { id: 'buyer-platform-directory', label: 'Buyer directory', path: '/dashboard/buyer/platform-directory', icon: 'management', minRole: 'superadmin' },
   { id: 'registered-suppliers', label: 'Registered suppliers', path: '/dashboard/buyer/registered-suppliers', icon: 'admin-dashboard', minRole: 'superadmin' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
@@ -171,7 +172,8 @@ export default function AppLayout({ children }) {
               const isActive = location.pathname === item.path ||
                 (item.id === 'supplier-workspace' && location.pathname.startsWith('/dashboard/supplier')) ||
                 (item.id === 'supplier-dashboard' && location.pathname.startsWith('/supplier-dashboard')) ||
-                (item.id === 'buyer-workspace' && location.pathname.startsWith('/dashboard/buyer')) ||
+                (item.id === 'buyer-workspace' && location.pathname === '/dashboard/buyer') ||
+                (item.id === 'account-directory' && location.pathname.startsWith('/dashboard/buyer/account-directory')) ||
                 (item.id === 'management' && (
                   location.pathname.startsWith('/management') ||
                   location.pathname.startsWith('/team') ||

@@ -135,6 +135,14 @@ export default function BuyerWorkspace() {
           <p className="app-page-subtitle">Search, shortlist, compare, and send RFQs at enterprise scale.</p>
           {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
           {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
+          <p style={{ marginTop: 12 }}>
+            <Link to="/dashboard/buyer/account-directory" className="app-page-btn-secondary">
+              Open account directory
+            </Link>
+            <span className="app-page-subtitle" style={{ marginLeft: 12, display: 'inline-block', verticalAlign: 'middle' }}>
+              Your company’s contacts; superadmin sees all accounts.
+            </span>
+          </p>
         </div>
 
         {isSuperAdmin && (

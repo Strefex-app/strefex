@@ -16,8 +16,10 @@ import {
   notificationsService,
   storageService,
   supplierProfilesService,
+  vendorsService,
 } from './supabaseService'
 import { emailService } from './emailService'
+import { useAuthStore } from '../store/authStore'
 
 function getAuthSnapshot() {
   try {
@@ -95,6 +97,141 @@ const industrialIntelligenceService = {
     return rows[0]?.id || null
   },
 
+  async ensureBuyerRecordForCompany(companyId) {
+    if (!isSupabaseConfigured || !companyId) return null
+    const rows = await buyersService.list(null, {
+      filters: [['company_id', 'eq', companyId]],
+      limit: 1,
+    }).catch(() => [])
+    if (rows[0]) return rows[0]
+    return buyersService.create({
+      company_id: companyId,
+      name: 'Buyer workspace',
+      metadata: { auto_created: true },
+    })
+  },
+
+  /**
+   * Creates tenant-scoped vendor + global supplier + profile row so RFQ invites can target directory emails.
+   * @param {string} ownerCompanyId — buyer company that "owns" the stub vendor (CRM-style).
+   */
+  async ensureStubSupplierFromDirectoryContact({
+    ownerCompanyId,
+    displayName,
+    legalName,
+    email,
+    website,
+    country,
+    industryLabel,
+  }) {
+    if (!isSupabaseConfigured || !ownerCompanyId) throw new Error('Company context is required.')
+    const name = String(displayName || legalName || email || 'External contact').trim()
+    const em = String(email || '').trim().toLowerCase()
+    if (!em.includes('@')) throw new Error('Valid email is required for RFQ delivery.')
+
+    const meta = { contact_email: em, source: 'account_directory_stub' }
+
+    const vendor = await vendorsService.create({
+      company_id: ownerCompanyId,
+      status: 'active',
+      general: {
+        companyName: name,
+        legalName: String(legalName || name).trim(),
+        website: String(website || '').trim(),
+        country: String(country || '').trim(),
+        industry: industryLabel ? [String(industryLabel)] : [],
+      },
+      contacts: [
+        {
+          id: `ct-${Date.now()}`,
+          name: name,
+          email: em,
+          isPrimary: true,
+        },
+      ],
+      metadata: meta,
+    })
+
+    const existing = await suppliersService
+      .list(null, { filters: [['vendor_id', 'eq', vendor.id]], limit: 1 })
+      .catch(() => [])
+    let supplier = existing[0] || null
+    if (!supplier) {
+      supplier = await suppliersService.create({
+        vendor_id: vendor.id,
+        legal_name: String(legalName || name).trim(),
+        display_name: name,
+        country: country || null,
+        industry: industryLabel || null,
+        website: website || null,
+        metadata: { ...meta, contact_email: em },
+      })
+    } else {
+      await suppliersService
+        .update(supplier.id, {
+          display_name: name,
+          country: country || supplier.country,
+          industry: industryLabel || supplier.industry,
+          website: website || supplier.website,
+          metadata: { ...(supplier.metadata || {}), ...meta, contact_email: em },
+        })
+        .catch(() => {})
+    }
+
+    await supplierProfilesService
+      .upsert({
+        supplier_id: vendor.id,
+        contact_email: em,
+        website: website || null,
+        description: 'External directory / spreadsheet contact (stub profile for RFQ).',
+        phone: null,
+        profile_completeness: 65,
+      })
+      .catch(() => {})
+
+    return supplier.id
+  },
+
+  async createRfqFromDirectorySelection({
+    buyerCompanyId,
+    title,
+    description,
+    deadline,
+    requirements = {},
+    directoryEntries = [],
+    skipCompletenessCheck = true,
+  }) {
+    if (!buyerCompanyId) throw new Error('Select which company issues the RFQ.')
+    const supplierIds = []
+    const seen = new Set()
+    for (const row of directoryEntries) {
+      const em = String(row?.email || '').trim().toLowerCase()
+      if (!em.includes('@') || seen.has(em)) continue
+      seen.add(em)
+      const sid = await this.ensureStubSupplierFromDirectoryContact({
+        ownerCompanyId: buyerCompanyId,
+        displayName: row.company_name || row.contact_name || em,
+        legalName: row.company_name,
+        email: em,
+        website: row.website,
+        country: row.country,
+        industryLabel: row.industry_label || row.industry_hub_id,
+      })
+      supplierIds.push(sid)
+    }
+    if (supplierIds.length === 0) throw new Error('No rows with valid emails in selection.')
+    return this.createRfq({
+      projectId: null,
+      title,
+      description,
+      deadline,
+      supplierIds,
+      requirements,
+      buyerCompanyId,
+      skipCompletenessCheck,
+    })
+  },
+
   async ensureBuyerWorkspace() {
     const companyId = getCurrentCompanyId()
     const userId = getCurrentUserId()
@@ -167,9 +304,31 @@ const industrialIntelligenceService = {
     return supplierShortlistsService.list(null, { filters, orderBy: 'created_at', ascending: false })
   },
 
-  async createRfq({ projectId, title, description, deadline, supplierIds = [], requirements = {} }) {
-    const buyer = await this.ensureBuyerWorkspace()
-    const companyId = getCurrentCompanyId()
+  async createRfq({
+    projectId,
+    title,
+    description,
+    deadline,
+    supplierIds = [],
+    requirements = {},
+    buyerCompanyId = null,
+    skipCompletenessCheck = false,
+  }) {
+    const actingSuperadmin = Boolean(buyerCompanyId)
+    if (actingSuperadmin && useAuthStore.getState().role !== 'superadmin') {
+      throw new Error('Only superadmin can send RFQs on behalf of another company.')
+    }
+
+    let buyer
+    let companyId
+    if (actingSuperadmin) {
+      companyId = buyerCompanyId
+      buyer = await this.ensureBuyerRecordForCompany(companyId)
+    } else {
+      buyer = await this.ensureBuyerWorkspace()
+      companyId = getCurrentCompanyId()
+    }
+
     const userId = getCurrentUserId()
     if (!buyer || !companyId) throw new Error('Buyer workspace is unavailable.')
     if (!String(title || '').trim()) throw new Error('RFQ title is required.')
@@ -178,18 +337,20 @@ const industrialIntelligenceService = {
     // Restrict RFQ participation to suppliers with minimum profile completeness.
     const uniqueSupplierIds = [...new Set((supplierIds || []).filter(Boolean))]
     const suppliers = await Promise.all(uniqueSupplierIds.map((id) => suppliersService.getById(id).catch(() => null)))
-    const vendorIds = suppliers.map((s) => s?.vendor_id).filter(Boolean)
-    const completenessRows = vendorIds.length
-      ? await supplierProfilesService.list(null, { filters: [['supplier_id', 'in', toInFilter(vendorIds)]] }).catch(() => [])
-      : []
-    const completenessMap = new Map((completenessRows || []).map((r) => [r.supplier_id, Number(r.profile_completeness || 0)]))
-    const blocked = suppliers.filter((s) => {
-      const vendorId = s?.vendor_id
-      const completeness = Number(completenessMap.get(vendorId) || 0)
-      return completeness < 60
-    })
-    if (blocked.length > 0) {
-      throw new Error(`RFQ can be sent only to suppliers with profile completeness >= 60%. Blocked: ${blocked.length}`)
+    if (!skipCompletenessCheck) {
+      const vendorIds = suppliers.map((s) => s?.vendor_id).filter(Boolean)
+      const completenessRows = vendorIds.length
+        ? await supplierProfilesService.list(null, { filters: [['supplier_id', 'in', toInFilter(vendorIds)]] }).catch(() => [])
+        : []
+      const completenessMap = new Map((completenessRows || []).map((r) => [r.supplier_id, Number(r.profile_completeness || 0)]))
+      const blocked = suppliers.filter((s) => {
+        const vendorId = s?.vendor_id
+        const completeness = Number(completenessMap.get(vendorId) || 0)
+        return completeness < 60
+      })
+      if (blocked.length > 0) {
+        throw new Error(`RFQ can be sent only to suppliers with profile completeness >= 60%. Blocked: ${blocked.length}`)
+      }
     }
 
     const rfq = await rfqsService.create({

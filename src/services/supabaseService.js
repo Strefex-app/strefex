@@ -463,6 +463,8 @@ export const analyticsEventsService = createCrudService('analytics_events')
 export const platformDirectoryContactsService = createCrudService('platform_directory_contacts')
 /** Superadmin-only RLS — tooling / international supplier registry (not public vendor profiles) */
 export const platformRegisteredSuppliersService = createCrudService('platform_registered_suppliers')
+/** Per-tenant directory; superadmin sees all companies (RLS) */
+export const accountDirectoryEntriesService = createCrudService('account_directory_entries')
 
 /** PostgREST / Supabase when RPC is missing, renamed, or not granted to the JWT role */
 function isSearchSuppliersRpcUnavailable(error) {
