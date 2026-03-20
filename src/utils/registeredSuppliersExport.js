@@ -3,6 +3,7 @@
  */
 
 export const REGISTERED_SUPPLIERS_EXPORT_HEADERS = [
+  'segment',
   'company_name',
   'industry',
   'country',
@@ -17,6 +18,7 @@ export const REGISTERED_SUPPLIERS_EXPORT_HEADERS = [
 
 export function rowToExportObject(r) {
   return {
+    segment: r.segment ?? '',
     company_name: r.company_name ?? '',
     industry: r.industry ?? '',
     country: r.country ?? '',
@@ -78,7 +80,7 @@ export async function exportPdf(rows, title = 'Registered suppliers') {
 
   const table = document.createElement('table')
   table.style.cssText = 'width:100%;border-collapse:collapse;font-size:9px'
-  const headLabels = ['Company', 'Industry', 'Country', 'Contact', 'Role', 'Email', 'Phone', 'Web', '#', 'Source']
+  const headLabels = ['Segment', 'Company', 'Industry', 'Country', 'Contact', 'Role', 'Email', 'Phone', 'Web', '#', 'Source']
   const thead = document.createElement('thead')
   const hr = document.createElement('tr')
   hr.style.cssText = 'background:#f3f4f6;border-bottom:2px solid #ccc'
@@ -96,7 +98,7 @@ export async function exportPdf(rows, title = 'Registered suppliers') {
     const o = rowToExportObject(r)
     const tr = document.createElement('tr')
     tr.style.background = i % 2 ? '#fafafa' : '#fff'
-    const keys = ['company_name', 'industry', 'country', 'contact_name', 'position', 'email', 'phone', 'website', 'row_index', 'source_ref']
+    const keys = ['segment', 'company_name', 'industry', 'country', 'contact_name', 'position', 'email', 'phone', 'website', 'row_index', 'source_ref']
     keys.forEach((key) => {
       const td = document.createElement('td')
       td.textContent = o[key] != null ? String(o[key]) : ''

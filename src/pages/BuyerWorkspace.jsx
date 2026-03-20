@@ -157,12 +157,12 @@ export default function BuyerWorkspace() {
               </Link>
             </div>
             <div className="app-page-card app-page-callout">
-              <h3 className="app-page-section-heading">Registered suppliers (superadmin)</h3>
+              <h3 className="app-page-section-heading">Supplier directory (superadmin)</h3>
               <p className="app-page-subtitle">
-                Internal tooling / supplier registry — superadmin only. Import CSV or manage rows; not shown to buyers until promoted to vendors.
+                Same columns as buyer directory; Plastic/Stamping mirror + XLSX/CSV import (e.g. Company list 2025). Superadmin only.
               </p>
               <Link to="/dashboard/buyer/registered-suppliers" className="app-page-btn-primary">
-                Open registered suppliers
+                Open supplier directory
               </Link>
             </div>
           </>

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import AppLayout from '../components/AppLayout'
 import { isSupabaseConfigured, platformRegisteredSuppliersService } from '../services/supabaseService'
 import { downloadCsv, exportExcel, exportPdf } from '../utils/registeredSuppliersExport'
-import { parseRegisteredSuppliersCsv } from '../utils/registeredSuppliersCsv'
+import { parseRegisteredSuppliersCsv, mapRowToPayload } from '../utils/registeredSuppliersCsv'
+import { parseDirectorySpreadsheetRows } from '../utils/directorySpreadsheetImport'
 import '../styles/app-page.css'
 import './PlatformDirectoryPage.css'
 
+const SEGMENT_OPTIONS = ['Plastic', 'Stamping', 'Equipment', 'Company list (2025)', 'International', 'Other']
+
 const EMPTY_FORM = {
+  segment: 'Company list (2025)',
   company_name: '',
   industry: '',
-  country: 'China',
+  country: 'Russia',
   contact_name: '',
   position: '',
   email: '',
@@ -28,10 +33,17 @@ function trimOrNull(v) {
 function buildPayload(form) {
   const ri = String(form.row_index || '').trim()
   const row_index = ri === '' ? null : parseInt(ri, 10)
+  let segment = 'Company list (2025)'
+  if (form.segment === 'Other') {
+    segment = String(form.segment_custom || '').trim() || 'Company list (2025)'
+  } else {
+    segment = String(form.segment || '').trim() || 'Company list (2025)'
+  }
   return {
+    segment,
     company_name: String(form.company_name || '').trim(),
     industry: trimOrNull(form.industry),
-    country: trimOrNull(form.country) || 'China',
+    country: trimOrNull(form.country) || 'Russia',
     contact_name: trimOrNull(form.contact_name),
     position: trimOrNull(form.position),
     email: trimOrNull(form.email)?.toLowerCase() ?? null,
@@ -50,22 +62,31 @@ export default function RegisteredSuppliersPage() {
   const [rows, setRows] = useState([])
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-  const [industryFilter, setIndustryFilter] = useState('')
+  const [segment, setSegment] = useState('all')
   const [query, setQuery] = useState('')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, segment_custom: '' }))
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [exportBusy, setExportBusy] = useState('')
 
+  const segmentChoices = useMemo(() => {
+    const fromData = new Set()
+    rows.forEach((r) => {
+      if (r.segment) fromData.add(String(r.segment))
+    })
+    SEGMENT_OPTIONS.filter((s) => s !== 'Other').forEach((s) => fromData.add(s))
+    return ['all', ...[...fromData].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))]
+  }, [rows])
+
   const loadRows = useCallback(async (opts = { showSpinner: true }) => {
     if (!isSupabaseConfigured) {
       setRows([])
       setError(
-        'Supabase is not configured. Run migration 018_platform_registered_suppliers.sql and set VITE_SUPABASE_* in your environment.',
+        'Supabase is not configured. Run migrations 018 and 020 on Supabase and set VITE_SUPABASE_* in your environment.',
       )
       setLoading(false)
       return
@@ -78,9 +99,14 @@ export default function RegisteredSuppliersPage() {
         ascending: true,
       })
       setRows(Array.isArray(data) ? data : [])
+      if (!data?.length) {
+        setError(
+          'No rows yet. After migration 020, Plastic/Stamping buyer-directory contacts are mirrored here. Import your Excel (XLSX) or CSV — same columns as buyer directory.',
+        )
+      }
     } catch (err) {
       setRows([])
-      setError(err?.message || 'Failed to load registered suppliers.')
+      setError(err?.message || 'Failed to load supplier directory.')
     } finally {
       if (opts.showSpinner) setLoading(false)
     }
@@ -92,11 +118,11 @@ export default function RegisteredSuppliersPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const ind = industryFilter.trim().toLowerCase()
     return rows.filter((r) => {
-      if (ind && !String(r.industry || '').toLowerCase().includes(ind)) return false
+      if (segment !== 'all' && String(r.segment || '') !== segment) return false
       if (!q) return true
       const hay = [
+        r.segment,
         r.company_name,
         r.industry,
         r.country,
@@ -112,10 +138,12 @@ export default function RegisteredSuppliersPage() {
         .join(' ')
       return hay.includes(q)
     })
-  }, [rows, industryFilter, query])
+  }, [rows, segment, query])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
+      const s = String(a.segment || '').localeCompare(String(b.segment || ''))
+      if (s !== 0) return s
       const ai = a.row_index != null ? Number(a.row_index) : 999999
       const bi = b.row_index != null ? Number(b.row_index) : 999999
       if (ai !== bi) return ai - bi
@@ -127,17 +155,22 @@ export default function RegisteredSuppliersPage() {
 
   const openAdd = () => {
     setEditingId(null)
-    setForm({ ...EMPTY_FORM })
+    setForm({ ...EMPTY_FORM, segment_custom: '' })
     setFeedback('')
     setModalOpen(true)
   }
 
   const openEdit = (row) => {
     setEditingId(row.id)
+    const seg = row.segment || 'Company list (2025)'
+    const known = SEGMENT_OPTIONS.filter((o) => o !== 'Other')
+    const useSelect = known.includes(seg)
     setForm({
+      segment: useSelect ? seg : 'Other',
+      segment_custom: useSelect ? '' : seg,
       company_name: row.company_name || '',
       industry: row.industry || '',
-      country: row.country || 'China',
+      country: row.country || 'Russia',
       contact_name: row.contact_name || '',
       position: row.position || '',
       email: row.email || '',
@@ -189,7 +222,7 @@ export default function RegisteredSuppliersPage() {
 
   const onDelete = async (row) => {
     if (!canEdit || !row.id) return
-    if (!window.confirm(`Remove “${row.company_name}” from the registry?`)) return
+    if (!window.confirm(`Remove “${row.company_name}” from the directory?`)) return
     setError('')
     setInfo('')
     try {
@@ -200,9 +233,22 @@ export default function RegisteredSuppliersPage() {
     }
   }
 
-  const onPickCsv = () => fileInputRef.current?.click()
+  const onPickFile = () => fileInputRef.current?.click()
 
-  const onCsvSelected = async (e) => {
+  const insertPayloads = async (payloads) => {
+    let inserted = 0
+    for (const payload of payloads) {
+      try {
+        await platformRegisteredSuppliersService.create(payload)
+        inserted += 1
+      } catch {
+        /* duplicate / RLS */
+      }
+    }
+    return inserted
+  }
+
+  const onFileSelected = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || !canEdit) return
@@ -210,21 +256,51 @@ export default function RegisteredSuppliersPage() {
     setError('')
     setInfo('')
     try {
-      const text = await file.text()
-      const { ok, skipped } = parseRegisteredSuppliersCsv(text, `csv:${file.name}`)
-      let inserted = 0
-      for (const payload of ok) {
-        try {
-          await platformRegisteredSuppliersService.create(payload)
-          inserted += 1
-        } catch {
-          /* duplicate or RLS — skip */
-        }
+      const name = String(file.name || '').toLowerCase()
+      let payloads = []
+
+      if (name.endsWith('.csv')) {
+        const text = await file.text()
+        const { ok, skipped } = parseRegisteredSuppliersCsv(text, `csv:${file.name}`)
+        payloads = ok
+        const inserted = await insertPayloads(payloads)
+        await loadRows({ showSpinner: false })
+        setInfo(`Imported ${inserted} row(s).${skipped ? ` Skipped ${skipped} empty/invalid line(s).` : ''}`)
+        return
       }
+
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      const parsed = parseDirectorySpreadsheetRows(json, {
+        defaultSegment: 'Company list (2025)',
+        defaultCountry: 'Russia',
+        defaultSourceRef: `xlsx:${file.name}`,
+      })
+      for (const r of parsed) {
+        if (!r.company_name && !r.email) continue
+        const o = {
+          segment: r.segment,
+          company_name: r.company_name || r.email || 'Unknown',
+          industry: r.industry,
+          country: r.country || 'Russia',
+          contact_name: r.contact_name,
+          position: r.position,
+          email: r.email,
+          phone: r.phone,
+          website: r.website,
+          row_index: r.row_index,
+          source_ref: r.source_ref,
+        }
+        const payload = mapRowToPayload(o, `xlsx:${file.name}`)
+        if (payload) payloads.push(payload)
+      }
+      const inserted = await insertPayloads(payloads)
       await loadRows({ showSpinner: false })
-      setInfo(`Imported ${inserted} row(s).${skipped ? ` Skipped ${skipped} empty/invalid line(s).` : ''}`)
+      setInfo(`Imported ${inserted} row(s) from ${file.name}.`)
     } catch (err) {
-      setError(err?.message || 'CSV import failed.')
+      setError(err?.message || 'Import failed.')
     } finally {
       setImporting(false)
     }
@@ -234,9 +310,9 @@ export default function RegisteredSuppliersPage() {
     if (sorted.length === 0) return
     setExportBusy(kind)
     try {
-      if (kind === 'csv') downloadCsv('registered-suppliers.csv', sorted)
-      else if (kind === 'excel') await exportExcel('registered-suppliers.xlsx', sorted)
-      else if (kind === 'pdf') await exportPdf(sorted, 'Registered suppliers')
+      if (kind === 'csv') downloadCsv('supplier-directory.csv', sorted)
+      else if (kind === 'excel') await exportExcel('supplier-directory.xlsx', sorted)
+      else if (kind === 'pdf') await exportPdf(sorted, 'Supplier directory')
     } catch (err) {
       setError(err?.message || `Export ${kind} failed.`)
     } finally {
@@ -249,9 +325,9 @@ export default function RegisteredSuppliersPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,.xlsx,.xls,text/csv"
         style={{ display: 'none' }}
-        onChange={onCsvSelected}
+        onChange={(ev) => void onFileSelected(ev)}
       />
 
       <div className="app-page buyer-directory-page">
@@ -260,25 +336,22 @@ export default function RegisteredSuppliersPage() {
         </button>
 
         <div className="app-page-card">
-          <h2 className="app-page-title">Registered suppliers</h2>
+          <h2 className="app-page-title">Supplier directory</h2>
           <p className="app-page-subtitle">
-            Internal registry of supplier contacts (e.g. tooling / equipment lists).{' '}
-            <strong>Superadmin only</strong> — not visible to buyers, suppliers, or other roles. Promote entries to platform
-            vendors separately when ready.
-          </p>
-          <p className="app-page-body" style={{ marginBottom: 12, fontSize: 13 }}>
-            CSV headers supported: <code>#</code>, Company name (or Company namy), industry, country, contact person, position,
-            email, phone, website.
+            Same layout and columns as the <strong>buyer directory</strong> (segment, company, country, contacts).{' '}
+            <strong>Superadmin only.</strong> Plastic &amp; Stamping rows from the buyer directory are mirrored here after
+            migration <strong>020</strong>. Import your <strong>Company list (2025) for platform.xlsx</strong> via XLSX/CSV
+            — headers: Segment (optional), Company name, Country, Contact, Position, Email, Phone, Website, Industry.
           </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
             {canEdit && (
               <>
                 <button type="button" className="app-page-btn-primary" onClick={openAdd}>
-                  Add supplier
+                  Add contact
                 </button>
-                <button type="button" className="app-page-btn-outline" disabled={importing} onClick={onPickCsv}>
-                  {importing ? 'Importing…' : 'Import CSV'}
+                <button type="button" className="app-page-btn-outline" disabled={importing} onClick={onPickFile}>
+                  {importing ? 'Importing…' : 'Import XLSX / CSV'}
                 </button>
               </>
             )}
@@ -316,17 +389,17 @@ export default function RegisteredSuppliersPage() {
         </div>
 
         <div className="app-page-card">
-          <h3 className="buyer-dir-section-heading">Registry</h3>
+          <h3 className="buyer-dir-section-heading">Directory</h3>
           <div className="buyer-dir-filters">
-            <div className="buyer-dir-field buyer-dir-field--grow">
-              <span className="buyer-dir-label">Industry contains</span>
-              <input
-                type="text"
-                value={industryFilter}
-                onChange={(e) => setIndustryFilter(e.target.value)}
-                placeholder="e.g. Tool maker, CNC"
-                aria-label="Filter by industry"
-              />
+            <div className="buyer-dir-field">
+              <span className="buyer-dir-label">Segment</span>
+              <select value={segment} onChange={(e) => setSegment(e.target.value)} aria-label="Filter by segment">
+                {segmentChoices.map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'all' ? 'All' : s}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="buyer-dir-field buyer-dir-field--grow">
               <span className="buyer-dir-label">Search</span>
@@ -334,28 +407,27 @@ export default function RegisteredSuppliersPage() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Company, contact, email, country…"
-                aria-label="Search registry"
+                placeholder="Company, contact, email, phone…"
+                aria-label="Search directory"
               />
             </div>
           </div>
 
           {loading ? (
-            <p className="app-page-subtitle buyer-dir-loading-msg">Loading registry…</p>
+            <p className="app-page-subtitle buyer-dir-loading-msg">Loading directory…</p>
           ) : sorted.length === 0 ? (
             <div className="app-page-list-empty">
               {rows.length === 0
-                ? 'No suppliers registered yet. Import your spreadsheet as CSV or add rows manually.'
-                : 'No rows match the current filters.'}
+                ? 'No contacts yet. Run migration 020, then import XLSX/CSV or wait for mirror from buyer directory.'
+                : 'No contacts match the current filters.'}
             </div>
           ) : (
             <div className="buyer-dir-table-wrap">
               <table className="buyer-dir-table">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th>Segment</th>
                     <th>Company</th>
-                    <th>Industry</th>
                     <th>Country</th>
                     <th>Contact</th>
                     <th>Role</th>
@@ -368,13 +440,12 @@ export default function RegisteredSuppliersPage() {
                 </thead>
                 <tbody>
                   {sorted.map((r) => (
-                    <tr key={r.id || `${r.company_name}-${r.email}-${r.row_index}`}>
-                      <td className="buyer-dir-cell--muted buyer-dir-cell--nowrap">{r.row_index != null ? r.row_index : '—'}</td>
+                    <tr key={r.id || `${r.segment}-${r.company_name}-${r.email}-${r.contact_name}`}>
+                      <td className="buyer-dir-cell--nowrap">{r.segment || '—'}</td>
                       <td style={{ maxWidth: 200 }}>{r.company_name}</td>
-                      <td style={{ maxWidth: 120 }}>{r.industry || '—'}</td>
-                      <td className="buyer-dir-cell--nowrap">{r.country}</td>
-                      <td style={{ maxWidth: 160 }}>{r.contact_name}</td>
-                      <td style={{ maxWidth: 140 }}>{r.position}</td>
+                      <td>{r.country}</td>
+                      <td style={{ maxWidth: 180 }}>{r.contact_name}</td>
+                      <td style={{ maxWidth: 160 }}>{r.position}</td>
                       <td style={{ wordBreak: 'break-word', maxWidth: 200 }}>
                         {r.email ? (
                           <a href={`mailto:${r.email}`}>{r.email}</a>
@@ -382,7 +453,7 @@ export default function RegisteredSuppliersPage() {
                           '—'
                         )}
                       </td>
-                      <td style={{ maxWidth: 160, fontSize: 12 }}>{r.phone || '—'}</td>
+                      <td className="buyer-dir-cell--nowrap">{r.phone || '—'}</td>
                       <td style={{ wordBreak: 'break-word', maxWidth: 140 }}>
                         {r.website ? (
                           <a href={/^https?:\/\//i.test(r.website) ? r.website : `https://${r.website}`} target="_blank" rel="noreferrer">
@@ -424,11 +495,38 @@ export default function RegisteredSuppliersPage() {
         >
           <div className="app-page-card buyer-dir-modal" onClick={(e) => e.stopPropagation()}>
             <h3 id="rs-modal-title" className="app-page-title">
-              {editingId ? 'Edit supplier' : 'Add supplier'}
+              {editingId ? 'Edit contact' : 'Add contact'}
             </h3>
             <p className="app-page-subtitle buyer-dir-modal-hint">Company name is required.</p>
             <form onSubmit={onSubmitForm}>
               <div className="buyer-dir-form-grid">
+                <div className="buyer-dir-field">
+                  <label htmlFor="rs-segment">Segment *</label>
+                  <select
+                    id="rs-segment"
+                    value={form.segment}
+                    onChange={(e) => setForm((f) => ({ ...f, segment: e.target.value }))}
+                    required
+                  >
+                    {SEGMENT_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {form.segment === 'Other' && (
+                  <div className="buyer-dir-field">
+                    <label htmlFor="rs-segment-custom">Custom segment *</label>
+                    <input
+                      id="rs-segment-custom"
+                      value={form.segment_custom || ''}
+                      onChange={(e) => setForm((f) => ({ ...f, segment_custom: e.target.value }))}
+                      placeholder="e.g. Forging"
+                      required
+                    />
+                  </div>
+                )}
                 <div className="buyer-dir-field">
                   <label htmlFor="rs-company">Company name *</label>
                   <input
@@ -436,15 +534,6 @@ export default function RegisteredSuppliersPage() {
                     value={form.company_name}
                     onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))}
                     required
-                  />
-                </div>
-                <div className="buyer-dir-field">
-                  <label htmlFor="rs-industry">Industry</label>
-                  <input
-                    id="rs-industry"
-                    value={form.industry}
-                    onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
-                    placeholder="e.g. Tool maker, CNC"
                   />
                 </div>
                 <div className="buyer-dir-field">
@@ -456,7 +545,7 @@ export default function RegisteredSuppliersPage() {
                   <input id="rs-contact" value={form.contact_name} onChange={(e) => setForm((f) => ({ ...f, contact_name: e.target.value }))} />
                 </div>
                 <div className="buyer-dir-field">
-                  <label htmlFor="rs-position">Position</label>
+                  <label htmlFor="rs-position">Role / position</label>
                   <input id="rs-position" value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} />
                 </div>
                 <div className="buyer-dir-field">
@@ -472,13 +561,21 @@ export default function RegisteredSuppliersPage() {
                   <input id="rs-web" value={form.website} onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))} />
                 </div>
                 <div className="buyer-dir-field">
+                  <label htmlFor="rs-industry">Industry (optional detail)</label>
+                  <input
+                    id="rs-industry"
+                    value={form.industry}
+                    onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
+                    placeholder="e.g. Tool maker — not shown as main column"
+                  />
+                </div>
+                <div className="buyer-dir-field">
                   <label htmlFor="rs-idx">Row # (optional)</label>
                   <input
                     id="rs-idx"
                     inputMode="numeric"
                     value={form.row_index}
                     onChange={(e) => setForm((f) => ({ ...f, row_index: e.target.value }))}
-                    placeholder="e.g. 1"
                   />
                 </div>
                 <div className="buyer-dir-field">
@@ -487,7 +584,7 @@ export default function RegisteredSuppliersPage() {
                     id="rs-source"
                     value={form.source_ref}
                     onChange={(e) => setForm((f) => ({ ...f, source_ref: e.target.value }))}
-                    placeholder="e.g. tooling list 2025"
+                    placeholder="e.g. Company list (2025) for platform.xlsx"
                   />
                 </div>
               </div>
@@ -498,7 +595,7 @@ export default function RegisteredSuppliersPage() {
               )}
               <div className="app-page-btn-row">
                 <button type="submit" className="app-page-btn-primary" disabled={saving}>
-                  {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add supplier'}
+                  {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add contact'}
                 </button>
                 <button type="button" className="app-page-btn-outline" onClick={closeModal} disabled={saving}>
                   Cancel

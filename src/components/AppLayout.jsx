@@ -29,7 +29,7 @@ const SIDEBAR_NAV = [
   { id: 'buyer-workspace', label: 'Buyer Workspace', path: '/dashboard/buyer', icon: 'management' },
   { id: 'account-directory', label: 'Account directory', path: '/dashboard/buyer/account-directory', icon: 'management' },
   { id: 'buyer-platform-directory', label: 'Buyer directory', path: '/dashboard/buyer/platform-directory', icon: 'management', minRole: 'superadmin' },
-  { id: 'registered-suppliers', label: 'Registered suppliers', path: '/dashboard/buyer/registered-suppliers', icon: 'admin-dashboard', minRole: 'superadmin' },
+  { id: 'registered-suppliers', label: 'Supplier directory', path: '/dashboard/buyer/registered-suppliers', icon: 'admin-dashboard', minRole: 'superadmin' },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
   { id: 'service-requests', tKey: 'nav.serviceRequests', path: '/service-requests', icon: 'service-requests' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },

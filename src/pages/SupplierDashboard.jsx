@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import supplierOwnershipService from '../services/supplierOwnershipService'
+import { useAuthStore } from '../store/authStore'
+import { isSupabaseConfigured, platformRegisteredSuppliersService } from '../services/supabaseService'
+import '../styles/app-page.css'
 
 const emptyProduct = {
   productName: '',
@@ -24,6 +27,7 @@ function useQuery() {
 export default function SupplierDashboard() {
   const navigate = useNavigate()
   const query = useQuery()
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const requestedSupplierId = query.get('supplierId')
   const [loading, setLoading] = useState(true)
   const [memberships, setMemberships] = useState([])
@@ -31,6 +35,8 @@ export default function SupplierDashboard() {
   const [snapshot, setSnapshot] = useState(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [registryPreview, setRegistryPreview] = useState([])
+  const [registryTotal, setRegistryTotal] = useState(0)
   const [profileDraft, setProfileDraft] = useState({ description: '', website: '', contactEmail: '', phone: '' })
   const [productDraft, setProductDraft] = useState(emptyProduct)
   const [certDraft, setCertDraft] = useState(emptyCertification)
@@ -66,6 +72,31 @@ export default function SupplierDashboard() {
   useEffect(() => {
     void loadMemberships()
   }, [])
+
+  useEffect(() => {
+    if (!isSuperAdmin || !isSupabaseConfigured) {
+      setRegistryPreview([])
+      setRegistryTotal(0)
+      return
+    }
+    void (async () => {
+      try {
+        const [rows, total] = await Promise.all([
+          platformRegisteredSuppliersService.list(null, {
+            orderBy: 'company_name',
+            ascending: true,
+            limit: 12,
+          }),
+          platformRegisteredSuppliersService.count(null).catch(() => 0),
+        ])
+        setRegistryPreview(Array.isArray(rows) ? rows : [])
+        setRegistryTotal(typeof total === 'number' ? total : 0)
+      } catch {
+        setRegistryPreview([])
+        setRegistryTotal(0)
+      }
+    })()
+  }, [isSuperAdmin])
 
   useEffect(() => {
     if (supplierId) {
@@ -164,12 +195,61 @@ export default function SupplierDashboard() {
     return (
       <AppLayout>
         <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+          {isSuperAdmin && (
+            <div className="app-page-card app-page-callout" style={{ marginBottom: 16 }}>
+              <h2 className="app-page-title">Supplier directory (platform registry)</h2>
+              <p className="app-page-subtitle">
+                This list is the same data as <strong>Supplier directory</strong> under Buyer Workspace — buyer-directory layout,
+                mirrored Plastic/Stamping contacts, and your Excel imports. It is not the same as a <em>claimed</em> supplier
+                profile below.
+              </p>
+              <p className="app-page-subtitle">
+                <strong>{registryTotal}</strong> contact{registryTotal === 1 ? '' : 's'} in registry.
+              </p>
+              <Link to="/dashboard/buyer/registered-suppliers" className="app-page-btn-primary">
+                Open full supplier directory
+              </Link>
+              {registryPreview.length > 0 && (
+                <div className="buyer-dir-table-wrap" style={{ marginTop: 16 }}>
+                  <table className="buyer-dir-table">
+                    <thead>
+                      <tr>
+                        <th>Segment</th>
+                        <th>Company</th>
+                        <th>Country</th>
+                        <th>Contact</th>
+                        <th>Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registryPreview.map((r) => (
+                        <tr key={r.id}>
+                          <td>{r.segment || '—'}</td>
+                          <td>{r.company_name}</td>
+                          <td>{r.country}</td>
+                          <td>{r.contact_name || '—'}</td>
+                          <td>{r.email || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
           <div className="app-page-card">
             <h2 className="app-page-title">Supplier Dashboard</h2>
-            <p className="app-page-subtitle">No claimed supplier profile found for your account.</p>
+            <p className="app-page-subtitle">
+              No claimed supplier profile found for your account. Claim a vendor/supplier to manage products and certifications here.
+            </p>
             <button type="button" className="app-page-btn-primary" onClick={() => navigate('/vendors')}>
               Browse Suppliers
             </button>
+            {isSuperAdmin && (
+              <p className="app-page-subtitle" style={{ marginTop: 16 }}>
+                Superadmin: use <Link to="/dashboard/supplier">Supplier Workspace</Link> for memberships, or open the directory above.
+              </p>
+            )}
           </div>
         </div>
       </AppLayout>
@@ -187,6 +267,16 @@ export default function SupplierDashboard() {
     <AppLayout>
       <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
         <button type="button" className="app-page-back-link" onClick={() => navigate(-1)}>← Back</button>
+
+        {isSuperAdmin && (
+          <div className="app-page-card app-page-callout" style={{ marginBottom: 12 }}>
+            <p className="app-page-subtitle" style={{ margin: 0 }}>
+              <strong>Supplier directory:</strong>{' '}
+              <Link to="/dashboard/buyer/registered-suppliers">Open platform registry</Link>
+              {' '}({registryTotal} contacts) — same layout as buyer directory; Excel/XLSX imports go there.
+            </p>
+          </div>
+        )}
 
         <div className="app-page-card">
           <h2 className="app-page-title">Supplier Dashboard — {vendorName}</h2>

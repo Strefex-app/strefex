@@ -40,6 +40,10 @@ function canonicalField(header) {
     'no.': 'row_index',
     num: 'row_index',
     'n°': 'row_index',
+    segment: 'segment',
+    category: 'segment',
+    list: 'segment',
+    type: 'segment',
     'company name': 'company_name',
     'company namy': 'company_name',
     company_name: 'company_name',
@@ -77,9 +81,14 @@ export function mapRowToPayload(o, defaultSourceRef) {
     const n = parseInt(String(o.row_index).trim(), 10)
     if (Number.isFinite(n)) rowIndex = n
   }
+  const seg = trimOrNull(o.segment)
+  const ind = trimOrNull(o.industry)
+  const segment =
+    seg || (ind && ind.length > 0 ? ind : null) || 'Company list (2025)'
   return {
+    segment,
     company_name,
-    industry: trimOrNull(o.industry),
+    industry: ind,
     country: trimOrNull(o.country) || 'China',
     contact_name: trimOrNull(o.contact_name),
     position: trimOrNull(o.position),
