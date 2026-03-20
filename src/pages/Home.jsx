@@ -138,7 +138,7 @@ export default function Home() {
         {/* ── Dashboard Quick Access ──────────────────────── */}
         {isSuperAdmin ? (
           /* Superadmin sees links to ALL dashboards */
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 20 }}>
+          <div className="home-dash-grid">
             {[
               { label: 'Seller Dashboard', path: '/seller-dashboard', color: '#000888', bg: 'rgba(0,8,136,.06)', border: 'rgba(0,8,136,.2)', desc: 'View all seller data, received RFQs, responses' },
               { label: 'Buyer Dashboard', path: '/buyer-dashboard', color: '#2e7d32', bg: 'rgba(46,125,50,.06)', border: 'rgba(46,125,50,.2)', desc: 'View all buyer data, sent RFQs, comparisons' },
@@ -216,7 +216,7 @@ export default function Home() {
                 )
               }
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+                <div className="home-dash-grid" style={{ marginBottom: 0 }}>
                   {dashboards.map((d) => (
                     <button
                       key={d.path}
@@ -256,7 +256,7 @@ export default function Home() {
             <h2 className="home-card-title">{t('home.industries')}</h2>
             <p className="home-card-subtitle">Choose a category to explore industries, equipment, products and services.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginTop: 8 }}>
+            <div className="home-explore-grid">
               {/* ── Product & Component ── */}
               <button
                 type="button"
@@ -410,6 +410,23 @@ export default function Home() {
                 })}
             </div>
           </div>
+        </div>
+
+        <div className="home-cta-bar" role="navigation" aria-label="RFQ and sourcing">
+          <button
+            type="button"
+            className="home-cta-bar__btn home-cta-bar__btn--primary stx-click-feedback"
+            onClick={() => navigate('/dashboard/buyer')}
+          >
+            Send RFQ or quote
+          </button>
+          <button
+            type="button"
+            className="home-cta-bar__btn home-cta-bar__btn--outline stx-click-feedback"
+            onClick={() => navigate('/product-hub')}
+          >
+            Product hub
+          </button>
         </div>
       </div>
     </AppLayout>

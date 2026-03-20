@@ -6,6 +6,7 @@ import { isSupabaseConfigured, platformRegisteredSuppliersService } from '../ser
 import { downloadCsv, exportExcel, exportPdf } from '../utils/registeredSuppliersExport'
 import { parseRegisteredSuppliersCsv, mapRowToPayload } from '../utils/registeredSuppliersCsv'
 import { parseDirectorySpreadsheetRows } from '../utils/directorySpreadsheetImport'
+import { buildRfqOrQuoteMailto } from '../utils/directoryRfqMailto'
 import '../styles/app-page.css'
 import './PlatformDirectoryPage.css'
 
@@ -345,40 +346,42 @@ export default function RegisteredSuppliersPage() {
           </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
-            {canEdit && (
-              <>
-                <button type="button" className="app-page-btn-primary" onClick={openAdd}>
-                  Add contact
-                </button>
-                <button type="button" className="app-page-btn-outline" disabled={importing} onClick={onPickFile}>
-                  {importing ? 'Importing…' : 'Import XLSX / CSV'}
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className="app-page-btn-outline"
-              disabled={sorted.length === 0 || !!exportBusy}
-              onClick={() => runExport('csv')}
-            >
-              {exportBusy === 'csv' ? 'Exporting…' : 'Export CSV'}
-            </button>
-            <button
-              type="button"
-              className="app-page-btn-outline"
-              disabled={sorted.length === 0 || !!exportBusy}
-              onClick={() => runExport('excel')}
-            >
-              {exportBusy === 'excel' ? 'Exporting…' : 'Export Excel'}
-            </button>
-            <button
-              type="button"
-              className="app-page-btn-outline"
-              disabled={sorted.length === 0 || !!exportBusy}
-              onClick={() => runExport('pdf')}
-            >
-              {exportBusy === 'pdf' ? 'Exporting…' : 'Export PDF'}
-            </button>
+            <div className="app-page-toolbar-actions">
+              {canEdit && (
+                <>
+                  <button type="button" className="app-page-btn-primary" onClick={openAdd}>
+                    Add contact
+                  </button>
+                  <button type="button" className="app-page-btn-outline" disabled={importing} onClick={onPickFile}>
+                    {importing ? 'Importing…' : 'Import XLSX / CSV'}
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="app-page-btn-outline"
+                disabled={sorted.length === 0 || !!exportBusy}
+                onClick={() => runExport('csv')}
+              >
+                {exportBusy === 'csv' ? 'Exporting…' : 'Export CSV'}
+              </button>
+              <button
+                type="button"
+                className="app-page-btn-outline"
+                disabled={sorted.length === 0 || !!exportBusy}
+                onClick={() => runExport('excel')}
+              >
+                {exportBusy === 'excel' ? 'Exporting…' : 'Export Excel'}
+              </button>
+              <button
+                type="button"
+                className="app-page-btn-outline"
+                disabled={sorted.length === 0 || !!exportBusy}
+                onClick={() => runExport('pdf')}
+              >
+                {exportBusy === 'pdf' ? 'Exporting…' : 'Export PDF'}
+              </button>
+            </div>
           </div>
           {info && <p className="app-page-alert app-page-alert--success">{info}</p>}
           {error && (
@@ -423,7 +426,20 @@ export default function RegisteredSuppliersPage() {
             </div>
           ) : (
             <div className="buyer-dir-table-wrap">
-              <table className="buyer-dir-table">
+              <table className={`buyer-dir-table ${canEdit ? '' : 'buyer-dir-table--no-actions'}`}>
+                <colgroup>
+                  <col className="buyer-dir-col--seg" />
+                  <col className="buyer-dir-col--co" />
+                  <col className="buyer-dir-col--cty" />
+                  <col className="buyer-dir-col--contact" />
+                  <col className="buyer-dir-col--role" />
+                  <col className="buyer-dir-col--email" />
+                  <col className="buyer-dir-col--phone" />
+                  <col className="buyer-dir-col--web" />
+                  <col className="buyer-dir-col--src" />
+                  <col className="buyer-dir-col--rfq" />
+                  {canEdit && <col className="buyer-dir-col--act" />}
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Segment</th>
@@ -435,49 +451,81 @@ export default function RegisteredSuppliersPage() {
                     <th>Phone</th>
                     <th>Web</th>
                     <th>Source</th>
+                    <th>RFQ / quote</th>
                     {canEdit && <th>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((r) => (
-                    <tr key={r.id || `${r.segment}-${r.company_name}-${r.email}-${r.contact_name}`}>
-                      <td className="buyer-dir-cell--nowrap">{r.segment || '—'}</td>
-                      <td style={{ maxWidth: 200 }}>{r.company_name}</td>
-                      <td>{r.country}</td>
-                      <td style={{ maxWidth: 180 }}>{r.contact_name}</td>
-                      <td style={{ maxWidth: 160 }}>{r.position}</td>
-                      <td style={{ wordBreak: 'break-word', maxWidth: 200 }}>
-                        {r.email ? (
-                          <a href={`mailto:${r.email}`}>{r.email}</a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="buyer-dir-cell--nowrap">{r.phone || '—'}</td>
-                      <td style={{ wordBreak: 'break-word', maxWidth: 140 }}>
-                        {r.website ? (
-                          <a href={/^https?:\/\//i.test(r.website) ? r.website : `https://${r.website}`} target="_blank" rel="noreferrer">
-                            {r.website}
-                          </a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="buyer-dir-cell--muted">{r.source_ref || '—'}</td>
-                      {canEdit && (
-                        <td>
-                          <div className="buyer-dir-actions">
-                            <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => openEdit(r)}>
-                              Edit
-                            </button>
-                            <button type="button" className="app-page-btn-danger app-page-btn-sm" onClick={() => onDelete(r)}>
-                              Delete
-                            </button>
-                          </div>
+                  {sorted.map((r) => {
+                    const rfqHref = buildRfqOrQuoteMailto(r)
+                    const webHref = r.website && /^https?:\/\//i.test(r.website) ? r.website : r.website ? `https://${r.website}` : ''
+                    return (
+                      <tr key={r.id || `${r.segment}-${r.company_name}-${r.email}-${r.contact_name}`}>
+                        <td className="buyer-dir-cell--nowrap">
+                          <span className="buyer-dir-td-clip" title={r.segment || ''}>
+                            {r.segment || '—'}
+                          </span>
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        <td title={r.company_name || ''}>
+                          <span className="buyer-dir-td-clip">{r.company_name || '—'}</span>
+                        </td>
+                        <td title={r.country || ''}>
+                          <span className="buyer-dir-td-clip">{r.country || '—'}</span>
+                        </td>
+                        <td title={r.contact_name || ''}>
+                          <span className="buyer-dir-td-clip">{r.contact_name || '—'}</span>
+                        </td>
+                        <td title={r.position || ''}>
+                          <span className="buyer-dir-td-clip">{r.position || '—'}</span>
+                        </td>
+                        <td title={r.email || ''}>
+                          {r.email ? (
+                            <a className="buyer-dir-td-clip" href={`mailto:${r.email}`}>
+                              {r.email}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="buyer-dir-cell--nowrap" title={r.phone || ''}>
+                          <span className="buyer-dir-td-clip">{r.phone || '—'}</span>
+                        </td>
+                        <td title={r.website || ''}>
+                          {r.website ? (
+                            <a className="buyer-dir-td-clip" href={webHref} target="_blank" rel="noreferrer">
+                              {r.website}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="buyer-dir-cell--muted" title={r.source_ref || ''}>
+                          <span className="buyer-dir-td-clip">{r.source_ref || '—'}</span>
+                        </td>
+                        <td className="buyer-dir-cell-rfq">
+                          {rfqHref ? (
+                            <a className="buyer-dir-rfq-btn" href={rfqHref} title="Send RFQ or quote by email">
+                              Send RFQ or quote
+                            </a>
+                          ) : (
+                            <span className="buyer-dir-rfq-muted">—</span>
+                          )}
+                        </td>
+                        {canEdit && (
+                          <td>
+                            <div className="buyer-dir-actions">
+                              <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => openEdit(r)}>
+                                Edit
+                              </button>
+                              <button type="button" className="app-page-btn-danger app-page-btn-sm" onClick={() => onDelete(r)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -212,6 +212,26 @@
   margin-top: 4px;
 }
 
+/* Group action buttons so they can share equal sizing without stretching the chip */
+.app-page-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  flex: 1 1 auto;
+}
+
+.app-page-toolbar-actions .app-page-btn-primary,
+.app-page-toolbar-actions .app-page-btn-outline,
+.app-page-toolbar-actions .app-page-btn-danger {
+  min-width: 158px;
+  min-height: 40px;
+  justify-content: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
 /* ── Status chips (metrics / labels) ─────────────────────── */
 .app-page-chip {
   display: inline-flex;

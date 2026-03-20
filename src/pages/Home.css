@@ -88,10 +88,80 @@
 /* Main two-column: center industries + right quick actions */
 .home-main {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 280px);
   gap: 14px;
   align-items: start;
   min-width: 0;
+}
+
+.home-main > .home-card {
+  min-width: 0;
+}
+
+/* Grids that must not force horizontal page scroll */
+.home-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  min-width: 0;
+}
+
+.home-explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+  margin-top: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Bottom CTAs — equal-sized buttons */
+.home-cta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.home-cta-bar__btn {
+  flex: 1 1 200px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.home-cta-bar__btn--primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+}
+
+.home-cta-bar__btn--primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+.home-cta-bar__btn--outline {
+  background: var(--bg-card);
+  color: var(--color-primary);
+  border-color: var(--border-color);
+}
+
+.home-cta-bar__btn--outline:hover:not(:disabled) {
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .home-card {

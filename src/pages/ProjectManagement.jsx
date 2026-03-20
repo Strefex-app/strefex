@@ -455,7 +455,7 @@ const ProjectManagement = () => {
       try {
         const logoImg = new Image()
         logoImg.crossOrigin = 'anonymous'
-        logoImg.src = '/assets/strefex-logo.svg'
+        logoImg.src = '/assets/strefex-logo-reference.png'
         await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; setTimeout(rej, 3000) })
         const lc = document.createElement('canvas')
         lc.width = logoImg.width; lc.height = logoImg.height
