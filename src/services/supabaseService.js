@@ -726,6 +726,129 @@ export const storageService = {
   },
 }
 
+/** Superadmin-only bucket `supplier-directory` — paths: `{supplierId}/{timestamp}_{filename}` */
+export const SUPPLIER_DIRECTORY_STORAGE_BUCKET = 'supplier-directory'
+
+const PRESENTATION_MAX_BYTES = 50 * 1024 * 1024
+
+function sanitizeStorageFileName(name) {
+  const base = String(name || 'file').replace(/[/\\]/g, '_').replace(/[^\w.\-()+@ ]/g, '_')
+  return base.length > 180 ? `${base.slice(0, 120)}_${base.slice(-40)}` : base
+}
+
+/** Company profile files — private `documents` bucket, path {companyId}/profile-attachments/... */
+const COMPANY_PROFILE_ATTACHMENTS_FOLDER = 'profile-attachments'
+const COMPANY_PROFILE_MAX_BYTES = 50 * 1024 * 1024
+
+function sanitizeCompanyProfileFileName(name) {
+  const base = String(name || 'file').replace(/[/\\]/g, '_').replace(/[^\w.\-()+@ ]/g, '_')
+  return base.length > 180 ? `${base.slice(0, 120)}_${base.slice(-40)}` : base
+}
+
+export const companyProfileAttachmentsService = {
+  maxBytes: COMPANY_PROFILE_MAX_BYTES,
+
+  /**
+   * @returns {{ id: string, path: string, name: string, mime_type: string, size_bytes: number, uploaded_at: string }}
+   */
+  async upload(companyId, file) {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
+    if (!companyId || !file) throw new Error('Missing company or file')
+    if (file.size > COMPANY_PROFILE_MAX_BYTES) {
+      throw new Error(`File too large (max ${Math.round(COMPANY_PROFILE_MAX_BYTES / (1024 * 1024))} MB)`)
+    }
+    const safe = sanitizeCompanyProfileFileName(file.name)
+    const path = `${companyId}/${COMPANY_PROFILE_ATTACHMENTS_FOLDER}/${Date.now()}_${safe}`
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || 'application/octet-stream',
+      })
+    if (error) throw error
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `cf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    return {
+      id,
+      path: data.path,
+      name: file.name,
+      mime_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+      uploaded_at: new Date().toISOString(),
+    }
+  },
+
+  async remove(path) {
+    if (!isSupabaseConfigured) return
+    if (!path) return
+    const { error } = await supabase.storage.from('documents').remove([path])
+    if (error) throw error
+  },
+
+  async getSignedUrl(path, expiresIn = 3600) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, expiresIn)
+    if (error) throw error
+    return data.signedUrl
+  },
+}
+
+export const supplierDirectoryStorageService = {
+  maxBytes: PRESENTATION_MAX_BYTES,
+
+  /**
+   * @returns {{ id: string, path: string, name: string, mime_type: string, size_bytes: number, uploaded_at: string }}
+   */
+  async uploadForRegisteredSupplier(supplierRowId, file) {
+    if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
+    if (!supplierRowId || !file) throw new Error('Missing supplier or file')
+    if (file.size > PRESENTATION_MAX_BYTES) {
+      throw new Error(`File too large (max ${Math.round(PRESENTATION_MAX_BYTES / (1024 * 1024))} MB)`)
+    }
+    const safe = sanitizeStorageFileName(file.name)
+    const path = `${supplierRowId}/${Date.now()}_${safe}`
+    const { data, error } = await supabase.storage
+      .from(SUPPLIER_DIRECTORY_STORAGE_BUCKET)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || 'application/octet-stream',
+      })
+    if (error) throw error
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `f-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    return {
+      id,
+      path: data.path,
+      name: file.name,
+      mime_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+      uploaded_at: new Date().toISOString(),
+    }
+  },
+
+  async remove(path) {
+    if (!isSupabaseConfigured) return
+    if (!path) return
+    const { error } = await supabase.storage.from(SUPPLIER_DIRECTORY_STORAGE_BUCKET).remove([path])
+    if (error) throw error
+  },
+
+  async getSignedUrl(path, expiresIn = 3600) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.storage
+      .from(SUPPLIER_DIRECTORY_STORAGE_BUCKET)
+      .createSignedUrl(path, expiresIn)
+    if (error) throw error
+    return data.signedUrl
+  },
+}
+
 /* ================================================================
    REALTIME — Subscribe to changes
    ================================================================ */

@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
 import { getPlanById, getEffectiveLimits } from '../services/stripeService'
-import { profilesService, companiesService } from '../services/supabaseService'
+import { isSupabaseConfigured } from '../config/supabase'
+import { profilesService, companiesService, companyProfileAttachmentsService } from '../services/supabaseService'
 import { useTranslation } from '../i18n/useTranslation'
 import { tenantKey } from '../utils/tenantStorage'
 import AppLayout from '../components/AppLayout'
@@ -263,6 +264,27 @@ const Icon = ({ name, size = 20, stroke = 'currentColor' }) => {
 const DOCS_KEY = 'strefex-profile-docs'
 const CONTACTS_KEY = 'strefex-profile-contacts'
 
+function normalizeCompanyProfileAttachments(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((f) => f && typeof f.path === 'string' && f.path.length > 0)
+}
+
+function isAllowedCompanyProfileFile(file) {
+  const name = String(file?.name || '').toLowerCase()
+  const okExt = /\.(pdf|ppt|pptx|jpe?g|png|gif|webp|mp4|webm|mov)$/i.test(name)
+  const t = String(file?.type || '').toLowerCase()
+  const okMime =
+    t.startsWith('image/') ||
+    t === 'application/pdf' ||
+    t.includes('powerpoint') ||
+    t.includes('presentation') ||
+    t.startsWith('video/')
+  return okExt || okMime
+}
+
+const COMPANY_PROFILE_FILE_ACCEPT =
+  '.pdf,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,application/pdf,image/*,video/*'
+
 const Profile = () => {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -286,6 +308,10 @@ const Profile = () => {
   // Docs & contacts are visible from Standard+ plan (or superadmin)
   const canSeeDocs = isAtLeastStandard || isSuperAdmin
   const canSeeContacts = isAtLeastStandard || isSuperAdmin
+
+  /** Suppliers (seller) & service providers: attach PDFs / decks / media to company profile (admin only; Supabase). */
+  const canAttachCompanyProfile =
+    isAdmin && (accountType === 'seller' || accountType === 'service_provider')
 
   /* ── Documents state — tenant-scoped persistence ──────────── */
   const [documents, setDocuments] = useState(() => {
@@ -333,6 +359,11 @@ const Profile = () => {
     companyName: '',
     companyAddress: '',
   })
+  const [profileAttachmentFiles, setProfileAttachmentFiles] = useState([])
+  const [pendingProfileAttachments, setPendingProfileAttachments] = useState([])
+  const [profileAttachmentPathsToDelete, setProfileAttachmentPathsToDelete] = useState([])
+  const [loadingCompanyAttachments, setLoadingCompanyAttachments] = useState(false)
+  const [openingAttachmentId, setOpeningAttachmentId] = useState('')
   const [showScanModal, setShowScanModal] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanStatus, setScanStatus] = useState('') // '', 'loading', 'recognizing', 'parsing', 'done', 'error'
@@ -345,6 +376,7 @@ const Profile = () => {
     address: '', website: '', industry: '', type: 'Supplier', notes: '',
   })
   const scanFileRef = useRef(null)
+  const companyProfileFileRef = useRef(null)
 
   useEffect(() => {
     setCompanyForm({
@@ -354,6 +386,106 @@ const Profile = () => {
       companyAddress: tenant?.metadata?.address || '',
     })
   }, [tenant, user])
+
+  useEffect(() => {
+    if (!showEditCompany || !tenant?.id) return undefined
+    if (!canAttachCompanyProfile) {
+      setProfileAttachmentFiles([])
+      setPendingProfileAttachments([])
+      setProfileAttachmentPathsToDelete([])
+      return undefined
+    }
+    let cancelled = false
+    if (!isSupabaseConfigured) {
+      setProfileAttachmentFiles(normalizeCompanyProfileAttachments(tenant?.profile_attachments))
+      setPendingProfileAttachments([])
+      setProfileAttachmentPathsToDelete([])
+      return undefined
+    }
+    setLoadingCompanyAttachments(true)
+    companiesService
+      .getById(tenant.id)
+      .then((row) => {
+        if (cancelled || !row) return
+        setProfileAttachmentFiles(normalizeCompanyProfileAttachments(row.profile_attachments))
+        setPendingProfileAttachments([])
+        setProfileAttachmentPathsToDelete([])
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProfileAttachmentFiles(normalizeCompanyProfileAttachments(tenant?.profile_attachments))
+          setPendingProfileAttachments([])
+          setProfileAttachmentPathsToDelete([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCompanyAttachments(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showEditCompany, tenant?.id, tenant?.profile_attachments, canAttachCompanyProfile])
+
+  const closeEditCompanyModal = () => {
+    if (savingCompany) return
+    setShowEditCompany(false)
+    setCompanyError('')
+    setProfileAttachmentFiles([])
+    setPendingProfileAttachments([])
+    setProfileAttachmentPathsToDelete([])
+    setOpeningAttachmentId('')
+  }
+
+  const removeCompanyProfileAttachment = (meta) => {
+    setProfileAttachmentFiles((prev) => prev.filter((f) => f.id !== meta.id))
+    if (meta.path) setProfileAttachmentPathsToDelete((prev) => [...prev, meta.path])
+  }
+
+  const onCompanyProfileFilesPicked = (e) => {
+    const list = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (!list.length) return
+    const max = companyProfileAttachmentsService.maxBytes
+    const accepted = []
+    const rejected = []
+    for (const file of list) {
+      if (file.size > max) {
+        rejected.push(`${file.name} (too large)`)
+        continue
+      }
+      if (!isAllowedCompanyProfileFile(file)) {
+        rejected.push(`${file.name} (type not allowed)`)
+        continue
+      }
+      accepted.push(file)
+    }
+    if (rejected.length) {
+      setCompanyError(
+        `Skipped: ${rejected.join('; ')}. Allowed: PDF, images, PPT/PPTX, MP4/WebM/MOV — max ${Math.round(max / (1024 * 1024))} MB each.`,
+      )
+    } else {
+      setCompanyError('')
+    }
+    if (accepted.length) setPendingProfileAttachments((prev) => [...prev, ...accepted])
+  }
+
+  const removePendingCompanyProfile = (index) => {
+    setPendingProfileAttachments((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const openCompanyProfileAttachment = async (meta) => {
+    if (!meta?.path || !isSupabaseConfigured) return
+    setOpeningAttachmentId(meta.id || meta.path)
+    setCompanyError('')
+    try {
+      const url = await companyProfileAttachmentsService.getSignedUrl(meta.path, 3600)
+      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      setCompanyError(err?.message || 'Could not open file.')
+    } finally {
+      setOpeningAttachmentId('')
+    }
+  }
 
   /* ── Document handlers ───────────────────────────────────── */
   const handleUploadFile = (templateId) => {
@@ -578,14 +710,41 @@ const Profile = () => {
     try {
       setSavingCompany(true)
       const nextAddress = companyForm.companyAddress.trim()
-      const updatedCompany = await companiesService.update(tenant.id, {
+
+      let nextProfileAttachments = null
+      if (canAttachCompanyProfile && isSupabaseConfigured && tenant.id) {
+        const uploaded = []
+        for (const file of pendingProfileAttachments) {
+          const meta = await companyProfileAttachmentsService.upload(tenant.id, file)
+          uploaded.push(meta)
+        }
+        nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
+      }
+
+      const companyPayload = {
         name: companyForm.companyName.trim(),
         address: nextAddress || null,
         metadata: {
           ...(tenant.metadata || {}),
           address: nextAddress || null,
         },
-      })
+      }
+      if (canAttachCompanyProfile && nextProfileAttachments != null) {
+        companyPayload.profile_attachments = nextProfileAttachments
+      }
+
+      const updatedCompany = await companiesService.update(tenant.id, companyPayload)
+
+      if (canAttachCompanyProfile && profileAttachmentPathsToDelete.length > 0 && isSupabaseConfigured) {
+        for (const p of profileAttachmentPathsToDelete) {
+          try {
+            await companyProfileAttachmentsService.remove(p)
+          } catch {
+            /* already removed */
+          }
+        }
+      }
+
       await profilesService.updateProfile({
         full_name: companyForm.fullName.trim(),
         phone: companyForm.phone.trim() || null,
@@ -598,12 +757,19 @@ const Profile = () => {
       setTenant({
         ...(tenant || {}),
         name: updatedCompany?.name || companyForm.companyName.trim(),
+        profile_attachments:
+          updatedCompany?.profile_attachments != null
+            ? normalizeCompanyProfileAttachments(updatedCompany.profile_attachments)
+            : tenant?.profile_attachments,
         metadata: {
           ...(tenant?.metadata || {}),
           ...(updatedCompany?.metadata || {}),
           address: nextAddress || null,
         },
       })
+      setProfileAttachmentFiles([])
+      setPendingProfileAttachments([])
+      setProfileAttachmentPathsToDelete([])
       setShowEditCompany(false)
     } catch (err) {
       setCompanyError(err?.message || 'Failed to update company information')
@@ -857,7 +1023,7 @@ const Profile = () => {
         )}
 
         {showEditCompany && (
-          <div className="prof-modal-overlay" onClick={() => !savingCompany && setShowEditCompany(false)}>
+          <div className="prof-modal-overlay" onClick={() => closeEditCompanyModal()}>
             <div className="prof-modal" onClick={(e) => e.stopPropagation()}>
               <h3 className="prof-modal-title">Edit Company Information</h3>
               <div className="prof-modal-body">
@@ -899,10 +1065,96 @@ const Profile = () => {
                       disabled={savingCompany}
                     />
                   </div>
+                  {canAttachCompanyProfile && (
+                    <div className="prof-form-group full prof-profile-attachments-block">
+                      <label className="prof-form-label">Profile attachments</label>
+                      <p className="prof-profile-attachments-hint">
+                        Brochures, decks, certificates, short videos (PDF, images, PPT/PPTX, MP4/WebM/MOV). Max{' '}
+                        {Math.round(companyProfileAttachmentsService.maxBytes / (1024 * 1024))} MB per file.
+                      </p>
+                      {!isSupabaseConfigured && (
+                        <p className="prof-profile-attachments-warn" role="note">
+                          Connect Supabase to upload files; company text can still be saved.
+                        </p>
+                      )}
+                      {isSupabaseConfigured && loadingCompanyAttachments && (
+                        <div className="prof-doc-empty">Loading attachments…</div>
+                      )}
+                      {isSupabaseConfigured && !loadingCompanyAttachments && (
+                        <>
+                          <input
+                            type="file"
+                            ref={companyProfileFileRef}
+                            style={{ display: 'none' }}
+                            multiple
+                            accept={COMPANY_PROFILE_FILE_ACCEPT}
+                            onChange={onCompanyProfileFilesPicked}
+                          />
+                          {(profileAttachmentFiles.length > 0 || pendingProfileAttachments.length > 0) && (
+                            <div className="prof-doc-files prof-profile-attachment-list">
+                              {profileAttachmentFiles.map((meta) => (
+                                <div key={meta.id || meta.path} className="prof-doc-file">
+                                  <span className="prof-doc-file-name">{meta.name || meta.path}</span>
+                                  <span className="prof-doc-file-meta">
+                                    {meta.size_bytes != null ? formatSize(meta.size_bytes) : ''}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="prof-icon-btn small"
+                                    title="Open"
+                                    disabled={savingCompany || openingAttachmentId === (meta.id || meta.path)}
+                                    onClick={() => openCompanyProfileAttachment(meta)}
+                                  >
+                                    <Icon name="link" size={12} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="prof-icon-btn danger small"
+                                    title="Remove"
+                                    disabled={savingCompany}
+                                    onClick={() => removeCompanyProfileAttachment(meta)}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                              {pendingProfileAttachments.map((file, idx) => (
+                                <div key={`pending-${idx}-${file.name}`} className="prof-doc-file prof-doc-file-pending">
+                                  <span className="prof-doc-file-name">{file.name}</span>
+                                  <span className="prof-doc-file-meta">
+                                    {formatSize(file.size)} · pending upload
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="prof-icon-btn danger small"
+                                    title="Remove"
+                                    disabled={savingCompany}
+                                    onClick={() => removePendingCompanyProfile(idx)}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            className="prof-btn-outline prof-profile-add-files"
+                            disabled={savingCompany}
+                            onClick={() => companyProfileFileRef.current?.click()}
+                          >
+                            Add files
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="prof-modal-footer">
-                <button className="prof-btn-secondary" onClick={() => setShowEditCompany(false)} disabled={savingCompany}>Cancel</button>
+                <button className="prof-btn-secondary" onClick={() => closeEditCompanyModal()} disabled={savingCompany}>
+                  Cancel
+                </button>
                 <button className="prof-btn-primary" onClick={handleSaveCompanyInfo} disabled={savingCompany}>
                   {savingCompany ? 'Saving...' : 'Save'}
                 </button>

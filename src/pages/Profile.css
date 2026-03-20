@@ -1087,6 +1087,40 @@
 
 [data-theme="dark"] .prof-locked-msg { color: var(--color-muted); }
 
+/* ── Company profile attachments (Edit company modal) ─ */
+.prof-profile-attachments-block {
+  margin-top: 4px;
+}
+
+.prof-profile-attachments-hint {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.prof-profile-attachments-warn {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--accent-light);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.prof-profile-attachment-list {
+  margin-bottom: 12px;
+}
+
+.prof-doc-file-pending {
+  opacity: 0.92;
+}
+
+.prof-profile-add-files {
+  margin-top: 4px;
+}
+
 /* ── Responsive ──────────────────────────────── */
 @media (max-width: 1024px) {
   .prof-top-row {

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import AppLayout from '../components/AppLayout'
-import { isSupabaseConfigured, platformRegisteredSuppliersService } from '../services/supabaseService'
+import {
+  isSupabaseConfigured,
+  platformRegisteredSuppliersService,
+  supplierDirectoryStorageService,
+} from '../services/supabaseService'
 import { downloadCsv, exportExcel, exportPdf } from '../utils/registeredSuppliersExport'
 import { parseRegisteredSuppliersCsv, mapRowToPayload } from '../utils/registeredSuppliersCsv'
 import { parseDirectorySpreadsheetRows } from '../utils/directorySpreadsheetImport'
@@ -30,6 +34,36 @@ function trimOrNull(v) {
   const t = String(v ?? '').trim()
   return t === '' ? null : t
 }
+
+function normalizePresentationFiles(row) {
+  const raw = row?.presentation_files
+  if (!Array.isArray(raw)) return []
+  return raw.filter((f) => f && typeof f.path === 'string' && f.path.length > 0)
+}
+
+function formatFileSize(n) {
+  if (n == null || Number.isNaN(Number(n))) return '—'
+  const x = Number(n)
+  if (x < 1024) return `${x} B`
+  if (x < 1024 * 1024) return `${(x / 1024).toFixed(1)} KB`
+  return `${(x / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function isAllowedPresentationFile(file) {
+  const name = String(file?.name || '').toLowerCase()
+  const okExt = /\.(pdf|ppt|pptx|jpe?g|png|gif|webp|mp4|webm|mov)$/i.test(name)
+  const t = String(file?.type || '').toLowerCase()
+  const okMime =
+    t.startsWith('image/') ||
+    t === 'application/pdf' ||
+    t.includes('powerpoint') ||
+    t.includes('presentation') ||
+    t.startsWith('video/')
+  return okExt || okMime
+}
+
+const PRESENTATION_FILE_ACCEPT =
+  '.pdf,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,application/pdf,image/*,video/*'
 
 function buildPayload(form) {
   const ri = String(form.row_index || '').trim()
@@ -73,6 +107,10 @@ export default function RegisteredSuppliersPage() {
   const [importing, setImporting] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [exportBusy, setExportBusy] = useState('')
+  const [presentationFiles, setPresentationFiles] = useState([])
+  const [pendingPresentationFiles, setPendingPresentationFiles] = useState([])
+  const [presentationPathsToDelete, setPresentationPathsToDelete] = useState([])
+  const [openingFileId, setOpeningFileId] = useState('')
 
   const segmentChoices = useMemo(() => {
     const fromData = new Set()
@@ -158,6 +196,9 @@ export default function RegisteredSuppliersPage() {
     setEditingId(null)
     setForm({ ...EMPTY_FORM, segment_custom: '' })
     setFeedback('')
+    setPresentationFiles([])
+    setPendingPresentationFiles([])
+    setPresentationPathsToDelete([])
     setModalOpen(true)
   }
 
@@ -181,6 +222,9 @@ export default function RegisteredSuppliersPage() {
       source_ref: row.source_ref || '',
     })
     setFeedback('')
+    setPresentationFiles(normalizePresentationFiles(row))
+    setPendingPresentationFiles([])
+    setPresentationPathsToDelete([])
     setModalOpen(true)
   }
 
@@ -188,6 +232,9 @@ export default function RegisteredSuppliersPage() {
     if (saving) return
     setModalOpen(false)
     setEditingId(null)
+    setPresentationFiles([])
+    setPendingPresentationFiles([])
+    setPresentationPathsToDelete([])
   }
 
   const onSubmitForm = async (e) => {
@@ -202,22 +249,93 @@ export default function RegisteredSuppliersPage() {
     setFeedback('')
     try {
       if (editingId) {
+        const uploaded = []
+        for (const file of pendingPresentationFiles) {
+          const meta = await supplierDirectoryStorageService.uploadForRegisteredSupplier(editingId, file)
+          uploaded.push(meta)
+        }
+        const nextPresentation = [...presentationFiles, ...uploaded]
+
         const updateBody = { ...payload }
         delete updateBody.metadata
         await platformRegisteredSuppliersService.update(editingId, {
           ...updateBody,
+          presentation_files: nextPresentation,
           updated_at: new Date().toISOString(),
         })
+
+        for (const p of presentationPathsToDelete) {
+          try {
+            await supplierDirectoryStorageService.remove(p)
+          } catch {
+            /* stale path / already removed */
+          }
+        }
       } else {
-        await platformRegisteredSuppliersService.create(payload)
+        await platformRegisteredSuppliersService.create({
+          ...payload,
+          presentation_files: [],
+        })
       }
       await loadRows({ showSpinner: false })
       setModalOpen(false)
       setEditingId(null)
+      setPresentationFiles([])
+      setPendingPresentationFiles([])
+      setPresentationPathsToDelete([])
     } catch (err) {
       setFeedback(err?.message || 'Save failed.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const removePresentationFile = (meta) => {
+    setPresentationFiles((prev) => prev.filter((f) => f.id !== meta.id))
+    if (meta.path) setPresentationPathsToDelete((prev) => [...prev, meta.path])
+  }
+
+  const onPresentationFilesPicked = (e) => {
+    const list = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (!list.length) return
+    const max = supplierDirectoryStorageService.maxBytes
+    const accepted = []
+    const rejected = []
+    for (const file of list) {
+      if (file.size > max) {
+        rejected.push(`${file.name} (too large)`)
+        continue
+      }
+      if (!isAllowedPresentationFile(file)) {
+        rejected.push(`${file.name} (type not allowed)`)
+        continue
+      }
+      accepted.push(file)
+    }
+    if (rejected.length) {
+      setFeedback(`Skipped: ${rejected.join('; ')}. Allowed: PDF, images, PPT/PPTX, MP4/WebM/MOV — max ${Math.round(max / (1024 * 1024))} MB each.`)
+    } else {
+      setFeedback('')
+    }
+    if (accepted.length) setPendingPresentationFiles((prev) => [...prev, ...accepted])
+  }
+
+  const removePendingPresentation = (index) => {
+    setPendingPresentationFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const openPresentationInBrowser = async (meta) => {
+    if (!meta?.path) return
+    setOpeningFileId(meta.id || meta.path)
+    setFeedback('')
+    try {
+      const url = await supplierDirectoryStorageService.getSignedUrl(meta.path, 3600)
+      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      setFeedback(err?.message || 'Could not open file.')
+    } finally {
+      setOpeningFileId('')
     }
   }
 
@@ -227,6 +345,14 @@ export default function RegisteredSuppliersPage() {
     setError('')
     setInfo('')
     try {
+      const files = normalizePresentationFiles(row)
+      for (const f of files) {
+        try {
+          await supplierDirectoryStorageService.remove(f.path)
+        } catch {
+          /* ignore */
+        }
+      }
       await platformRegisteredSuppliersService.remove(row.id)
       await loadRows({ showSpinner: false })
     } catch (err) {
@@ -342,7 +468,9 @@ export default function RegisteredSuppliersPage() {
             Same layout and columns as the <strong>buyer directory</strong> (segment, company, country, contacts).{' '}
             <strong>Superadmin only.</strong> Plastic &amp; Stamping rows from the buyer directory are mirrored here after
             migration <strong>020</strong>. Import your <strong>Company list (2025) for platform.xlsx</strong> via XLSX/CSV
-            — headers: Segment (optional), Company name, Country, Contact, Position, Email, Phone, Website, Industry.
+            — headers: Segment (optional), Company name, Country, Contact, Position, Email, Phone, Website, Industry. Run
+            migration <strong>022</strong> to attach presentations (PDF, images, PPT/PPTX, short videos) per supplier in{' '}
+            <strong>Edit</strong>.
           </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
@@ -438,6 +566,7 @@ export default function RegisteredSuppliersPage() {
                   <col className="buyer-dir-col--web" />
                   <col className="buyer-dir-col--src" />
                   <col className="buyer-dir-col--rfq" />
+                  {canEdit && <col className="buyer-dir-col--files" />}
                   {canEdit && <col className="buyer-dir-col--act" />}
                 </colgroup>
                 <thead>
@@ -452,6 +581,7 @@ export default function RegisteredSuppliersPage() {
                     <th>Web</th>
                     <th>Source</th>
                     <th>RFQ / quote</th>
+                    {canEdit && <th title="Presentation / marketing files">Docs</th>}
                     {canEdit && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -459,6 +589,7 @@ export default function RegisteredSuppliersPage() {
                   {sorted.map((r) => {
                     const rfqHref = buildRfqOrQuoteMailto(r)
                     const webHref = r.website && /^https?:\/\//i.test(r.website) ? r.website : r.website ? `https://${r.website}` : ''
+                    const docCount = normalizePresentationFiles(r).length
                     return (
                       <tr key={r.id || `${r.segment}-${r.company_name}-${r.email}-${r.contact_name}`}>
                         <td className="buyer-dir-cell--nowrap">
@@ -512,6 +643,11 @@ export default function RegisteredSuppliersPage() {
                           )}
                         </td>
                         {canEdit && (
+                          <td className="buyer-dir-cell--nowrap" title="Attached presentations">
+                            <span className={`rs-pres-badge ${docCount === 0 ? 'rs-pres-badge--zero' : ''}`}>{docCount}</span>
+                          </td>
+                        )}
+                        {canEdit && (
                           <td>
                             <div className="buyer-dir-actions">
                               <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => openEdit(r)}>
@@ -541,7 +677,7 @@ export default function RegisteredSuppliersPage() {
           aria-labelledby="rs-modal-title"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="app-page-card buyer-dir-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="app-page-card buyer-dir-modal buyer-dir-modal--registered" onClick={(e) => e.stopPropagation()}>
             <h3 id="rs-modal-title" className="app-page-title">
               {editingId ? 'Edit contact' : 'Add contact'}
             </h3>
@@ -636,6 +772,95 @@ export default function RegisteredSuppliersPage() {
                   />
                 </div>
               </div>
+
+              {canEdit && editingId && (
+                <div className="rs-pres-section">
+                  <h4 className="rs-pres-title">Presentation &amp; marketing files</h4>
+                  <p className="rs-pres-hint">
+                    PDF, pictures, PowerPoint (.ppt / .pptx), short videos (e.g. .mp4, .webm, .mov). Max{' '}
+                    {Math.round(supplierDirectoryStorageService.maxBytes / (1024 * 1024))} MB per file. Files upload when you
+                    save. Use <strong>Open</strong> for a temporary view link.
+                  </p>
+                  {(presentationFiles.length > 0 || pendingPresentationFiles.length > 0) && (
+                    <ul className="rs-pres-list">
+                      {presentationFiles.map((f) => (
+                        <li key={f.id || f.path} className="rs-pres-item">
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div className="rs-pres-item-name" title={f.name}>
+                              {f.name}
+                            </div>
+                            <div className="rs-pres-item-meta">
+                              {formatFileSize(f.size_bytes)} · {f.mime_type || '—'}
+                            </div>
+                          </div>
+                          <div className="rs-pres-item-actions">
+                            <button
+                              type="button"
+                              className="app-page-btn-outline app-page-btn-sm"
+                              disabled={saving || openingFileId === (f.id || f.path)}
+                              onClick={() => void openPresentationInBrowser(f)}
+                            >
+                              {openingFileId === (f.id || f.path) ? 'Opening…' : 'Open'}
+                            </button>
+                            <button
+                              type="button"
+                              className="app-page-btn-danger app-page-btn-sm"
+                              disabled={saving}
+                              onClick={() => removePresentationFile(f)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                      {pendingPresentationFiles.map((file, idx) => (
+                        <li key={`pending-${idx}-${file.name}`} className="rs-pres-item">
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div className="rs-pres-item-name" title={file.name}>
+                              {file.name}{' '}
+                              <span className="rs-pres-item-meta">(not saved yet)</span>
+                            </div>
+                            <div className="rs-pres-item-meta">{formatFileSize(file.size)}</div>
+                          </div>
+                          <div className="rs-pres-item-actions">
+                            <button
+                              type="button"
+                              className="app-page-btn-outline app-page-btn-sm"
+                              disabled={saving}
+                              onClick={() => removePendingPresentation(idx)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="rs-pres-input-wrap">
+                    <label htmlFor="rs-pres-files" className="buyer-dir-label" style={{ display: 'block', marginBottom: 6 }}>
+                      Add files
+                    </label>
+                    <input
+                      id="rs-pres-files"
+                      type="file"
+                      multiple
+                      accept={PRESENTATION_FILE_ACCEPT}
+                      disabled={saving}
+                      onChange={onPresentationFilesPicked}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {canEdit && !editingId && (
+                <div className="rs-pres-section">
+                  <p className="rs-pres-hint" style={{ marginBottom: 0 }}>
+                    After you save the new contact, use <strong>Edit</strong> to attach PDFs, images, decks, or short
+                    videos (migration <strong>022</strong> + Storage bucket <code>supplier-directory</code>).
+                  </p>
+                </div>
+              )}
+
               {feedback && (
                 <p className="app-page-alert app-page-alert--error" role="alert">
                   {feedback}
