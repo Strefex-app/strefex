@@ -132,6 +132,7 @@ export default function RegisteredSuppliersPage() {
     }
     if (opts.showSpinner) setLoading(true)
     setError('')
+    setInfo('')
     try {
       const data = await platformRegisteredSuppliersService.list(null, {
         orderBy: 'company_name',
@@ -139,12 +140,11 @@ export default function RegisteredSuppliersPage() {
       })
       setRows(Array.isArray(data) ? data : [])
       if (!data?.length) {
-        setError(
-          'No rows yet. After migration 020, Plastic/Stamping buyer-directory contacts are mirrored here. Import your Excel (XLSX) or CSV — same columns as buyer directory.',
-        )
+        setInfo('The directory is empty. Add contacts or import a spreadsheet when you are ready.')
       }
     } catch (err) {
       setRows([])
+      setInfo('')
       setError(err?.message || 'Failed to load supplier directory.')
     } finally {
       if (opts.showSpinner) setLoading(false)
@@ -542,7 +542,7 @@ export default function RegisteredSuppliersPage() {
           ) : sorted.length === 0 ? (
             <div className="app-page-list-empty">
               {rows.length === 0
-                ? 'No contacts yet. Run migration 020, then import XLSX/CSV or wait for mirror from buyer directory.'
+                ? 'No contacts yet. Use Add contact or Import when you are ready.'
                 : 'No contacts match the current filters.'}
             </div>
           ) : (

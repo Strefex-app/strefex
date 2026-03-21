@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from '../config/supabase'
 import { profilesService, companiesService, companyProfileAttachmentsService } from '../services/supabaseService'
 import { useTranslation } from '../i18n/useTranslation'
 import { tenantKey } from '../utils/tenantStorage'
+import { removeStoragePathsBestEffort } from '../utils/storageCleanup'
 import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
 import './Profile.css'
@@ -707,6 +708,7 @@ const Profile = () => {
       return
     }
 
+    const uploadedPathsThisSave = []
     try {
       setSavingCompany(true)
       const nextAddress = companyForm.companyAddress.trim()
@@ -717,6 +719,7 @@ const Profile = () => {
         for (const file of pendingProfileAttachments) {
           const meta = await companyProfileAttachmentsService.upload(tenant.id, file)
           uploaded.push(meta)
+          if (meta?.path) uploadedPathsThisSave.push(meta.path)
         }
         nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
       }
@@ -772,6 +775,12 @@ const Profile = () => {
       setProfileAttachmentPathsToDelete([])
       setShowEditCompany(false)
     } catch (err) {
+      if (uploadedPathsThisSave.length > 0 && isSupabaseConfigured) {
+        await removeStoragePathsBestEffort(
+          uploadedPathsThisSave,
+          (p) => companyProfileAttachmentsService.remove(p),
+        )
+      }
       setCompanyError(err?.message || 'Failed to update company information')
     } finally {
       setSavingCompany(false)

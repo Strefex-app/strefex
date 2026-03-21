@@ -127,6 +127,7 @@ import AIInsights from './pages/AIInsights'
 import ERPIntegrations from './pages/ERPIntegrations'
 import TemplateLibrary from './pages/TemplateLibrary'
 import AuditLogs from './pages/AuditLogs'
+import NotFoundPage from './pages/NotFoundPage'
 
 /* ── Shorthand wrappers ──────────────────────────────────── */
 const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
@@ -378,15 +379,7 @@ function App() {
 
           {/* ── Catch-all ─────────────────────────────────── */}
           <Route path="/" element={<Navigate to={isAuthenticated ? "/main-menu" : "/login"} />} />
-          <Route path="*" element={
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', minHeight: '60vh', gap: 12, color: '#666',
-            }}>
-              <h2 style={{ margin: 0, fontSize: 48, color: '#333' }}>404</h2>
-              <p style={{ margin: 0, fontSize: 16 }}>Page not found</p>
-            </div>
-          } />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </AnalyticsProvider>
       </Router>
