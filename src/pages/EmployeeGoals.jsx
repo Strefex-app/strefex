@@ -1,38 +1,29 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useSearchParams, Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import EmptyState from '../components/EmptyState'
 import { useTranslation } from '../i18n/useTranslation'
+import useHrSpaceStore from '../store/hrSpaceStore'
+import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import HrModuleShell from '../components/hr/HrModuleShell'
+import '../components/hr/HrModuleShell.css'
 import './EmployeeGoals.css'
 
 const GOAL_CATEGORIES = ['Performance', 'Development', 'Safety', 'Quality', 'Leadership']
 const GOAL_STATUSES = ['Not Started', 'In Progress', 'Completed', 'Overdue']
 const PRIORITIES = ['Low', 'Medium', 'High']
 
-const EMPLOYEES = [
-  { id: 'e1', name: 'Anna Petrova' },
-  { id: 'e2', name: 'Ivan Kozlov' },
-  { id: 'e3', name: 'Maria Sokolova' },
-  { id: 'e4', name: 'Dmitry Volkov' },
-  { id: 'e5', name: 'Elena Novikova' },
-  { id: 'e6', name: 'Sergey Fedorov' },
-]
-
-const initialGoals = [
-  { id: 'g1', employeeId: 'e1', title: 'Increase OEE by 5%', description: 'Focus on availability and quality metrics', category: 'Performance', targetDate: '2025-06-30', progress: 45, status: 'In Progress', priority: 'High' },
-  { id: 'g2', employeeId: 'e1', title: 'Complete VDA 6.3 training', description: 'Internal auditor certification', category: 'Development', targetDate: '2025-04-15', progress: 80, status: 'In Progress', priority: 'Medium' },
-  { id: 'g3', employeeId: 'e2', title: 'Zero recordable injuries', description: 'Maintain safety standards in work area', category: 'Safety', targetDate: '2025-12-31', progress: 100, status: 'Completed', priority: 'High' },
-  { id: 'g4', employeeId: 'e2', title: 'Reduce defect rate below 0.5%', description: 'Quality improvement initiative', category: 'Quality', targetDate: '2025-05-01', progress: 30, status: 'In Progress', priority: 'High' },
-  { id: 'g5', employeeId: 'e3', title: 'Lead 5S audit team', description: 'Coordinate quarterly 5S audits', category: 'Leadership', targetDate: '2025-03-20', progress: 0, status: 'Not Started', priority: 'Medium' },
-  { id: 'g6', employeeId: 'e3', title: 'Mentor 2 new operators', description: 'Onboarding and skills transfer', category: 'Development', targetDate: '2025-02-28', progress: 100, status: 'Completed', priority: 'Low' },
-  { id: 'g7', employeeId: 'e4', title: 'Implement Poka-Yoke on line 3', description: 'Error-proofing for critical step', category: 'Quality', targetDate: '2024-12-15', progress: 60, status: 'Overdue', priority: 'High' },
-  { id: 'g8', employeeId: 'e5', title: 'Complete IATF awareness training', description: 'Annual IATF 16949 refresh', category: 'Development', targetDate: '2025-01-31', progress: 100, status: 'Completed', priority: 'Low' },
-]
-
 const EmployeeGoals = () => {
-  const navigate = useNavigate()
   const { t } = useTranslation()
-  const [goals, setGoals] = useState(initialGoals)
+  const [searchParams] = useSearchParams()
+  const employees = useHrSpaceStore((s) => s.employees)
+  const goals = useHrSpaceStore((s) => s.goals)
+  const addGoal = useHrSpaceStore((s) => s.addGoal)
+  const updateGoalStore = useHrSpaceStore((s) => s.updateGoal)
+  const deleteGoalStore = useHrSpaceStore((s) => s.deleteGoal)
+  const getEmployeeLabel = useHrSpaceStore((s) => s.getEmployeeLabel)
+
+  const [tab, setTab] = useState('track')
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -41,6 +32,11 @@ const EmployeeGoals = () => {
   const [newGoal, setNewGoal] = useState({
     title: '', description: '', category: 'Performance', targetDate: '', progress: 0, status: 'Not Started', priority: 'Medium',
   })
+
+  useEffect(() => {
+    const q = searchParams.get('employeeId')
+    if (q) setSelectedEmployee(q)
+  }, [searchParams])
 
   const filteredGoals = goals.filter((g) => {
     const matchEmployee = !selectedEmployee || g.employeeId === selectedEmployee
@@ -57,41 +53,56 @@ const EmployeeGoals = () => {
   }
 
   const updateGoal = (id, field, value) => {
-    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)))
+    updateGoalStore(id, { [field]: value })
   }
 
   const saveNewGoal = () => {
     if (!newGoal.title || !selectedEmployee) return
-    setGoals((prev) => [
-      ...prev,
-      {
-        id: 'g' + Date.now(),
-        employeeId: selectedEmployee,
-        ...newGoal,
-      },
-    ])
+    addGoal({ employeeId: selectedEmployee, ...newGoal })
     setNewGoal({ title: '', description: '', category: 'Performance', targetDate: '', progress: 0, status: 'Not Started', priority: 'Medium' })
     setShowAddForm(false)
   }
 
   const removeGoal = (id) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id))
+    deleteGoalStore(id)
     setEditingId(null)
   }
 
   return (
     <AppLayout>
       <div className="eg-page">
-        <div className="eg-header">
-          <a
-            className="eg-back-link"
-            href="#"
-            onClick={(e) => { e.preventDefault(); navigate(-1) }}
-          >
-            ← Back
-          </a>
-          <h1 className="eg-title">Employee Goals & KPIs</h1>
-          <p className="eg-subtitle">Track and manage employee goals and key performance indicators</p>
+        <HrModuleShell
+          title={t('hrSpace.page.goals.label', 'Employee Goals')}
+          subtitle={t('hrSpace.page.goals.desc', 'Goal tracking and KPI management')}
+          tab={tab}
+          onTab={setTab}
+        />
+        {tab === 'plan' && (
+          <div className="hr-mod-panel" style={{ margin: '0 20px 16px' }}>
+            <h3>{t('hrSpace.goalsPlan', 'Goals plan')}</h3>
+            <p>{t('hrSpace.goalsPlanBody', 'Set objectives by employee; progress rolls up for reviews. Use Track for daily monitoring and Manage data to add or remove records.')}</p>
+            <div className="hr-mod-stat"><strong>{summary.total}</strong><span>{t('hrSpace.goalsFiltered', 'goals (filtered)')}</span></div>
+          </div>
+        )}
+
+        {tab === 'manage' && (
+          <div className="hr-mod-panel" style={{ margin: '0 20px 16px' }}>
+            <h3>{t('hrSpace.goalsManage', 'Manage goals')}</h3>
+            <p>{t('hrSpace.goalsManageBody', 'Create, edit inline, or delete rows below. Each goal is stored per employee ID (employee number in directory).')}</p>
+          </div>
+        )}
+
+        {(tab === 'track' || tab === 'manage') && (
+          <>
+        <div className="eg-header" style={{ paddingTop: 0 }}>
+          <Link className="eg-back-link" to={hrSpacePath()}>← {t('hrSpace.backToHrHub', 'HR Space')}</Link>
+          {selectedEmployee && (
+            <p className="eg-subtitle">
+              <Link to={hrSpacePath(`employees/${selectedEmployee}`)}>{getEmployeeLabel(selectedEmployee)}</Link>
+              {' · '}
+              <Link to={hrSpacePath('goals')}>{t('hrSpace.showAll', 'Show all')}</Link>
+            </p>
+          )}
         </div>
 
         <div className="eg-toolbar">
@@ -103,8 +114,8 @@ const EmployeeGoals = () => {
               onChange={(e) => setSelectedEmployee(e.target.value)}
             >
               <option value="">All employees</option>
-              {EMPLOYEES.map((emp) => (
-                <option key={emp.id} value={emp.id}>{emp.name}</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>{emp.employeeNumber} — {emp.name}</option>
               ))}
             </select>
           </div>
@@ -256,11 +267,12 @@ const EmployeeGoals = () => {
               </thead>
               <tbody>
                 {filteredGoals.map((goal) => {
-                  const employee = EMPLOYEES.find((e) => e.id === goal.employeeId)
                   const isEditing = editingId === goal.id
                   return (
                     <tr key={goal.id}>
-                      <td>{employee?.name ?? goal.employeeId}</td>
+                      <td>
+                        <Link to={hrSpacePath(`employees/${goal.employeeId}`)}>{getEmployeeLabel(goal.employeeId)}</Link>
+                      </td>
                       <td>
                         {isEditing ? (
                           <input
@@ -348,6 +360,8 @@ const EmployeeGoals = () => {
             <EmptyState icon="chart" title="No goals found" message="No goals match the current filters. Adjust the filters or add a new goal." />
           )}
         </div>
+          </>
+        )}
       </div>
     </AppLayout>
   )

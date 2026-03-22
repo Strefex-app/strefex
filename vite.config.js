@@ -39,8 +39,8 @@ export default defineConfig({
     css: true,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
-      exclude: ['node_modules/', 'src/test/'],
+      reporter: ['text', 'lcov', 'html'],
+      exclude: ['node_modules/', 'src/test/', '**/*.test.*', '**/STREFEX/**'],
     },
   },
 })

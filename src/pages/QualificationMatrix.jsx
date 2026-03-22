@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
 import EmptyState from '../components/EmptyState'
+import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import useHrSpaceStore from '../store/hrSpaceStore'
 /* jspdf loaded dynamically only when exporting PDF */
 import './QualificationMatrix.css'
 
@@ -30,41 +32,6 @@ const StarRating = ({ value, onChange }) => (
   </div>
 )
 
-/* ── Initial data ────────────────────────────────── */
-const initialEmployees = [
-  { id: 1, name: 'Martin Weber', role: 'CNC Operator', department: 'Production' },
-  { id: 2, name: 'Sarah Klein', role: 'Quality Inspector', department: 'Quality' },
-  { id: 3, name: 'Thomas Müller', role: 'Maintenance Tech', department: 'Maintenance' },
-  { id: 4, name: 'Anna Fischer', role: 'Assembly Lead', department: 'Assembly' },
-  { id: 5, name: 'Klaus Schmidt', role: 'Process Engineer', department: 'Engineering' },
-  { id: 6, name: 'Lisa Braun', role: 'Shift Supervisor', department: 'Production' },
-  { id: 7, name: 'Peter Wagner', role: 'Welding Specialist', department: 'Production' },
-  { id: 8, name: 'Maria Hoffmann', role: 'Lab Technician', department: 'Quality' },
-]
-
-const initialQualifications = [
-  'Machine Operation',
-  'Quality Control',
-  'Safety Procedures',
-  'Lean Manufacturing',
-  'Problem Solving',
-  'Measurement Tools',
-  'Documentation',
-  'Team Leadership',
-]
-
-const initialDepartments = ['Production', 'Quality', 'Maintenance', 'Assembly', 'Engineering']
-
-function buildInitialRatings(employees, qualifications) {
-  const ratings = {}
-  employees.forEach((emp) => {
-    qualifications.forEach((_, qIdx) => {
-      ratings[`${emp.id}-${qIdx}`] = Math.floor(Math.random() * 5) + 1
-    })
-  })
-  return ratings
-}
-
 const LEGEND = [
   { stars: 5, label: 'Expert' },
   { stars: 4, label: 'Advanced' },
@@ -89,25 +56,35 @@ function Modal({ open, onClose, title, children }) {
   )
 }
 
-/* ── Employee links popover ──────────────────────── */
-const EMPLOYEE_LINKS = [
-  { label: 'Onboarding', path: '/production/headcount/onboarding' },
-  { label: 'Training Records', path: '/production/headcount/training' },
-  { label: 'Employee Goals', path: '/production/headcount/goals' },
-  { label: 'Employee Dialogue', path: '/production/headcount/dialogue' },
-]
+/* ── Employee links popover (per employee id) ───── */
+function buildEmployeeLinks(employeeId) {
+  const q = `?employeeId=${encodeURIComponent(employeeId)}`
+  return [
+    { label: 'Employee profile', path: hrSpacePath(`employees/${employeeId}`) },
+    { label: 'Onboarding', path: `${hrSpacePath('onboarding')}${q}` },
+    { label: 'Training Records', path: `${hrSpacePath('training')}${q}` },
+    { label: 'Employee Goals', path: `${hrSpacePath('goals')}${q}` },
+    { label: 'Employee Dialogue', path: `${hrSpacePath('dialogue')}${q}` },
+    { label: 'HR Documentation', path: `${hrSpacePath('hr-docs')}${q}` },
+    { label: 'Workforce', path: `${hrSpacePath('workforce')}${q}` },
+    { label: 'Attendance', path: `${hrSpacePath('attendance')}${q}` },
+  ]
+}
 
 /* ── Main component ──────────────────────────────── */
 export default function QualificationMatrix() {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const [employees, setEmployees] = useState(initialEmployees)
-  const [qualifications, setQualifications] = useState(initialQualifications)
-  const [departments, setDepartments] = useState(initialDepartments)
-  const [ratings, setRatings] = useState(() =>
-    buildInitialRatings(initialEmployees, initialQualifications)
-  )
+  const employees = useHrSpaceStore((s) => s.employees)
+  const qualifications = useHrSpaceStore((s) => s.qualificationNames)
+  const departments = useHrSpaceStore((s) => s.departments)
+  const ratings = useHrSpaceStore((s) => s.ratings)
+  const setRating = useHrSpaceStore((s) => s.setRating)
+  const createEmployee = useHrSpaceStore((s) => s.createEmployee)
+  const addQualification = useHrSpaceStore((s) => s.addQualification)
+  const addDepartment = useHrSpaceStore((s) => s.addDepartment)
+
   const [departmentFilter, setDepartmentFilter] = useState('')
 
   // Modal states
@@ -135,10 +112,6 @@ export default function QualificationMatrix() {
 
   const getRating = (employeeId, qualIndex) => ratings[`${employeeId}-${qualIndex}`] ?? 1
 
-  const setRating = (employeeId, qualIndex, value) => {
-    setRatings((prev) => ({ ...prev, [`${employeeId}-${qualIndex}`]: value }))
-  }
-
   const avgForEmployee = (employeeId) => {
     let sum = 0
     qualifications.forEach((_, qIdx) => {
@@ -156,23 +129,18 @@ export default function QualificationMatrix() {
     return sum / filteredEmployees.length
   }
 
-  /* ── Add Employee ───────────────────────────────── */
+  /* ── Add Employee (creates employee # + seeds all HR modules) ─ */
   const handleAddEmployee = () => {
     if (!newEmpName.trim()) return
-    const id = Math.max(0, ...employees.map((e) => e.id)) + 1
     const dept = newEmpDept.trim() || 'Other'
-    const newEmp = { id, name: newEmpName.trim(), role: newEmpRole.trim(), department: dept }
-    setEmployees((prev) => [...prev, newEmp])
-    // add department if new
-    if (!allDepartments.includes(dept)) setDepartments((prev) => [...prev, dept])
-    // seed ratings
-    setRatings((prev) => {
-      const next = { ...prev }
-      qualifications.forEach((_, qIdx) => {
-        next[`${id}-${qIdx}`] = 1
-      })
-      return next
+    createEmployee({
+      name: newEmpName.trim(),
+      email: '',
+      department: dept,
+      role: newEmpRole.trim() || 'Employee',
+      hireDate: new Date().toISOString().slice(0, 10),
     })
+    if (!allDepartments.includes(dept)) addDepartment(dept)
     setNewEmpName('')
     setNewEmpRole('')
     setNewEmpDept('')
@@ -182,15 +150,7 @@ export default function QualificationMatrix() {
   /* ── Add Qualification ──────────────────────────── */
   const handleAddQualification = () => {
     if (!newQualName.trim()) return
-    const newQualIndex = qualifications.length
-    setQualifications((prev) => [...prev, newQualName.trim()])
-    setRatings((prev) => {
-      const next = { ...prev }
-      employees.forEach((emp) => {
-        next[`${emp.id}-${newQualIndex}`] = 1
-      })
-      return next
-    })
+    addQualification(newQualName.trim())
     setNewQualName('')
     setShowAddQual(false)
   }
@@ -202,7 +162,7 @@ export default function QualificationMatrix() {
       alert('Department already exists.')
       return
     }
-    setDepartments((prev) => [...prev, newDeptName.trim()])
+    addDepartment(newDeptName.trim())
     setNewDeptName('')
     setShowAddDept(false)
   }
@@ -293,13 +253,13 @@ export default function QualificationMatrix() {
         <header className="qm-header">
           <a
             className="qm-back-link"
-            href="/production/headcount"
+            href={hrSpacePath()}
             onClick={(e) => {
               e.preventDefault()
-              navigate('/production/headcount')
+              navigate(hrSpacePath())
             }}
           >
-            ← {t('qualificationMatrix.backToHeadcount', 'Back to Headcount')}
+            ← {t('qualificationMatrix.backToHrSpace')}
           </a>
           <h1 className="qm-title">
             {t('qualificationMatrix.title', 'Qualification Matrix')}
@@ -320,11 +280,9 @@ export default function QualificationMatrix() {
                 onChange={(e) => setDepartmentFilter(e.target.value)}
               >
                 <option value="">All</option>
-                <option value="Assembly">Assembly</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Production">Production</option>
-                <option value="Quality">Quality</option>
+                {allDepartments.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
             </label>
           </div>
@@ -411,9 +369,9 @@ export default function QualificationMatrix() {
                       {activePopover === emp.id && (
                         <div className="qm-popover" onClick={(e) => e.stopPropagation()}>
                           <div className="qm-popover-title">{emp.name}</div>
-                          <div className="qm-popover-subtitle">{emp.role} · {emp.department}</div>
+                          <div className="qm-popover-subtitle">{emp.employeeNumber} · {emp.role} · {emp.department}</div>
                           <div className="qm-popover-links">
-                            {EMPLOYEE_LINKS.map((link) => (
+                            {buildEmployeeLinks(emp.id).map((link) => (
                               <Link
                                 key={link.path}
                                 to={link.path}

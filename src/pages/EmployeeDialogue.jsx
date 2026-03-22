@@ -1,157 +1,18 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useTranslation } from '../i18n/useTranslation'
+import useHrSpaceStore from '../store/hrSpaceStore'
+import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import './EmployeeDialogue.css'
 
-const EMPLOYEES = [
-  { id: 'e1', name: 'Anna Petrova' },
-  { id: 'e2', name: 'Ivan Kozlov' },
-  { id: 'e3', name: 'Maria Sokolova' },
-  { id: 'e4', name: 'Dmitry Volkov' },
-  { id: 'e5', name: 'Elena Novikova' },
-  { id: 'e6', name: 'Sergey Fedorov' },
-]
-
 const REVIEW_TYPES = ['Annual', 'Mid-Year', 'Probation', 'Special']
-const REVIEW_STATUSES = ['Scheduled', 'In Progress', 'Completed']
-
-const initialReviews = [
-  {
-    id: 'r1',
-    employeeId: 'e1',
-    employeeName: 'Anna Petrova',
-    reviewDate: '2025-01-15',
-    reviewer: 'John Manager',
-    status: 'Completed',
-    overallRating: 4,
-    type: 'Annual',
-    performanceAssessment: {
-      technical: 4,
-      communication: 5,
-      teamwork: 4,
-      leadership: 3,
-      problemSolving: 4,
-    },
-    strengths: 'Excellent technical skills, strong communication abilities, reliable team player.',
-    areasForImprovement: 'Could take on more leadership responsibilities, improve time management.',
-    goalsReview: ['Increase OEE by 5%', 'Complete VDA 6.3 training'],
-    developmentPlan: [
-      { action: 'Attend leadership workshop', timeline: 'Q2 2025' },
-      { action: 'Mentor junior team members', timeline: 'Ongoing' },
-    ],
-    employeeFeedback: 'I appreciate the feedback and look forward to working on my leadership skills.',
-    managerComments: 'Anna has shown consistent growth and is ready for additional responsibilities.',
-    employeeAcknowledged: true,
-    managerSigned: true,
-  },
-  {
-    id: 'r2',
-    employeeId: 'e2',
-    employeeName: 'Ivan Kozlov',
-    reviewDate: '2025-02-01',
-    reviewer: 'Sarah Director',
-    status: 'In Progress',
-    overallRating: 5,
-    type: 'Mid-Year',
-    performanceAssessment: {
-      technical: 5,
-      communication: 4,
-      teamwork: 5,
-      leadership: 4,
-      problemSolving: 5,
-    },
-    strengths: 'Outstanding technical expertise, exceptional problem-solving skills.',
-    areasForImprovement: 'Continue developing presentation skills.',
-    goalsReview: ['Zero recordable injuries', 'Reduce defect rate below 0.5%'],
-    developmentPlan: [
-      { action: 'Public speaking course', timeline: 'Q3 2025' },
-    ],
-    employeeFeedback: '',
-    managerComments: 'Ivan is a top performer and key contributor to the team.',
-    employeeAcknowledged: false,
-    managerSigned: true,
-  },
-  {
-    id: 'r3',
-    employeeId: 'e3',
-    employeeName: 'Maria Sokolova',
-    reviewDate: '2025-02-10',
-    reviewer: 'John Manager',
-    status: 'Scheduled',
-    overallRating: 0,
-    type: 'Annual',
-    performanceAssessment: {},
-    strengths: '',
-    areasForImprovement: '',
-    goalsReview: [],
-    developmentPlan: [],
-    employeeFeedback: '',
-    managerComments: '',
-    employeeAcknowledged: false,
-    managerSigned: false,
-  },
-  {
-    id: 'r4',
-    employeeId: 'e4',
-    employeeName: 'Dmitry Volkov',
-    reviewDate: '2024-12-20',
-    reviewer: 'Sarah Director',
-    status: 'Completed',
-    overallRating: 3,
-    type: 'Probation',
-    performanceAssessment: {
-      technical: 3,
-      communication: 3,
-      teamwork: 4,
-      leadership: 2,
-      problemSolving: 3,
-    },
-    strengths: 'Good team collaboration, willing to learn.',
-    areasForImprovement: 'Needs improvement in technical skills and problem-solving approach.',
-    goalsReview: ['Implement Poka-Yoke on line 3'],
-    developmentPlan: [
-      { action: 'Additional technical training', timeline: 'Q1 2025' },
-      { action: 'Shadow senior engineer', timeline: 'Q1 2025' },
-    ],
-    employeeFeedback: 'I understand the areas I need to work on and am committed to improvement.',
-    managerComments: 'Dmitry shows promise but needs focused development in core technical areas.',
-    employeeAcknowledged: true,
-    managerSigned: true,
-  },
-  {
-    id: 'r5',
-    employeeId: 'e5',
-    employeeName: 'Elena Novikova',
-    reviewDate: '2024-11-30',
-    reviewer: 'John Manager',
-    status: 'Completed',
-    overallRating: 4,
-    type: 'Special',
-    performanceAssessment: {
-      technical: 4,
-      communication: 4,
-      teamwork: 5,
-      leadership: 3,
-      problemSolving: 4,
-    },
-    strengths: 'Excellent team player, strong organizational skills.',
-    areasForImprovement: 'Could be more proactive in taking initiative.',
-    goalsReview: ['Complete IATF awareness training'],
-    developmentPlan: [
-      { action: 'Project management training', timeline: 'Q2 2025' },
-    ],
-    employeeFeedback: 'Thank you for the constructive feedback.',
-    managerComments: 'Elena is a valuable team member with good potential for growth.',
-    employeeAcknowledged: true,
-    managerSigned: true,
-  },
-]
-
 const EmployeeDialogue = () => {
-  const navigate = useNavigate()
   const { t } = useTranslation()
-  const [reviews, setReviews] = useState(initialReviews)
+  const employees = useHrSpaceStore((s) => s.employees)
+  const reviews = useHrSpaceStore((s) => s.dialogues)
+  const addDialogue = useHrSpaceStore((s) => s.addDialogue)
+  const updateDialogue = useHrSpaceStore((s) => s.updateDialogue)
   const [showNewForm, setShowNewForm] = useState(false)
   const [expandedReview, setExpandedReview] = useState(null)
   const [newReview, setNewReview] = useState({
@@ -163,91 +24,60 @@ const EmployeeDialogue = () => {
 
   const saveNewReview = () => {
     if (!newReview.employeeId || !newReview.reviewDate || !newReview.reviewer) return
-    const employee = EMPLOYEES.find((e) => e.id === newReview.employeeId)
-    setReviews((prev) => [
-      ...prev,
-      {
-        id: 'r' + Date.now(),
-        employeeId: newReview.employeeId,
-        employeeName: employee?.name || '',
-        reviewDate: newReview.reviewDate,
-        reviewer: newReview.reviewer,
-        status: 'Scheduled',
-        overallRating: 0,
-        type: newReview.type,
-        performanceAssessment: {},
-        strengths: '',
-        areasForImprovement: '',
-        goalsReview: [],
-        developmentPlan: [],
-        employeeFeedback: '',
-        managerComments: '',
-        employeeAcknowledged: false,
-        managerSigned: false,
-      },
-    ])
+    const employee = employees.find((e) => e.id === newReview.employeeId)
+    addDialogue({
+      employeeId: newReview.employeeId,
+      employeeName: employee?.name || '',
+      reviewDate: newReview.reviewDate,
+      reviewer: newReview.reviewer,
+      status: 'Scheduled',
+      overallRating: 0,
+      type: newReview.type,
+      performanceAssessment: {},
+      strengths: '',
+      areasForImprovement: '',
+      goalsReview: [],
+      developmentPlan: [],
+      employeeFeedback: '',
+      managerComments: '',
+      employeeAcknowledged: false,
+      managerSigned: false,
+    })
     setNewReview({ employeeId: '', reviewDate: '', reviewer: '', type: 'Annual' })
     setShowNewForm(false)
   }
 
   const updateReview = (id, field, value) => {
-    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+    updateDialogue(id, { [field]: value })
   }
 
   const updatePerformanceRating = (id, category, rating) => {
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const updated = { ...r.performanceAssessment, [category]: rating }
-          const avgRating = Object.values(updated).filter((v) => v > 0).length > 0
-            ? Math.round(Object.values(updated).reduce((a, b) => a + b, 0) / Object.values(updated).filter((v) => v > 0).length)
-            : 0
-          return { ...r, performanceAssessment: updated, overallRating: avgRating }
-        }
-        return r
-      })
-    )
+    const r = useHrSpaceStore.getState().dialogues.find((x) => x.id === id)
+    if (!r) return
+    const updated = { ...(r.performanceAssessment || {}), [category]: rating }
+    const vals = Object.values(updated).filter((v) => typeof v === 'number' && v > 0)
+    const avgRating = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0
+    updateDialogue(id, { performanceAssessment: updated, overallRating: avgRating })
   }
 
   const addDevelopmentAction = (id) => {
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          return {
-            ...r,
-            developmentPlan: [...r.developmentPlan, { action: '', timeline: '' }],
-          }
-        }
-        return r
-      })
-    )
+    const r = useHrSpaceStore.getState().dialogues.find((x) => x.id === id)
+    if (!r) return
+    updateDialogue(id, { developmentPlan: [...(r.developmentPlan || []), { action: '', timeline: '' }] })
   }
 
   const updateDevelopmentPlan = (id, index, field, value) => {
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const updated = [...r.developmentPlan]
-          updated[index] = { ...updated[index], [field]: value }
-          return { ...r, developmentPlan: updated }
-        }
-        return r
-      })
-    )
+    const r = useHrSpaceStore.getState().dialogues.find((x) => x.id === id)
+    if (!r) return
+    const updated = [...(r.developmentPlan || [])]
+    updated[index] = { ...updated[index], [field]: value }
+    updateDialogue(id, { developmentPlan: updated })
   }
 
   const removeDevelopmentAction = (id, index) => {
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          return {
-            ...r,
-            developmentPlan: r.developmentPlan.filter((_, i) => i !== index),
-          }
-        }
-        return r
-      })
-    )
+    const r = useHrSpaceStore.getState().dialogues.find((x) => x.id === id)
+    if (!r) return
+    updateDialogue(id, { developmentPlan: (r.developmentPlan || []).filter((_, i) => i !== index) })
   }
 
   const renderStars = (rating) => {
@@ -262,13 +92,9 @@ const EmployeeDialogue = () => {
     <AppLayout>
       <div className="ed-page">
         <div className="ed-header">
-          <a
-            className="ed-back-link"
-            href="#"
-            onClick={(e) => { e.preventDefault(); navigate(-1) }}
-          >
-            ← Back
-          </a>
+          <Link className="ed-back-link" to={hrSpacePath()}>
+            ← {t('hrSpace.backToHrHub', 'HR Space')}
+          </Link>
           <h1 className="ed-title">Employee Dialogue & Reviews</h1>
           <p className="ed-subtitle">Yearly performance reviews and development discussions</p>
         </div>
@@ -291,8 +117,8 @@ const EmployeeDialogue = () => {
                   onChange={(e) => setNewReview((p) => ({ ...p, employeeId: e.target.value }))}
                 >
                   <option value="">Select employee</option>
-                  {EMPLOYEES.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.employeeNumber} — {emp.name}</option>
                   ))}
                 </select>
               </div>
@@ -384,7 +210,7 @@ const EmployeeDialogue = () => {
                                   <button
                                     key={rating}
                                     type="button"
-                                    className={`ed-rating-btn ${review.performanceAssessment[category] === rating ? 'ed-rating-btn-active' : ''}`}
+                                    className={`ed-rating-btn ${(review.performanceAssessment || {})[category] === rating ? 'ed-rating-btn-active' : ''}`}
                                     onClick={() => updatePerformanceRating(review.id, category, rating)}
                                   >
                                     {rating}

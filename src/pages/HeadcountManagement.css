@@ -115,6 +115,13 @@
 }
 
 /* Main Layout */
+.headcount-main-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .headcount-main {
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -444,5 +451,51 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* HR Space: locked linked tools, plan badge, talent roadmap */
+.headcount-page-item--locked {
+  opacity: 0.88;
+  cursor: pointer;
+}
+.headcount-page-item--locked:hover {
+  opacity: 1;
+}
+.headcount-plan-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: var(--accent-light);
+  color: var(--color-primary);
+}
+.headcount-talent-list {
+  margin: 0 0 12px 0;
+  padding-left: 1.25rem;
+  color: var(--color-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.headcount-talent-list li {
+  margin-bottom: 8px;
+}
+.headcount-talent-list strong {
+  color: var(--color-primary);
+}
+.headcount-talent-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.5;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+.headcount-full-width {
+  width: 100%;
 }
 

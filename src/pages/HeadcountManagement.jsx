@@ -4,45 +4,74 @@ import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import { useTranslation } from '../i18n/useTranslation'
 import { useAuthStore } from '../store/authStore'
-import { getUserRole, getTenantId } from '../utils/tenantStorage'
+import { useSubscriptionStore } from '../services/featureFlags'
+import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import './HeadcountManagement.css'
 
 const HeadcountManagement = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const hasFeature = useSubscriptionStore((s) => s.hasFeature)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
 
   const [indicators, setIndicators] = useState([
-    { id: 'employees', label: 'Total Employees', value: '48', icon: 'team', iconClass: 'blue' },
-    { id: 'qualification', label: 'Avg Qualification', value: '3.8 / 5.0', icon: 'quality', iconClass: 'orange' },
-    { id: 'goals', label: 'Open Goals', value: '24', icon: 'target', iconClass: 'green' },
-    { id: 'reviews', label: 'Pending Reviews', value: '6', icon: 'clipboard', iconClass: 'purple' },
+    { id: 'employees', labelKey: 'headcount.totalEmployees', value: '48', icon: 'team', iconClass: 'blue' },
+    { id: 'qualification', labelKey: 'headcount.averageQualification', value: '3.8 / 5.0', icon: 'quality', iconClass: 'orange' },
+    { id: 'goals', labelKey: 'headcount.openGoals', value: '24', icon: 'target', iconClass: 'green' },
+    { id: 'reviews', labelKey: 'headcount.pendingReviews', value: '6', icon: 'clipboard', iconClass: 'purple' },
   ])
   const [editModal, setEditModal] = useState(null)
   const role = useAuthStore((s) => s.role)
   const canEdit = role === 'manager' || role === 'admin' || role === 'superadmin'
+  const canEnterprise = isSuperAdmin || hasFeature('enterpriseManagement')
+  const canTemplates = isSuperAdmin || hasFeature('templateLibrary')
 
   const saveIndicator = useCallback(() => {
     if (!editModal) return
-    setIndicators((prev) => prev.map((ind) => (ind.id === editModal.id ? { ...editModal, iconClass: ind.iconClass } : ind)))
+    setIndicators((prev) => prev.map((ind) => (ind.id === editModal.id ? { ...editModal, iconClass: ind.iconClass, labelKey: ind.labelKey } : ind)))
     setEditModal(null)
   }, [editModal])
 
   const pages = [
-    { id: 'qualification-matrix', label: 'Qualification Matrix', description: '5-level star rating system for employee skills', path: '/production/headcount/qualification-matrix', icon: 'stars', color: '#3498db' },
-    { id: 'goals', label: 'Employee Goals', description: 'Goal tracking and KPI management', path: '/production/headcount/goals', icon: 'target', color: '#27ae60' },
-    { id: 'dialogue', label: 'Employee Dialogue', description: 'Yearly performance reviews and development talks', path: '/production/headcount/dialogue', icon: 'dialogue', color: '#e67e22' },
-    { id: 'hr-docs', label: 'HR Documentation', description: 'Employment contracts, policies, and HR documents', path: '/production/headcount/hr-docs', icon: 'document', color: '#9b59b6' },
-    { id: 'training', label: 'Training Records', description: 'Training history and certification tracking', path: '/production/headcount/training', icon: 'training', color: '#16a085' },
-    { id: 'workforce', label: 'Workforce Planning', description: 'Headcount planning, shift scheduling, capacity', path: '/production/headcount/workforce', icon: 'workforce', color: '#2c3e50' },
-    { id: 'onboarding', label: 'Onboarding / Offboarding', description: 'New hire checklists and exit procedures', path: '/production/headcount/onboarding', icon: 'onboarding', color: '#e74c3c' },
-    { id: 'attendance', label: 'Attendance & Time', description: 'Time tracking, absence management, overtime', path: '/production/headcount/attendance', icon: 'clock', color: '#f39c12' },
+    { id: 'qualification-matrix', path: hrSpacePath('qualification-matrix'), icon: 'stars', color: '#3498db' },
+    { id: 'goals', path: hrSpacePath('goals'), icon: 'target', color: '#27ae60' },
+    { id: 'dialogue', path: hrSpacePath('dialogue'), icon: 'dialogue', color: '#e67e22' },
+    { id: 'hr-docs', path: hrSpacePath('hr-docs'), icon: 'document', color: '#9b59b6' },
+    { id: 'training', path: hrSpacePath('training'), icon: 'training', color: '#16a085' },
+    { id: 'workforce', path: hrSpacePath('workforce'), icon: 'workforce', color: '#2c3e50' },
+    { id: 'onboarding', path: hrSpacePath('onboarding'), icon: 'onboarding', color: '#e74c3c' },
+    { id: 'attendance', path: hrSpacePath('attendance'), icon: 'clock', color: '#f39c12' },
+    { id: 'hiring', path: hrSpacePath('hiring'), icon: 'user-plus', color: '#1e8449' },
+  ]
+
+  const linkedManagementTools = [
+    {
+      id: 'enterprise-personnel',
+      labelKey: 'hrSpace.enterprisePersonnel',
+      descKey: 'hrSpace.enterprisePersonnelDesc',
+      path: '/enterprise/personnel',
+      icon: 'cost',
+      color: '#1a5276',
+      unlocked: canEnterprise,
+      planLabel: 'Enterprise',
+    },
+    {
+      id: 'templates-hr',
+      labelKey: 'hrSpace.templateLibraryHr',
+      descKey: 'hrSpace.templateLibraryHrDesc',
+      path: '/templates',
+      icon: 'templates',
+      color: '#7d3c98',
+      unlocked: canTemplates,
+      planLabel: 'Enterprise',
+    },
   ]
 
   const quickActions = [
-    { id: 'add-employee', label: 'Add Employee', icon: 'user-plus', path: '/production/headcount/onboarding?add=true' },
-    { id: 'start-review', label: 'Start Review', icon: 'dialogue', path: '/production/headcount/dialogue?new=true' },
-    { id: 'set-goals', label: 'Set Goals', icon: 'target', path: '/production/headcount/goals?add=true' },
-    { id: 'view-matrix', label: 'View Qualification Matrix', icon: 'stars', path: '/production/headcount/qualification-matrix' },
+    { id: 'add-employee', labelKey: 'hrSpace.qa.add-employee', icon: 'user-plus', path: `${hrSpacePath('onboarding')}?add=true` },
+    { id: 'start-review', labelKey: 'hrSpace.qa.start-review', icon: 'dialogue', path: `${hrSpacePath('dialogue')}?new=true` },
+    { id: 'set-goals', labelKey: 'hrSpace.qa.set-goals', icon: 'target', path: `${hrSpacePath('goals')}?add=true` },
+    { id: 'view-matrix', labelKey: 'hrSpace.qa.view-matrix', icon: 'stars', path: hrSpacePath('qualification-matrix') },
   ]
 
   return (
@@ -50,15 +79,15 @@ const HeadcountManagement = () => {
       <div className="headcount-page">
         {/* Header */}
         <div className="headcount-header">
-          <button 
+          <button
             type="button"
-            className="headcount-back-link stx-click-feedback" 
-            onClick={() => navigate(-1)}
+            className="headcount-back-link stx-click-feedback"
+            onClick={() => navigate('/management')}
           >
-            <Icon name="arrow-left" size={16} /> Back
+            <Icon name="arrow-left" size={16} /> {t('hrSpace.backToManagement')}
           </button>
-          <h1 className="headcount-title">Headcount Management</h1>
-          <p className="headcount-subtitle">Workforce and HR management hub for employee development, performance tracking, and organizational planning</p>
+          <h1 className="headcount-title">{t('hrSpace.title')}</h1>
+          <p className="headcount-subtitle">{t('hrSpace.subtitle')}</p>
         </div>
 
         {/* Top Indicators */}
@@ -76,7 +105,7 @@ const HeadcountManagement = () => {
                     ind.value
                   )}
                 </div>
-                <div className="headcount-indicator-label">{ind.label}</div>
+                <div className="headcount-indicator-label">{t(ind.labelKey)}</div>
               </div>
               {canEdit && (
                 <button
@@ -84,7 +113,7 @@ const HeadcountManagement = () => {
                   className="hm-edit-btn stx-click-feedback"
                   onClick={(e) => { e.stopPropagation(); setEditModal({ ...ind }); }}
                   title="Edit"
-                  aria-label={`Edit ${ind.label}`}
+                  aria-label={`Edit ${t(ind.labelKey)}`}
                 >
                   <Icon name="edit" size={14} />
                 </button>
@@ -95,10 +124,11 @@ const HeadcountManagement = () => {
 
         {/* Main Content */}
         <div className="headcount-main">
+          <div className="headcount-main-left">
           {/* Pages Section */}
           <div className="headcount-card">
-            <h2 className="headcount-card-title">Headcount Modules</h2>
-            <p className="headcount-card-subtitle">Manage workforce, track performance, and develop your team</p>
+            <h2 className="headcount-card-title">{t('hrSpace.coreModules')}</h2>
+            <p className="headcount-card-subtitle">{t('hrSpace.coreModulesDesc')}</p>
             <div className="headcount-pages-list">
               {pages.map((page) => (
                 <div
@@ -113,8 +143,8 @@ const HeadcountManagement = () => {
                     <Icon name={page.icon} size={20} />
                   </div>
                   <div className="headcount-page-item-info">
-                    <div className="headcount-page-item-name">{page.label}</div>
-                    <div className="headcount-page-item-desc">{page.description}</div>
+                    <div className="headcount-page-item-name">{t(`hrSpace.page.${page.id}.label`)}</div>
+                    <div className="headcount-page-item-desc">{t(`hrSpace.page.${page.id}.desc`)}</div>
                   </div>
                   <span className="headcount-page-item-arrow"><Icon name="chevron-right" size={16} /></span>
                 </div>
@@ -122,19 +152,75 @@ const HeadcountManagement = () => {
             </div>
           </div>
 
+          {/* Linked Management modules (Enterprise / templates) */}
+          <div className="headcount-card">
+            <h2 className="headcount-card-title">{t('hrSpace.linkedTools')}</h2>
+            <p className="headcount-card-subtitle">{t('hrSpace.linkedToolsDesc')}</p>
+            <div className="headcount-pages-list">
+              {linkedManagementTools.map((item) => (
+                <div
+                  key={item.id}
+                  className={`headcount-page-item stx-click-feedback ${item.unlocked ? '' : 'headcount-page-item--locked'}`}
+                  onClick={() => {
+                    if (item.unlocked) navigate(item.path)
+                    else navigate('/plans')
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && (item.unlocked ? navigate(item.path) : navigate('/plans'))}
+                >
+                  <div className="headcount-page-item-icon" style={{ background: `${item.color}15`, color: item.color }}>
+                    <Icon name={item.icon} size={20} />
+                  </div>
+                  <div className="headcount-page-item-info">
+                    <div className="headcount-page-item-name">
+                      {t(item.labelKey)}
+                      {!item.unlocked && (
+                        <span className="headcount-plan-badge">{item.planLabel}+</span>
+                      )}
+                    </div>
+                    <div className="headcount-page-item-desc">{t(item.descKey)}</div>
+                  </div>
+                  <span className="headcount-page-item-arrow">
+                    <Icon name={item.unlocked ? 'chevron-right' : 'lock'} size={16} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Talent sourcing roadmap */}
+          <div className="headcount-card headcount-full-width headcount-talent-roadmap">
+            <h2 className="headcount-card-title">{t('hrSpace.talentSourcing')}</h2>
+            <p className="headcount-card-subtitle">{t('hrSpace.talentSourcingDesc')}</p>
+            <ul className="headcount-talent-list">
+              <li>
+                <strong>LinkedIn</strong> — {t('hrSpace.talentBulletLinkedIn')}
+              </li>
+              <li>
+                <strong>HeadHunter (hh.ru)</strong> — {t('hrSpace.talentBulletHH')}
+              </li>
+              <li>
+                <strong>International</strong> — {t('hrSpace.talentBulletInternational')}
+              </li>
+            </ul>
+            <p className="headcount-talent-note">{t('hrSpace.talentNote')}</p>
+          </div>
+          </div>
+
           {/* Quick Actions Sidebar */}
           <div className="headcount-card headcount-sidebar">
-            <h2 className="headcount-card-title">+ Quick Actions</h2>
-            <p className="headcount-card-subtitle">Common tasks and shortcuts</p>
+            <h2 className="headcount-card-title">+ {t('headcount.quickActions')}</h2>
+            <p className="headcount-card-subtitle">{t('headcount.quickActionsDesc')}</p>
             <div className="headcount-actions-list">
               {canEdit && (
                 <button
                   type="button"
                   className="headcount-action-item headcount-action-add stx-click-feedback"
-                  onClick={() => navigate('/production/headcount?addModule=true')}
+                  onClick={() => navigate(`${hrSpacePath()}?addModule=true`)}
                 >
                   <span className="headcount-action-icon"><Icon name="plus" size={20} /></span>
-                  Add New Module
+                  {t('hrSpace.addNewModule')}
                 </button>
               )}
               {quickActions.map((action) => (
@@ -145,7 +231,7 @@ const HeadcountManagement = () => {
                   onClick={() => navigate(action.path)}
                 >
                   <span className="headcount-action-icon"><Icon name={action.icon} size={20} /></span>
-                  {action.label}
+                  {t(action.labelKey)}
                 </button>
               ))}
             </div>
@@ -157,7 +243,7 @@ const HeadcountManagement = () => {
         <div className="hm-modal-overlay" onClick={() => setEditModal(null)}>
           <div className="hm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="hm-modal-header">
-              <h3>Edit {editModal.label}</h3>
+              <h3>Edit {t(editModal.labelKey)}</h3>
               <button type="button" className="hm-modal-close" onClick={() => setEditModal(null)} aria-label="Close">×</button>
             </div>
             <div className="hm-modal-body">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useServiceRequestStore } from './store/serviceRequestStore'
 import { useSubscriptionStore } from './services/featureFlags'
@@ -85,6 +85,12 @@ import QualificationMatrix from './pages/QualificationMatrix'
 import EmployeeGoals from './pages/EmployeeGoals'
 import EmployeeDialogue from './pages/EmployeeDialogue'
 import HRDocumentation from './pages/HRDocumentation'
+import HrTrainingModule from './pages/HrTrainingModule'
+import HrWorkforceModule from './pages/HrWorkforceModule'
+import HrOnboardingModule from './pages/HrOnboardingModule'
+import HrAttendanceModule from './pages/HrAttendanceModule'
+import HrHiringRecruitment from './pages/HrHiringRecruitment'
+import HrEmployeeProfile from './pages/HrEmployeeProfile'
 import CommunitySupport from './pages/CommunitySupport'
 import DeveloperDashboard from './pages/DeveloperDashboard'
 import CompanyMessenger from './pages/CompanyMessenger'
@@ -143,6 +149,12 @@ const Industry = ({ children, requiredTier = 'free' }) => (
     <IndustryGuard requiredTier={requiredTier}>{children}</IndustryGuard>
   </P>
 )
+
+/** Preserves query string when redirecting legacy /production/headcount/* → /hr-space/* */
+function LegacyHrRedirect({ to }) {
+  const { search } = useLocation()
+  return <Navigate to={search ? `${to}${search}` : to} replace />
+}
 
 function PlanGate({ feature, planName, children, requiredRole }) {
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
@@ -356,16 +368,29 @@ function App() {
           <Route path="/production/system-management" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagement /></PlanGate>} />
           <Route path="/production/system/:systemId" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagementPage /></PlanGate>} />
 
-          {/* ── Headcount Management ──────────────────────── */}
-          <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
-          <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
-          <Route path="/production/headcount/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />
-          <Route path="/production/headcount/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeDialogue /></PlanGate>} />
-          <Route path="/production/headcount/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HRDocumentation /></PlanGate>} />
-          <Route path="/production/headcount/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
-          <Route path="/production/headcount/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
-          <Route path="/production/headcount/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
-          <Route path="/production/headcount/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          {/* ── HR Space (Management hub; legacy /production/headcount → redirect) ─ */}
+          <Route path="/hr-space" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/hr-space/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
+          <Route path="/hr-space/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />
+          <Route path="/hr-space/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeDialogue /></PlanGate>} />
+          <Route path="/hr-space/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HRDocumentation /></PlanGate>} />
+          <Route path="/hr-space/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrTrainingModule /></PlanGate>} />
+          <Route path="/hr-space/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrWorkforceModule /></PlanGate>} />
+          <Route path="/hr-space/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrOnboardingModule /></PlanGate>} />
+          <Route path="/hr-space/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrAttendanceModule /></PlanGate>} />
+          <Route path="/hr-space/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrHiringRecruitment /></PlanGate>} />
+          <Route path="/hr-space/employees/:employeeId" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrEmployeeProfile /></PlanGate>} />
+
+          <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space" /></PlanGate>} />
+          <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/qualification-matrix" /></PlanGate>} />
+          <Route path="/production/headcount/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/goals" /></PlanGate>} />
+          <Route path="/production/headcount/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/dialogue" /></PlanGate>} />
+          <Route path="/production/headcount/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/hr-docs" /></PlanGate>} />
+          <Route path="/production/headcount/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/training" /></PlanGate>} />
+          <Route path="/production/headcount/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/workforce" /></PlanGate>} />
+          <Route path="/production/headcount/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/onboarding" /></PlanGate>} />
+          <Route path="/production/headcount/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/attendance" /></PlanGate>} />
+          <Route path="/production/headcount/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/hiring" /></PlanGate>} />
 
           {/* ── Buyer Features (company-isolated, role-guarded) ── */}
           <Route path="/procurement" element={<PlanGate feature="procurement" planName="Enterprise"><ProcurementDashboard /></PlanGate>} />

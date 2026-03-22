@@ -366,44 +366,24 @@ const ProductionManagement = () => {
             </button>
           </div>
 
-          {/* Headcount Management — spans col 1-3 (full width) */}
-          <div className="production-card production-headcount-card">
+          {/* HR Space — lives under Management hub */}
+          <div className="production-card production-headcount-card production-hr-space-banner">
             <h2 className="production-card-title">
               <Icon name="team" size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
-              Headcount Management
+              {t('production.hrSpaceBannerTitle')}
             </h2>
-            <p className="production-card-subtitle">Workforce management, qualifications, goals, reviews &amp; HR documentation</p>
-            <div className="production-headcount-grid">
-              {[
-                { id: 'qualification', label: 'Qualification Matrix', desc: '5-level star rating for employee skills', path: '/production/headcount/qualification-matrix', color: '#3498db', icon: 'quality' },
-                { id: 'goals', label: 'Employee Goals', desc: 'Goal tracking and KPI management', path: '/production/headcount/goals', color: '#27ae60', icon: 'flag' },
-                { id: 'dialogue', label: 'Employee Dialogue', desc: 'Yearly reviews and development talks', path: '/production/headcount/dialogue', color: '#e67e22', icon: 'document' },
-                { id: 'hr-docs', label: 'HR Documentation', desc: 'Contracts, policies and HR documents', path: '/production/headcount/hr-docs', color: '#9b59b6', icon: 'document' },
-                { id: 'training', label: 'Training Records', desc: 'Training history and certifications', path: '/production/headcount/training', color: '#16a085', icon: 'certificate' },
-                { id: 'workforce', label: 'Workforce Planning', desc: 'Headcount planning and scheduling', path: '/production/headcount/workforce', color: '#2c3e50', icon: 'chart' },
-              ].map((item) => (
-                <div
-                  key={item.id}
-                  className="production-page-item stx-click-feedback"
-                  onClick={() => navigate(item.path)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && navigate(item.path)}
-                >
-                  <div className="page-item-icon" style={{ background: `${item.color}15`, color: item.color }}>
-                    {getIcon(item.icon)}
-                  </div>
-                  <div className="page-item-info">
-                    <div className="page-item-name">{item.label}</div>
-                    <div className="page-item-desc">{item.desc}</div>
-                  </div>
-                  <span className="page-item-arrow"><Icon name="chevron-right" size={16} /></span>
-                </div>
-              ))}
+            <p className="production-card-subtitle">
+              {t('production.hrSpaceBannerBeforeStrong')}{' '}
+              <strong>{t('production.hrSpaceBannerPath')}</strong> {t('production.hrSpaceBannerAfterStrong')}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+              <button type="button" className="view-all-btn" onClick={() => navigate('/hr-space')}>
+                {t('production.openHrSpace')} →
+              </button>
+              <button type="button" className="view-all-btn" onClick={() => navigate('/management')}>
+                {t('production.managementHub')} →
+              </button>
             </div>
-            <button type="button" className="view-all-btn" style={{ marginTop: 12 }} onClick={() => navigate('/production/headcount')}>
-              View All Headcount Management →
-            </button>
           </div>
         </div>
 

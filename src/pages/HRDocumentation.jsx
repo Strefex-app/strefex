@@ -1,7 +1,9 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
+import useHrSpaceStore from '../store/hrSpaceStore'
+import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import './HRDocumentation.css'
 
 const CATEGORIES = [
@@ -34,46 +36,44 @@ const getFileType = (name = '') => {
   return FILE_ICONS[ext] || FILE_ICONS.default
 }
 
-const initialDocuments = [
-  { id: '1', name: 'Employment Contract - Martin Weber', category: 'Employment Contracts', employee: 'Martin Weber', dateCreated: '2024-01-15', status: 'Active', expiryDate: '2026-01-14', fileType: 'pdf' },
-  { id: '2', name: 'Employment Contract - Sarah Klein', category: 'Employment Contracts', employee: 'Sarah Klein', dateCreated: '2024-03-20', status: 'Active', expiryDate: '2026-03-19', fileType: 'pdf' },
-  { id: '3', name: 'NDA Template', category: 'Company Policies', employee: null, dateCreated: '2023-11-01', status: 'Active', expiryDate: null, fileType: 'docx' },
-  { id: '4', name: 'Safety Policy v3.2', category: 'Company Policies', employee: null, dateCreated: '2025-01-10', status: 'Active', expiryDate: null, fileType: 'pdf' },
-  { id: '5', name: 'Fire Safety Training - All', category: 'Training Certificates', employee: 'All Staff', dateCreated: '2023-06-01', status: 'Expired', expiryDate: '2024-05-31', fileType: 'pdf' },
-  { id: '6', name: 'Job Description - CNC Operator', category: 'Job Descriptions', employee: null, dateCreated: '2024-08-12', status: 'Active', expiryDate: null, fileType: 'docx' },
-  { id: '7', name: 'Performance Review Template', category: 'Performance Records', employee: null, dateCreated: '2025-02-01', status: 'Draft', expiryDate: null, fileType: 'docx' },
-  { id: '8', name: 'Annual Leave Policy 2026', category: 'Leave & Absence', employee: null, dateCreated: '2025-12-01', status: 'Active', expiryDate: null, fileType: 'pdf' },
-  { id: '9', name: 'First Aid Certificate - J. Mueller', category: 'Training Certificates', employee: 'J. Mueller', dateCreated: '2024-09-15', status: 'Active', expiryDate: '2025-09-14', fileType: 'pdf' },
-  { id: '10', name: 'Written Warning - T. Schmidt', category: 'Disciplinary Records', employee: 'T. Schmidt', dateCreated: '2024-11-20', status: 'Archived', expiryDate: null, fileType: 'pdf' },
-  { id: '11', name: 'Code of Conduct', category: 'Company Policies', employee: null, dateCreated: '2022-05-01', status: 'Active', expiryDate: null, fileType: 'pdf' },
-  { id: '12', name: 'Job Description - Quality Inspector', category: 'Job Descriptions', employee: null, dateCreated: '2024-10-05', status: 'Active', expiryDate: null, fileType: 'docx' },
-]
-
 const HRDocumentation = () => {
-  const navigate = useNavigate()
   const { t } = useTranslation()
-  const [documents, setDocuments] = useState(initialDocuments)
+  const [searchParams] = useSearchParams()
+  const documents = useHrSpaceStore((s) => s.hrDocuments)
+  const employees = useHrSpaceStore((s) => s.employees)
+  const addHrDocument = useHrSpaceStore((s) => s.addHrDocument)
+  const updateHrDocument = useHrSpaceStore((s) => s.updateHrDocument)
+  const deleteHrDocument = useHrSpaceStore((s) => s.deleteHrDocument)
+  const getEmployeeLabel = useHrSpaceStore((s) => s.getEmployeeLabel)
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterEmployeeId, setFilterEmployeeId] = useState('')
   const [selectedIds, setSelectedIds] = useState(new Set())
+
+  useEffect(() => {
+    const q = searchParams.get('employeeId')
+    if (q) setFilterEmployeeId(q)
+  }, [searchParams])
   const [showUploadModal, setShowUploadModal] = useState(false)
   const fileInputRef = useRef(null)
 
   const [uploadForm, setUploadForm] = useState({
     name: '',
     category: CATEGORIES[0],
-    employee: '',
+    employeeId: '',
     expiryDate: '',
     file: null,
   })
 
   const filteredDocuments = documents.filter((doc) => {
+    const empLabel = doc.employeeId ? getEmployeeLabel(doc.employeeId) : ''
     const matchesCategory = doc.category === activeCategory
+    const matchesEmployee = !filterEmployeeId || doc.employeeId === filterEmployeeId
     const matchesSearch =
       !searchQuery ||
       doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (doc.employee && doc.employee.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesCategory && matchesSearch
+      (empLabel && empLabel.toLowerCase().includes(searchQuery.toLowerCase()))
+    return matchesCategory && matchesSearch && matchesEmployee
   })
 
   const categoryCounts = CATEGORIES.reduce((acc, cat) => {
@@ -112,55 +112,51 @@ const HRDocumentation = () => {
   }
 
   const bulkArchive = () => {
-    setDocuments((prev) =>
-      prev.map((d) => (selectedIds.has(d.id) ? { ...d, status: 'Archived' } : d))
-    )
+    selectedIds.forEach((id) => updateHrDocument(id, { status: 'Archived' }))
     setSelectedIds(new Set())
   }
 
   const bulkDelete = () => {
     if (!window.confirm('Delete selected documents?')) return
-    setDocuments((prev) => prev.filter((d) => !selectedIds.has(d.id)))
+    selectedIds.forEach((id) => deleteHrDocument(id))
     setSelectedIds(new Set())
   }
 
   const handleUploadSubmit = (e) => {
     e.preventDefault()
     if (!uploadForm.name.trim()) return
-    const newDoc = {
-      id: String(Date.now()),
+    addHrDocument({
       name: uploadForm.name,
       category: uploadForm.category,
-      employee: uploadForm.employee || null,
+      employeeId: uploadForm.employeeId || null,
       dateCreated: new Date().toISOString().slice(0, 10),
       status: 'Active',
       expiryDate: uploadForm.expiryDate || null,
       fileType: (uploadForm.file?.name?.split('.').pop() || 'pdf').toLowerCase(),
-    }
-    setDocuments((prev) => [...prev, newDoc])
-    setUploadForm({ name: '', category: CATEGORIES[0], employee: '', expiryDate: '', file: null })
+    })
+    setUploadForm({ name: '', category: CATEGORIES[0], employeeId: '', expiryDate: '', file: null })
     setShowUploadModal(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const setDocStatus = (id, status) => {
-    setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)))
+    updateHrDocument(id, { status })
   }
 
   return (
     <AppLayout>
       <div className="hrdoc-page">
         <div className="hrdoc-header">
-          <a
-            className="hrdoc-back-link"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              navigate(-1)
-            }}
-          >
-            ← Back
-          </a>
+          <Link className="hrdoc-back-link" to={hrSpacePath()}>
+            ← {t('hrSpace.backToHrHub', 'HR Space')}
+          </Link>
+          {filterEmployeeId && (
+            <p className="hrdoc-subtitle" style={{ marginTop: 8 }}>
+              <Link to={hrSpacePath(`employees/${filterEmployeeId}`)}>{getEmployeeLabel(filterEmployeeId)}</Link>
+              {' · '}
+              <Link to={hrSpacePath('hr-docs')}>{t('hrSpace.showAll', 'Show all')}</Link>
+            </p>
+          )}
           <h1 className="hrdoc-title">HR Documentation</h1>
           <p className="hrdoc-subtitle">
             Manage employment contracts, policies, and HR documents
@@ -269,7 +265,13 @@ const HRDocumentation = () => {
                           <span className="hrdoc-expiry-warning expired">Expired</span>
                         )}
                       </td>
-                      <td className="hrdoc-employee">{doc.employee || '—'}</td>
+                      <td className="hrdoc-employee">
+                        {doc.employeeId ? (
+                          <Link to={hrSpacePath(`employees/${doc.employeeId}`)}>{getEmployeeLabel(doc.employeeId)}</Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="hrdoc-date">{doc.dateCreated}</td>
                       <td>
                         <span
@@ -373,15 +375,20 @@ const HRDocumentation = () => {
                 </div>
                 <div className="hrdoc-form-group">
                   <label htmlFor="hrdoc-employee">Employee (optional)</label>
-                  <input
+                  <select
                     id="hrdoc-employee"
-                    type="text"
-                    value={uploadForm.employee}
+                    value={uploadForm.employeeId}
                     onChange={(e) =>
-                      setUploadForm((f) => ({ ...f, employee: e.target.value }))
+                      setUploadForm((f) => ({ ...f, employeeId: e.target.value }))
                     }
-                    placeholder="Assign to employee"
-                  />
+                  >
+                    <option value="">—</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.employeeNumber} — {emp.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="hrdoc-form-group">
                   <label htmlFor="hrdoc-expiry">Expiry date (optional)</label>

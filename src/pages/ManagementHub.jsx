@@ -20,6 +20,19 @@ const MANAGEMENT_MODULES = [
     minRole: 'admin',
   },
   {
+    id: 'hr-space',
+    label: 'HR Space',
+    description:
+      'Workforce dashboards, qualifications, goals, performance dialogue, HR documents, training, onboarding, attendance, enterprise personnel, templates, and future job-board integrations',
+    titleKey: 'management.module.hrSpace.title',
+    descriptionKey: 'management.module.hrSpace.description',
+    path: '/hr-space',
+    icon: 'profile',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    minRole: 'manager',
+  },
+  {
     id: 'project',
     label: 'Project Management',
     description: 'Create, track, and manage projects with tasks, Gantt charts, and resource allocation',
@@ -184,10 +197,10 @@ export default function ManagementHub() {
                 </div>
                 <div className="mgmt-hub-card-info">
                   <div className="mgmt-hub-card-title">
-                    {mod.label}
+                    {mod.titleKey ? t(mod.titleKey) : mod.label}
                     {!isUnlocked && <LockIcon />}
                   </div>
-                  <p className="mgmt-hub-card-desc">{mod.description}</p>
+                  <p className="mgmt-hub-card-desc">{mod.descriptionKey ? t(mod.descriptionKey) : mod.description}</p>
                 </div>
                 {!isUnlocked && (
                   <div className="mgmt-hub-card-badge">

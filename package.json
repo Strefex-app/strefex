@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "quality": "npm test && npm run build",
     "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.1.0",
     "jsdom": "^28.0.0",
     "sharp": "^0.34.5",
     "vite": "^5.0.8",

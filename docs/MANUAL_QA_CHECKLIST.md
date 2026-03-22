@@ -35,6 +35,9 @@ Use before releases or after large changes. Adjust environments (local / staging
 ## Core navigation
 
 - [ ] Main menu and hubs (Buyers, Partners, Management) open.
+- [ ] **Management → HR Space** (`/hr-space`): hub loads; sub-routes work; **Production** page shows HR Space banner linking to `/hr-space` and `/management`.
+- [ ] HR modules: **Training, Workforce, Onboarding, Attendance** have Plan / Track / Manage; **Hiring** (`/hr-space/hiring`) positions + candidates + hire creates employee + seeds modules; **Employee profile** (`/hr-space/employees/:id`) links to modules with `?employeeId=`.
+- [ ] Legacy URLs **`/production/headcount`**, **`/production/headcount/*`** redirect to **`/hr-space`** / **`/hr-space/*`** (query string preserved where used).
 - [ ] **404** unknown URL: shows layout + “Back to home”; link works.
 
 ## Regression smoke
