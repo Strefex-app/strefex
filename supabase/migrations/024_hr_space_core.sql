@@ -361,10 +361,11 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS "hr_upd_%s" ON public.%I', replace(t, 'hr_', ''), t);
     EXECUTE format('DROP POLICY IF EXISTS "hr_del_%s" ON public.%I', replace(t, 'hr_', ''), t);
 
+    -- %L emits properly quoted SQL string literals (do not use '' inside $f$ — not valid there)
     EXECUTE format($f$
       CREATE POLICY "hr_sel_%1$s" ON public.%2$I FOR SELECT
-      USING (company_id = public.get_my_company_id() OR public.get_my_role() IN (''superadmin'', ''auditor_external''))
-    $f$, replace(t, 'hr_', ''), t);
+      USING (company_id = public.get_my_company_id() OR public.get_my_role() IN (%3$L, %4$L))
+    $f$, replace(t, 'hr_', ''), t, 'superadmin', 'auditor_external');
 
     EXECUTE format($f$
       CREATE POLICY "hr_ins_%1$s" ON public.%2$I FOR INSERT
