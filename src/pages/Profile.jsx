@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from '../config/supabase'
 import { profilesService, companiesService, companyProfileAttachmentsService } from '../services/supabaseService'
 import { useTranslation } from '../i18n/useTranslation'
 import { tenantKey } from '../utils/tenantStorage'
+import { PROFILE_CONTACTS_SYNC_EVENT, notifyProfileContactsDirty } from '../services/workspaceCloudSync'
 import { removeStoragePathsBestEffort } from '../utils/storageCleanup'
 import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
@@ -348,6 +349,24 @@ const Profile = () => {
   // Persist contacts to tenant-scoped localStorage
   useEffect(() => {
     try { localStorage.setItem(tenantKey(CONTACTS_KEY), JSON.stringify(contacts)) } catch { /* silent */ }
+  }, [contacts])
+
+  // Apply cross-device sync when cloud/other tab updates contacts
+  useEffect(() => {
+    const onSync = (e) => {
+      if (Array.isArray(e.detail)) setContacts(e.detail)
+    }
+    window.addEventListener(PROFILE_CONTACTS_SYNC_EVENT, onSync)
+    return () => window.removeEventListener(PROFILE_CONTACTS_SYNC_EVENT, onSync)
+  }, [])
+
+  const contactsSyncSkipFirst = useRef(true)
+  useEffect(() => {
+    if (contactsSyncSkipFirst.current) {
+      contactsSyncSkipFirst.current = false
+      return
+    }
+    notifyProfileContactsDirty()
   }, [contacts])
 
   const [showAddContact, setShowAddContact] = useState(false)

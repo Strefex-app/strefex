@@ -466,6 +466,38 @@ export const platformRegisteredSuppliersService = createCrudService('platform_re
 /** Per-tenant directory; superadmin sees all companies (RLS) */
 export const accountDirectoryEntriesService = createCrudService('account_directory_entries')
 
+/* ── Workspace snapshots (cross-device Zustand / UI state) ─── */
+export const workspaceSnapshotsService = {
+  /** All rows visible to the current JWT (RLS = own company). */
+  async listForCurrentUser() {
+    if (!isSupabaseConfigured) return []
+    const { data, error } = await supabase
+      .from('tenant_workspace_snapshots')
+      .select('state_key, payload, updated_at')
+    if (error) throw error
+    return data || []
+  },
+
+  async upsert(companyId, stateKey, payload) {
+    if (!isSupabaseConfigured || !companyId || !stateKey) return null
+    const { data, error } = await supabase
+      .from('tenant_workspace_snapshots')
+      .upsert(
+        {
+          company_id: companyId,
+          state_key: stateKey,
+          payload: payload == null ? {} : payload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'company_id,state_key' },
+      )
+      .select('state_key, updated_at')
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+}
+
 /** PostgREST / Supabase when RPC is missing, renamed, or not granted to the JWT role */
 function isSearchSuppliersRpcUnavailable(error) {
   if (!error) return false

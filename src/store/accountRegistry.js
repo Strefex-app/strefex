@@ -438,4 +438,12 @@ export const useAccountRegistry = create((set, get) => ({
       totalTeamMembers: all.reduce((s, a) => s + (a.teamMembers?.length || 0), 0),
     }
   },
+
+  /** Replace registry from cloud sync (persists to scoped localStorage). */
+  hydrateFromCloudSync: (accounts) => {
+    const next = Array.isArray(accounts) ? accounts : []
+    saveRegistry(next)
+    mergeRegistryIndex(next)
+    set({ accounts: next })
+  },
 }))

@@ -188,6 +188,11 @@ const rehydrateAllTenantStores = () => {
       } catch { /* silent */ }
 
     } catch { /* silent — defensive against import failures */ }
+
+    /* Cross-device workspace sync (Supabase) — after local tenant rehydrate */
+    import('../services/workspaceCloudSync')
+      .then((m) => m.bootstrapWorkspaceCloudSync())
+      .catch(() => {})
   }, 0)
 }
 
@@ -241,6 +246,9 @@ export const useAuthStore = create((set, get) => ({
 
   /** Logout — clears session and rehydrates stores to 'guest' (empty) state. */
   logout: () => {
+    import('../services/workspaceCloudSync')
+      .then((m) => m.stopWorkspaceCloudSync())
+      .catch(() => {})
     clear()
     set({
       isAuthenticated: false,
