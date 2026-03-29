@@ -45,8 +45,20 @@ export function scoreCvAgainstPosition(position, cvText) {
   const roleRaw = buildRoleCorpus(position)
   const roleTokens = new Set(tokenize(roleRaw))
   const cvTokens = tokenize(cvText)
-  if (roleTokens.size === 0 || cvTokens.length === 0) {
-    return { score: 0, reasons: ['Add role description or matching criteria to score applicants.'] }
+
+  if (roleTokens.size === 0) {
+    return {
+      score: 0,
+      reasons: ['Add a title, description, industry, or keywords to this position to score applicants.'],
+    }
+  }
+  if (cvTokens.length === 0) {
+    return {
+      score: 0,
+      reasons: [
+        'No readable CV text yet — text-based PDFs and .txt work best; image scans and scanned PDFs are OCR’d when possible.',
+      ],
+    }
   }
 
   const cvSet = new Set(cvTokens)
