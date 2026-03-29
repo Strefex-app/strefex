@@ -5,7 +5,12 @@ import HrModuleShell from '../components/hr/HrModuleShell'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import { useTranslation } from '../i18n/useTranslation'
-import { extractContactsFromCvText, extractManyCvFiles, extractTextFromCvFile } from '../utils/hrCvExtract'
+import {
+  extractContactsFromCvText,
+  extractManyCvFiles,
+  extractTextFromCvFile,
+  displayNameFromFileName,
+} from '../utils/hrCvExtract'
 import { scoreCvAgainstPosition } from '../utils/hrCvFitScore'
 import {
   getCvBlob,
@@ -191,7 +196,12 @@ export default function HrHiringRecruitment() {
       const industries = poolUploadIndustries.split(',').map((s) => s.trim()).filter(Boolean)
       const roles = poolUploadRoles.split(',').map((s) => s.trim()).filter(Boolean)
       addTalentPoolEntry({
-        name: poolUploadName.trim() || contacts.name || file.name.replace(/\.[^.]+$/i, ''),
+        name:
+          poolUploadName.trim() ||
+          (contacts.name || '').trim() ||
+          displayNameFromFileName(file.name) ||
+          file.name.replace(/\.[^.]+$/i, '').replace(/[_]+/g, ' ').trim() ||
+          file.name,
         email: contacts.email || '',
         phone: contacts.phone || '',
         cvFileName: file.name,
@@ -245,15 +255,16 @@ export default function HrHiringRecruitment() {
         } else if (f.cvStoredFileId) {
           void deleteCvFile(f.cvStoredFileId)
         }
+        const fromDoc = (v, prev) => (singleAutoFill ? (v || prev) : (prev || v))
         return {
           ...f,
           cvFileName: file.name,
           cvExtractedText: text,
           cvStoredFileId: stored ? stored.id : '',
           cvMimeType: stored ? stored.mimeType : (file.type || ''),
-          name: singleAutoFill ? (contacts.name || f.name) : f.name,
-          email: singleAutoFill ? (contacts.email || f.email) : f.email,
-          phone: singleAutoFill ? (contacts.phone || f.phone) : f.phone,
+          name: fromDoc(contacts.name?.trim() || '', f.name),
+          email: fromDoc(contacts.email || '', f.email),
+          phone: fromDoc(contacts.phone || '', f.phone),
           cvSummary: f.cvSummary || (text ? `${text.slice(0, 400)}${text.length > 400 ? '…' : ''}` : f.cvSummary),
           _fitScore: fitScore,
           _fitReasons: fitReasons,
@@ -281,7 +292,11 @@ export default function HrHiringRecruitment() {
       const rows = []
       let skippedLarge = 0
       for (const { file, fileName, text } of extracted) {
-        const contacts = bulkAutoFill ? extractContactsFromCvText(text) : { name: '', email: '', phone: '' }
+        const contacts = extractContactsFromCvText(text)
+        const nameFromDoc = (contacts.name || '').trim()
+        const stemPretty = displayNameFromFileName(fileName)
+        const stemRaw = fileName.replace(/\.[^.]+$/i, '').replace(/[_]+/g, ' ').trim()
+        const baseName = nameFromDoc || (bulkAutoFill ? stemPretty || stemRaw : stemRaw) || fileName
         let fitScore = null
         let fitReasons = []
         if (bulkScore) {
@@ -289,7 +304,6 @@ export default function HrHiringRecruitment() {
           fitScore = r.score
           fitReasons = r.reasons
         }
-        const baseName = (contacts.name || fileName.replace(/\.[^.]+$/, '')).trim() || fileName
         const stored = file ? await storeCvFileFromUpload(file) : null
         if (file && !stored && file.size > HR_CV_MAX_FILE_BYTES) skippedLarge += 1
         rows.push({
@@ -519,7 +533,7 @@ export default function HrHiringRecruitment() {
               </div>
               <label className="hr-mod-field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={bulkAutoFill} onChange={(e) => setBulkAutoFill(e.target.checked)} />
-                {t('hrSpace.bulkAutoFill', 'Auto-fill name / email / phone from CV text')}
+                {t('hrSpace.bulkAutoFill', 'When the CV has no clear person name, also guess name from the file name (email/phone always taken from the document when found)')}
               </label>
               <label className="hr-mod-field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={bulkScore} onChange={(e) => setBulkScore(e.target.checked)} />
@@ -573,7 +587,7 @@ export default function HrHiringRecruitment() {
               <p className="hr-emp-prof-hint">{t('hrSpace.scanCvHint', 'Pick a position, then use “Scan CV” to read PDF / image / text and fill fields. You can edit before saving.')}</p>
               <label className="hr-mod-field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={singleAutoFill} onChange={(e) => setSingleAutoFill(e.target.checked)} />
-                {t('hrSpace.singleAutoFill', 'Auto-fill contact fields from CV')}
+                {t('hrSpace.singleAutoFill', 'On scan: replace name, email, phone with values from the CV (off = only fill empty fields)')}
               </label>
               <p className="hr-emp-prof-hint" style={{ marginTop: 0 }}>
                 {t('hrSpace.singleScoreAlways', 'Fit vs the selected position is computed automatically after each scan.')}
@@ -626,10 +640,16 @@ export default function HrHiringRecruitment() {
                 className="hr-mod-btn hr-mod-btn--primary"
                 onClick={() => {
                   if (!candForm.positionId) return
-                  const stem = (candForm.cvFileName || '').replace(/\.[^.]+$/i, '').replace(/[_]+/g, ' ').trim()
-                  const displayName = candForm.name.trim() || stem || t('hrSpace.candidateUnnamed', 'Candidate')
-                  const pos = openPositions.find((p) => p.id === candForm.positionId)
                   const text = candForm.cvExtractedText || candForm.cvSummary || ''
+                  const parsed = extractContactsFromCvText(text)
+                  const stem = (candForm.cvFileName || '').replace(/\.[^.]+$/i, '').replace(/[_]+/g, ' ').trim()
+                  const displayName =
+                    candForm.name.trim() ||
+                    (parsed.name || '').trim() ||
+                    displayNameFromFileName(candForm.cvFileName || '') ||
+                    stem ||
+                    t('hrSpace.candidateUnnamed', 'Candidate')
+                  const pos = openPositions.find((p) => p.id === candForm.positionId)
                   let fitScore = candForm._fitScore
                   let fitReasons = candForm._fitReasons
                   if (pos && (fitScore == null || !Array.isArray(fitReasons) || fitReasons.length === 0)) {
@@ -640,8 +660,8 @@ export default function HrHiringRecruitment() {
                   addCandidate({
                     positionId: candForm.positionId,
                     name: displayName,
-                    email: candForm.email,
-                    phone: candForm.phone,
+                    email: (candForm.email || '').trim() || parsed.email || '',
+                    phone: (candForm.phone || '').trim() || parsed.phone || '',
                     cvFileName: candForm.cvFileName,
                     cvMimeType: candForm.cvMimeType || '',
                     cvStoredFileId: candForm.cvStoredFileId || null,
