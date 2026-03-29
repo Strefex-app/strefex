@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useCallback } from 'react'
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import HrModuleShell from '../components/hr/HrModuleShell'
@@ -7,6 +7,12 @@ import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import { useTranslation } from '../i18n/useTranslation'
 import { extractContactsFromCvText, extractManyCvFiles, extractTextFromCvFile } from '../utils/hrCvExtract'
 import { scoreCvAgainstPosition } from '../utils/hrCvFitScore'
+import {
+  getCvBlob,
+  storeCvFileFromUpload,
+  deleteCvFile,
+  HR_CV_MAX_FILE_BYTES,
+} from '../utils/hrCvFileStorage'
 import '../components/hr/HrModuleShell.css'
 
 const emptyPosForm = () => ({
@@ -27,6 +33,8 @@ const emptyCandForm = () => ({
   cvFileName: '',
   cvSummary: '',
   cvExtractedText: '',
+  cvStoredFileId: '',
+  cvMimeType: '',
 })
 
 export default function HrHiringRecruitment() {
@@ -46,6 +54,14 @@ export default function HrHiringRecruitment() {
   const deleteCandidate = useHrSpaceStore((s) => s.deleteCandidate)
   const hireCandidate = useHrSpaceStore((s) => s.hireCandidate)
   const recomputeFitScoresForPosition = useHrSpaceStore((s) => s.recomputeFitScoresForPosition)
+  const talentPoolEntries = useHrSpaceStore((s) => s.talentPoolEntries ?? [])
+  const archiveCandidate = useHrSpaceStore((s) => s.archiveCandidate)
+  const restoreCandidate = useHrSpaceStore((s) => s.restoreCandidate)
+  const promoteCandidateToTalentPool = useHrSpaceStore((s) => s.promoteCandidateToTalentPool)
+  const addTalentPoolEntry = useHrSpaceStore((s) => s.addTalentPoolEntry)
+  const updateTalentPoolEntry = useHrSpaceStore((s) => s.updateTalentPoolEntry)
+  const removeTalentPoolEntry = useHrSpaceStore((s) => s.removeTalentPoolEntry)
+  const recalculateTalentPoolFit = useHrSpaceStore((s) => s.recalculateTalentPoolFit)
 
   const [posForm, setPosForm] = useState(emptyPosForm)
   const [candForm, setCandForm] = useState(emptyCandForm)
@@ -60,14 +76,41 @@ export default function HrHiringRecruitment() {
 
   const [singleScanBusy, setSingleScanBusy] = useState(false)
   const [singleAutoFill, setSingleAutoFill] = useState(true)
-  const [singleScore, setSingleScore] = useState(true)
   const singleCvInputRef = useRef(null)
   const bulkInputRef = useRef(null)
+  const poolFileRef = useRef(null)
+
+  const [trackShowArchived, setTrackShowArchived] = useState(false)
+  const [manageCandFilter, setManageCandFilter] = useState('active')
+  const [cvPreview, setCvPreview] = useState(null)
+  const [poolFilterIndustry, setPoolFilterIndustry] = useState('')
+  const [poolFilterRole, setPoolFilterRole] = useState('')
+  const [poolUploadName, setPoolUploadName] = useState('')
+  const [poolUploadIndustries, setPoolUploadIndustries] = useState('')
+  const [poolUploadRoles, setPoolUploadRoles] = useState('')
+  const [poolUploadNotes, setPoolUploadNotes] = useState('')
+  const [poolUploadBusy, setPoolUploadBusy] = useState(false)
+  const [poolFitSelect, setPoolFitSelect] = useState({})
+
+  const hiringTabs = useMemo(
+    () => [
+      { id: 'plan', label: t('hrSpace.tabPlan', 'Plan') },
+      { id: 'track', label: t('hrSpace.tabTrack', 'Track') },
+      { id: 'manage', label: t('hrSpace.tabManage', 'Manage data') },
+      { id: 'archive', label: t('hrSpace.tabTalentArchive', 'Talent archive') },
+    ],
+    [t]
+  )
 
   const openList = useMemo(() => openPositions.filter((p) => p.status === 'open'), [openPositions])
 
+  const activeNonHiredCount = useMemo(
+    () => candidates.filter((c) => !c.archived && c.status !== 'hired').length,
+    [candidates]
+  )
+
   const pipelineRows = useMemo(() => {
-    const copy = [...candidates]
+    const copy = candidates.filter((c) => trackShowArchived || !c.archived)
     copy.sort((a, b) => {
       const sa = a.fitScore != null ? a.fitScore : -1
       const sb = b.fitScore != null ? b.fitScore : -1
@@ -75,7 +118,98 @@ export default function HrHiringRecruitment() {
       return (a.name || '').localeCompare(b.name || '')
     })
     return copy
-  }, [candidates])
+  }, [candidates, trackShowArchived])
+
+  const manageCandidatesList = useMemo(() => {
+    if (manageCandFilter === 'archived') return candidates.filter((c) => c.archived)
+    if (manageCandFilter === 'all') return candidates
+    return candidates.filter((c) => !c.archived)
+  }, [candidates, manageCandFilter])
+
+  const filteredTalentPool = useMemo(() => {
+    const ind = poolFilterIndustry.trim().toLowerCase()
+    const rol = poolFilterRole.trim().toLowerCase()
+    return talentPoolEntries.filter((e) => {
+      const indOk =
+        !ind ||
+        (e.industries || []).some((x) => String(x).toLowerCase().includes(ind)) ||
+        String(e.notes || '').toLowerCase().includes(ind)
+      const rolOk =
+        !rol ||
+        (e.matchedRoles || []).some((x) => String(x).toLowerCase().includes(rol)) ||
+        String(e.name || '').toLowerCase().includes(rol)
+      return indOk && rolOk
+    })
+  }, [talentPoolEntries, poolFilterIndustry, poolFilterRole])
+
+  useEffect(
+    () => () => {
+      if (cvPreview?.url) URL.revokeObjectURL(cvPreview.url)
+    },
+    [cvPreview?.url]
+  )
+
+  const openCvPreview = useCallback(async (storedId, mimeType, title) => {
+    if (!storedId) return
+    const blob = await getCvBlob(storedId)
+    if (!blob) {
+      window.alert(t('hrSpace.cvPreviewMissing', 'No file in browser storage for this record. Re-upload the CV to attach it.'))
+      return
+    }
+    const type = mimeType || blob.type || 'application/octet-stream'
+    if (type.includes('text/plain')) {
+      const textPreview = await blob.text()
+      setCvPreview((prev) => {
+        if (prev?.url) URL.revokeObjectURL(prev.url)
+        return { url: null, mimeType: type, title, textPreview }
+      })
+      return
+    }
+    const url = URL.createObjectURL(blob)
+    setCvPreview((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url)
+      return { url, mimeType: type, title, textPreview: null }
+    })
+  }, [t])
+
+  const closeCvPreview = useCallback(() => {
+    setCvPreview((p) => {
+      if (p?.url) URL.revokeObjectURL(p.url)
+      return null
+    })
+  }, [])
+
+  const handlePoolFileUpload = useCallback(async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setPoolUploadBusy(true)
+    try {
+      const text = await extractTextFromCvFile(file)
+      const contacts = extractContactsFromCvText(text)
+      const stored = await storeCvFileFromUpload(file)
+      const industries = poolUploadIndustries.split(',').map((s) => s.trim()).filter(Boolean)
+      const roles = poolUploadRoles.split(',').map((s) => s.trim()).filter(Boolean)
+      addTalentPoolEntry({
+        name: poolUploadName.trim() || contacts.name || file.name.replace(/\.[^.]+$/i, ''),
+        email: contacts.email || '',
+        phone: contacts.phone || '',
+        cvFileName: file.name,
+        cvMimeType: stored?.mimeType || file.type || '',
+        cvStoredFileId: stored?.id || null,
+        cvExtractedText: text,
+        industries,
+        matchedRoles: roles,
+        notes: poolUploadNotes.trim(),
+      })
+      setPoolUploadName('')
+      setPoolUploadIndustries('')
+      setPoolUploadRoles('')
+      setPoolUploadNotes('')
+    } finally {
+      setPoolUploadBusy(false)
+    }
+  }, [poolUploadName, poolUploadIndustries, poolUploadRoles, poolUploadNotes, addTalentPoolEntry])
 
   const runHire = () => {
     if (!hireModal) return
@@ -99,26 +233,36 @@ export default function HrHiringRecruitment() {
       const pos = openPositions.find((p) => p.id === candForm.positionId)
       let fitScore = null
       let fitReasons = []
-      if (pos && text.trim() && singleScore) {
+      if (pos) {
         const r = scoreCvAgainstPosition(pos, text)
         fitScore = r.score
         fitReasons = r.reasons
       }
-      setCandForm((f) => ({
-        ...f,
-        cvFileName: file.name,
-        cvExtractedText: text,
-        name: singleAutoFill ? (contacts.name || f.name) : f.name,
-        email: singleAutoFill ? (contacts.email || f.email) : f.email,
-        phone: singleAutoFill ? (contacts.phone || f.phone) : f.phone,
-        cvSummary: f.cvSummary || (text ? `${text.slice(0, 400)}${text.length > 400 ? '…' : ''}` : f.cvSummary),
-        _fitScore: fitScore,
-        _fitReasons: fitReasons,
-      }))
+      const stored = await storeCvFileFromUpload(file)
+      setCandForm((f) => {
+        if (stored) {
+          if (f.cvStoredFileId && f.cvStoredFileId !== stored.id) void deleteCvFile(f.cvStoredFileId)
+        } else if (f.cvStoredFileId) {
+          void deleteCvFile(f.cvStoredFileId)
+        }
+        return {
+          ...f,
+          cvFileName: file.name,
+          cvExtractedText: text,
+          cvStoredFileId: stored ? stored.id : '',
+          cvMimeType: stored ? stored.mimeType : (file.type || ''),
+          name: singleAutoFill ? (contacts.name || f.name) : f.name,
+          email: singleAutoFill ? (contacts.email || f.email) : f.email,
+          phone: singleAutoFill ? (contacts.phone || f.phone) : f.phone,
+          cvSummary: f.cvSummary || (text ? `${text.slice(0, 400)}${text.length > 400 ? '…' : ''}` : f.cvSummary),
+          _fitScore: fitScore,
+          _fitReasons: fitReasons,
+        }
+      })
     } finally {
       setSingleScanBusy(false)
     }
-  }, [openPositions, candForm.positionId, singleAutoFill, singleScore])
+  }, [openPositions, candForm.positionId, singleAutoFill])
 
   const handleBulkImport = async () => {
     if (!bulkPositionId || !bulkInputRef.current?.files?.length) {
@@ -135,21 +279,26 @@ export default function HrHiringRecruitment() {
         setBulkMsg(`${t('hrSpace.bulkProcessing', 'Reading files…')} (${i + 1}/${total}) ${label}`)
       })
       const rows = []
-      for (const { fileName, text } of extracted) {
+      let skippedLarge = 0
+      for (const { file, fileName, text } of extracted) {
         const contacts = bulkAutoFill ? extractContactsFromCvText(text) : { name: '', email: '', phone: '' }
         let fitScore = null
         let fitReasons = []
-        if (bulkScore && text.trim()) {
+        if (bulkScore) {
           const r = scoreCvAgainstPosition(pos, text)
           fitScore = r.score
           fitReasons = r.reasons
         }
         const baseName = (contacts.name || fileName.replace(/\.[^.]+$/, '')).trim() || fileName
+        const stored = file ? await storeCvFileFromUpload(file) : null
+        if (file && !stored && file.size > HR_CV_MAX_FILE_BYTES) skippedLarge += 1
         rows.push({
           name: baseName,
           email: contacts.email || '',
           phone: contacts.phone || '',
           cvFileName: fileName,
+          cvMimeType: stored?.mimeType || file?.type || '',
+          cvStoredFileId: stored?.id || null,
           cvSummary: text ? `${text.slice(0, 500)}${text.length > 500 ? '…' : ''}` : '',
           cvExtractedText: text,
           fitScore,
@@ -158,7 +307,11 @@ export default function HrHiringRecruitment() {
       }
       addCandidatesBulk(bulkPositionId, rows)
       bulkInputRef.current.value = ''
-      setBulkMsg(t('hrSpace.bulkDone', 'Added {n} candidate(s).').replace('{n}', String(rows.length)))
+      let msg = t('hrSpace.bulkDone', 'Added {n} candidate(s).').replace('{n}', String(rows.length))
+      if (skippedLarge) {
+        msg += ` ${t('hrSpace.bulkSkippedLarge', '{n} file(s) over {mb} MB were not stored for preview.').replace('{n}', String(skippedLarge)).replace('{mb}', String(Math.round(HR_CV_MAX_FILE_BYTES / (1024 * 1024))))}`
+      }
+      setBulkMsg(msg)
     } catch {
       setBulkMsg(t('hrSpace.bulkError', 'Import failed — try PDF, text, or image files.'))
     } finally {
@@ -173,6 +326,7 @@ export default function HrHiringRecruitment() {
         subtitle={t('hrSpace.page.hiring.desc', 'Open positions, candidate CVs, hire into HR Space with full module links')}
         tab={tab}
         onTab={setTab}
+        tabs={hiringTabs}
         extra={
           <Link to={hrSpacePath()} className="hr-mod-back" style={{ marginLeft: 'auto' }}>
             {t('hrSpace.backToHrHub', 'HR Space')}
@@ -189,7 +343,7 @@ export default function HrHiringRecruitment() {
                 <span>{t('hrSpace.openRoles', 'open roles')}</span>
               </div>
               <div className="hr-mod-stat">
-                <strong>{candidates.filter((c) => c.status !== 'hired').length}</strong>
+                <strong>{activeNonHiredCount}</strong>
                 <span>{t('hrSpace.activeCandidates', 'active candidates')}</span>
               </div>
               <div className="hr-mod-stat">
@@ -287,6 +441,10 @@ export default function HrHiringRecruitment() {
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.pipeline', 'Pipeline')}</h3>
             <p className="hr-emp-prof-hint">{t('hrSpace.pipelineFitHint', 'Sorted by fit score (when computed). Use Manage → bulk CV import or Re-score on a position.')}</p>
+            <label className="hr-mod-field" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <input type="checkbox" checked={trackShowArchived} onChange={(e) => setTrackShowArchived(e.target.checked)} />
+              {t('hrSpace.showArchivedPipeline', 'Show archived candidates in this list')}
+            </label>
             <table className="hr-mod-table">
               <thead>
                 <tr>
@@ -303,21 +461,28 @@ export default function HrHiringRecruitment() {
                   const tip = Array.isArray(c.fitReasons) ? c.fitReasons.join('\n') : ''
                   return (
                     <tr key={c.id}>
-                      <td>{c.name}</td>
+                      <td>{c.name}{c.archived ? ` (${t('hrSpace.archived', 'archived')})` : ''}</td>
                       <td>{pos?.title || '—'}</td>
                       <td title={tip}>
                         {c.fitScore != null ? <strong>{c.fitScore}</strong> : '—'}
                       </td>
                       <td>{c.status}</td>
                       <td>
-                        {c.status !== 'hired' && (
-                          <button type="button" className="hr-mod-btn hr-mod-btn--primary" onClick={() => { setHireModal(c); setHireForm({ department: pos?.department || '', role: pos?.title || '', hireDate: new Date().toISOString().slice(0, 10) }) }}>
-                            {t('hrSpace.hire', 'Hire')}
-                          </button>
-                        )}
-                        {c.linkedEmployeeId && (
-                          <Link to={`${hrSpacePath(`employees/${c.linkedEmployeeId}`)}`}>{t('hrSpace.viewProfile', 'Profile')}</Link>
-                        )}
+                        <div className="hr-mod-actions" style={{ flexWrap: 'wrap', gap: 6 }}>
+                          {c.cvStoredFileId ? (
+                            <button type="button" className="hr-mod-btn" onClick={() => void openCvPreview(c.cvStoredFileId, c.cvMimeType, c.cvFileName || c.name)}>
+                              {t('hrSpace.cvPreview', 'Preview CV')}
+                            </button>
+                          ) : null}
+                          {c.status !== 'hired' && !c.archived && (
+                            <button type="button" className="hr-mod-btn hr-mod-btn--primary" onClick={() => { setHireModal(c); setHireForm({ department: pos?.department || '', role: pos?.title || '', hireDate: new Date().toISOString().slice(0, 10) }) }}>
+                              {t('hrSpace.hire', 'Hire')}
+                            </button>
+                          )}
+                          {c.linkedEmployeeId && (
+                            <Link to={`${hrSpacePath(`employees/${c.linkedEmployeeId}`)}`}>{t('hrSpace.viewProfile', 'Profile')}</Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -331,7 +496,7 @@ export default function HrHiringRecruitment() {
           <>
             <div className="hr-mod-panel">
               <h3>{t('hrSpace.bulkCvTitle', 'Bulk CV import')}</h3>
-              <p className="hr-emp-prof-hint">{t('hrSpace.bulkCvBody', 'Upload many résumés at once (PDF, TXT, or scanned images). Optional: auto-fill name/email/phone and compute a fit score from the position’s description and matching plan.')}</p>
+              <p className="hr-emp-prof-hint">{t('hrSpace.bulkCvBody', 'Upload many résumés at once. Each file is read (including OCR for scanned PDFs when needed), stored locally for Preview (up to {mb} MB per file), then optional auto-fill and fit scoring run against the selected role.').replace('{mb}', String(Math.round(HR_CV_MAX_FILE_BYTES / (1024 * 1024))))}</p>
               <div className="hr-mod-grid2">
                 <div className="hr-mod-field">
                   <label>{t('hrSpace.position', 'Open position')}</label>
@@ -410,10 +575,9 @@ export default function HrHiringRecruitment() {
                 <input type="checkbox" checked={singleAutoFill} onChange={(e) => setSingleAutoFill(e.target.checked)} />
                 {t('hrSpace.singleAutoFill', 'Auto-fill contact fields from CV')}
               </label>
-              <label className="hr-mod-field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={singleScore} onChange={(e) => setSingleScore(e.target.checked)} />
-                {t('hrSpace.singleScore', 'Preview fit score vs position')}
-              </label>
+              <p className="hr-emp-prof-hint" style={{ marginTop: 0 }}>
+                {t('hrSpace.singleScoreAlways', 'Fit vs the selected position is computed automatically after each scan.')}
+              </p>
               <div className="hr-mod-grid2">
                 <div className="hr-mod-field">
                   <label>{t('hrSpace.position', 'Position')}</label>
@@ -451,7 +615,7 @@ export default function HrHiringRecruitment() {
                 <label>{t('hrSpace.cvSummary', 'CV summary / notes')}</label>
                 <textarea rows={3} value={candForm.cvSummary} onChange={(e) => setCandForm((f) => ({ ...f, cvSummary: e.target.value }))} />
               </div>
-              {candForm._fitScore != null && (
+              {candForm.positionId && (candForm.cvFileName || candForm.cvExtractedText) && candForm._fitScore != null && (
                 <p className="hr-emp-prof-hint">
                   {t('hrSpace.previewFit', 'Preview fit')}: <strong>{candForm._fitScore}</strong>
                   {Array.isArray(candForm._fitReasons) && candForm._fitReasons.length ? ` — ${candForm._fitReasons.join(' ')}` : ''}
@@ -461,22 +625,26 @@ export default function HrHiringRecruitment() {
                 type="button"
                 className="hr-mod-btn hr-mod-btn--primary"
                 onClick={() => {
-                  if (!candForm.positionId || !candForm.name.trim()) return
+                  if (!candForm.positionId) return
+                  const stem = (candForm.cvFileName || '').replace(/\.[^.]+$/i, '').replace(/[_]+/g, ' ').trim()
+                  const displayName = candForm.name.trim() || stem || t('hrSpace.candidateUnnamed', 'Candidate')
                   const pos = openPositions.find((p) => p.id === candForm.positionId)
                   const text = candForm.cvExtractedText || candForm.cvSummary || ''
                   let fitScore = candForm._fitScore
                   let fitReasons = candForm._fitReasons
-                  if ((fitScore == null || !fitReasons?.length) && pos && text.trim()) {
+                  if (pos && (fitScore == null || !Array.isArray(fitReasons) || fitReasons.length === 0)) {
                     const r = scoreCvAgainstPosition(pos, text)
                     fitScore = r.score
                     fitReasons = r.reasons
                   }
                   addCandidate({
                     positionId: candForm.positionId,
-                    name: candForm.name.trim(),
+                    name: displayName,
                     email: candForm.email,
                     phone: candForm.phone,
                     cvFileName: candForm.cvFileName,
+                    cvMimeType: candForm.cvMimeType || '',
+                    cvStoredFileId: candForm.cvStoredFileId || null,
                     cvSummary: candForm.cvSummary,
                     cvExtractedText: text,
                     fitScore: fitScore ?? null,
@@ -489,7 +657,16 @@ export default function HrHiringRecruitment() {
               </button>
             </div>
             <div className="hr-mod-panel">
-              <h3>{t('hrSpace.candidatesManage', 'Candidates')}</h3>
+              <h3>{t('hrSpace.candidatesManage', 'Candidate database')}</h3>
+              <p className="hr-emp-prof-hint">{t('hrSpace.candidateDbHint', 'CV files are kept in this browser (IndexedDB) for preview. Archive removes someone from the active pipeline; talent archive stores profiles for future roles.')}</p>
+              <div className="hr-mod-field" style={{ marginBottom: 12 }}>
+                <label>{t('hrSpace.manageFilter', 'Show')}</label>
+                <select value={manageCandFilter} onChange={(e) => setManageCandFilter(e.target.value)}>
+                  <option value="active">{t('hrSpace.filterActive', 'Active (not archived)')}</option>
+                  <option value="archived">{t('hrSpace.filterArchived', 'Archived only')}</option>
+                  <option value="all">{t('hrSpace.filterAll', 'All')}</option>
+                </select>
+              </div>
               <table className="hr-mod-table">
                 <thead>
                   <tr>
@@ -501,19 +678,38 @@ export default function HrHiringRecruitment() {
                   </tr>
                 </thead>
                 <tbody>
-                  {candidates.map((c) => (
+                  {manageCandidatesList.map((c) => (
                     <tr key={c.id}>
-                      <td>{c.name}</td>
+                      <td>{c.name}{c.archived ? ` · ${t('hrSpace.archived', 'archived')}` : ''}</td>
                       <td>{c.email}</td>
                       <td title={Array.isArray(c.fitReasons) ? c.fitReasons.join('\n') : ''}>{c.fitScore != null ? c.fitScore : '—'}</td>
                       <td><small>{c.cvSummary?.slice(0, 80)}{c.cvSummary?.length > 80 ? '…' : ''}</small></td>
                       <td>
-                        <div className="hr-mod-actions">
+                        <div className="hr-mod-actions" style={{ flexWrap: 'wrap', gap: 6 }}>
+                          {c.cvStoredFileId ? (
+                            <button type="button" className="hr-mod-btn" onClick={() => void openCvPreview(c.cvStoredFileId, c.cvMimeType, c.cvFileName || c.name)}>
+                              {t('hrSpace.cvPreview', 'Preview CV')}
+                            </button>
+                          ) : null}
                           <select value={c.status} onChange={(e) => updateCandidate(c.id, { status: e.target.value })}>
                             {['applied', 'screening', 'offer', 'hired', 'rejected'].map((st) => (
                               <option key={st} value={st}>{st}</option>
                             ))}
                           </select>
+                          {!c.archived ? (
+                            <button type="button" className="hr-mod-btn" onClick={() => archiveCandidate(c.id)}>{t('hrSpace.archive', 'Archive')}</button>
+                          ) : (
+                            <button type="button" className="hr-mod-btn" onClick={() => restoreCandidate(c.id)}>{t('hrSpace.restore', 'Restore')}</button>
+                          )}
+                          <button
+                            type="button"
+                            className="hr-mod-btn"
+                            onClick={() => {
+                              promoteCandidateToTalentPool(c.id, { notes: '' })
+                            }}
+                          >
+                            {t('hrSpace.toTalentArchive', 'Talent archive')}
+                          </button>
                           <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteCandidate(c.id)}>{t('hrSpace.delete', 'Delete')}</button>
                         </div>
                       </td>
@@ -523,6 +719,145 @@ export default function HrHiringRecruitment() {
               </table>
             </div>
           </>
+        )}
+
+        {tab === 'archive' && (
+          <>
+            <div className="hr-mod-panel">
+              <h3>{t('hrSpace.talentArchiveTitle', 'Talent archive (future roles)')}</h3>
+              <p className="hr-emp-prof-hint">{t('hrSpace.talentArchiveBody', 'Search by industry tags or role titles. Score any stored CV against a current opening to see fit before you create a new requisition. Files live in this browser only.')}</p>
+              <div className="hr-mod-grid2">
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.poolFilterIndustry', 'Filter by industry / tag')}</label>
+                  <input value={poolFilterIndustry} onChange={(e) => setPoolFilterIndustry(e.target.value)} placeholder={t('hrSpace.poolFilterIndustryPh', 'e.g. Automotive')} />
+                </div>
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.poolFilterRole', 'Filter by role / title')}</label>
+                  <input value={poolFilterRole} onChange={(e) => setPoolFilterRole(e.target.value)} placeholder={t('hrSpace.poolFilterRolePh', 'e.g. Engineer')} />
+                </div>
+              </div>
+            </div>
+            <div className="hr-mod-panel">
+              <h3>{t('hrSpace.poolUploadTitle', 'Upload CV into talent archive')}</h3>
+              <p className="hr-emp-prof-hint">{t('hrSpace.poolUploadHint', 'Optional name; industries and roles as comma-separated tags for later search.')}</p>
+              <div className="hr-mod-grid2">
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.candidateName', 'Name')}</label>
+                  <input value={poolUploadName} onChange={(e) => setPoolUploadName(e.target.value)} />
+                </div>
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.poolIndustries', 'Industries / sectors')}</label>
+                  <input value={poolUploadIndustries} onChange={(e) => setPoolUploadIndustries(e.target.value)} placeholder="Automotive, Machinery" />
+                </div>
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.poolRoles', 'Target roles (future)')}</label>
+                  <input value={poolUploadRoles} onChange={(e) => setPoolUploadRoles(e.target.value)} placeholder="Quality Engineer, CNC" />
+                </div>
+                <div className="hr-mod-field">
+                  <label>{t('hrSpace.notes', 'Notes')}</label>
+                  <input value={poolUploadNotes} onChange={(e) => setPoolUploadNotes(e.target.value)} />
+                </div>
+              </div>
+              <input ref={poolFileRef} type="file" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif,application/pdf,text/plain,image/*" style={{ display: 'none' }} onChange={(ev) => void handlePoolFileUpload(ev)} />
+              <button type="button" className="hr-mod-btn hr-mod-btn--primary" disabled={poolUploadBusy} onClick={() => poolFileRef.current?.click()}>
+                {poolUploadBusy ? '…' : t('hrSpace.poolPickFile', 'Choose CV file')}
+              </button>
+            </div>
+            <div className="hr-mod-panel">
+              <h3>{t('hrSpace.poolTableTitle', 'Archived profiles')}</h3>
+              <table className="hr-mod-table">
+                <thead>
+                  <tr>
+                    <th>{t('hrSpace.candidateName', 'Name')}</th>
+                    <th>{t('hrSpace.roleIndustry', 'Industries')}</th>
+                    <th>{t('hrSpace.poolRolesCol', 'Roles')}</th>
+                    <th>{t('hrSpace.fitScore', 'Last fit')}</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTalentPool.map((e) => (
+                    <tr key={e.id}>
+                      <td>{e.name}</td>
+                      <td><small>{(e.industries || []).join(', ') || '—'}</small></td>
+                      <td><small>{(e.matchedRoles || []).join(', ') || '—'}</small></td>
+                      <td title={Array.isArray(e.lastFitReasons) ? e.lastFitReasons.join('\n') : ''}>
+                        {e.lastFitScore != null ? e.lastFitScore : '—'}
+                      </td>
+                      <td>
+                        <div className="hr-mod-actions" style={{ flexWrap: 'wrap', gap: 6 }}>
+                          {e.cvStoredFileId ? (
+                            <button type="button" className="hr-mod-btn" onClick={() => void openCvPreview(e.cvStoredFileId, e.cvMimeType, e.cvFileName || e.name)}>
+                              {t('hrSpace.cvPreview', 'Preview CV')}
+                            </button>
+                          ) : null}
+                          <select
+                            value={poolFitSelect[e.id] || ''}
+                            onChange={(ev) => setPoolFitSelect((s) => ({ ...s, [e.id]: ev.target.value }))}
+                          >
+                            <option value="">{t('hrSpace.poolPickPosition', 'Score vs opening…')}</option>
+                            {openPositions.map((p) => (
+                              <option key={p.id} value={p.id}>{p.title}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="hr-mod-btn"
+                            disabled={!poolFitSelect[e.id]}
+                            onClick={() => {
+                              const pid = poolFitSelect[e.id]
+                              if (pid) recalculateTalentPoolFit(e.id, pid)
+                            }}
+                          >
+                            {t('hrSpace.poolScore', 'Score')}
+                          </button>
+                          <input
+                            defaultValue={e.notes || ''}
+                            placeholder={t('hrSpace.notes', 'Notes')}
+                            style={{ minWidth: 120, maxWidth: 200 }}
+                            onBlur={(ev) => updateTalentPoolEntry(e.id, { notes: ev.target.value })}
+                          />
+                          <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => removeTalentPoolEntry(e.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {cvPreview && (
+          <div className="hm-modal-overlay" style={{ zIndex: 7000 }} role="dialog" aria-modal>
+            <div className="hm-modal" style={{ maxWidth: 900, width: '95%' }} onClick={(ev) => ev.stopPropagation()}>
+              <div className="hm-modal-header">
+                <h3>{t('hrSpace.cvPreviewTitle', 'CV preview')} — {cvPreview.title}</h3>
+                <button type="button" className="hm-modal-close" onClick={closeCvPreview}>×</button>
+              </div>
+              <div className="hm-modal-body" style={{ padding: 0, minHeight: 420 }}>
+                {cvPreview.textPreview != null ? (
+                  <pre style={{ margin: 0, padding: 16, maxHeight: '70vh', overflow: 'auto', fontSize: 13, whiteSpace: 'pre-wrap' }}>{cvPreview.textPreview}</pre>
+                ) : cvPreview.url && String(cvPreview.mimeType || '').includes('pdf') ? (
+                  <iframe title={cvPreview.title} src={cvPreview.url} style={{ width: '100%', height: '70vh', border: 'none' }} />
+                ) : cvPreview.url && String(cvPreview.mimeType || '').startsWith('image/') ? (
+                  <div style={{ padding: 16, textAlign: 'center' }}>
+                    <img src={cvPreview.url} alt="" style={{ maxWidth: '100%', maxHeight: '70vh' }} />
+                  </div>
+                ) : cvPreview.url ? (
+                  <div style={{ padding: 24 }}>
+                    <p>{t('hrSpace.cvPreviewDownload', 'This file type is best opened externally.')}</p>
+                    <a className="hr-mod-btn hr-mod-btn--primary" href={cvPreview.url} download={cvPreview.title}>{t('hrSpace.download', 'Download')}</a>
+                  </div>
+                ) : (
+                  <p style={{ padding: 16 }}>{t('hrSpace.cvPreviewEmpty', 'Nothing to display.')}</p>
+                )}
+              </div>
+              <div className="hm-modal-footer">
+                <button type="button" className="hm-modal-cancel" onClick={closeCvPreview}>{t('hrSpace.close', 'Close')}</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {hireModal && (

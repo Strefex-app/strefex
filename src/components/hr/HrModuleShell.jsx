@@ -13,9 +13,10 @@ export function HrModuleShell({
   onTab,
   children,
   extra,
+  tabs: tabsOverride,
 }) {
   const { t } = useTranslation()
-  const tabs = [
+  const tabs = tabsOverride ?? [
     { id: 'plan', label: t('hrSpace.tabPlan', 'Plan') },
     { id: 'track', label: t('hrSpace.tabTrack', 'Track') },
     { id: 'manage', label: t('hrSpace.tabManage', 'Manage data') },

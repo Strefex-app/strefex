@@ -6,6 +6,27 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage } from '../utils/tenantStorage'
 import { scoreCvAgainstPosition } from '../utils/hrCvFitScore'
+import { deleteCvFile, cloneCvFile } from '../utils/hrCvFileStorage'
+
+/**
+ * Talent pool entry (persisted in Zustand). Binary CV is in IndexedDB at cvStoredFileId.
+ * @typedef {Object} TalentPoolEntry
+ * @property {string} id
+ * @property {string} name
+ * @property {string} email
+ * @property {string} phone
+ * @property {string} cvFileName
+ * @property {string} cvMimeType
+ * @property {string|null} cvStoredFileId
+ * @property {string} cvExtractedText
+ * @property {string[]} industries — sectors / tags for future role matching
+ * @property {string[]} matchedRoles — position titles this profile was associated with
+ * @property {number|null} lastFitScore
+ * @property {string[]} lastFitReasons
+ * @property {string} notes
+ * @property {string} createdAt ISO date
+ * @property {string|null} [sourceCandidateId]
+ */
 
 export function formatEmployeeNumber(seq) {
   return `EMP-${String(seq).padStart(5, '0')}`
@@ -108,10 +129,30 @@ const GOALS_SEED = [
 
 const seedEmployeeIds = EMPLOYEES_SEED.map((e) => e.id)
 
+const TALENT_POOL_SEED = [
+  {
+    id: 'tp-seed-1',
+    name: 'Talent pool example — Quality',
+    email: 'talent.pool.example@local',
+    phone: '',
+    cvFileName: '',
+    cvMimeType: '',
+    cvStoredFileId: null,
+    cvExtractedText: 'quality engineer apqp ppap vda automotive supplier audit iatf iso 9001',
+    industries: ['Automotive', 'Quality'],
+    matchedRoles: ['Senior Quality Engineer', 'Quality Manager'],
+    lastFitScore: null,
+    lastFitReasons: [],
+    notes: 'No file attached — example row for industry/role filters. Add real CVs via archive actions or upload below.',
+    createdAt: '2026-01-05',
+    sourceCandidateId: null,
+  },
+]
+
 const useHrSpaceStore = create(
   persist(
     (set, get) => ({
-      _version: 1,
+      _version: 2,
 
       nextEmployeeSeq: 8,
 
@@ -192,6 +233,9 @@ const useHrSpaceStore = create(
           email: 'alex.r@email.test',
           phone: '+49 170 0000000',
           cvFileName: 'Alex_Richter_CV.pdf',
+          cvMimeType: '',
+          cvStoredFileId: null,
+          archived: false,
           cvSummary: '8 years in automotive quality, VDA 6.3 auditor.',
           cvExtractedText: 'automotive quality engineer apqp ppap vda 6.3 auditor supplier development iatf',
           fitScore: 72,
@@ -206,6 +250,9 @@ const useHrSpaceStore = create(
           email: 'julia.m@email.test',
           phone: '+49 171 1111111',
           cvFileName: '',
+          cvMimeType: '',
+          cvStoredFileId: null,
+          archived: false,
           cvSummary: 'CNC programming Fanuc / Siemens.',
           cvExtractedText: 'cnc programmer fanuc siemens 5 axis milling',
           fitScore: 65,
@@ -214,6 +261,8 @@ const useHrSpaceStore = create(
           linkedEmployeeId: null,
         },
       ],
+
+      talentPoolEntries: [...TALENT_POOL_SEED],
 
       getEmployeeById: (employeeId) => get().employees.find((e) => e.id === employeeId),
 
@@ -508,6 +557,10 @@ const useHrSpaceStore = create(
       },
 
       deleteOpenPosition: (id) => {
+        const toDrop = get().candidates.filter((c) => c.positionId === id)
+        toDrop.forEach((c) => {
+          if (c.cvStoredFileId) void deleteCvFile(c.cvStoredFileId)
+        })
         set((s) => ({
           openPositions: s.openPositions.filter((p) => p.id !== id),
           candidates: s.candidates.filter((c) => c.positionId !== id),
@@ -540,6 +593,9 @@ const useHrSpaceStore = create(
           candidates: [
             ...s.candidates,
             ...rows.map((row, i) => ({
+              archived: false,
+              cvStoredFileId: null,
+              cvMimeType: '',
               cvExtractedText: '',
               fitScore: null,
               fitReasons: [],
@@ -561,7 +617,10 @@ const useHrSpaceStore = create(
           candidates: s.candidates.map((c) => {
             if (c.positionId !== positionId) return c
             const text = c.cvExtractedText || c.cvSummary || ''
-            if (!String(text).trim()) return { ...c, fitScore: null, fitReasons: ['No CV text — upload or paste resume content.'] }
+            if (!String(text).trim()) {
+              const { score, reasons } = scoreCvAgainstPosition(pos, '')
+              return { ...c, fitScore: score, fitReasons: reasons }
+            }
             const { score, reasons } = scoreCvAgainstPosition(pos, text)
             return { ...c, fitScore: score, fitReasons: reasons }
           }),
@@ -575,12 +634,149 @@ const useHrSpaceStore = create(
       },
 
       deleteCandidate: (id) => {
-        set((s) => ({ candidates: s.candidates.filter((c) => c.id !== id) }))
+        const c = get().candidates.find((x) => x.id === id)
+        if (c?.cvStoredFileId) void deleteCvFile(c.cvStoredFileId)
+        set((s) => ({ candidates: s.candidates.filter((x) => x.id !== id) }))
+      },
+
+      archiveCandidate: (id) => {
+        set((s) => ({
+          candidates: s.candidates.map((c) => (c.id === id ? { ...c, archived: true } : c)),
+        }))
+      },
+
+      restoreCandidate: (id) => {
+        set((s) => ({
+          candidates: s.candidates.map((c) => (c.id === id ? { ...c, archived: false } : c)),
+        }))
+      },
+
+      /**
+       * Copy CV file into talent archive (IndexedDB), tag industries/roles from current open position, mark candidate archived.
+       */
+      promoteCandidateToTalentPool: (candidateId, { notes = '', extraIndustries = [] } = {}) => {
+        const c = get().candidates.find((x) => x.id === candidateId)
+        if (!c) return null
+        const pos = get().openPositions.find((p) => p.id === c.positionId)
+        const poolId = `tp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        const industries = [
+          ...new Set([
+            ...(pos?.industry ? [String(pos.industry).trim()] : []),
+            ...(Array.isArray(extraIndustries) ? extraIndustries.map((x) => String(x || '').trim()).filter(Boolean) : []),
+          ]),
+        ]
+        const matchedRoles = pos?.title ? [String(pos.title)] : []
+        const entry = {
+          id: poolId,
+          name: c.name,
+          email: c.email || '',
+          phone: c.phone || '',
+          cvFileName: c.cvFileName || '',
+          cvMimeType: c.cvMimeType || '',
+          cvStoredFileId: c.cvStoredFileId ? poolId : null,
+          cvExtractedText: c.cvExtractedText || '',
+          industries,
+          matchedRoles,
+          lastFitScore: c.fitScore ?? null,
+          lastFitReasons: Array.isArray(c.fitReasons) ? [...c.fitReasons] : [],
+          notes: String(notes || ''),
+          createdAt: new Date().toISOString(),
+          sourceCandidateId: c.id,
+        }
+        const pushAndArchive = (e) => {
+          set((s) => ({
+            talentPoolEntries: [...s.talentPoolEntries, e],
+            candidates: s.candidates.map((x) => (x.id === candidateId ? { ...x, archived: true } : x)),
+          }))
+        }
+        if (c.cvStoredFileId) {
+          void cloneCvFile(c.cvStoredFileId, poolId)
+            .then(() => pushAndArchive(entry))
+            .catch(() => pushAndArchive({ ...entry, cvStoredFileId: null }))
+        } else {
+          pushAndArchive(entry)
+        }
+        return poolId
+      },
+
+      addTalentPoolEntry: (row) => {
+        const id = row.id || `tp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        set((s) => ({
+          talentPoolEntries: [
+            ...s.talentPoolEntries,
+            {
+              name: '',
+              email: '',
+              phone: '',
+              cvFileName: '',
+              cvMimeType: '',
+              cvStoredFileId: null,
+              cvExtractedText: '',
+              industries: [],
+              matchedRoles: [],
+              lastFitScore: null,
+              lastFitReasons: [],
+              notes: '',
+              createdAt: new Date().toISOString(),
+              sourceCandidateId: null,
+              ...row,
+              id,
+            },
+          ],
+        }))
+        return id
+      },
+
+      updateTalentPoolEntry: (id, patch) => {
+        set((s) => ({
+          talentPoolEntries: s.talentPoolEntries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+        }))
+      },
+
+      removeTalentPoolEntry: (id) => {
+        const e = get().talentPoolEntries.find((x) => x.id === id)
+        if (e?.cvStoredFileId) void deleteCvFile(e.cvStoredFileId)
+        set((s) => ({ talentPoolEntries: s.talentPoolEntries.filter((x) => x.id !== id) }))
+      },
+
+      /** Re-score archived pool CV text against any open position (future hiring). */
+      recalculateTalentPoolFit: (entryId, positionId) => {
+        const e = get().talentPoolEntries.find((x) => x.id === entryId)
+        const pos = get().openPositions.find((p) => p.id === positionId)
+        if (!e || !pos) return null
+        const { score, reasons } = scoreCvAgainstPosition(pos, e.cvExtractedText || '')
+        set((s) => ({
+          talentPoolEntries: s.talentPoolEntries.map((row) =>
+            row.id === entryId ? { ...row, lastFitScore: score, lastFitReasons: reasons } : row
+          ),
+        }))
+        return score
       },
     }),
     {
       name: 'strefex-hr-space',
+      version: 2,
       storage: createTenantStorage(),
+      migrate: (state, fromVersion) => {
+        if (!state || typeof state !== 'object') return state
+        if (fromVersion < 2) {
+          const st = { ...state }
+          if (!Array.isArray(st.talentPoolEntries)) {
+            st.talentPoolEntries = [...TALENT_POOL_SEED]
+          }
+          if (Array.isArray(st.candidates)) {
+            st.candidates = st.candidates.map((c) => ({
+              archived: c.archived === true,
+              cvStoredFileId: c.cvStoredFileId ?? null,
+              cvMimeType: c.cvMimeType || '',
+              ...c,
+            }))
+          }
+          st._version = 2
+          return st
+        }
+        return state
+      },
       partialize: (s) => ({
         _version: s._version,
         nextEmployeeSeq: s.nextEmployeeSeq,
@@ -597,6 +793,7 @@ const useHrSpaceStore = create(
         attendanceEntries: s.attendanceEntries,
         openPositions: s.openPositions,
         candidates: s.candidates,
+        talentPoolEntries: s.talentPoolEntries,
       }),
     }
   )
