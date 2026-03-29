@@ -58,7 +58,14 @@ export async function putCvFile(id, blob, mimeType) {
 export async function storeCvFileFromUpload(file) {
   if (!file || file.size > HR_CV_MAX_FILE_BYTES) return null
   const id = `cv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-  const mimeType = file.type || 'application/octet-stream'
+  let mimeType = file.type || 'application/octet-stream'
+  const lower = (file.name || '').toLowerCase()
+  if ((!mimeType || mimeType === 'application/octet-stream') && lower.endsWith('.pdf')) {
+    mimeType = 'application/pdf'
+  }
+  if ((!mimeType || mimeType === 'application/octet-stream') && lower.endsWith('.txt')) {
+    mimeType = 'text/plain'
+  }
   await putCvFile(id, file, mimeType)
   return { id, mimeType }
 }
@@ -108,4 +115,35 @@ export async function cloneCvFile(fromId, toId) {
   const blob = await getCvBlob(fromId)
   if (!blob) return
   await putCvFile(toId, blob, blob.type)
+}
+
+/**
+ * Stable MIME for in-app preview (iframe / img). Fixes empty type and octet-stream using file name + %PDF sniff.
+ * @param {Blob} blob
+ * @param {string} [declaredMime]
+ * @param {string} [fileName]
+ * @returns {Promise<string>}
+ */
+export async function resolveCvPreviewMime(blob, declaredMime, fileName) {
+  const name = String(fileName || '').toLowerCase()
+  let t = String(declaredMime || '').trim() || blob.type || ''
+
+  if (name.endsWith('.pdf')) t = 'application/pdf'
+  else if (name.endsWith('.txt')) t = 'text/plain'
+  else if (/\.png$/i.test(name)) t = t.startsWith('image/') ? t : 'image/png'
+  else if (/\.jpe?g$/i.test(name)) t = t.startsWith('image/') ? t : 'image/jpeg'
+  else if (/\.gif$/i.test(name)) t = t.startsWith('image/') ? t : 'image/gif'
+  else if (/\.webp$/i.test(name)) t = t.startsWith('image/') ? t : 'image/webp'
+
+  if ((!t || t === 'application/octet-stream') && blob.size >= 5) {
+    try {
+      const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer())
+      const sig = String.fromCharCode(...head)
+      if (sig.startsWith('%PDF')) return 'application/pdf'
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return t || 'application/octet-stream'
 }

@@ -17,6 +17,7 @@ import {
   storeCvFileFromUpload,
   deleteCvFile,
   HR_CV_MAX_FILE_BYTES,
+  resolveCvPreviewMime,
 } from '../utils/hrCvFileStorage'
 import '../components/hr/HrModuleShell.css'
 
@@ -156,12 +157,17 @@ export default function HrHiringRecruitment() {
 
   const openCvPreview = useCallback(async (storedId, mimeType, title) => {
     if (!storedId) return
-    const blob = await getCvBlob(storedId)
+    let blob
+    try {
+      blob = await getCvBlob(storedId)
+    } catch {
+      blob = null
+    }
     if (!blob) {
       window.alert(t('hrSpace.cvPreviewMissing', 'No file in browser storage for this record. Re-upload the CV to attach it.'))
       return
     }
-    const type = mimeType || blob.type || 'application/octet-stream'
+    const type = await resolveCvPreviewMime(blob, mimeType, title)
     if (type.includes('text/plain')) {
       const textPreview = await blob.text()
       setCvPreview((prev) => {
@@ -858,8 +864,23 @@ export default function HrHiringRecruitment() {
               <div className="hm-modal-body" style={{ padding: 0, minHeight: 420 }}>
                 {cvPreview.textPreview != null ? (
                   <pre style={{ margin: 0, padding: 16, maxHeight: '70vh', overflow: 'auto', fontSize: 13, whiteSpace: 'pre-wrap' }}>{cvPreview.textPreview}</pre>
-                ) : cvPreview.url && String(cvPreview.mimeType || '').includes('pdf') ? (
-                  <iframe title={cvPreview.title} src={cvPreview.url} style={{ width: '100%', height: '70vh', border: 'none' }} />
+                ) : cvPreview.url && String(cvPreview.mimeType || '').toLowerCase().includes('pdf') ? (
+                  <div>
+                    <iframe
+                      title={cvPreview.title}
+                      src={`${cvPreview.url}#toolbar=1`}
+                      style={{ width: '100%', height: '65vh', border: 'none' }}
+                    />
+                    <p className="hr-emp-prof-hint" style={{ padding: '8px 16px', margin: 0 }}>
+                      <a href={cvPreview.url} target="_blank" rel="noopener noreferrer">
+                        {t('hrSpace.cvOpenNewTab', 'Open PDF in a new tab')}
+                      </a>
+                      {' · '}
+                      <a href={cvPreview.url} download={cvPreview.title || 'cv.pdf'}>
+                        {t('hrSpace.download', 'Download')}
+                      </a>
+                    </p>
+                  </div>
                 ) : cvPreview.url && String(cvPreview.mimeType || '').startsWith('image/') ? (
                   <div style={{ padding: 16, textAlign: 'center' }}>
                     <img src={cvPreview.url} alt="" style={{ maxWidth: '100%', maxHeight: '70vh' }} />
@@ -868,6 +889,8 @@ export default function HrHiringRecruitment() {
                   <div style={{ padding: 24 }}>
                     <p>{t('hrSpace.cvPreviewDownload', 'This file type is best opened externally.')}</p>
                     <a className="hr-mod-btn hr-mod-btn--primary" href={cvPreview.url} download={cvPreview.title}>{t('hrSpace.download', 'Download')}</a>
+                    {' '}
+                    <a className="hr-mod-btn" href={cvPreview.url} target="_blank" rel="noopener noreferrer">{t('hrSpace.cvOpenNewTab', 'Open in new tab')}</a>
                   </div>
                 ) : (
                   <p style={{ padding: 16 }}>{t('hrSpace.cvPreviewEmpty', 'Nothing to display.')}</p>
