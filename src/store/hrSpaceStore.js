@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage } from '../utils/tenantStorage'
+import { scoreCvAgainstPosition } from '../utils/hrCvFitScore'
 
 export function formatEmployeeNumber(seq) {
   return `EMP-${String(seq).padStart(5, '0')}`
@@ -157,13 +158,61 @@ const useHrSpaceStore = create(
       ],
 
       openPositions: [
-        { id: 'pos1', title: 'Senior Quality Engineer', department: 'Quality', description: 'Lead APQP and PPAP activities', status: 'open', createdAt: '2026-01-10' },
-        { id: 'pos2', title: 'CNC Operator (night shift)', department: 'Production', description: '5-axis experience preferred', status: 'open', createdAt: '2026-02-01' },
+        {
+          id: 'pos1',
+          title: 'Senior Quality Engineer',
+          department: 'Quality',
+          description: 'Lead APQP and PPAP activities',
+          industry: 'Automotive',
+          mustHaveKeywords: 'APQP, PPAP, VDA, IATF',
+          preferredExperience: '5+ years quality engineering',
+          aiMatchHints: 'Prefer candidates with supplier development and audit background.',
+          status: 'open',
+          createdAt: '2026-01-10',
+        },
+        {
+          id: 'pos2',
+          title: 'CNC Operator (night shift)',
+          department: 'Production',
+          description: '5-axis experience preferred',
+          industry: 'Machinery',
+          mustHaveKeywords: 'CNC, Fanuc, Siemens, 5-axis',
+          preferredExperience: 'Shift work, manufacturing floor',
+          aiMatchHints: '',
+          status: 'open',
+          createdAt: '2026-02-01',
+        },
       ],
 
       candidates: [
-        { id: 'c1', positionId: 'pos1', name: 'Alex Richter', email: 'alex.r@email.test', phone: '+49 170 0000000', cvFileName: 'Alex_Richter_CV.pdf', cvSummary: '8 years in automotive quality, VDA 6.3 auditor.', status: 'screening', linkedEmployeeId: null },
-        { id: 'c2', positionId: 'pos2', name: 'Julia Meier', email: 'julia.m@email.test', phone: '+49 171 1111111', cvFileName: '', cvSummary: 'CNC programming Fanuc / Siemens.', status: 'applied', linkedEmployeeId: null },
+        {
+          id: 'c1',
+          positionId: 'pos1',
+          name: 'Alex Richter',
+          email: 'alex.r@email.test',
+          phone: '+49 170 0000000',
+          cvFileName: 'Alex_Richter_CV.pdf',
+          cvSummary: '8 years in automotive quality, VDA 6.3 auditor.',
+          cvExtractedText: 'automotive quality engineer apqp ppap vda 6.3 auditor supplier development iatf',
+          fitScore: 72,
+          fitReasons: ['Matched terms: automotive, quality, apqp, ppap, vda'],
+          status: 'screening',
+          linkedEmployeeId: null,
+        },
+        {
+          id: 'c2',
+          positionId: 'pos2',
+          name: 'Julia Meier',
+          email: 'julia.m@email.test',
+          phone: '+49 171 1111111',
+          cvFileName: '',
+          cvSummary: 'CNC programming Fanuc / Siemens.',
+          cvExtractedText: 'cnc programmer fanuc siemens 5 axis milling',
+          fitScore: 65,
+          fitReasons: ['Matched terms: cnc, fanuc, siemens'],
+          status: 'applied',
+          linkedEmployeeId: null,
+        },
       ],
 
       getEmployeeById: (employeeId) => get().employees.find((e) => e.id === employeeId),
@@ -439,6 +488,10 @@ const useHrSpaceStore = create(
           openPositions: [
             ...s.openPositions,
             {
+              industry: '',
+              mustHaveKeywords: '',
+              preferredExperience: '',
+              aiMatchHints: '',
               ...row,
               id,
               status: 'open',
@@ -467,12 +520,51 @@ const useHrSpaceStore = create(
           candidates: [
             ...s.candidates,
             {
+              cvExtractedText: '',
+              fitScore: null,
+              fitReasons: [],
               ...row,
               id,
               status: row.status || 'applied',
               linkedEmployeeId: null,
             },
           ],
+        }))
+      },
+
+      /** Append many candidates at once (e.g. bulk CV import). */
+      addCandidatesBulk: (positionId, rows) => {
+        if (!positionId || !Array.isArray(rows) || rows.length === 0) return
+        const base = Date.now()
+        set((s) => ({
+          candidates: [
+            ...s.candidates,
+            ...rows.map((row, i) => ({
+              cvExtractedText: '',
+              fitScore: null,
+              fitReasons: [],
+              ...row,
+              positionId,
+              id: `c-${base}-${i}`,
+              status: row.status || 'applied',
+              linkedEmployeeId: null,
+            })),
+          ],
+        }))
+      },
+
+      /** Re-run heuristic fit scores for all candidates tied to a position. */
+      recomputeFitScoresForPosition: (positionId) => {
+        const pos = get().openPositions.find((p) => p.id === positionId)
+        if (!pos) return
+        set((s) => ({
+          candidates: s.candidates.map((c) => {
+            if (c.positionId !== positionId) return c
+            const text = c.cvExtractedText || c.cvSummary || ''
+            if (!String(text).trim()) return { ...c, fitScore: null, fitReasons: ['No CV text — upload or paste resume content.'] }
+            const { score, reasons } = scoreCvAgainstPosition(pos, text)
+            return { ...c, fitScore: score, fitReasons: reasons }
+          }),
         }))
       },
 
