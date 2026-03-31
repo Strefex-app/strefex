@@ -58,7 +58,8 @@ export default function HrOnboardingModule() {
         {tab === 'track' && (
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.checklist', 'Checklists')}</h3>
-            <table className="hr-mod-table">
+            <div className="hr-mod-table-scroll">
+            <table className="hr-mod-table hr-mod-table--onboard-track">
               <thead>
                 <tr>
                   <th>{t('hrSpace.employee', 'Employee')}</th>
@@ -82,6 +83,7 @@ export default function HrOnboardingModule() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -164,7 +166,8 @@ export default function HrOnboardingModule() {
               </button>
             </div>
             <div className="hr-mod-panel">
-              <table className="hr-mod-table">
+              <div className="hr-mod-table-scroll">
+              <table className="hr-mod-table hr-mod-table--onboard-manage">
                 <thead>
                   <tr>
                     <th>{t('hrSpace.employee', 'Employee')}</th>
@@ -177,11 +180,16 @@ export default function HrOnboardingModule() {
                     <tr key={x.id}>
                       <td>{getEmployeeLabel(x.employeeId)}</td>
                       <td>{x.title}</td>
-                      <td><button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteOnboardingTask(x.id)}>{t('hrSpace.delete', 'Delete')}</button></td>
+                      <td>
+                        <div className="hr-mod-actions">
+                          <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteOnboardingTask(x.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}

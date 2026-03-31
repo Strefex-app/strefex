@@ -264,6 +264,7 @@ export default function TeamManagement() {
           {members.length === 0 ? (
             <EmptyState icon="users" title="No team members" message="Invite your first team member to get started." />
           ) : (
+            <div className="stx-fluid-table-wrap">
             <table className="tm-table">
               <thead>
                 <tr>
@@ -323,6 +324,7 @@ export default function TeamManagement() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

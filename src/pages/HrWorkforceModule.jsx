@@ -63,7 +63,8 @@ export default function HrWorkforceModule() {
               ))}
             </ul>
             <h3>{t('hrSpace.workforcePlans', 'Staffing plans')}</h3>
-            <table className="hr-mod-table">
+            <div className="hr-mod-table-scroll">
+            <table className="hr-mod-table hr-mod-table--workforce-plans">
               <thead>
                 <tr>
                   <th>{t('hrSpace.planTitle', 'Plan')}</th>
@@ -83,12 +84,14 @@ export default function HrWorkforceModule() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
         {tab === 'track' && (
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.roster', 'Employee roster')}</h3>
+            <div className="hr-mod-table-scroll">
             <table className="hr-mod-table">
               <thead>
                 <tr>
@@ -109,6 +112,7 @@ export default function HrWorkforceModule() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -159,7 +163,8 @@ export default function HrWorkforceModule() {
               </button>
             </div>
             <div className="hr-mod-panel">
-              <table className="hr-mod-table">
+              <div className="hr-mod-table-scroll">
+              <table className="hr-mod-table hr-mod-table--workforce-manage">
                 <thead>
                   <tr>
                     <th>{t('hrSpace.planTitle', 'Plan')}</th>
@@ -172,11 +177,16 @@ export default function HrWorkforceModule() {
                     <tr key={p.id}>
                       <td><input defaultValue={p.title} onBlur={(e) => updateWorkforcePlan(p.id, { title: e.target.value })} /></td>
                       <td><input type="number" defaultValue={p.targetHeadcount} onBlur={(e) => updateWorkforcePlan(p.id, { targetHeadcount: Number(e.target.value) })} /></td>
-                      <td><button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteWorkforcePlan(p.id)}>{t('hrSpace.delete', 'Delete')}</button></td>
+                      <td>
+                        <div className="hr-mod-actions">
+                          <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteWorkforcePlan(p.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}

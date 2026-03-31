@@ -203,8 +203,8 @@ export default function BuyerWorkspace() {
           {trackingRows.length === 0 ? (
             <p className="app-page-subtitle">No RFQs created yet.</p>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+            <div className="stx-fluid-table-wrap">
+              <table className="stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>RFQ</th>

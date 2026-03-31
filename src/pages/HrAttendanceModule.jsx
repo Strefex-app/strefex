@@ -65,7 +65,8 @@ export default function HrAttendanceModule() {
         {tab === 'track' && (
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.attendanceLog', 'Log')}</h3>
-            <table className="hr-mod-table">
+            <div className="hr-mod-table-scroll">
+            <table className="hr-mod-table hr-mod-table--attendance-log">
               <thead>
                 <tr>
                   <th>{t('hrSpace.employee', 'Employee')}</th>
@@ -85,6 +86,7 @@ export default function HrAttendanceModule() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -136,7 +138,8 @@ export default function HrAttendanceModule() {
               </button>
             </div>
             <div className="hr-mod-panel">
-              <table className="hr-mod-table">
+              <div className="hr-mod-table-scroll">
+              <table className="hr-mod-table hr-mod-table--attendance-manage">
                 <thead>
                   <tr>
                     <th>{t('hrSpace.date', 'Date')}</th>
@@ -149,11 +152,16 @@ export default function HrAttendanceModule() {
                     <tr key={a.id}>
                       <td><input type="date" defaultValue={a.date} onBlur={(e) => updateAttendance(a.id, { date: e.target.value })} /></td>
                       <td>{getEmployeeLabel(a.employeeId)}</td>
-                      <td><button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteAttendance(a.id)}>{t('hrSpace.delete', 'Delete')}</button></td>
+                      <td>
+                        <div className="hr-mod-actions">
+                          <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteAttendance(a.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}

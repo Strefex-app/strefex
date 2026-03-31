@@ -91,6 +91,21 @@
   background: var(--bg-surface-hover, var(--bg-surface));
 }
 
+@media (max-width: 720px) {
+  .ahp-table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .ahp-table th,
+  .ahp-table td {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+
 .ahp-empty {
   padding: 40px 20px;
   text-align: center;

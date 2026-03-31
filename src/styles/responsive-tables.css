@@ -1,0 +1,155 @@
+/**
+ * Narrow viewports: align data tables with HR-style behavior — fit width, wrap text,
+ * drop forced horizontal scroll inside wrappers. Import after page-specific CSS where needed.
+ */
+@media (max-width: 720px) {
+  .buyer-dir-table-wrap,
+  .vm-table-wrap,
+  .ad-table-wrap,
+  .sad-table-wrap,
+  .gc-table-wrap,
+  .exec-table-wrapper,
+  .comp-reg-table-wrap,
+  .rc-table-wrap,
+  .aud-table-wrap,
+  .sa-table-wrap,
+  .sp-comparison-table-wrap,
+  .eg-table-wrap,
+  .qm-table-wrapper,
+  .hrdoc-table-wrap,
+  .vd-conn-table-wrap,
+  .epc-table-wrap,
+  .invoice-table-wrapper,
+  .products-table-wrapper,
+  .bom-table-wrapper,
+  .comparison-table-wrapper,
+  .cost-table-wrapper,
+  .wco-table-wrap,
+  .ahp-table-wrap,
+  .stx-fluid-table-wrap {
+    overflow-x: visible !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  .vm-table,
+  .ad-table,
+  .sad-table,
+  .gc-table,
+  .exec-table,
+  .comp-reg-table,
+  .rc-table,
+  .aud-table,
+  .sa-table,
+  .sp-comparison-table,
+  .eg-table,
+  .qm-table,
+  .hrdoc-table,
+  .vd-conn-table,
+  .epc-table,
+  .invoice-table,
+  .products-table,
+  .product-bom-table,
+  .comparison-table,
+  .cost-table,
+  .wco-table,
+  .ahp-table,
+  .tm-table,
+  .bd-rfq-track-table,
+  .stx-fluid-table,
+  .metrics-table,
+  .std-table,
+  .ppa-table,
+  .vd-log-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .sad-table {
+    white-space: normal !important;
+  }
+
+  .vm-table th,
+  .vm-table td {
+    white-space: normal !important;
+  }
+
+  .vm-table th,
+  .vm-table td,
+  .ad-table th,
+  .ad-table td,
+  .sad-table th,
+  .sad-table td,
+  .gc-table th,
+  .gc-table td,
+  .exec-table th,
+  .exec-table td,
+  .comp-reg-table th,
+  .comp-reg-table td,
+  .rc-table th,
+  .rc-table td,
+  .aud-table th,
+  .aud-table td,
+  .sa-table th,
+  .sa-table td,
+  .sp-comparison-table th,
+  .sp-comparison-table td,
+  .eg-table th,
+  .eg-table td,
+  .qm-table th,
+  .qm-table td,
+  .hrdoc-table th,
+  .hrdoc-table td,
+  .vd-conn-table th,
+  .vd-conn-table td,
+  .epc-table th,
+  .epc-table td,
+  .invoice-table th,
+  .invoice-table td,
+  .products-table th,
+  .products-table td,
+  .product-bom-table th,
+  .product-bom-table td,
+  .comparison-table th,
+  .comparison-table td,
+  .cost-table th,
+  .cost-table td,
+  .wco-table th,
+  .wco-table td,
+  .ahp-table th,
+  .ahp-table td,
+  .tm-table th,
+  .tm-table td,
+  .bd-rfq-track-table th,
+  .bd-rfq-track-table td,
+  .stx-fluid-table th,
+  .stx-fluid-table td,
+  .metrics-table th,
+  .metrics-table td,
+  .std-table th,
+  .std-table td,
+  .ppa-table th,
+  .ppa-table td,
+  .vd-log-table th,
+  .vd-log-table td {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+    padding: 8px 6px !important;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .sad-cell-company,
+  .sad-detail-team-name {
+    min-width: 0 !important;
+  }
+
+  .tm-table .tm-role-select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}

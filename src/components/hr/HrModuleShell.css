@@ -142,7 +142,7 @@
   color: var(--color-secondary, #555);
 }
 
-.hr-mod-field input,
+.hr-mod-field input:not([type='checkbox']):not([type='radio']),
 .hr-mod-field select,
 .hr-mod-field textarea {
   padding: 8px 10px;
@@ -150,6 +150,47 @@
   border: 1px solid var(--input-border, #ccc);
   font-size: 13px;
   background: var(--bg-input, #fff);
+}
+
+/* Checkbox + label on one row (do not use .hr-mod-field on the <label> — it uses column flex) */
+.hr-mod-check-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.hr-mod-check {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-primary, #1a1a2e);
+  line-height: 1.4;
+  text-align: left;
+}
+
+.hr-mod-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 2px 0 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--color-primary, #000888);
+}
+
+.hr-mod-check__text {
+  flex: 1;
+  min-width: 0;
 }
 
 .hr-mod-grid2 {
@@ -164,7 +205,7 @@
   }
 }
 
-/* Horizontal scroll for wide data tables on narrow screens */
+/* Horizontal scroll for wide tables on tablet/desktop; phones use wrapped layout below */
 .hr-mod-table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -173,8 +214,375 @@
   padding: 0 4px;
 }
 
-.hr-mod-table-scroll .hr-mod-table {
-  min-width: 520px;
+@media (min-width: 721px) {
+  .hr-mod-table-scroll .hr-mod-table {
+    min-width: 520px;
+  }
+}
+
+/* Up to 3 lines for long secondary text; full value in title= */
+.hr-mod-cell-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-clamp: 3;
+  font-size: 12px;
+  color: var(--color-secondary, #555);
+}
+
+.hr-mod-table-notes-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border, #ccc);
+  font-size: 12px;
+}
+
+.hr-mod-table input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+  accent-color: var(--color-primary, #000888);
+}
+
+/* Narrow viewports: fit tables to screen — multi-line names/titles, stacked row actions */
+@media (max-width: 720px) {
+  .hr-mod-panel {
+    padding: 12px;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .hr-mod-table-scroll {
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .hr-mod-table-scroll .hr-mod-table,
+  .hr-mod-panel > .hr-mod-table {
+    min-width: 0 !important;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .hr-mod-table th,
+  .hr-mod-table td {
+    padding: 7px 5px;
+    vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    line-height: 1.35;
+  }
+
+  .hr-mod-table td input:not([type='checkbox']):not([type='radio']),
+  .hr-mod-table td select,
+  .hr-mod-table td textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* Pipeline: candidate, position wrap; compact fit/status; actions stack */
+  .hr-mod-table--pipeline th:nth-child(1),
+  .hr-mod-table--pipeline td:nth-child(1),
+  .hr-mod-table--pipeline th:nth-child(2),
+  .hr-mod-table--pipeline td:nth-child(2) {
+    width: 27%;
+  }
+
+  .hr-mod-table--pipeline th:nth-child(3),
+  .hr-mod-table--pipeline td:nth-child(3),
+  .hr-mod-table--pipeline th:nth-child(4),
+  .hr-mod-table--pipeline td:nth-child(4) {
+    width: 11%;
+    text-align: center;
+  }
+
+  .hr-mod-table--pipeline th:nth-child(5),
+  .hr-mod-table--pipeline td:nth-child(5) {
+    width: 24%;
+  }
+
+  /* Positions editor row */
+  .hr-mod-table--positions th:nth-child(1),
+  .hr-mod-table--positions td:nth-child(1) {
+    width: 20%;
+  }
+
+  .hr-mod-table--positions th:nth-child(2),
+  .hr-mod-table--positions td:nth-child(2),
+  .hr-mod-table--positions th:nth-child(3),
+  .hr-mod-table--positions td:nth-child(3) {
+    width: 16%;
+  }
+
+  .hr-mod-table--positions th:nth-child(4),
+  .hr-mod-table--positions td:nth-child(4) {
+    width: 18%;
+  }
+
+  .hr-mod-table--positions th:nth-child(5),
+  .hr-mod-table--positions td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+  }
+
+  .hr-mod-table--positions th:nth-child(6),
+  .hr-mod-table--positions td:nth-child(6) {
+    width: 20%;
+  }
+
+  /* Candidate database */
+  .hr-mod-table--candidates th:nth-child(1),
+  .hr-mod-table--candidates td:nth-child(1) {
+    width: 22%;
+  }
+
+  .hr-mod-table--candidates th:nth-child(2),
+  .hr-mod-table--candidates td:nth-child(2) {
+    width: 22%;
+  }
+
+  .hr-mod-table--candidates th:nth-child(3),
+  .hr-mod-table--candidates td:nth-child(3) {
+    width: 10%;
+    text-align: center;
+  }
+
+  .hr-mod-table--candidates th:nth-child(4),
+  .hr-mod-table--candidates td:nth-child(4) {
+    width: 20%;
+  }
+
+  .hr-mod-table--candidates th:nth-child(5),
+  .hr-mod-table--candidates td:nth-child(5) {
+    width: 26%;
+  }
+
+  /* Talent archive */
+  .hr-mod-table--talent th:nth-child(1),
+  .hr-mod-table--talent td:nth-child(1) {
+    width: 18%;
+  }
+
+  .hr-mod-table--talent th:nth-child(2),
+  .hr-mod-table--talent td:nth-child(2),
+  .hr-mod-table--talent th:nth-child(3),
+  .hr-mod-table--talent td:nth-child(3) {
+    width: 20%;
+  }
+
+  .hr-mod-table--talent th:nth-child(4),
+  .hr-mod-table--talent td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+  }
+
+  .hr-mod-table--talent th:nth-child(5),
+  .hr-mod-table--talent td:nth-child(5) {
+    width: 32%;
+  }
+
+  /* Workforce planning — plan / roster / manage data */
+  .hr-mod-table--workforce-plans th:nth-child(1),
+  .hr-mod-table--workforce-plans td:nth-child(1) {
+    width: 30%;
+  }
+
+  .hr-mod-table--workforce-plans th:nth-child(2),
+  .hr-mod-table--workforce-plans td:nth-child(2) {
+    width: 26%;
+  }
+
+  .hr-mod-table--workforce-plans th:nth-child(3),
+  .hr-mod-table--workforce-plans td:nth-child(3),
+  .hr-mod-table--workforce-plans th:nth-child(4),
+  .hr-mod-table--workforce-plans td:nth-child(4) {
+    width: 22%;
+    text-align: center;
+  }
+
+  .hr-mod-table--workforce-roster th:nth-child(1),
+  .hr-mod-table--workforce-roster td:nth-child(1) {
+    width: 16%;
+  }
+
+  .hr-mod-table--workforce-roster th:nth-child(2),
+  .hr-mod-table--workforce-roster td:nth-child(2) {
+    width: 30%;
+  }
+
+  .hr-mod-table--workforce-roster th:nth-child(3),
+  .hr-mod-table--workforce-roster td:nth-child(3),
+  .hr-mod-table--workforce-roster th:nth-child(4),
+  .hr-mod-table--workforce-roster td:nth-child(4) {
+    width: 27%;
+  }
+
+  .hr-mod-table--workforce-manage th:nth-child(1),
+  .hr-mod-table--workforce-manage td:nth-child(1) {
+    width: 46%;
+  }
+
+  .hr-mod-table--workforce-manage th:nth-child(2),
+  .hr-mod-table--workforce-manage td:nth-child(2) {
+    width: 22%;
+    text-align: center;
+  }
+
+  .hr-mod-table--workforce-manage th:nth-child(3),
+  .hr-mod-table--workforce-manage td:nth-child(3) {
+    width: 32%;
+  }
+
+  /* Attendance */
+  .hr-mod-table--attendance-log th:nth-child(1),
+  .hr-mod-table--attendance-log td:nth-child(1) {
+    width: 32%;
+  }
+
+  .hr-mod-table--attendance-log th:nth-child(2),
+  .hr-mod-table--attendance-log td:nth-child(2),
+  .hr-mod-table--attendance-log th:nth-child(3),
+  .hr-mod-table--attendance-log td:nth-child(3),
+  .hr-mod-table--attendance-log th:nth-child(4),
+  .hr-mod-table--attendance-log td:nth-child(4) {
+    width: 22%;
+  }
+
+  .hr-mod-table--attendance-manage th:nth-child(1),
+  .hr-mod-table--attendance-manage td:nth-child(1) {
+    width: 34%;
+  }
+
+  .hr-mod-table--attendance-manage th:nth-child(2),
+  .hr-mod-table--attendance-manage td:nth-child(2) {
+    width: 46%;
+  }
+
+  .hr-mod-table--attendance-manage th:nth-child(3),
+  .hr-mod-table--attendance-manage td:nth-child(3) {
+    width: 20%;
+  }
+
+  /* Onboarding */
+  .hr-mod-table--onboard-track th:nth-child(1),
+  .hr-mod-table--onboard-track td:nth-child(1) {
+    width: 34%;
+  }
+
+  .hr-mod-table--onboard-track th:nth-child(2),
+  .hr-mod-table--onboard-track td:nth-child(2) {
+    width: 48%;
+  }
+
+  .hr-mod-table--onboard-track th:nth-child(3),
+  .hr-mod-table--onboard-track td:nth-child(3) {
+    width: 18%;
+    text-align: center;
+  }
+
+  .hr-mod-table--onboard-manage th:nth-child(1),
+  .hr-mod-table--onboard-manage td:nth-child(1) {
+    width: 34%;
+  }
+
+  .hr-mod-table--onboard-manage th:nth-child(2),
+  .hr-mod-table--onboard-manage td:nth-child(2) {
+    width: 48%;
+  }
+
+  .hr-mod-table--onboard-manage th:nth-child(3),
+  .hr-mod-table--onboard-manage td:nth-child(3) {
+    width: 18%;
+  }
+
+  /* Training */
+  .hr-mod-table--train-track th:nth-child(1),
+  .hr-mod-table--train-track td:nth-child(1) {
+    width: 26%;
+  }
+
+  .hr-mod-table--train-track th:nth-child(2),
+  .hr-mod-table--train-track td:nth-child(2) {
+    width: 30%;
+  }
+
+  .hr-mod-table--train-track th:nth-child(3),
+  .hr-mod-table--train-track td:nth-child(3),
+  .hr-mod-table--train-track th:nth-child(4),
+  .hr-mod-table--train-track td:nth-child(4) {
+    width: 22%;
+  }
+
+  .hr-mod-table--train-manage th:nth-child(1),
+  .hr-mod-table--train-manage td:nth-child(1) {
+    width: 36%;
+  }
+
+  .hr-mod-table--train-manage th:nth-child(2),
+  .hr-mod-table--train-manage td:nth-child(2) {
+    width: 44%;
+  }
+
+  .hr-mod-table--train-manage th:nth-child(3),
+  .hr-mod-table--train-manage td:nth-child(3) {
+    width: 20%;
+  }
+
+  .hr-mod-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .hr-mod-actions .hr-mod-btn {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hr-mod-actions select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .hr-mod-actions .hr-mod-table-notes-input,
+  .hr-mod-actions input[type='text'],
+  .hr-mod-actions input:not([type]) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+  }
+
+  .hr-mod-actions a {
+    display: block;
+    text-align: center;
+    padding: 6px 8px;
+    word-break: break-word;
+  }
+
+  /* Single action button in a cell (attendance / onboarding / training / workforce) */
+  .hr-mod-table td > .hr-mod-btn:only-child {
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 .hr-mod-stat {

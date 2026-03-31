@@ -5,8 +5,8 @@ export default function SupplierComparisonTable({ rows = [] }) {
     return <div style={{ color: '#667085' }}>Select suppliers to compare.</div>
   }
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+    <div className="stx-fluid-table-wrap">
+      <table className="stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
             <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Supplier</th>

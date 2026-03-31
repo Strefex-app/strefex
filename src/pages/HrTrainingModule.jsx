@@ -68,7 +68,8 @@ export default function HrTrainingModule() {
         {tab === 'track' && (
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.trackRecords', 'Track records')}</h3>
-            <table className="hr-mod-table">
+            <div className="hr-mod-table-scroll">
+            <table className="hr-mod-table hr-mod-table--train-track">
               <thead>
                 <tr>
                   <th>{t('hrSpace.employee', 'Employee')}</th>
@@ -90,6 +91,7 @@ export default function HrTrainingModule() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -149,7 +151,8 @@ export default function HrTrainingModule() {
               </button>
             </div>
             <div className="hr-mod-panel">
-              <table className="hr-mod-table">
+              <div className="hr-mod-table-scroll">
+              <table className="hr-mod-table hr-mod-table--train-manage">
                 <thead>
                   <tr>
                     <th>{t('hrSpace.employee', 'Employee')}</th>
@@ -165,12 +168,15 @@ export default function HrTrainingModule() {
                         <input defaultValue={r.title} onBlur={(e) => updateTrainingRecord(r.id, { title: e.target.value })} />
                       </td>
                       <td>
-                        <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteTrainingRecord(r.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        <div className="hr-mod-actions">
+                          <button type="button" className="hr-mod-btn hr-mod-btn--danger" onClick={() => deleteTrainingRecord(r.id)}>{t('hrSpace.delete', 'Delete')}</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}

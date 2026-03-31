@@ -297,7 +297,35 @@ const SYNC_SPECS = [
     key: 'hr_space',
     extract: () => zustandDataSlice(useHrSpaceStore.getState),
     apply: (p) => {
-      if (p && typeof p === 'object') useHrSpaceStore.setState(p)
+      if (!p || typeof p !== 'object') return
+      const prev = useHrSpaceStore.getState()
+      const next = { ...p }
+      /* Blobs are not synced; cloud JSON often omits cvStoredFileId. Keep local IndexedDB ids when still valid. */
+      if (Array.isArray(p.candidates) && Array.isArray(prev.candidates)) {
+        const localById = new Map(prev.candidates.map((c) => [c.id, c]))
+        next.candidates = p.candidates.map((c) => {
+          const loc = localById.get(c.id)
+          const hasRemote = c.cvStoredFileId != null && String(c.cvStoredFileId).trim() !== ''
+          const hasLocal = loc?.cvStoredFileId != null && String(loc.cvStoredFileId).trim() !== ''
+          if (!hasRemote && hasLocal) {
+            return { ...c, cvStoredFileId: loc.cvStoredFileId, cvMimeType: c.cvMimeType || loc.cvMimeType || '' }
+          }
+          return c
+        })
+      }
+      if (Array.isArray(p.talentPoolEntries) && Array.isArray(prev.talentPoolEntries)) {
+        const localById = new Map(prev.talentPoolEntries.map((e) => [e.id, e]))
+        next.talentPoolEntries = p.talentPoolEntries.map((e) => {
+          const loc = localById.get(e.id)
+          const hasRemote = e.cvStoredFileId != null && String(e.cvStoredFileId).trim() !== ''
+          const hasLocal = loc?.cvStoredFileId != null && String(loc.cvStoredFileId).trim() !== ''
+          if (!hasRemote && hasLocal) {
+            return { ...e, cvStoredFileId: loc.cvStoredFileId, cvMimeType: e.cvMimeType || loc.cvMimeType || '' }
+          }
+          return e
+        })
+      }
+      useHrSpaceStore.setState(next)
     },
     isEmpty: (p) => !p?.employees?.length && !p?.openPositions?.length,
     subscribe: (cb) => useHrSpaceStore.subscribe(cb),

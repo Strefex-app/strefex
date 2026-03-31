@@ -266,8 +266,8 @@ export default function BuyerDashboard() {
           {rfqTracking.length === 0 ? (
             <div className="bd-empty">No RFQ tracking records yet.</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="bd-rfq-track-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+            <div className="stx-fluid-table-wrap">
+              <table className="bd-rfq-track-table stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>RFQ</th>

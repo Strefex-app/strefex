@@ -1,6 +1,9 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-width: 0;
+  max-width: 100%;
   background-color: var(--bg-primary);
 }
 
@@ -215,6 +218,7 @@
 
 .app-main {
   flex: 1;
+  min-width: 0;
   overflow: auto;
   padding: 24px;
   padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));

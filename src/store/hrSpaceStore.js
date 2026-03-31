@@ -569,6 +569,10 @@ const useHrSpaceStore = create(
 
       addCandidate: (row) => {
         const id = `c-${Date.now()}`
+        const cvStoredFileId =
+          row.cvStoredFileId != null && String(row.cvStoredFileId).trim() !== ''
+            ? String(row.cvStoredFileId).trim()
+            : null
         set((s) => ({
           candidates: [
             ...s.candidates,
@@ -580,6 +584,8 @@ const useHrSpaceStore = create(
               id,
               status: row.status || 'applied',
               linkedEmployeeId: null,
+              cvStoredFileId,
+              cvMimeType: row.cvMimeType || '',
             },
           ],
         }))
@@ -592,19 +598,27 @@ const useHrSpaceStore = create(
         set((s) => ({
           candidates: [
             ...s.candidates,
-            ...rows.map((row, i) => ({
-              archived: false,
-              cvStoredFileId: null,
-              cvMimeType: '',
-              cvExtractedText: '',
-              fitScore: null,
-              fitReasons: [],
-              ...row,
-              positionId,
-              id: `c-${base}-${i}`,
-              status: row.status || 'applied',
-              linkedEmployeeId: null,
-            })),
+            ...rows.map((row, i) => {
+              const cvStoredFileId =
+                row.cvStoredFileId != null && String(row.cvStoredFileId).trim() !== ''
+                  ? String(row.cvStoredFileId).trim()
+                  : null
+              return {
+                archived: false,
+                cvStoredFileId: null,
+                cvMimeType: '',
+                cvExtractedText: '',
+                fitScore: null,
+                fitReasons: [],
+                ...row,
+                positionId,
+                id: `c-${base}-${i}`,
+                status: row.status || 'applied',
+                linkedEmployeeId: null,
+                cvStoredFileId,
+                cvMimeType: row.cvMimeType || '',
+              }
+            }),
           ],
         }))
       },
@@ -721,6 +735,11 @@ const useHrSpaceStore = create(
               sourceCandidateId: null,
               ...row,
               id,
+              cvStoredFileId:
+                row.cvStoredFileId != null && String(row.cvStoredFileId).trim() !== ''
+                  ? String(row.cvStoredFileId).trim()
+                  : null,
+              cvMimeType: row.cvMimeType || '',
             },
           ],
         }))
