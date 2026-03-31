@@ -465,6 +465,7 @@ export default function HrHiringRecruitment() {
               <input type="checkbox" checked={trackShowArchived} onChange={(e) => setTrackShowArchived(e.target.checked)} />
               {t('hrSpace.showArchivedPipeline', 'Show archived candidates in this list')}
             </label>
+            <div className="hr-mod-table-scroll">
             <table className="hr-mod-table">
               <thead>
                 <tr>
@@ -509,6 +510,7 @@ export default function HrHiringRecruitment() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -559,6 +561,7 @@ export default function HrHiringRecruitment() {
             <div className="hr-mod-panel">
               <h3>{t('hrSpace.positionsManage', 'Positions — criteria, re-score, delete')}</h3>
               <p className="hr-emp-prof-hint">{t('hrSpace.positionsCriteriaHint', 'Industry and must-haves feed the same matcher as optional fields on new positions. Re-score updates all applicants for that role.')}</p>
+              <div className="hr-mod-table-scroll">
               <table className="hr-mod-table">
                 <thead>
                   <tr>
@@ -587,6 +590,7 @@ export default function HrHiringRecruitment() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
             <div className="hr-mod-panel">
               <h3>{t('hrSpace.addCandidate', 'Add candidate')}</h3>
@@ -693,6 +697,7 @@ export default function HrHiringRecruitment() {
                   <option value="all">{t('hrSpace.filterAll', 'All')}</option>
                 </select>
               </div>
+              <div className="hr-mod-table-scroll">
               <table className="hr-mod-table">
                 <thead>
                   <tr>
@@ -743,6 +748,7 @@ export default function HrHiringRecruitment() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}
@@ -791,6 +797,7 @@ export default function HrHiringRecruitment() {
             </div>
             <div className="hr-mod-panel">
               <h3>{t('hrSpace.poolTableTitle', 'Archived profiles')}</h3>
+              <div className="hr-mod-table-scroll">
               <table className="hr-mod-table">
                 <thead>
                   <tr>
@@ -850,26 +857,27 @@ export default function HrHiringRecruitment() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </>
         )}
 
         {cvPreview && (
           <div className="hm-modal-overlay" style={{ zIndex: 7000 }} role="dialog" aria-modal>
-            <div className="hm-modal" style={{ maxWidth: 900, width: '95%' }} onClick={(ev) => ev.stopPropagation()}>
+            <div className="hm-modal hm-modal--wide hm-modal--cv-preview" onClick={(ev) => ev.stopPropagation()}>
               <div className="hm-modal-header">
                 <h3>{t('hrSpace.cvPreviewTitle', 'CV preview')} — {cvPreview.title}</h3>
                 <button type="button" className="hm-modal-close" onClick={closeCvPreview}>×</button>
               </div>
-              <div className="hm-modal-body" style={{ padding: 0, minHeight: 420 }}>
+              <div className="hm-modal-body">
                 {cvPreview.textPreview != null ? (
-                  <pre style={{ margin: 0, padding: 16, maxHeight: '70vh', overflow: 'auto', fontSize: 13, whiteSpace: 'pre-wrap' }}>{cvPreview.textPreview}</pre>
+                  <pre className="hr-cv-preview-text">{cvPreview.textPreview}</pre>
                 ) : cvPreview.url && String(cvPreview.mimeType || '').toLowerCase().includes('pdf') ? (
                   <div>
                     <iframe
+                      className="hr-cv-preview-iframe"
                       title={cvPreview.title}
                       src={`${cvPreview.url}#toolbar=1`}
-                      style={{ width: '100%', height: '65vh', border: 'none' }}
                     />
                     <p className="hr-emp-prof-hint" style={{ padding: '8px 16px', margin: 0 }}>
                       <a href={cvPreview.url} target="_blank" rel="noopener noreferrer">
@@ -883,7 +891,7 @@ export default function HrHiringRecruitment() {
                   </div>
                 ) : cvPreview.url && String(cvPreview.mimeType || '').startsWith('image/') ? (
                   <div style={{ padding: 16, textAlign: 'center' }}>
-                    <img src={cvPreview.url} alt="" style={{ maxWidth: '100%', maxHeight: '70vh' }} />
+                    <img className="hr-cv-preview-img" src={cvPreview.url} alt="" />
                   </div>
                 ) : cvPreview.url ? (
                   <div style={{ padding: 24 }}>
