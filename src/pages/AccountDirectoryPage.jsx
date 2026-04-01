@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import '../styles/app-page.css'
 import './SellerDashboard.css'
 import './VendorManagement.css'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './AccountDirectoryPage.css'
 
 const INDUSTRY_HUB_OPTIONS = [
@@ -645,7 +646,12 @@ export default function AccountDirectoryPage() {
                     <tr key={r.id}>
                       {isSuperAdmin ? (
                         <td>
-                          <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => toggleSelect(r.id)} />
+                          <ToggleCheckButton
+                            compact
+                            checked={selectedIds.has(r.id)}
+                            onChange={() => toggleSelect(r.id)}
+                            aria-label={`Select row ${r.company_name || r.id}`}
+                          />
                         </td>
                       ) : null}
                       {isSuperAdmin && !filterCompanyId ? (
@@ -820,16 +826,12 @@ export default function AccountDirectoryPage() {
                   />
                 </label>
                 {isSuperAdmin ? (
-                  <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={form.visible_in_exec_summary_superadmin}
-                      onChange={(e) =>
-                        setForm({ ...form, visible_in_exec_summary_superadmin: e.target.checked })
-                      }
-                    />
+                  <ToggleCheckButton
+                    checked={form.visible_in_exec_summary_superadmin}
+                    onChange={(v) => setForm({ ...form, visible_in_exec_summary_superadmin: v })}
+                  >
                     Visible in superadmin executive-summary rollups
-                  </label>
+                  </ToggleCheckButton>
                 ) : null}
                 <div className="sd-form-actions">
                   <button type="submit" className="sd-btn sd-btn-primary" disabled={saving}>

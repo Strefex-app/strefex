@@ -280,12 +280,17 @@
 .tpl-drop-zone strong { color: var(--color-primary); }
 .tpl-drop-hint { font-size: 11px; opacity: .7; }
 
-/* ── Featured checkbox ───────────────────────────────────── */
-.tpl-featured-check {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; font-weight: 600; color: var(--color-secondary); cursor: pointer;
+/* ── Featured toggle ───────────────────────────────────── */
+.tpl-featured-check.stx-check-btn {
+  align-items: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-secondary);
 }
-.tpl-featured-check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+.tpl-featured-check .stx-check-btn__label {
+  font-weight: 600;
+  color: var(--color-secondary);
+}
 
 /* ── Role badge ─────────────────────────────────────────── */
 .tpl-role-badge {

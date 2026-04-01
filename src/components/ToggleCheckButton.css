@@ -1,0 +1,93 @@
+.stx-check-btn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  background: var(--bg-card, #fff);
+  color: var(--color-primary, #1a1a2e);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.stx-check-btn:hover:not(:disabled) {
+  border-color: var(--color-primary, #000888);
+  background: var(--accent-light, #e8eeff);
+}
+
+.stx-check-btn:focus-visible {
+  outline: 2px solid var(--color-primary, #000888);
+  outline-offset: 2px;
+}
+
+.stx-check-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stx-check-btn--on {
+  border-color: var(--color-primary, #000888);
+  background: var(--accent-light, #e8eeff);
+  box-shadow: inset 0 0 0 1px rgba(0, 8, 136, 0.1);
+}
+
+.stx-check-btn__icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 4px;
+  border: 2px solid var(--border-color, #bbb);
+  background: var(--bg-input, #fff);
+  position: relative;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.stx-check-btn--on .stx-check-btn__icon {
+  background: var(--btn-primary-bg, #000888);
+  border-color: var(--btn-primary-bg, #000888);
+}
+
+.stx-check-btn--on .stx-check-btn__icon::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.stx-check-btn__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.stx-check-btn--compact {
+  padding: 4px;
+  gap: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.stx-check-btn--compact .stx-check-btn__icon {
+  margin-top: 0;
+}
+
+.stx-check-btn--compact .stx-check-btn__label {
+  display: none;
+}

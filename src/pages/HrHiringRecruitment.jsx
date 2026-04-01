@@ -19,6 +19,7 @@ import {
   HR_CV_MAX_FILE_BYTES,
   resolveCvPreviewMime,
 } from '../utils/hrCvFileStorage'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../components/hr/HrModuleShell.css'
 
 const emptyPosForm = () => ({
@@ -489,11 +490,20 @@ export default function HrHiringRecruitment() {
         {tab === 'track' && (
           <div className="hr-mod-panel">
             <h3>{t('hrSpace.pipeline', 'Pipeline')}</h3>
-            <p className="hr-emp-prof-hint">{t('hrSpace.pipelineFitHint', 'Sorted by fit score (when computed). Use Manage → bulk CV import or Re-score on a position.')}</p>
-            <label className="hr-mod-check" style={{ marginBottom: 12 }}>
-              <input type="checkbox" checked={trackShowArchived} onChange={(e) => setTrackShowArchived(e.target.checked)} />
-              <span className="hr-mod-check__text">{t('hrSpace.showArchivedPipeline', 'Show archived candidates in this list')}</span>
-            </label>
+            <p className="hr-emp-prof-hint">
+              {t(
+                'hrSpace.pipelineFitHint',
+                'Sorted by fit score (when computed). Edit the candidate name in the list if recognition was wrong. Use Manage → bulk CV import or Re-score on a position.'
+              )}
+            </p>
+            <ToggleCheckButton
+              className="hr-mod-check-btn"
+              style={{ marginBottom: 12 }}
+              checked={trackShowArchived}
+              onChange={setTrackShowArchived}
+            >
+              {t('hrSpace.showArchivedPipeline', 'Show archived candidates in this list')}
+            </ToggleCheckButton>
             <div className="hr-mod-table-scroll">
             <table className="hr-mod-table hr-mod-table--pipeline">
               <thead>
@@ -511,7 +521,29 @@ export default function HrHiringRecruitment() {
                   const tip = Array.isArray(c.fitReasons) ? c.fitReasons.join('\n') : ''
                   return (
                     <tr key={c.id}>
-                      <td>{c.name}{c.archived ? ` (${t('hrSpace.archived', 'archived')})` : ''}</td>
+                      <td>
+                        <input
+                          type="text"
+                          className="hr-mod-pipeline-name-input"
+                          defaultValue={c.name || ''}
+                          key={`${c.id}-${c.name || ''}`}
+                          aria-label={t('hrSpace.candidateName', 'Candidate name')}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim()
+                            if (!v) {
+                              e.target.value = c.name || ''
+                              return
+                            }
+                            if (v !== String(c.name || '').trim()) updateCandidate(c.id, { name: v })
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                          }}
+                        />
+                        {c.archived ? (
+                          <span className="hr-mod-pipeline-archived-tag"> ({t('hrSpace.archived', 'archived')})</span>
+                        ) : null}
+                      </td>
                       <td>{pos?.title || '—'}</td>
                       <td title={tip}>
                         {c.fitScore != null ? <strong>{c.fitScore}</strong> : '—'}
@@ -569,14 +601,12 @@ export default function HrHiringRecruitment() {
                 </div>
               </div>
               <div className="hr-mod-check-group">
-                <label className="hr-mod-check">
-                  <input type="checkbox" checked={bulkAutoFill} onChange={(e) => setBulkAutoFill(e.target.checked)} />
-                  <span className="hr-mod-check__text">{t('hrSpace.bulkAutoFill', 'Guess name from file name when missing')}</span>
-                </label>
-                <label className="hr-mod-check">
-                  <input type="checkbox" checked={bulkScore} onChange={(e) => setBulkScore(e.target.checked)} />
-                  <span className="hr-mod-check__text">{t('hrSpace.bulkScore', 'Score fit vs selected role')}</span>
-                </label>
+                <ToggleCheckButton className="hr-mod-check-btn" checked={bulkAutoFill} onChange={setBulkAutoFill}>
+                  {t('hrSpace.bulkAutoFill', 'Guess name from file name when missing')}
+                </ToggleCheckButton>
+                <ToggleCheckButton className="hr-mod-check-btn" checked={bulkScore} onChange={setBulkScore}>
+                  {t('hrSpace.bulkScore', 'Score fit vs selected role')}
+                </ToggleCheckButton>
               </div>
               <button
                 type="button"
@@ -627,10 +657,14 @@ export default function HrHiringRecruitment() {
             <div className="hr-mod-panel">
               <h3>{t('hrSpace.addCandidate', 'Add candidate')}</h3>
               <p className="hr-emp-prof-hint">{t('hrSpace.scanCvHint', 'Pick a position, then use “Scan CV” to read PDF / image / text and fill fields. You can edit before saving.')}</p>
-              <label className="hr-mod-check" style={{ marginBottom: 8 }}>
-                <input type="checkbox" checked={singleAutoFill} onChange={(e) => setSingleAutoFill(e.target.checked)} />
-                <span className="hr-mod-check__text">{t('hrSpace.singleAutoFill', 'Replace name, email, and phone from CV on each scan')}</span>
-              </label>
+              <ToggleCheckButton
+                className="hr-mod-check-btn"
+                style={{ marginBottom: 8 }}
+                checked={singleAutoFill}
+                onChange={setSingleAutoFill}
+              >
+                {t('hrSpace.singleAutoFill', 'Replace name, email, and phone from CV on each scan')}
+              </ToggleCheckButton>
               <p className="hr-emp-prof-hint" style={{ marginTop: 0 }}>
                 {t('hrSpace.singleAutoFillOffHint', 'When off, only empty fields are filled from the CV.')}
               </p>

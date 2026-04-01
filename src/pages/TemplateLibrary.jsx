@@ -5,6 +5,7 @@ import Icon from '../components/Icon'
 import { useTemplateStore, STATUS_LABELS } from '../store/templateStore'
 import { useAuthStore } from '../store/authStore'
 import { getUserId } from '../utils/tenantStorage'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './TemplateLibrary.css'
 
 let _fileIdSeq = 0
@@ -606,10 +607,13 @@ export default function TemplateLibrary() {
 
               {canManage && (
                 <div className="tpl-form-row">
-                  <label className="tpl-featured-check">
-                    <input type="checkbox" checked={editModal.featured} onChange={(e) => setField('featured', e.target.checked)} />
+                  <ToggleCheckButton
+                    className="tpl-featured-check"
+                    checked={editModal.featured}
+                    onChange={(v) => setField('featured', v)}
+                  >
                     Mark as Featured
-                  </label>
+                  </ToggleCheckButton>
                 </div>
               )}
             </div>

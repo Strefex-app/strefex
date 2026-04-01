@@ -18,6 +18,7 @@ import { useAuthStore } from '../store/authStore'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -524,14 +525,15 @@ const ExecutiveSummary = () => {
               <thead>
                 <tr>
                   <th className="exec-th-check">
-                    <input
-                      type="checkbox"
+                    <ToggleCheckButton
+                      compact
                       checked={selectedForRfq.size === suppliers.length && suppliers.length > 0}
                       onChange={() => {
                         if (selectedForRfq.size === suppliers.length) setSelectedForRfq(new Set())
-                        else setSelectedForRfq(new Set(suppliers.map(s => s.id)))
+                        else setSelectedForRfq(new Set(suppliers.map((s) => s.id)))
                       }}
                       title="Select all for RFQ"
+                      aria-label="Select all suppliers for RFQ"
                     />
                   </th>
                   <th>Supplier</th>
@@ -554,11 +556,12 @@ const ExecutiveSummary = () => {
                     onClick={() => setSelectedSupplier(supplier)}
                   >
                     <td className="exec-td-check" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
+                      <ToggleCheckButton
+                        compact
                         checked={selectedForRfq.has(supplier.id)}
                         onChange={() => toggleRfqSelection(supplier.id)}
                         title="Select for RFQ comparison"
+                        aria-label={`Select ${getDisplayName(supplier, idx)} for RFQ`}
                       />
                     </td>
                     <td className="supplier-name">

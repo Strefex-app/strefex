@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { useTranslation } from '../i18n/useTranslation'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './EmployeeDialogue.css'
 
 const REVIEW_TYPES = ['Annual', 'Mid-Year', 'Probation', 'Special']
@@ -322,24 +323,22 @@ const EmployeeDialogue = () => {
                         <h3 className="ed-section-title">Signatures</h3>
                         <div className="ed-signatures">
                           <div className="ed-signature-item">
-                            <label className="ed-checkbox-label">
-                              <input
-                                type="checkbox"
-                                checked={review.employeeAcknowledged}
-                                onChange={(e) => updateReview(review.id, 'employeeAcknowledged', e.target.checked)}
-                              />
-                              <span>Employee Acknowledged</span>
-                            </label>
+                            <ToggleCheckButton
+                              className="ed-checkbox-btn"
+                              checked={review.employeeAcknowledged}
+                              onChange={(v) => updateReview(review.id, 'employeeAcknowledged', v)}
+                            >
+                              Employee Acknowledged
+                            </ToggleCheckButton>
                           </div>
                           <div className="ed-signature-item">
-                            <label className="ed-checkbox-label">
-                              <input
-                                type="checkbox"
-                                checked={review.managerSigned}
-                                onChange={(e) => updateReview(review.id, 'managerSigned', e.target.checked)}
-                              />
-                              <span>Manager Signed</span>
-                            </label>
+                            <ToggleCheckButton
+                              className="ed-checkbox-btn"
+                              checked={review.managerSigned}
+                              onChange={(v) => updateReview(review.id, 'managerSigned', v)}
+                            >
+                              Manager Signed
+                            </ToggleCheckButton>
                           </div>
                         </div>
                       </div>

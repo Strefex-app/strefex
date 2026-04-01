@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
 import authService from '../services/authService'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './Login.css'
 
 function getReadableErrorMessage(err, fallback) {
@@ -29,6 +30,7 @@ const Login = () => {
   const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
   const [canResendConfirmation, setCanResendConfirmation] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -192,10 +194,10 @@ const Login = () => {
             </div>
 
             <div className="form-options">
-              <label className="checkbox-label">
-                <input type="checkbox" />
+              <div className="checkbox-label">
+                <ToggleCheckButton compact checked={rememberMe} onChange={setRememberMe} disabled={loading} aria-label={t('login.rememberMe')} />
                 <span>{t('login.rememberMe')}</span>
-              </label>
+              </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button
                   type="button"

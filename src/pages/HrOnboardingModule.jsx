@@ -5,6 +5,7 @@ import HrModuleShell from '../components/hr/HrModuleShell'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import { useTranslation } from '../i18n/useTranslation'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../components/hr/HrModuleShell.css'
 
 export default function HrOnboardingModule() {
@@ -73,10 +74,11 @@ export default function HrOnboardingModule() {
                     <td><Link to={hrSpacePath(`employees/${x.employeeId}`)}>{getEmployeeLabel(x.employeeId)}</Link></td>
                     <td>{x.title}</td>
                     <td>
-                      <input
-                        type="checkbox"
+                      <ToggleCheckButton
+                        compact
                         checked={!!x.done}
-                        onChange={(e) => updateOnboardingTask(x.id, { done: e.target.checked })}
+                        onChange={(next) => updateOnboardingTask(x.id, { done: next })}
+                        aria-label={t('hrSpace.done', 'Done')}
                       />
                     </td>
                   </tr>

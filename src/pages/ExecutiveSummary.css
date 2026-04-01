@@ -335,6 +335,11 @@
   text-align: center;
 }
 
+.exec-th-check .stx-check-btn--compact,
+.exec-td-check .stx-check-btn--compact {
+  margin: 0 auto;
+}
+
 .supplier-name {
   display: flex;
   flex-direction: column;

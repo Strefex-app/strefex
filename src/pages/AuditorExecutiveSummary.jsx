@@ -6,6 +6,7 @@ import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -203,8 +204,8 @@ export default function AuditorExecutiveSummary() {
               <thead>
                 <tr>
                   <th className="exec-th-check">
-                    <input
-                      type="checkbox"
+                    <ToggleCheckButton
+                      compact
                       checked={auditorRows.length > 0 && selectedAuditorIds.size === auditorRows.length}
                       onChange={() => {
                         if (selectedAuditorIds.size === auditorRows.length) setSelectedAuditorIds(new Set())
@@ -212,6 +213,7 @@ export default function AuditorExecutiveSummary() {
                       }}
                       disabled={!canSendRequests}
                       title="Select all auditors"
+                      aria-label="Select all auditors"
                     />
                   </th>
                   <th>Auditor Company</th>
@@ -224,12 +226,13 @@ export default function AuditorExecutiveSummary() {
                 {auditorRows.map((auditor, idx) => (
                   <tr key={auditor.id} className={selectedAuditorIds.has(auditor.id) ? 'rfq-checked' : ''}>
                     <td className="exec-td-check">
-                      <input
-                        type="checkbox"
+                      <ToggleCheckButton
+                        compact
                         checked={selectedAuditorIds.has(auditor.id)}
                         onChange={() => toggleAuditorSelection(auditor.id)}
                         disabled={!canSendRequests}
                         title="Select auditor"
+                        aria-label="Select auditor"
                       />
                     </td>
                     <td>{canSeeNames ? auditor.company : `Auditor #${String(idx + 1).padStart(2, '0')}`}</td>

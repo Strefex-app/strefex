@@ -7,6 +7,7 @@ import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -331,8 +332,8 @@ export default function ServiceExecutiveSummary() {
               <thead>
                 <tr>
                   <th className="exec-th-check">
-                    <input
-                      type="checkbox"
+                    <ToggleCheckButton
+                      compact
                       checked={filteredProviderRows.length > 0 && selectedProviderIds.size === filteredProviderRows.length}
                       onChange={() => {
                         if (selectedProviderIds.size === filteredProviderRows.length) setSelectedProviderIds(new Set())
@@ -340,6 +341,7 @@ export default function ServiceExecutiveSummary() {
                       }}
                       disabled={!canSendRequests}
                       title="Select all providers"
+                      aria-label="Select all providers"
                     />
                   </th>
                   <th>{isAuditMode ? 'Auditor' : 'Provider'}</th>
@@ -352,12 +354,13 @@ export default function ServiceExecutiveSummary() {
                 {filteredProviderRows.map((provider, idx) => (
                   <tr key={provider.id} className={selectedProviderIds.has(provider.id) ? 'rfq-checked' : ''}>
                     <td className="exec-td-check">
-                      <input
-                        type="checkbox"
+                      <ToggleCheckButton
+                        compact
                         checked={selectedProviderIds.has(provider.id)}
                         onChange={() => toggleProviderSelection(provider.id)}
                         disabled={!canSendRequests}
                         title="Select provider"
+                        aria-label="Select provider"
                       />
                     </td>
                     <td>{canSeeNames ? provider.company : `${isAuditMode ? 'Auditor' : 'Service Provider'} #${String(idx + 1).padStart(2, '0')}`}</td>

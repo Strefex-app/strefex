@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './HRDocumentation.css'
 
 const CATEGORIES = [
@@ -217,8 +218,8 @@ const HRDocumentation = () => {
               <thead>
                 <tr>
                   <th className="hrdoc-th-check">
-                    <input
-                      type="checkbox"
+                    <ToggleCheckButton
+                      compact
                       checked={
                         filteredDocuments.length > 0 &&
                         selectedIds.size === filteredDocuments.length
@@ -249,8 +250,8 @@ const HRDocumentation = () => {
                       }
                     >
                       <td className="hrdoc-td-check">
-                        <input
-                          type="checkbox"
+                        <ToggleCheckButton
+                          compact
                           checked={selectedIds.has(doc.id)}
                           onChange={() => toggleSelect(doc.id)}
                           aria-label={`Select ${doc.name}`}

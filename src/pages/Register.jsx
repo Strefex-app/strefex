@@ -8,6 +8,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import { getStripe, isStripeConfigured } from '../config/stripe'
 import authService from '../services/authService'
 import stripeService, { PLANS, ACCOUNT_TYPES, getPlansForAccountType, getPlanPrice, getPlanFeatures, BUYER_TRIAL_DAYS } from '../services/stripeService'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './Login.css'
 import './Register.css'
 
@@ -390,31 +391,25 @@ function RegisterForm() {
 
               {/* ── Platform Agreement & NDA ────────────── */}
               <div className="reg-agreement-section">
-                <label className="reg-agreement-checkbox">
-                  <input
-                    type="checkbox"
+                <div className="reg-agreement-checkbox">
+                  <ToggleCheckButton
+                    compact
                     checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    onChange={setAgreedToTerms}
                     disabled={loading}
+                    aria-label="I agree to the Platform Agreement and NDA"
                   />
-                  <span className="reg-agreement-checkmark">
-                    {agreedToTerms && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </span>
                   <span className="reg-agreement-text">
                     I have read and agree to the{' '}
                     <button
                       type="button"
                       className="reg-agreement-link"
-                      onClick={(e) => { e.stopPropagation(); setShowAgreementModal(true) }}
+                      onClick={() => setShowAgreementModal(true)}
                     >
                       Platform Agreement &amp; NDA
                     </button>
                   </span>
-                </label>
+                </div>
               </div>
 
               <button type="submit" className="login-button" disabled={loading || !agreedToTerms}>

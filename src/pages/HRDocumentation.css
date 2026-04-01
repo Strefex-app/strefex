@@ -258,10 +258,9 @@
   text-align: center;
 }
 
-.hrdoc-td-check input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
+.hrdoc-th-check .stx-check-btn--compact,
+.hrdoc-td-check .stx-check-btn--compact {
+  margin: 0 auto;
 }
 
 .hrdoc-doc-name {

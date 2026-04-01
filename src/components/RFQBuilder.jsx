@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ToggleCheckButton } from './ToggleCheckButton'
 
 export default function RFQBuilder({ shortlisted = [], onSubmit }) {
   const [title, setTitle] = useState('')
@@ -50,16 +51,19 @@ export default function RFQBuilder({ shortlisted = [], onSubmit }) {
         {shortlisted.length === 0 ? (
           <div style={{ color: '#667085' }}>No shortlisted suppliers.</div>
         ) : (
-          shortlisted.map((s) => (
-            <label key={s.supplier_id || s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-              <input
-                type="checkbox"
-                checked={selected.includes(s.supplier_id || s.id)}
-                onChange={() => toggleSupplier(s.supplier_id || s.id)}
-              />
-              <span>{s.display_name || s.name || s.supplier_id || s.id}</span>
-            </label>
-          ))
+          shortlisted.map((s) => {
+            const sid = s.supplier_id || s.id
+            return (
+              <ToggleCheckButton
+                key={sid}
+                style={{ display: 'flex', width: '100%', marginBottom: 6 }}
+                checked={selected.includes(sid)}
+                onChange={() => toggleSupplier(sid)}
+              >
+                {s.display_name || s.name || sid}
+              </ToggleCheckButton>
+            )
+          })
         )}
       </div>
       <button type="submit" className="app-page-btn-primary" disabled={!canSubmit}>

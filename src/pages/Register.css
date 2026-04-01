@@ -344,17 +344,9 @@
   border-color: var(--color-primary);
   background: var(--accent-light);
 }
-.reg-agreement-checkbox input[type="checkbox"] {
-  display: none;
-}
-.reg-agreement-checkmark {
-  width: 20px; height: 20px; min-width: 20px;
-  border: 2px solid var(--color-muted); border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg-card); transition: all .2s; margin-top: 1px;
-}
-.reg-agreement-checkbox input:checked + .reg-agreement-checkmark {
-  background: var(--btn-primary-bg); border-color: var(--btn-primary-bg);
+.reg-agreement-checkbox .stx-check-btn--compact {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 .reg-agreement-text {
   flex: 1;

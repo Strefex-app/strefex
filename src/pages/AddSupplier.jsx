@@ -7,6 +7,7 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
 import './AddSupplier.css'
 
@@ -588,19 +589,14 @@ const AddSupplier = () => {
             
             <div className="checkbox-grid">
               {industryOptions.map((industry) => (
-                <label key={industry} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={formData.industries.includes(industry)}
-                    onChange={() => handleIndustryChange(industry)}
-                  />
-                  <span className="checkbox-box">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                  <span className="checkbox-label">{industry}</span>
-                </label>
+                <ToggleCheckButton
+                  key={industry}
+                  className="checkbox-item"
+                  checked={formData.industries.includes(industry)}
+                  onChange={() => handleIndustryChange(industry)}
+                >
+                  {industry}
+                </ToggleCheckButton>
               ))}
             </div>
 
@@ -637,19 +633,14 @@ const AddSupplier = () => {
             
             <div className="checkbox-grid">
               {certificationOptions.map((cert) => (
-                <label key={cert} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={formData.certifications.includes(cert)}
-                    onChange={() => handleCertificationChange(cert)}
-                  />
-                  <span className="checkbox-box">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                  <span className="checkbox-label">{cert}</span>
-                </label>
+                <ToggleCheckButton
+                  key={cert}
+                  className="checkbox-item"
+                  checked={formData.certifications.includes(cert)}
+                  onChange={() => handleCertificationChange(cert)}
+                >
+                  {cert}
+                </ToggleCheckButton>
               ))}
             </div>
           </div>

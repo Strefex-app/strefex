@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import useProductionStore from '../store/productionStore'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './AuditQuestionnaire.css'
 
 const AuditQuestionnaire = () => {
@@ -384,14 +385,13 @@ const AuditQuestionnaire = () => {
 
                         {/* Finding Toggle */}
                         <div className="question-finding">
-                          <label className="finding-toggle">
-                            <input
-                              type="checkbox"
-                              checked={responses[q.id]?.finding || false}
-                              onChange={() => handleFindingToggle(q.id)}
-                            />
+                          <ToggleCheckButton
+                            className="finding-toggle-btn"
+                            checked={responses[q.id]?.finding || false}
+                            onChange={() => handleFindingToggle(q.id)}
+                          >
                             <span className="toggle-label">Finding / Non-conformance</span>
-                          </label>
+                          </ToggleCheckButton>
                           
                           {responses[q.id]?.finding && (
                             <textarea
