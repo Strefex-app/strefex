@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useServiceRequestStore } from './store/serviceRequestStore'
@@ -15,127 +15,155 @@ import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
 
-/* ── Page imports ────────────────────────────────────────── */
-import Login from './pages/Login'
-import Register from './pages/Register'
-import SubscriptionPlans from './pages/SubscriptionPlans'
-import TeamManagement from './pages/TeamManagement'
-import Home from './pages/Home'
-import PlatformCalendar from './pages/PlatformCalendar'
-import Dashboard from './pages/Dashboard'
-import Settings from './pages/Settings'
-import Notifications from './pages/Notifications'
-import Payment from './pages/Payment'
-import Resources from './pages/Resources'
-import Tasks from './pages/Tasks'
-import Project from './pages/Project'
-import MachineryIndustry from './pages/MachineryIndustry'
-import ExecutiveSummary from './pages/ExecutiveSummary'
-import IndustryHub from './pages/IndustryHub'
-import IndustryOverview from './pages/IndustryOverview'
-import IndustryEquipmentLanding from './pages/IndustryEquipmentLanding'
-import IndustryEquipmentCategory from './pages/IndustryEquipmentCategory'
-import IndustryEquipmentSuppliers from './pages/IndustryEquipmentSuppliers'
-import Profile from './pages/Profile'
-import AddSupplier from './pages/AddSupplier'
-import AdminApproval from './pages/AdminApproval'
-import ManagementHub from './pages/ManagementHub'
-import ProjectManagement from './pages/ProjectManagement'
-import ProjectDetail from './pages/ProjectDetail'
-import EquipmentSupplierRequest from './pages/EquipmentSupplierRequest'
-import ServiceList from './pages/ServiceList'
-import AuditRequest from './pages/AuditRequest'
-import CostManagement from './pages/CostManagement'
-import CostCalculator from './pages/CostCalculator'
-import CostBreakdown from './pages/CostBreakdown'
-import CostScenarios from './pages/CostScenarios'
-import CostTargets from './pages/CostTargets'
-import EnterpriseManagement from './pages/EnterpriseManagement'
-import EnterpriseFixedCosts from './pages/EnterpriseFixedCosts'
-import EnterpriseVariableCosts from './pages/EnterpriseVariableCosts'
-import EnterpriseSemiVariableCosts from './pages/EnterpriseSemiVariableCosts'
-import EnterpriseDirectCosts from './pages/EnterpriseDirectCosts'
-import EnterpriseIndirectCosts from './pages/EnterpriseIndirectCosts'
-import EnterpriseOpex from './pages/EnterpriseOpex'
-import EnterpriseCapex from './pages/EnterpriseCapex'
-import EnterprisePersonnel from './pages/EnterprisePersonnel'
-import EnterpriseFinancial from './pages/EnterpriseFinancial'
-import EnterpriseExceptional from './pages/EnterpriseExceptional'
-import EnterpriseRisk from './pages/EnterpriseRisk'
-import EnterpriseProductCalc from './pages/EnterpriseProductCalc'
-import ProductionManagement from './pages/ProductionManagement'
-import Production5S from './pages/Production5S'
-import ProductionISO9001 from './pages/ProductionISO9001'
-import ProductionIATF16949 from './pages/ProductionIATF16949'
-import ProductionVDA63 from './pages/ProductionVDA63'
-import ProductionOEE from './pages/ProductionOEE'
-import ProductionDowntime from './pages/ProductionDowntime'
-import ProductionScrap from './pages/ProductionScrap'
-import ProductionOutput from './pages/ProductionOutput'
-import ProductionQualityKPIs from './pages/ProductionQualityKPIs'
-import ProductionProcessAudit from './pages/ProductionProcessAudit'
-import ProductionAuditHistory from './pages/ProductionAuditHistory'
-import ProductionFloorLayout from './pages/ProductionFloorLayout'
-import ProductionCertifications from './pages/ProductionCertifications'
-import AuditQuestionnaire from './pages/AuditQuestionnaire'
-import WorkCenterOutput from './pages/WorkCenterOutput'
-import SystemManagement from './pages/SystemManagement'
-import SystemManagementPage from './pages/SystemManagementPage'
-import ProfileCalendar from './pages/ProfileCalendar'
-import HeadcountManagement from './pages/HeadcountManagement'
-import QualificationMatrix from './pages/QualificationMatrix'
-import EmployeeGoals from './pages/EmployeeGoals'
-import EmployeeDialogue from './pages/EmployeeDialogue'
-import HRDocumentation from './pages/HRDocumentation'
-import HrTrainingModule from './pages/HrTrainingModule'
-import HrWorkforceModule from './pages/HrWorkforceModule'
-import HrOnboardingModule from './pages/HrOnboardingModule'
-import HrAttendanceModule from './pages/HrAttendanceModule'
-import HrHiringRecruitment from './pages/HrHiringRecruitment'
-import HrEmployeeProfile from './pages/HrEmployeeProfile'
-import CommunitySupport from './pages/CommunitySupport'
-import DeveloperDashboard from './pages/DeveloperDashboard'
-import CompanyMessenger from './pages/CompanyMessenger'
-import SuperAdminDashboard from './pages/SuperAdminDashboard'
-import ServiceRequestManagement from './pages/ServiceRequestManagement'
-import EquipmentHub from './pages/EquipmentHub'
-import ProductHub from './pages/ProductHub'
-import ServiceHub from './pages/ServiceHub'
-import ServiceExecutiveSummary from './pages/ServiceExecutiveSummary'
-import AuditorExecutiveSummary from './pages/AuditorExecutiveSummary'
-import ProductIndustryLanding from './pages/ProductIndustryLanding'
-import ProductSubcategoryPage from './pages/ProductSubcategoryPage'
-import ProductExecutiveSummary from './pages/ProductExecutiveSummary'
-import RawMaterialsLanding from './pages/RawMaterialsLanding'
-import RawMaterialsCategory from './pages/RawMaterialsCategory'
-import MaterialSuppliers from './pages/MaterialSuppliers'
-import SellerDashboard from './pages/SellerDashboard'
-import BuyerDashboard from './pages/BuyerDashboard'
-import ServiceProviderDashboard from './pages/ServiceProviderDashboard'
-import RfqComparison from './pages/RfqComparison'
-import VendorManagement from './pages/VendorManagement'
-import VendorDetail from './pages/VendorDetail'
-import SupplierProfilePage from './pages/SupplierProfilePage'
-import SupplierDashboard from './pages/SupplierDashboard'
-import SupplierGovernanceAdmin from './pages/SupplierGovernanceAdmin'
-import BuyerWorkspace from './pages/BuyerWorkspace'
-import SupplierWorkspace from './pages/SupplierWorkspace'
-import AdminDataIngestion from './pages/AdminDataIngestion'
-import PlatformDirectoryPage from './pages/PlatformDirectoryPage'
-import RegisteredSuppliersPage from './pages/RegisteredSuppliersPage'
-import AccountDirectoryPage from './pages/AccountDirectoryPage'
-import ProcurementHub from './pages/hubs/ProcurementHub'
-import PartnerHub from './pages/hubs/PartnerHub'
-import GovernanceHub from './pages/hubs/GovernanceHub'
-import ProcurementDashboard from './pages/ProcurementDashboard'
-import ContractDashboard from './pages/ContractDashboard'
-import SpendAnalysis from './pages/SpendAnalysis'
-import ComplianceDashboard from './pages/ComplianceDashboard'
-import AIInsights from './pages/AIInsights'
-import ERPIntegrations from './pages/ERPIntegrations'
-import TemplateLibrary from './pages/TemplateLibrary'
-import AuditLogs from './pages/AuditLogs'
-import NotFoundPage from './pages/NotFoundPage'
+/* ── Code-split pages (see routes/lazyPages.js) ──────────── */
+import {
+  Login,
+  Register,
+  SubscriptionPlans,
+  TeamManagement,
+  Home,
+  PlatformCalendar,
+  Dashboard,
+  Settings,
+  Notifications,
+  Payment,
+  Resources,
+  Tasks,
+  Project,
+  MachineryIndustry,
+  ExecutiveSummary,
+  IndustryHub,
+  IndustryOverview,
+  IndustryEquipmentLanding,
+  IndustryEquipmentCategory,
+  IndustryEquipmentSuppliers,
+  Profile,
+  AddSupplier,
+  AdminApproval,
+  ManagementHub,
+  ProjectManagement,
+  ProjectDetail,
+  EquipmentSupplierRequest,
+  ServiceList,
+  AuditRequest,
+  CostManagement,
+  CostCalculator,
+  CostBreakdown,
+  CostScenarios,
+  CostTargets,
+  EnterpriseManagement,
+  EnterpriseFixedCosts,
+  EnterpriseVariableCosts,
+  EnterpriseSemiVariableCosts,
+  EnterpriseDirectCosts,
+  EnterpriseIndirectCosts,
+  EnterpriseOpex,
+  EnterpriseCapex,
+  EnterprisePersonnel,
+  EnterpriseFinancial,
+  EnterpriseExceptional,
+  EnterpriseRisk,
+  EnterpriseProductCalc,
+  ProductionManagement,
+  Production5S,
+  ProductionISO9001,
+  ProductionIATF16949,
+  ProductionVDA63,
+  ProductionOEE,
+  ProductionDowntime,
+  ProductionScrap,
+  ProductionOutput,
+  ProductionQualityKPIs,
+  ProductionProcessAudit,
+  ProductionAuditHistory,
+  ProductionFloorLayout,
+  ProductionCertifications,
+  AuditQuestionnaire,
+  WorkCenterOutput,
+  SystemManagement,
+  SystemManagementPage,
+  ProfileCalendar,
+  HeadcountManagement,
+  QualificationMatrix,
+  EmployeeGoals,
+  EmployeeDialogue,
+  HRDocumentation,
+  HrTrainingModule,
+  HrWorkforceModule,
+  HrOnboardingModule,
+  HrAttendanceModule,
+  HrHiringRecruitment,
+  HrEmployeeProfile,
+  CommunitySupport,
+  DeveloperDashboard,
+  CompanyMessenger,
+  SuperAdminDashboard,
+  ServiceRequestManagement,
+  EquipmentHub,
+  ProductHub,
+  ServiceHub,
+  ServiceExecutiveSummary,
+  AuditorExecutiveSummary,
+  ProductIndustryLanding,
+  ProductSubcategoryPage,
+  ProductExecutiveSummary,
+  RawMaterialsLanding,
+  RawMaterialsCategory,
+  MaterialSuppliers,
+  SellerDashboard,
+  BuyerDashboard,
+  ServiceProviderDashboard,
+  RfqComparison,
+  VendorManagement,
+  VendorDetail,
+  SupplierProfilePage,
+  SupplierDashboard,
+  SupplierGovernanceAdmin,
+  BuyerWorkspace,
+  SupplierWorkspace,
+  AdminDataIngestion,
+  PlatformDirectoryPage,
+  RegisteredSuppliersPage,
+  AccountDirectoryPage,
+  ProcurementHub,
+  PartnerHub,
+  GovernanceHub,
+  ProcurementDashboard,
+  ContractDashboard,
+  SpendAnalysis,
+  ComplianceDashboard,
+  AIInsights,
+  ERPIntegrations,
+  TemplateLibrary,
+  AuditLogs,
+  NotFoundPage,
+} from './routes/lazyPages'
+
+function RouteLoadingFallback() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '45vh',
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          border: '3px solid #e0e0e0',
+          borderTopColor: '#000888',
+          borderRadius: '50%',
+          animation: 'routeLazySpin 0.75s linear infinite',
+        }}
+      />
+      <style>{`@keyframes routeLazySpin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
 
 /* ── Shorthand wrappers ──────────────────────────────────── */
 const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
@@ -240,6 +268,7 @@ function App() {
       <Router>
         <WorkspaceSyncOnNavigate />
         <AnalyticsProvider>
+        <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* ── Public ────────────────────────────────────── */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Login />} />
@@ -332,7 +361,14 @@ function App() {
 
           {/* ── Communication & Support ────────────────────── */}
           <Route path="/support" element={<P><CommunitySupport /></P>} />
-          <Route path="/messenger" element={<PlanGate feature="messenger" planName="Premium"><CompanyMessenger /></PlanGate>} />
+          <Route
+            path="/messenger"
+            element={
+              <PlanGate feature="messenger" planName="Premium">
+                <CompanyMessenger />
+              </PlanGate>
+            }
+          />
           <Route path="/service-requests" element={<P><ServiceRequestManagement /></P>} />
           <Route path="/developer" element={<SuperAdmin><DeveloperDashboard /></SuperAdmin>} />
           <Route path="/admin-dashboard" element={<SuperAdmin><SuperAdminDashboard /></SuperAdmin>} />
@@ -419,6 +455,7 @@ function App() {
           <Route path="/" element={<Navigate to={isAuthenticated ? "/main-menu" : "/login"} />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </Suspense>
         </AnalyticsProvider>
       </Router>
     </ErrorBoundary>

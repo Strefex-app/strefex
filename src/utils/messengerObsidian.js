@@ -179,7 +179,7 @@ export function layoutGraphNodes(nodeIds, edges, box) {
   })
   const kRep = 800
   const kAttr = 0.04
-  const iterations = 80
+  const iterations = 36
   for (let it = 0; it < iterations; it++) {
     const force = {}
     ids.forEach((id) => {

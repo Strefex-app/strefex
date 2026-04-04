@@ -109,15 +109,13 @@ export default function CompanyMessenger() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const getMessages = useCallback(
-    (chatType, chatId) => {
-      const conv = conversations.find((c) => c.type === chatType && c.id === chatId)
-      return conv?.messages || []
-    },
-    [conversations],
-  )
+  const messages = useMemo(() => {
+    if (!activeChat) return []
+    const conv = conversations.find((c) => c.type === activeChat.type && c.id === activeChat.id)
+    return conv?.messages || []
+  }, [activeChat, conversations])
 
-  const messages = activeChat ? getMessages(activeChat.type, activeChat.id) : []
+  const scrollChatRef = useRef({ key: '', len: 0 })
 
   useEffect(() => {
     let cancelled = false
@@ -131,22 +129,43 @@ export default function CompanyMessenger() {
         return
       }
       const map = {}
-      await Promise.all(
-        messages.map(async (m) => {
-          map[m.id] = await decryptMessageBody(m, cryptoKey)
-        }),
-      )
+      const batchSize = 8
+      for (let i = 0; i < messages.length; i += batchSize) {
+        if (cancelled) return
+        const slice = messages.slice(i, i + batchSize)
+        await Promise.all(
+          slice.map(async (m) => {
+            map[m.id] = await decryptMessageBody(m, cryptoKey)
+          }),
+        )
+        await new Promise((r) => {
+          setTimeout(r, 0)
+        })
+      }
       if (!cancelled) setDecryptedTexts(map)
     }
-    decryptAll()
+    void decryptAll()
     return () => {
       cancelled = true
     }
   }, [messages, encryptionAtRest, cryptoKey, decryptMessageBody])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, activeChat])
+    const key = activeChat ? `${activeChat.type}:${activeChat.id}` : ''
+    const n = messages.length
+    const prev = scrollChatRef.current
+    if (key !== prev.key) {
+      scrollChatRef.current = { key, len: n }
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+      })
+      return
+    }
+    if (n > prev.len) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    scrollChatRef.current = { key, len: n }
+  }, [messages.length, activeChat])
 
   const parentTopics = useMemo(() => {
     if (!activeChat) return []

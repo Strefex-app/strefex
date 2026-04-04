@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   computeBacklinksFromGraph,
   computeMentionBacklinks,
@@ -57,6 +57,9 @@ export default function MessengerBrainPanel({
   }, [topics])
 
   const graphLayout = useMemo(() => {
+    if (sub !== 'graph') {
+      return { positions: {}, nodeIds: [], edges: [] }
+    }
     const box = { width: 520, height: 320 }
     let nodeIds = topics.map((t) => t.id)
     let edges = allEdges
@@ -71,7 +74,7 @@ export default function MessengerBrainPanel({
     if (nodeIds.length === 0) return { positions: {}, nodeIds: [], edges: [] }
     const positions = layoutGraphNodes(nodeIds, edges, box)
     return { positions, nodeIds, edges }
-  }, [topics, allEdges, graphScope, effectiveFocus])
+  }, [sub, topics, allEdges, graphScope, effectiveFocus])
 
   const dailyGroups = useMemo(() => {
     const byDate = {}
@@ -126,14 +129,13 @@ export default function MessengerBrainPanel({
     return rows
   }, [topics, groups, conversations])
 
-  const backFromGraph = useCallback(
-    (id) => {
-      const fromGraph = computeBacklinksFromGraph(id, topics)
-      const fromMsg = computeMentionBacklinks(id, conversations)
-      return { fromGraph, fromMsg }
-    },
-    [topics, conversations],
-  )
+  const backlinkData = useMemo(() => {
+    if (!effectiveFocus) return { fromGraph: [], fromMsg: [] }
+    return {
+      fromGraph: computeBacklinksFromGraph(effectiveFocus, topics),
+      fromMsg: computeMentionBacklinks(effectiveFocus, conversations),
+    }
+  }, [effectiveFocus, topics, conversations])
 
   const outline = useMemo(
     () => (focusTopic ? parseOutlineSections(focusTopic.body || '') : []),
@@ -223,7 +225,7 @@ export default function MessengerBrainPanel({
                 <ul className="cm-timeline-list">
                   {tps.map((tp) => (
                     <li key={tp.id}>
-                      <button type="button" className="cm-timeline-link" onClick={() => onPickTopic(tp.id)}>
+                      <button type="button" className="cm-timeline-link" onClick={() => onOpenTopicInChat(tp)}>
                         {tp.title}
                       </button>
                       {(tp.tags || []).map((tag) => (
@@ -413,7 +415,7 @@ export default function MessengerBrainPanel({
               <div className="cm-backlinks">
                 <h6>Backlinks (graph)</h6>
                 <ul>
-                  {backFromGraph(focusTopic.id).fromGraph.map((tid) => {
+                  {backlinkData.fromGraph.map((tid) => {
                     const t = topics.find((x) => x.id === tid)
                     return (
                       <li key={tid}>
@@ -431,7 +433,7 @@ export default function MessengerBrainPanel({
                 </ul>
                 <h6>Mentioned in messages</h6>
                 <ul>
-                  {backFromGraph(focusTopic.id).fromMsg.map((h) => (
+                  {backlinkData.fromMsg.map((h) => (
                     <li key={`${h.chatType}-${h.chatId}-${h.messageId || 'm'}`}>
                       <button
                         type="button"
@@ -449,7 +451,7 @@ export default function MessengerBrainPanel({
                       · msg {String(h.messageId || '').slice(-6) || '—'}
                     </li>
                   ))}
-                  {backFromGraph(focusTopic.id).fromMsg.length === 0 && <li>None</li>}
+                  {backlinkData.fromMsg.length === 0 && <li>None</li>}
                 </ul>
               </div>
 
