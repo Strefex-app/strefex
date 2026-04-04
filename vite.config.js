@@ -4,6 +4,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 
+  /* Bind all interfaces so http://localhost:5173 works alongside 127.0.0.1 (avoids some IPv6-only issues). */
+  server: {
+    host: true,
+    port: 5173,
+    strictPort: false,
+  },
+
   build: {
     /* Split vendor libraries into separate cacheable chunks */
     rollupOptions: {
