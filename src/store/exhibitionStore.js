@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+/**
+ * Global exhibition catalog for Profile / Platform calendars.
+ * Dates and venues change — verify each year against official organisers (linked in `website`).
+ * Last full review: 2026-03 (Hannover Messe, CHINAPLAS rotation, Bauma triennial, FABTECH rotation,
+ * Fakuma, LogiMAT, Arab Health, Metal-Expo St. Petersburg, Automatica biennial).
+ */
 const useExhibitionStore = create((set, get) => ({
   exhibitions: [
     // ═══════════════════════════════════════════════════════════
@@ -56,7 +62,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-26-010', name: 'Hannover Messe 2026', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2026-04-13', endDate: '2026-04-17',
+      startDate: '2026-04-20', endDate: '2026-04-24',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automation', 'Robotics', 'Industry 4.0', 'Energy'],
       description: 'World\'s leading industrial trade fair for technology and innovation.',
@@ -89,7 +95,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-26-013', name: 'CeMAT Hannover 2026', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2026-04-13', endDate: '2026-04-17',
+      startDate: '2026-04-20', endDate: '2026-04-24',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Intralogistics', 'Material Handling', 'Conveyor Systems', 'Warehouse Automation', 'AGV'],
       description: 'World\'s leading trade fair for intralogistics and supply chain management.',
@@ -100,7 +106,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-26-014', name: 'LogiMAT Stuttgart 2026', industry: 'Manufacturing',
       country: 'Germany', city: 'Stuttgart', venue: 'Messe Stuttgart',
-      startDate: '2026-03-10', endDate: '2026-03-12',
+      startDate: '2026-03-24', endDate: '2026-03-26',
       tier: ['Tier 1', 'Tier 2'],
       equipment: ['Warehouse Management', 'Conveyor Technology', 'Picking Systems', 'AGV'],
       description: 'International trade fair for intralogistics solutions and process management.',
@@ -132,8 +138,8 @@ const useExhibitionStore = create((set, get) => ({
     },
     {
       id: 'ex-26-017', name: 'CIIF Shanghai 2026', industry: 'Manufacturing',
-      country: 'China', city: 'Shanghai', venue: 'National Exhibition Center',
-      startDate: '2026-09-15', endDate: '2026-09-19',
+      country: 'China', city: 'Shanghai', venue: 'National Exhibition and Convention Center (NECC)',
+      startDate: '2026-10-12', endDate: '2026-10-16',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automation', 'Robotics', 'CNC', 'Industry 4.0', 'New Energy'],
       description: 'China\'s top industrial trade fair covering manufacturing, automation, energy and IT.',
@@ -143,8 +149,8 @@ const useExhibitionStore = create((set, get) => ({
     },
     {
       id: 'ex-26-018', name: 'CIROS Shanghai 2026', industry: 'Manufacturing',
-      country: 'China', city: 'Shanghai', venue: 'National Exhibition Center',
-      startDate: '2026-07-06', endDate: '2026-07-09',
+      country: 'China', city: 'Shanghai', venue: 'National Exhibition and Convention Center (NECC)',
+      startDate: '2026-07-07', endDate: '2026-07-10',
       tier: ['OEM', 'Tier 1'],
       equipment: ['Industrial Robots', 'Collaborative Robots', 'Robot Components', 'AI'],
       description: 'China\'s largest and most influential robotics exhibition.',
@@ -175,17 +181,6 @@ const useExhibitionStore = create((set, get) => ({
       color: '#3498db',
     },
     {
-      id: 'ex-26-021', name: 'Bauma Munich 2026', industry: 'Manufacturing',
-      country: 'Germany', city: 'Munich', venue: 'Messe München',
-      startDate: '2026-04-20', endDate: '2026-04-26',
-      tier: ['OEM', 'Tier 1'],
-      equipment: ['Construction Machinery', 'Mining Equipment', 'Heavy Equipment'],
-      description: 'World\'s leading trade fair for construction, mining and equipment.',
-      website: 'https://www.bauma.de',
-      visitors: '620,000+', exhibitors: '3,500+',
-      color: '#3498db',
-    },
-    {
       id: 'ex-26-022', name: 'Automation Expo Russia 2026', industry: 'Manufacturing',
       country: 'Russia', city: 'Moscow', venue: 'Expocentre Fairgrounds',
       startDate: '2026-09-21', endDate: '2026-09-24',
@@ -198,13 +193,14 @@ const useExhibitionStore = create((set, get) => ({
     },
 
     // ─── 2026 PLASTICS ───────────────────────────────────────
+    /* CHINAPLAS alternates Shanghai (even years) / Shenzhen (odd years) — 2026 = Shanghai NECC */
     {
-      id: 'ex-26-030', name: 'Chinaplas Shenzhen 2026', industry: 'Plastic',
-      country: 'China', city: 'Shenzhen', venue: 'Shenzhen World Exhibition Center',
-      startDate: '2026-04-14', endDate: '2026-04-17',
+      id: 'ex-26-030', name: 'CHINAPLAS 2026', industry: 'Plastic',
+      country: 'China', city: 'Shanghai', venue: 'National Exhibition and Convention Center (NECC)',
+      startDate: '2026-04-21', endDate: '2026-04-24',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Injection Molding', 'Extrusion', 'Recycling', 'Materials'],
-      description: 'Asia\'s largest plastics and rubber trade fair.',
+      description: 'International Exhibition on Plastics and Rubber Industries — Asia\'s leading trade fair (2026 in Shanghai).',
       website: 'https://www.chinaplasonline.com',
       visitors: '250,000+', exhibitors: '4,000+',
       color: '#27ae60',
@@ -212,7 +208,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-26-031', name: 'Fakuma 2026', industry: 'Plastic',
       country: 'Germany', city: 'Friedrichshafen', venue: 'Messe Friedrichshafen',
-      startDate: '2026-10-13', endDate: '2026-10-17',
+      startDate: '2026-10-12', endDate: '2026-10-16',
       tier: ['Tier 1', 'Tier 2'],
       equipment: ['Injection Molding', 'Thermoforming', 'Tooling'],
       description: 'International trade fair for plastics processing.',
@@ -245,12 +241,12 @@ const useExhibitionStore = create((set, get) => ({
       color: '#e67e22',
     },
     {
-      id: 'ex-26-041', name: 'FABTECH Chicago 2026', industry: 'Metal',
-      country: 'USA', city: 'Chicago', venue: 'McCormick Place',
-      startDate: '2026-11-09', endDate: '2026-11-12',
+      id: 'ex-26-041', name: 'FABTECH 2026 (Las Vegas)', industry: 'Metal',
+      country: 'USA', city: 'Las Vegas', venue: 'Las Vegas Convention Center',
+      startDate: '2026-10-21', endDate: '2026-10-23',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Fabrication', 'Welding', 'Metal Forming', 'Finishing'],
-      description: 'North America\'s largest metal forming, fabricating and welding event.',
+      description: 'North America\'s largest metal forming, fabricating and welding event — 2026 in Las Vegas (Chicago in odd years per official rotation).',
       website: 'https://www.fabtechexpo.com',
       visitors: '48,000+', exhibitors: '1,500+',
       color: '#e67e22',
@@ -315,12 +311,12 @@ const useExhibitionStore = create((set, get) => ({
       color: '#16a085',
     },
     {
-      id: 'ex-26-061', name: 'Metal-Expo Moscow 2026', industry: 'Raw Materials',
-      country: 'Russia', city: 'Moscow', venue: 'VDNKH Expo',
+      id: 'ex-26-061', name: 'Metal-Expo 2026', industry: 'Raw Materials',
+      country: 'Russia', city: 'St. Petersburg', venue: 'ExpoForum Convention Centre',
       startDate: '2026-11-10', endDate: '2026-11-13',
       tier: ['OEM', 'Raw Materials'],
       equipment: ['Steel', 'Non-Ferrous Metals', 'Metal Products'],
-      description: 'International industrial exhibition for metals industry.',
+      description: 'International industrial exhibition for the metals industry (2026 in St. Petersburg; confirm future venues on metal-expo.ru).',
       website: 'https://www.metal-expo.ru',
       visitors: '30,000+', exhibitors: '600+',
       color: '#16a085',
@@ -402,7 +398,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-010', name: 'Hannover Messe', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-04-12', endDate: '2027-04-16',
+      startDate: '2027-04-05', endDate: '2027-04-09',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automation', 'Robotics', 'Industry 4.0', 'Energy'],
       description: 'World\'s leading industrial trade fair for technology and innovation.',
@@ -489,9 +485,10 @@ const useExhibitionStore = create((set, get) => ({
       visitors: '55,000+', exhibitors: '2,000+',
       color: '#27ae60',
     },
+    /* 2027 CHINAPLAS: Shenzhen (odd year); confirm dates on chinaplasonline.com when published */
     {
-      id: 'ex-022', name: 'Chinaplas', industry: 'Plastic',
-      country: 'China', city: 'Shenzhen', venue: 'Shenzhen World Exhibition Center',
+      id: 'ex-022', name: 'CHINAPLAS 2027', industry: 'Plastic',
+      country: 'China', city: 'Shenzhen', venue: 'Shenzhen World Exhibition & Convention Center',
       startDate: '2027-04-15', endDate: '2027-04-18',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Injection Molding', 'Extrusion', 'Recycling', 'Materials'],
@@ -715,13 +712,14 @@ const useExhibitionStore = create((set, get) => ({
       visitors: '30,000+', exhibitors: '600+',
       color: '#16a085',
     },
+    /* bauma: triennial (e.g. 2025, 2028) — kept here for 2028 calendar filters */
     {
-      id: 'ex-056', name: 'Bauma Munich', industry: 'Manufacturing',
+      id: 'ex-056', name: 'Bauma Munich 2028', industry: 'Manufacturing',
       country: 'Germany', city: 'Munich', venue: 'Messe München',
-      startDate: '2027-04-19', endDate: '2027-04-25',
+      startDate: '2028-04-03', endDate: '2028-04-09',
       tier: ['OEM', 'Tier 1'],
       equipment: ['Construction Machinery', 'Mining Equipment', 'Heavy Equipment'],
-      description: 'World\'s leading trade fair for construction, mining and equipment.',
+      description: 'World\'s leading trade fair for construction, mining and equipment — triennial; no show in 2026/2027.',
       website: 'https://www.bauma.de',
       visitors: '620,000+', exhibitors: '3,500+',
       color: '#3498db',
@@ -753,7 +751,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-060', name: 'CeMAT Hannover', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-04-12', endDate: '2027-04-16',
+      startDate: '2027-04-05', endDate: '2027-04-09',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Intralogistics', 'Material Handling', 'Conveyor Systems', 'Warehouse Automation', 'AGV'],
       description: 'World\'s leading trade fair for intralogistics and supply chain management, co-located with Hannover Messe.',
@@ -775,7 +773,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-062', name: 'LogiMAT Stuttgart', industry: 'Manufacturing',
       country: 'Germany', city: 'Stuttgart', venue: 'Messe Stuttgart',
-      startDate: '2027-03-08', endDate: '2027-03-10',
+      startDate: '2027-03-16', endDate: '2027-03-18',
       tier: ['Tier 1', 'Tier 2'],
       equipment: ['Warehouse Management', 'Conveyor Technology', 'Picking Systems', 'AGV'],
       description: 'International trade fair for intralogistics solutions and process management.',
@@ -844,7 +842,7 @@ const useExhibitionStore = create((set, get) => ({
     },
     {
       id: 'ex-071', name: 'CIIF – China International Industry Fair', industry: 'Manufacturing',
-      country: 'China', city: 'Shanghai', venue: 'National Exhibition Center',
+      country: 'China', city: 'Shanghai', venue: 'National Exhibition and Convention Center (NECC)',
       startDate: '2027-09-19', endDate: '2027-09-23',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automation', 'Robotics', 'CNC', 'Industry 4.0', 'New Energy'],
@@ -1036,7 +1034,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-092', name: 'Automatica Munich', industry: 'Manufacturing',
       country: 'Germany', city: 'Munich', venue: 'Messe München',
-      startDate: '2027-06-24', endDate: '2027-06-27',
+      startDate: '2027-06-22', endDate: '2027-06-25',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Robotics', 'Assembly', 'Machine Vision', 'Industrial AI'],
       description: 'Leading exhibition for smart automation and robotics in Munich.',
