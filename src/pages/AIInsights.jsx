@@ -1,12 +1,21 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import DonutChart from '../components/DonutChart'
-import { useAuthStore } from '../store/authStore'
 import useVendorStore from '../store/vendorStore'
 import useProcurementStore from '../store/procurementStore'
 import useContractStore from '../store/contractStore'
-import { getCompanyContext } from '../utils/companyGuard'
+import useProductionStore from '../store/productionStore'
+import useCostStore from '../store/costStore'
+import useEnterpriseStore from '../store/enterpriseStore'
+import {
+  deriveProductionInsights,
+  deriveCostPriceInsights,
+  deriveEnterpriseInsights,
+  deriveSpendProcurementInsights,
+} from '../utils/aiInsightsOperationsFinance'
+import { deriveHrSpaceInsights } from '../utils/aiInsightsHrSpace'
+import useHrSpaceStore from '../store/hrSpaceStore'
 import './AIInsights.css'
 
 const RISK_LEVELS = {
@@ -18,15 +27,229 @@ const RISK_LEVELS = {
 
 const fmtCurrency = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v || 0)
 
+const DOMAIN_LABEL = {
+  production: 'Production',
+  cost: 'Cost & pricing',
+  enterprise: 'Enterprise',
+  spend: 'Procurement & spend',
+  hr: 'HR Space',
+}
+
+const VALID_TAB = new Set(['risk', 'recommendations', 'operations', 'predictions'])
+
+/** Roll up insight `domain` into department filters */
+const VALID_OPS_DEPT = new Set(['all', 'production', 'finance', 'procurement', 'hr'])
+
+function domainToOpsDept(domain) {
+  if (domain === 'production') return 'production'
+  if (domain === 'cost' || domain === 'enterprise') return 'finance'
+  if (domain === 'spend') return 'procurement'
+  if (domain === 'hr') return 'hr'
+  return 'all'
+}
+
+const OPS_DEPT_OPTIONS = [
+  { id: 'all', label: 'All departments' },
+  { id: 'production', label: 'Production' },
+  { id: 'finance', label: 'Finance & cost' },
+  { id: 'procurement', label: 'Procurement & spend' },
+  { id: 'hr', label: 'HR Space' },
+]
+
+const MODULE_QUICK_LINKS = [
+  { to: '/hr-space', label: 'HR Space' },
+  { to: '/hr-space/hr-docs', label: 'HR documents' },
+  { to: '/hr-space/training', label: 'Training' },
+  { to: '/hr-space/qualification-matrix', label: 'Qualification matrix' },
+  { to: '/hr-space/goals', label: 'Goals' },
+  { to: '/production', label: 'Production' },
+  { to: '/cost-management', label: 'Cost management' },
+  { to: '/enterprise', label: 'Enterprise' },
+  { to: '/procurement', label: 'Procurement' },
+  { to: '/spend-analysis', label: 'Spend analysis' },
+  { to: '/contracts', label: 'Contracts' },
+  { to: '/management', label: 'Management hub' },
+]
+
 export default function AIInsights() {
   const navigate = useNavigate()
-  const { companyName, isSuperAdmin } = getCompanyContext()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab')
+  const [tab, setTab] = useState(() => (tabFromUrl && VALID_TAB.has(tabFromUrl) ? tabFromUrl : 'risk'))
+
+  const [opsDept, setOpsDept] = useState(() => {
+    try {
+      const d = new URLSearchParams(window.location.search).get('dept')
+      return d && VALID_OPS_DEPT.has(d) ? d : 'all'
+    } catch {
+      return 'all'
+    }
+  })
+
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (t && VALID_TAB.has(t)) setTab(t)
+    if (t === 'operations') {
+      const d = searchParams.get('dept')
+      if (!d) setOpsDept('all')
+      else if (d === 'all') setOpsDept('all')
+      else if (VALID_OPS_DEPT.has(d)) setOpsDept(d)
+    }
+  }, [searchParams])
+
+  const goTab = (id) => {
+    setTab(id)
+    if (id === 'operations') {
+      if (opsDept === 'all') setSearchParams({ tab: 'operations' }, { replace: true })
+      else setSearchParams({ tab: 'operations', dept: opsDept }, { replace: true })
+    } else {
+      setSearchParams({ tab: id }, { replace: true })
+    }
+  }
+
+  const setOpsDeptAndUrl = (dept) => {
+    setOpsDept(dept)
+    if (dept === 'all') {
+      setSearchParams({ tab: 'operations' }, { replace: true })
+    } else {
+      setSearchParams({ tab: 'operations', dept }, { replace: true })
+    }
+    if (tab !== 'operations') setTab('operations')
+  }
   const vendors = useVendorStore((s) => s.vendors)
   const getEvalClass = useVendorStore((s) => s.getEvaluationClass)
   const purchaseOrders = useProcurementStore((s) => s.purchaseOrders)
+  const requisitionsRaw = useProcurementStore((s) => s.requisitions)
+  const getSafeRequisitions = useProcurementStore((s) => s.getSafeRequisitions)
   const contracts = useContractStore((s) => s.contracts)
 
-  const [tab, setTab] = useState('risk')
+  const oeeData = useProductionStore((s) => s.oeeData)
+  const downtimeRecords = useProductionStore((s) => s.downtimeRecords)
+  const scrapRecords = useProductionStore((s) => s.scrapRecords)
+  const workCenters = useProductionStore((s) => s.workCenters)
+  const fiveSAudits = useProductionStore((s) => s.fiveSAudits)
+  const getAverageOEE = useProductionStore((s) => s.getAverageOEE)
+  const getProductionSummary = useProductionStore((s) => s.getProductionSummary)
+
+  const costProducts = useCostStore((s) => s.products)
+  const costScenarios = useCostStore((s) => s.scenarios)
+  const getCostSummary = useCostStore((s) => s.getCostSummary)
+  const calculateScenarioCost = useCostStore((s) => s.calculateScenarioCost)
+
+  const enterpriseProducts = useEnterpriseStore((s) => s.products)
+  const exceptionalCosts = useEnterpriseStore((s) => s.exceptionalCosts)
+  const getEnterpriseSummary = useEnterpriseStore((s) => s.getEnterpriseSummary)
+  const calculateProductCost = useEnterpriseStore((s) => s.calculateProductCost)
+
+  const hrEmployees = useHrSpaceStore((s) => s.employees)
+  const hrDocuments = useHrSpaceStore((s) => s.hrDocuments)
+  const hrTrainingRecords = useHrSpaceStore((s) => s.trainingRecords)
+  const hrGoals = useHrSpaceStore((s) => s.goals)
+  const hrDialogues = useHrSpaceStore((s) => s.dialogues)
+  const hrOnboardingTasks = useHrSpaceStore((s) => s.onboardingTasks)
+  const hrRatings = useHrSpaceStore((s) => s.ratings)
+  const hrQualificationNames = useHrSpaceStore((s) => s.qualificationNames)
+  const hrWorkforcePlans = useHrSpaceStore((s) => s.workforcePlans)
+  const hrOpenPositions = useHrSpaceStore((s) => s.openPositions)
+  const hrCandidates = useHrSpaceStore((s) => s.candidates)
+
+  const pendingRequisitionCount = useMemo(() => {
+    const rq = typeof getSafeRequisitions === 'function' ? getSafeRequisitions() : requisitionsRaw
+    return rq.filter((r) => r.status.startsWith('pending')).length
+  }, [requisitionsRaw, getSafeRequisitions])
+
+  const operationsInsights = useMemo(() => {
+    const prod = deriveProductionInsights({
+      getAverageOEE,
+      getProductionSummary,
+      oeeData,
+      downtimeRecords,
+      scrapRecords,
+      workCenters,
+      fiveSAudits,
+    })
+    const cost = deriveCostPriceInsights({
+      products: costProducts,
+      scenarios: costScenarios,
+      getCostSummary,
+      calculateScenarioCost,
+    })
+    const ent = deriveEnterpriseInsights({
+      getEnterpriseSummary,
+      products: enterpriseProducts,
+      calculateProductCost,
+      exceptionalCosts,
+    })
+    const spend = deriveSpendProcurementInsights({
+      purchaseOrders,
+      vendors,
+      contracts,
+      pendingRequisitionCount,
+    })
+    const hr = deriveHrSpaceInsights({
+      employees: hrEmployees,
+      hrDocuments,
+      trainingRecords: hrTrainingRecords,
+      goals: hrGoals,
+      dialogues: hrDialogues,
+      onboardingTasks: hrOnboardingTasks,
+      ratings: hrRatings,
+      qualificationNames: hrQualificationNames,
+      workforcePlans: hrWorkforcePlans,
+      openPositions: hrOpenPositions,
+      candidates: hrCandidates,
+    })
+    return [...prod, ...cost, ...ent, ...spend, ...hr].sort((a, b) => {
+      const o = { high: 0, medium: 1, low: 2 }
+      return (o[a.priority] ?? 3) - (o[b.priority] ?? 3)
+    })
+  }, [
+    getAverageOEE,
+    getProductionSummary,
+    oeeData,
+    downtimeRecords,
+    scrapRecords,
+    workCenters,
+    fiveSAudits,
+    costProducts,
+    costScenarios,
+    getCostSummary,
+    calculateScenarioCost,
+    enterpriseProducts,
+    exceptionalCosts,
+    getEnterpriseSummary,
+    calculateProductCost,
+    purchaseOrders,
+    vendors,
+    contracts,
+    pendingRequisitionCount,
+    hrEmployees,
+    hrDocuments,
+    hrTrainingRecords,
+    hrGoals,
+    hrDialogues,
+    hrOnboardingTasks,
+    hrRatings,
+    hrQualificationNames,
+    hrWorkforcePlans,
+    hrOpenPositions,
+    hrCandidates,
+  ])
+
+  const opsDeptCounts = useMemo(() => {
+    const c = { all: 0, production: 0, finance: 0, procurement: 0, hr: 0 }
+    operationsInsights.forEach((item) => {
+      c.all += 1
+      const k = domainToOpsDept(item.domain)
+      if (k !== 'all') c[k] += 1
+    })
+    return c
+  }, [operationsInsights])
+
+  const filteredOperationsInsights = useMemo(() => {
+    if (opsDept === 'all') return operationsInsights
+    return operationsInsights.filter((item) => domainToOpsDept(item.domain) === opsDept)
+  }, [operationsInsights, opsDept])
 
   const riskAnalysis = useMemo(() => {
     const risks = []
@@ -160,7 +383,39 @@ export default function AIInsights() {
           <div>
             <button className="ai-back" onClick={() => navigate(-1)}>← Back</button>
             <h1 className="ai-title">AI Insights & Risk Prediction</h1>
-            <p className="ai-subtitle">Smart analytics, risk assessment & procurement recommendations</p>
+            <p className="ai-subtitle">
+              One place to review supplier, contract, and spend exposure, follow structured recommendations, and explore
+              department-level simulations for production, finance, procurement, and people operations.{' '}
+              <span className="ai-subtitle-confidential">Confidentiality secured — analysis stays in your workspace.</span>
+            </p>
+            <div className="ai-module-bar" role="navigation" aria-label="Related modules">
+              <span className="ai-module-bar-label">Related modules</span>
+              <div className="ai-module-bar-links">
+                {MODULE_QUICK_LINKS.map((m) => (
+                  <Link key={m.to} to={m.to} className="ai-module-bar-link">
+                    {m.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="ai-tab-shortcuts" role="group" aria-label="Insight sections">
+              <span className="ai-tab-shortcuts-label">Sections</span>
+              {[
+                { id: 'risk', label: 'Risk' },
+                { id: 'recommendations', label: 'Recommendations' },
+                { id: 'operations', label: 'Departments' },
+                { id: 'predictions', label: 'Predictions' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`ai-tab-shortcut ${tab === s.id ? 'active' : ''}`}
+                  onClick={() => goTab(s.id)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -215,8 +470,15 @@ export default function AIInsights() {
 
         {/* Tabs */}
         <div className="ai-tabs">
-          {[{ id: 'risk', label: `Risk Analysis (${riskAnalysis.length})` }, { id: 'recommendations', label: `Recommendations (${recommendations.length})` }, { id: 'predictions', label: 'Predictions' }].map((t) => (
-            <button key={t.id} className={`ai-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+          {[
+            { id: 'risk', label: `Risk Analysis (${riskAnalysis.length})` },
+            { id: 'recommendations', label: `Recommendations (${recommendations.length})` },
+            { id: 'operations', label: `Departments (${operationsInsights.length})` },
+            { id: 'predictions', label: 'Predictions' },
+          ].map((t) => (
+            <button key={t.id} type="button" className={`ai-tab ${tab === t.id ? 'active' : ''}`} onClick={() => goTab(t.id)}>
+              {t.label}
+            </button>
           ))}
         </div>
 
@@ -257,6 +519,70 @@ export default function AIInsights() {
                 <div className="ai-rec-impact"><strong>Estimated Impact:</strong> {r.impact}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Departments — simulations + corrective actions (filter by area) */}
+        {tab === 'operations' && (
+          <div className="ai-ops">
+            <p className="ai-ops-intro">
+              Rule-based simulations use your Production, Cost management, Enterprise, Procurement, Spend Analysis, and{' '}
+              <strong>HR Space</strong> data. Pick a department below to focus the list; use{' '}
+              <strong>All departments</strong> to see everything sorted by priority.
+            </p>
+            <div className="ai-ops-dept-bar" role="tablist" aria-label="Department filter">
+              {OPS_DEPT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={opsDept === opt.id}
+                  className={`ai-ops-dept-btn ${opsDept === opt.id ? 'active' : ''}`}
+                  onClick={() => setOpsDeptAndUrl(opt.id)}
+                >
+                  {opt.label}
+                  <span className="ai-ops-dept-count">({opsDeptCounts[opt.id] ?? 0})</span>
+                </button>
+              ))}
+            </div>
+            {operationsInsights.length === 0 ? (
+              <div className="ai-empty">No simulations match current thresholds. Add data in Production, Cost, Enterprise, or HR Space.</div>
+            ) : filteredOperationsInsights.length === 0 ? (
+              <div className="ai-empty">
+                No items for this department filter. Choose <strong>All departments</strong> or another area.
+              </div>
+            ) : (
+              <div className="ai-ops-list">
+                {filteredOperationsInsights.map((item) => (
+                  <div key={item.id} className="ai-ops-card">
+                    <div className="ai-ops-card-head">
+                      <span className="ai-ops-domain">{DOMAIN_LABEL[item.domain] || item.domain}</span>
+                      <span className={`ai-rec-priority ${item.priority}`}>{item.priority}</span>
+                    </div>
+                    <div className="ai-ops-title">{item.title}</div>
+                    <div className="ai-ops-block">
+                      <strong>Simulation</strong>
+                      <p>{item.simulation}</p>
+                    </div>
+                    <div className="ai-ops-block">
+                      <strong>Recommendation</strong>
+                      <p>{item.recommendation}</p>
+                    </div>
+                    <div className="ai-ops-block">
+                      <strong>Activities to implement</strong>
+                      <ul className="ai-ops-ul">
+                        {item.activities.map((a, i) => (
+                          <li key={i}>{a}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <button type="button" className="ai-ops-open" onClick={() => navigate(item.href)}>
+                      Open module
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

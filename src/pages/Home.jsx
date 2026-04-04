@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
+import HomeCalendarSection from '../components/HomeCalendarSection'
 import Icon from '../components/Icon'
 import './Home.css'
 
@@ -95,6 +96,7 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="home-page">
+        <HomeCalendarSection />
         {/* Top indicator cards */}
         <div className="home-indicators">
           <div className="home-indicator-card">

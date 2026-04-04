@@ -129,6 +129,61 @@ export function notifyProfileContactsDirty() {
   schedulePushKey('profile_contacts')
 }
 
+/**
+ * Mark a workspace snapshot key dirty. Use `immediate: true` after important
+ * local mutations so other devices see updates without waiting for the debounce.
+ * @param {string} stateKey — must match a SYNC_SPECS key (e.g. 'projects', 'vendors')
+ */
+export function notifyWorkspaceKeyDirty(stateKey, immediate = false) {
+  schedulePushKey(stateKey, immediate)
+}
+
+let lastWorkspacePullAt = 0
+const WORKSPACE_PULL_THROTTLE_MS = 1200
+
+/**
+ * Pull latest workspace snapshots from Supabase and apply to local stores.
+ * Throttled to avoid hammering the API on rapid visibility/pageshow events (mobile).
+ */
+export async function pullWorkspaceSnapshots() {
+  if (typeof window === 'undefined') return
+  if (!isSupabaseConfigured) return
+
+  const now = Date.now()
+  if (now - lastWorkspacePullAt < WORKSPACE_PULL_THROTTLE_MS) return
+
+  const companyId = await getCompanyId()
+  if (!companyId || bootstrappedCompanyId !== companyId) return
+
+  let rows = []
+  try {
+    rows = await workspaceSnapshotsService.listForCurrentUser()
+  } catch {
+    return
+  }
+
+  lastWorkspacePullAt = Date.now()
+
+  const rowMap = new Map((rows || []).map((r) => [r.state_key, r]))
+
+  applyingRemote = true
+  try {
+    SYNC_SPECS.forEach((spec) => {
+      const row = rowMap.get(spec.key)
+      if (row?.payload != null && typeof row.payload === 'object' && !spec.isEmpty(row.payload)) {
+        spec.apply(row.payload)
+      }
+    })
+  } finally {
+    applyingRemote = false
+  }
+}
+
+let lifecycleSyncAttached = false
+
+/** Coalesces concurrent flush calls (visibility hidden + pagehide + route change). */
+let flushAllInFlight = null
+
 async function flushPush(companyId, stateKey, payload) {
   if (!isSupabaseConfigured || !companyId) return
   try {
@@ -400,6 +455,57 @@ const SYNC_SPECS = [
   },
 ]
 
+/**
+ * Upload every workspace snapshot key to Supabase immediately (clears pending debounced pushes first).
+ * Call on route changes, tab hide, or before unload so creates/edits are not lost if the user goes idle.
+ */
+export function flushPendingWorkspacePushes() {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if (flushAllInFlight) return flushAllInFlight
+
+  flushAllInFlight = (async () => {
+    try {
+      if (!isSupabaseConfigured) return
+
+      const companyId = await getCompanyId()
+      if (!companyId || bootstrappedCompanyId !== companyId) return
+
+      debounceTimers.forEach((t) => clearTimeout(t))
+      debounceTimers.clear()
+
+      await Promise.all(SYNC_SPECS.map((spec) => flushPush(companyId, spec.key, spec.extract())))
+    } catch {
+      /* offline / RLS */
+    } finally {
+      flushAllInFlight = null
+    }
+  })()
+
+  return flushAllInFlight
+}
+
+function attachLifecycleSync() {
+  if (typeof window === 'undefined' || lifecycleSyncAttached) return
+  lifecycleSyncAttached = true
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      void pullWorkspaceSnapshots()
+    } else {
+      void flushPendingWorkspacePushes()
+    }
+  })
+  window.addEventListener('pageshow', () => {
+    void pullWorkspaceSnapshots()
+  })
+  window.addEventListener('pagehide', () => {
+    void flushPendingWorkspacePushes()
+  })
+  window.addEventListener('beforeunload', () => {
+    void flushPendingWorkspacePushes()
+  })
+}
+
 function attachSubscribers() {
   SYNC_SPECS.forEach((spec) => {
     if (spec.key === 'profile_contacts') return
@@ -419,6 +525,7 @@ export function stopWorkspaceCloudSync() {
   })
   unsubscribers = []
   bootstrappedCompanyId = null
+  lastWorkspacePullAt = 0
 }
 
 /**
@@ -469,4 +576,5 @@ export async function bootstrapWorkspaceCloudSync() {
   }
 
   attachSubscribers()
+  attachLifecycleSync()
 }

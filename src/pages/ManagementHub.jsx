@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './ManagementHub.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 /* ── Management modules definition ─────────────────────── */
 const MANAGEMENT_MODULES = [
@@ -135,7 +136,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'ai-insights',
     label: 'AI Insights',
-    description: 'Risk prediction, smart recommendations, spend anomalies, and procurement forecasting',
+    description: 'Risk analysis, recommendations, Ops/finance/HR simulations; banner on this page or ?tab=operations',
     path: '/ai-insights',
     icon: 'ai',
     featureKey: 'aiInsights',
@@ -175,6 +176,8 @@ export default function ManagementHub() {
           <h1 className="page-title">Management</h1>
           <p className="page-subtitle">Access all management modules from one place</p>
         </div>
+
+        <AiInsightsCtaStrip context="management" />
 
         <div className="mgmt-hub-grid">
           {visibleModules.map((mod) => {

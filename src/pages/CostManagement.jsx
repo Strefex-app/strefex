@@ -6,6 +6,7 @@ import useCostStore from '../store/costStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import './CostManagement.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const CostManagement = () => {
   const navigate = useNavigate()
@@ -53,6 +54,8 @@ const CostManagement = () => {
           <h1 className="cost-mgmt-title">{t('cost.title')}</h1>
           <p className="cost-mgmt-subtitle">{t('cost.subtitle')}</p>
         </div>
+
+        <AiInsightsCtaStrip context="cost" />
 
         {/* Top indicator cards */}
         <div className="cost-mgmt-indicators">

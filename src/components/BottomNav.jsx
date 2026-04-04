@@ -4,9 +4,11 @@ import Icon from './Icon'
 import { useAuthStore } from '../store/authStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useSubscriptionStore } from '../services/featureFlags'
+import { useTranslation } from '../i18n/useTranslation'
 import './BottomNav.css'
 
 const BottomNav = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const userEmail = useAuthStore((s) => s.user?.email)
@@ -23,7 +25,8 @@ const BottomNav = () => {
 
   const navItems = useMemo(() => {
     const core = [
-      { id: 'home', label: 'Home', icon: 'home', path: '/main-menu' },
+      { id: 'calendar', label: t('nav.calendar'), icon: 'calendar', path: '/calendar' },
+      { id: 'home', label: t('nav.home'), icon: 'home', path: '/main-menu' },
     ]
     if (showBuyerWs) {
       core.push({ id: 'buyer-ws', label: 'Buyers', icon: 'package', path: '/hub/procurement' })
@@ -37,7 +40,7 @@ const BottomNav = () => {
       { id: 'notifications', label: 'Alerts', icon: 'notifications', path: '/notifications' },
     )
     return core
-  }, [showBuyerWs, showSupplierWs])
+  }, [showBuyerWs, showSupplierWs, t])
 
   const handleNavClick = (path) => {
     navigate(path)

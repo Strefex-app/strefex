@@ -3,6 +3,15 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit } from '../utils/companyGuard'
 
+function syncProjectsCloudNow() {
+  if (typeof window === 'undefined') return
+  import('../services/workspaceCloudSync').then((m) => {
+    if (typeof m.notifyWorkspaceKeyDirty === 'function') {
+      m.notifyWorkspaceKeyDirty('projects', true)
+    }
+  }).catch(() => {})
+}
+
 // Helper to calculate duration in days
 const calcDuration = (start, end) => {
   if (!start || !end) return 0
@@ -49,6 +58,7 @@ export const useProjectStore = create(
           resources: projectData.resources || [],
         }
         set((state) => ({ projects: [...state.projects, newProject] }))
+        syncProjectsCloudNow()
         return id
       },
 
@@ -56,10 +66,12 @@ export const useProjectStore = create(
         set((state) => ({
           projects: state.projects.map((p) => p.id === projectId ? { ...p, ...updates } : p),
         }))
+        syncProjectsCloudNow()
       },
 
       deleteProject: (projectId) => {
         set((state) => ({ projects: state.projects.filter((p) => p.id !== projectId) }))
+        syncProjectsCloudNow()
       },
 
       addTask: (projectId, task) => {
@@ -86,6 +98,7 @@ export const useProjectStore = create(
             p.id === projectId ? { ...p, tasks: [...(p.tasks || []), newTask] } : p
           ),
         }))
+        syncProjectsCloudNow()
         return newTask.id
       },
 
@@ -106,6 +119,7 @@ export const useProjectStore = create(
             return { ...p, tasks: (p.tasks || []).map(mapTask) }
           }),
         }))
+        syncProjectsCloudNow()
       },
 
       deleteTask: (projectId, taskId) => {
@@ -120,6 +134,7 @@ export const useProjectStore = create(
             }
           }),
         }))
+        syncProjectsCloudNow()
       },
 
       addResource: (projectId, resourceName) => {
@@ -130,6 +145,7 @@ export const useProjectStore = create(
               : p
           ),
         }))
+        syncProjectsCloudNow()
       },
 
       removeResource: (projectId, resourceName) => {
@@ -140,6 +156,7 @@ export const useProjectStore = create(
               : p
           ),
         }))
+        syncProjectsCloudNow()
       },
 
       saveRevision: (projectId, note) => {
@@ -157,6 +174,7 @@ export const useProjectStore = create(
             p.id === projectId ? { ...p, revisions: [...(p.revisions || []), revision] } : p
           ),
         }))
+        syncProjectsCloudNow()
         return revision.id
       },
 
@@ -168,6 +186,7 @@ export const useProjectStore = create(
               : p
           ),
         }))
+        syncProjectsCloudNow()
       },
 
       setBaseline: (projectId) => {
@@ -184,6 +203,7 @@ export const useProjectStore = create(
             return { ...p, tasks: setBl(p.tasks) }
           }),
         }))
+        syncProjectsCloudNow()
       },
 
       restoreRevision: (projectId, revisionId) => {
@@ -196,6 +216,7 @@ export const useProjectStore = create(
             p.id === projectId ? { ...p, tasks: JSON.parse(JSON.stringify(revision.snapshot)) } : p
           ),
         }))
+        syncProjectsCloudNow()
       },
 
       getSafeProjects: () => filterByCompanyRole(get().projects, { creatorField: 'createdBy' }),

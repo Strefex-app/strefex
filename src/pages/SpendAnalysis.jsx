@@ -7,6 +7,7 @@ import useProcurementStore from '../store/procurementStore'
 import useContractStore from '../store/contractStore'
 import { getCompanyContext } from '../utils/companyGuard'
 import './SpendAnalysis.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const fmtCurrency = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v || 0)
 
@@ -104,6 +105,8 @@ export default function SpendAnalysis() {
             <p className="sa-subtitle">Procurement spend by vendor, category, department & time period</p>
           </div>
         </div>
+
+        <AiInsightsCtaStrip context="spend" />
 
         {/* KPIs */}
         <div className="sa-kpis">

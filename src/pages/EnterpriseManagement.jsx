@@ -6,6 +6,7 @@ import useEnterpriseStore from '../store/enterpriseStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import './EnterpriseManagement.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const EnterpriseManagement = () => {
   const navigate = useNavigate()
@@ -57,6 +58,8 @@ const EnterpriseManagement = () => {
           <h1 className="enterprise-title">{t('enterprise.title')}</h1>
           <p className="enterprise-subtitle">{t('enterprise.subtitle')}</p>
         </div>
+
+        <AiInsightsCtaStrip context="enterprise" />
 
         {/* Top Indicators */}
         <div className="enterprise-indicators">

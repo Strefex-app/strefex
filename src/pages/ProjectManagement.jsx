@@ -70,9 +70,15 @@ const ProjectManagement = () => {
   const addDays = useProjectStore((s) => s.addDays)
 
   const currentUser = useAuthStore((s) => s.user)
-  const currentEmail = currentUser?.email || ''
-  const projects = useMemo(() => (storeProjects || []).filter((p) => !p.createdBy || p.createdBy === currentEmail), [storeProjects, currentEmail])
-  const addProject = (data) => _addProject({ ...data, createdBy: currentEmail })
+  const authRole = useAuthStore((s) => s.role)
+  /* getSafeProjects uses session in localStorage (getUserId / getUserRole), so the list stays
+   * correct when React auth is briefly empty after mobile back-navigation — unlike filtering by
+   * currentUser?.email here, which hid all rows with a set createdBy. */
+  const projects = useMemo(
+    () => useProjectStore.getState().getSafeProjects(),
+    [storeProjects, currentUser, authRole],
+  )
+  const addProject = (data) => _addProject({ ...data })
   const projectLimit = useLimit('maxProjects', projects.length)
 
   /* ── UI State ─────────────────────────────────────── */
@@ -539,7 +545,7 @@ const ProjectManagement = () => {
       pdf.setFontSize(7)
 
       /* Left: Who printed */
-      const userName = currentUser?.name || currentUser?.companyName || currentEmail || 'Unknown'
+      const userName = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
       pdf.setTextColor(180, 190, 220)
       pdf.text(`Printed by: ${userName}`, 10, footerY + footerH / 2 + 1)
 

@@ -6,6 +6,7 @@ import useProcurementStore from '../store/procurementStore'
 import useAuditStore from '../store/auditStore'
 import { filterByCompanyRole, canApprove as guardCanApprove } from '../utils/companyGuard'
 import './ProcurementDashboard.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const STATUS_META = {
   draft:            { label: 'Draft',           color: '#95a5a6', bg: 'rgba(149,165,166,.1)' },
@@ -223,6 +224,8 @@ export default function ProcurementDashboard() {
             <button className="proc-btn primary" onClick={() => setShowNewPR(true)}>+ New Requisition</button>
           </div>
         </div>
+
+        <AiInsightsCtaStrip context="procurement" />
 
         {renderKPIs()}
 

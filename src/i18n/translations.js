@@ -16,6 +16,7 @@ export const LANGUAGES = [
 const translations = {
   /* ── Navigation / Sidebar ──────────────────────────────────── */
   'nav.home': { en: 'Home', zh: '首页', es: 'Inicio', fr: 'Accueil', de: 'Startseite', ru: 'Главная' },
+  'nav.calendar': { en: 'Calendar', zh: '日历', es: 'Calendario', fr: 'Calendrier', de: 'Kalender', ru: 'Календарь' },
   'nav.management': { en: 'Management', zh: '管理', es: 'Gestión', fr: 'Gestion', de: 'Management', ru: 'Управление' },
   'nav.serviceRequests': { en: 'Service Requests', zh: '服务请求', es: 'Solicitudes de Servicio', fr: 'Demandes de Service', de: 'Serviceanfragen', ru: 'Запросы на услуги' },
   'nav.costManagement': { en: 'Cost Management', zh: '成本管理', es: 'Gestión de Costos', fr: 'Gestion des Coûts', de: 'Kostenmanagement', ru: 'Управление затратами' },

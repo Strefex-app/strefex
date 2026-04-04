@@ -7,6 +7,7 @@ import useProductionStore from '../store/productionStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import './ProductionManagement.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const EMPTY_SUMMARY = {
   avgOEE: 0, fpy: 0, scrapRate: '0', iso9001Score: 0,
@@ -119,6 +120,8 @@ const ProductionManagement = () => {
           <h1 className="production-title">{t('production.title')}</h1>
           <p className="production-subtitle">{t('production.subtitle')}</p>
         </div>
+
+        <AiInsightsCtaStrip context="production" />
 
         {/* Top Indicators */}
         <div className="production-indicators">

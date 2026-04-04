@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
 import './HeadcountManagement.css'
+import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const HeadcountManagement = () => {
   const navigate = useNavigate()
@@ -89,6 +90,8 @@ const HeadcountManagement = () => {
           <h1 className="headcount-title">{t('hrSpace.title')}</h1>
           <p className="headcount-subtitle">{t('hrSpace.subtitle')}</p>
         </div>
+
+        <AiInsightsCtaStrip context="hr" />
 
         {/* Top Indicators */}
         <div className="headcount-indicators">

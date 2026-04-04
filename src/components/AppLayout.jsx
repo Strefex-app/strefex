@@ -21,6 +21,7 @@ import './AppLayout.css'
  * The hub page shows all modules — locked ones display an upgrade prompt.
  */
 const SIDEBAR_NAV = [
+  { id: 'calendar', tKey: 'nav.calendar', path: '/calendar', icon: 'calendar' },
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
   /* Hubs: Buyers, Partners (seller + SP), Admin */
@@ -191,7 +192,8 @@ export default function AppLayout({ children }) {
                   location.pathname.startsWith('/enterprise')
                 )) ||
                 (item.id === 'templates' && location.pathname.startsWith('/templates')) ||
-                (item.id === 'ai-insights' && location.pathname.startsWith('/ai-insights'))
+                (item.id === 'ai-insights' && location.pathname.startsWith('/ai-insights')) ||
+                (item.id === 'calendar' && location.pathname === '/calendar')
               return (
                 <button
                   key={item.id}

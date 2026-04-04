@@ -11,6 +11,7 @@ import UpgradePrompt from './components/UpgradePrompt'
 import PWAUpdateBanner from './components/PWAUpdateBanner'
 import AppLayout from './components/AppLayout'
 import authService from './services/authService'
+import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
 
@@ -20,6 +21,7 @@ import Register from './pages/Register'
 import SubscriptionPlans from './pages/SubscriptionPlans'
 import TeamManagement from './pages/TeamManagement'
 import Home from './pages/Home'
+import PlatformCalendar from './pages/PlatformCalendar'
 import Dashboard from './pages/Dashboard'
 import Settings from './pages/Settings'
 import Notifications from './pages/Notifications'
@@ -150,6 +152,15 @@ const Industry = ({ children, requiredTier = 'free' }) => (
   </P>
 )
 
+/** After in-app navigation (incl. browser back), push debounced workspace data so nothing is lost on idle. */
+function WorkspaceSyncOnNavigate() {
+  const location = useLocation()
+  useEffect(() => {
+    void flushPendingWorkspacePushes()
+  }, [location.pathname, location.search])
+  return null
+}
+
 /** Preserves query string when redirecting legacy /production/headcount/* → /hr-space/* */
 function LegacyHrRedirect({ to }) {
   const { search } = useLocation()
@@ -227,6 +238,7 @@ function App() {
     <ErrorBoundary>
       <PWAUpdateBanner />
       <Router>
+        <WorkspaceSyncOnNavigate />
         <AnalyticsProvider>
         <Routes>
           {/* ── Public ────────────────────────────────────── */}
@@ -235,6 +247,7 @@ function App() {
 
           {/* ── Core pages ────────────────────────────────── */}
           <Route path="/main-menu" element={<P><Home /></P>} />
+          <Route path="/calendar" element={<P><PlatformCalendar /></P>} />
           <Route path="/settings" element={<P><Settings /></P>} />
           <Route path="/notifications" element={<P><Notifications /></P>} />
           <Route path="/payment" element={<P><Payment /></P>} />
