@@ -173,6 +173,11 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
 
   const accent = 'var(--color-primary, #000888)'
 
+  const kpiGridClass = isHome
+    ? `cti-kpi-grid cti-kpi-grid--home-row${loading ? ' cti-kpi-grid--loading' : ''}`
+    : `cti-kpi-grid cti-kpi-grid--two-col${loading ? ' cti-kpi-grid--loading' : ''}`
+  const kpiCardClass = isHome ? 'cti-kpi-card cti-kpi-card--home-row' : 'cti-kpi-card cti-kpi-card--two-col'
+
   const indicatorsGrid = (
     <>
       {err && (
@@ -181,15 +186,12 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
         </p>
       )}
       {loading && <p className="cti-loading">Loading indicators…</p>}
-      <div
-        className={`cti-kpi-grid cti-kpi-grid--two-col${loading ? ' cti-kpi-grid--loading' : ''}`}
-        aria-busy={loading}
-      >
+      <div className={kpiGridClass} aria-busy={loading}>
         {KPI_DEFS.map((def) => {
           const series = indicators?.[def.key] || []
           const { value, year } = latestValue(series)
           return (
-            <div key={def.key} className={`cti-kpi-card cti-kpi-card--two-col`}>
+            <div key={def.key} className={kpiCardClass}>
               <div className="cti-kpi-head">
                 <span className="cti-kpi-title">{def.title}</span>
                 <span className="cti-kpi-sub">{def.subtitle}</span>
@@ -360,13 +362,13 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
                 <CtiHomeCalendarPanel />
               </Suspense>
             </div>
-            <div className="cti-home-indicators-cell">
-              <div className="cti-main-header cti-main-header--home">
-                <h3 className="cti-main-title">Global indicators</h3>
-                <p className="cti-main-blurb">World Bank series for the selected country and timeframe.</p>
-              </div>
-              {indicatorsBlock}
+          </div>
+          <div className="cti-home-indicators-row">
+            <div className="cti-main-header cti-main-header--home">
+              <h3 className="cti-main-title">Global indicators</h3>
+              <p className="cti-main-blurb">World Bank series for the selected country and timeframe.</p>
             </div>
+            {indicatorsBlock}
           </div>
         </div>
       </section>

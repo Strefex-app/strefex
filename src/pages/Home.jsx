@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
@@ -42,6 +42,17 @@ const QUICK_ACTIONS = [
 
 const getQuickActionIcon = (iconName) => <Icon name={iconName} size={20} />
 
+const HOME_CTI_COLLAPSED_KEY = 'strefex_home_cti_collapsed'
+
+function readCtiCollapsed() {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage.getItem(HOME_CTI_COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const projects = useProjectStore((state) => state.projects)
@@ -51,6 +62,16 @@ export default function Home() {
   const receivedRfqStats = useRfqStore((s) => s.getReceivedRfqStats)()
   const serviceRequestStats = useServiceRequestStore((s) => s.getStats)()
   const [expandedAction, setExpandedAction] = useState(null)
+  const [ctiCollapsed, setCtiCollapsed] = useState(readCtiCollapsed)
+
+  const setCtiCollapsedPersist = useCallback((value) => {
+    setCtiCollapsed(value)
+    try {
+      window.localStorage.setItem(HOME_CTI_COLLAPSED_KEY, value ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const { t } = useTranslation()
 
@@ -97,15 +118,43 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="home-page">
-        <Suspense
-          fallback={
-            <section className="home-cti-fallback home-card" aria-busy="true">
-              <p className="home-cti-fallback__text">Loading Cost Transformation Intelligence…</p>
-            </section>
-          }
-        >
-          <CostTransformationIntelligence />
-        </Suspense>
+        {ctiCollapsed ? (
+          <div className="home-cti-collapsed">
+            <button
+              type="button"
+              className="home-cti-show-btn"
+              onClick={() => setCtiCollapsedPersist(false)}
+              aria-expanded="false"
+            >
+              <Icon name="chevron-down" size={18} aria-hidden />
+              <span>{t('home.ctiShowSection')}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="home-cti-expandable">
+            <div className="home-cti-toolbar">
+              <button
+                type="button"
+                className="home-cti-hide-btn"
+                onClick={() => setCtiCollapsedPersist(true)}
+                aria-expanded="true"
+                title={t('home.ctiHideSection')}
+              >
+                <span>{t('home.ctiHideSection')}</span>
+                <Icon name="chevron-up" size={16} aria-hidden />
+              </button>
+            </div>
+            <Suspense
+              fallback={
+                <section className="home-cti-fallback home-card" aria-busy="true">
+                  <p className="home-cti-fallback__text">Loading Cost Transformation Intelligence…</p>
+                </section>
+              }
+            >
+              <CostTransformationIntelligence />
+            </Suspense>
+          </div>
+        )}
         {/* Top indicator cards */}
         <div className="home-indicators">
           <div className="home-indicator-card">

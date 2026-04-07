@@ -389,20 +389,22 @@
   border-color: var(--border-light);
 }
 
-/* —— Home: [ globe | calendar+day ] / [ indicators under globe ] —— */
+/* —— Home: [ globe | calendar ] then full-width global indicators (one row) —— */
 .cti-shell--home .cti-home-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* Globe column is only as wide as the map (no dead space before the calendar). */
+/* Globe + calendar only (one row). Indicators are a separate flow block below — avoids grid overlap / z-index issues. */
 .cti-home-top {
   display: grid;
   grid-template-columns: minmax(240px, min(380px, 100%)) minmax(0, 1fr);
   gap: 10px 12px;
   align-items: stretch;
   width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .cti-home-globe-cell {
@@ -413,7 +415,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  height: 100%;
+  align-self: start;
 }
 
 .cti-home-schedule-cell {
@@ -433,11 +435,15 @@
   flex-direction: column;
 }
 
-.cti-home-indicators-cell {
-  grid-column: 1;
-  grid-row: 2;
-  min-width: 0;
+.cti-home-indicators-row {
   width: 100%;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
 }
 
 @media (max-width: 900px) {
@@ -446,17 +452,12 @@
   }
 
   .cti-home-globe-cell,
-  .cti-home-schedule-cell,
-  .cti-home-indicators-cell {
+  .cti-home-schedule-cell {
     grid-column: 1;
   }
 
   .cti-home-schedule-cell {
     grid-row: 2;
-  }
-
-  .cti-home-indicators-cell {
-    grid-row: 3;
   }
 }
 
@@ -476,6 +477,76 @@
   margin-top: 2px;
   font-size: 11px;
   line-height: 1.35;
+}
+
+/* Home: four KPIs in a single horizontal row below globe + calendar */
+.cti-kpi-grid--home-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 0;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .cti-kpi-grid--home-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+  }
+
+  .cti-kpi-grid--home-row .cti-kpi-card--home-row {
+    flex: 0 0 min(28vw, 120px);
+    min-width: 72px;
+  }
+}
+
+.cti-kpi-card--home-row {
+  padding: 6px 8px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cti-kpi-card--home-row .cti-kpi-head {
+  margin-bottom: 2px;
+}
+
+.cti-kpi-card--home-row .cti-kpi-title {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.cti-kpi-card--home-row .cti-kpi-sub {
+  font-size: 8px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cti-kpi-card--home-row .cti-kpi-value-row {
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+
+.cti-kpi-card--home-row .cti-kpi-value {
+  font-size: 14px;
+}
+
+.cti-kpi-card--home-row .cti-kpi-year {
+  font-size: 9px;
+}
+
+.cti-kpi-card--home-row .cti-spark {
+  height: 22px;
+  margin-top: auto;
+  max-width: 100%;
 }
 
 .cti-kpi-grid--two-col {

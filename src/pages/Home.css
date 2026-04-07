@@ -24,6 +24,68 @@
   color: var(--color-muted);
 }
 
+.home-cti-expandable {
+  margin-bottom: 16px;
+}
+
+.home-cti-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+  min-height: 32px;
+}
+
+.home-cti-hide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.home-cti-hide-btn:hover {
+  color: var(--color-primary);
+  background: var(--bg-page);
+  border-color: var(--color-primary);
+}
+
+.home-cti-collapsed {
+  margin-bottom: 16px;
+}
+
+.home-cti-show-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.home-cti-show-btn:hover {
+  background: var(--accent-light, rgba(0, 8, 136, 0.06));
+  border-color: var(--color-primary);
+}
+
 /* Top indicator cards */
 .home-indicators {
   display: flex;
