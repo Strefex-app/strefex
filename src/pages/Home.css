@@ -5,6 +5,25 @@
   overflow-x: hidden;
 }
 
+.home-cti-fallback {
+  padding: 20px 18px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-cti-fallback__text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
 /* Top indicator cards */
 .home-indicators {
   display: flex;

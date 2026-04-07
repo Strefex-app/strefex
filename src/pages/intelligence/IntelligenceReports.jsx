@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import Icon from '../../components/Icon'
 import { fetchCtiReport } from '../../services/costTransformationIntelligenceService'
-import CtiDemandKpiSection from '../../components/CtiDemandKpiSection'
-import { ALL_COUNTRIES, getCountryByCode } from '../../data/worldMarkets'
+import CtiDemandKpiSection, { formatKpiValue } from '../../components/CtiDemandKpiSection'
+import { CTI_DEMAND_KPI_DEFS } from '../../data/ctiDemandKpiContent'
+import { ALL_COUNTRIES, getCountryByCode, getDefaultCityForCountry } from '../../data/worldMarkets'
 import './IntelligencePages.css'
+
+const DEFAULT_REPORT_COUNTRY = 'DE'
 
 function fmtNum(n, decimals = 2) {
   if (n == null || Number.isNaN(Number(n))) return '—'
@@ -33,6 +36,108 @@ const INDUSTRY_LABELS = {
   real_estate: 'Real estate exposure score',
   manufacturing: 'Manufacturing exposure score',
   technology: 'Technology exposure score',
+}
+
+function ReportSkeleton() {
+  return (
+    <div className="intel-report-skeleton" aria-busy="true" aria-label="Loading report">
+      <div className="intel-report-skeleton__hero" />
+      <div className="intel-report-skeleton__grid">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="intel-report-skeleton__card" />
+        ))}
+      </div>
+      <div className="intel-report-skeleton__block" />
+      <div className="intel-report-skeleton__block intel-report-skeleton__block--short" />
+    </div>
+  )
+}
+
+/**
+ * At-a-glance KPIs for executives: macro + engine outputs in plain language.
+ */
+function ReportExecutiveStrip({ report, countryName, cityName }) {
+  if (!report) return null
+  const macro = report.financial_statement?.macro_line_items || {}
+  const strat = report.financial_statement?.strategy || {}
+  const kpis = report.kpis || {}
+  const kpiByKey = Object.fromEntries(CTI_DEMAND_KPI_DEFS.map((d) => [d.key, d]))
+
+  const tiles = [
+    {
+      id: 'scope',
+      label: 'Scope',
+      value: `${cityName || '—'} · ${countryName || '—'}`,
+      hint: 'Jurisdiction for this run',
+      wide: true,
+    },
+    {
+      id: 'gdp',
+      label: 'Economic growth',
+      value: fmtNum(macro.gdp),
+      hint: 'Average GDP growth (annual %)',
+    },
+    {
+      id: 'infl',
+      label: 'Price inflation',
+      value: fmtNum(macro.inflation),
+      hint: 'Average CPI inflation (annual %)',
+    },
+    {
+      id: 'trade',
+      label: 'Trade openness',
+      value: fmtNum(macro.trade),
+      hint: 'Trade as % of GDP',
+    },
+    {
+      id: 'ppi',
+      label: kpiByKey.purchasing_power_index?.title || 'Purchasing power',
+      value: formatKpiValue('index', kpis.purchasing_power_index),
+      hint: kpiByKey.purchasing_power_index?.what?.slice(0, 90) || 'Versus cost benchmark',
+    },
+    {
+      id: 'demand',
+      label: kpiByKey.demand_index?.title || 'Demand signal',
+      value: formatKpiValue('score', kpis.demand_index),
+      hint: 'Model score vs. cost hurdle',
+    },
+    {
+      id: 'posture',
+      label: 'Strategy posture',
+      value: strat.name || '—',
+      hint:
+        strat.roi_weight != null
+          ? `Model weight on ROI ≈ ${(Number(strat.roi_weight) * 100).toFixed(0)}%`
+          : 'From macro & industry tilt',
+      wide: true,
+    },
+  ]
+
+  return (
+    <section className="intel-exec" aria-labelledby="intel-exec-heading">
+      <div className="intel-exec__head">
+        <h2 id="intel-exec-heading" className="intel-exec__title">
+          Executive snapshot
+        </h2>
+        <p className="intel-exec__lead">
+          Headline numbers from the same data as the detailed tables below — readable at a glance, without replacing
+          professional judgement.
+        </p>
+      </div>
+      <ul className="intel-exec__grid">
+        {tiles.map((t) => (
+          <li
+            key={t.id}
+            className={`intel-exec__tile${t.wide ? ' intel-exec__tile--wide' : ''}`}
+          >
+            <span className="intel-exec__label">{t.label}</span>
+            <span className="intel-exec__value">{t.value}</span>
+            <span className="intel-exec__hint">{t.hint}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
 function FinancialStatementSection({ fs }) {
@@ -351,12 +456,13 @@ function ScenarioSection({ report }) {
 }
 
 export default function IntelligenceReports() {
-  const [country, setCountry] = useState('IT')
-  const [city, setCity] = useState('Milan')
+  const [country, setCountry] = useState(DEFAULT_REPORT_COUNTRY)
+  const [city, setCity] = useState(() => getDefaultCityForCountry(DEFAULT_REPORT_COUNTRY))
   const [report, setReport] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
   const [showRaw, setShowRaw] = useState(false)
+  const loadAbortRef = useRef(null)
 
   const citiesForCountry = getCountryByCode(country)?.cities || []
   const cityControl =
@@ -373,21 +479,28 @@ export default function IntelligenceReports() {
     )
 
   const load = useCallback(async () => {
+    loadAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    loadAbortRef.current = ctrl
     setLoading(true)
     setErr(null)
+    setReport(null)
     try {
-      const data = await fetchCtiReport(country, city)
+      const data = await fetchCtiReport(country, city, { signal: ctrl.signal })
+      if (ctrl.signal.aborted) return
       setReport(data)
     } catch (e) {
+      if (e?.name === 'AbortError') return
       setErr(e?.message || 'Failed to load report')
       setReport(null)
     } finally {
-      setLoading(false)
+      if (!ctrl.signal.aborted) setLoading(false)
     }
   }, [country, city])
 
   useEffect(() => {
     load()
+    return () => loadAbortRef.current?.abort()
   }, [load])
 
   useEffect(() => {
@@ -397,14 +510,17 @@ export default function IntelligenceReports() {
     }
   }, [country, city])
 
+  const countryMeta = getCountryByCode(country)
+  const countryName = countryMeta?.name || country
+
   return (
     <AppLayout>
-      <div className="intel-page">
-        <header className="intel-page__header">
-          <h1 className="intel-page__title">Report generator</h1>
+      <div className="intel-page intel-page--dashboard">
+        <header className="intel-page__header intel-page__header--reports">
+          <h1 className="intel-page__title">Intelligence reports</h1>
           <p className="intel-page__lead">
-            Structured output from <code className="intel-code">build_report</code> — macro financial-style statement, KPIs,
-            World Bank series tables, and scenario grids.
+            Analytical dashboard: macro context, cost and demand indicators, and scenario views — built from World Bank
+            series and the CTI engine. Use the executive snapshot for a quick read; tables retain full detail.
           </p>
         </header>
 
@@ -434,9 +550,13 @@ export default function IntelligenceReports() {
           </p>
         )}
 
+        {loading && !report && !err && <ReportSkeleton />}
+
         {report && (
           <article className="intel-report intel-report--statement">
             <h2 className="intel-report__headline">{report.headline}</h2>
+
+            <ReportExecutiveStrip report={report} countryName={countryName} cityName={city} />
 
             <FinancialStatementSection fs={report.financial_statement} />
 

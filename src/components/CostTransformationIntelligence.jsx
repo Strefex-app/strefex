@@ -1,5 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
 import Icon from './Icon'
 import {
   fetchCtiIndicators,
@@ -21,6 +22,8 @@ const CtiInflationMomentumPanel = lazy(() => import('./CtiInflationMomentumPanel
 
 /** Globe height; sized so the home row aligns with the calendar strip. */
 const CTI_GLOBE_PX = 240
+
+const DEFAULT_COUNTRY = 'DE'
 
 const KPI_DEFS = [
   {
@@ -81,15 +84,21 @@ function MiniSparkline({ series, accent }) {
 export default function CostTransformationIntelligence({ variant = 'home' }) {
   const navigate = useNavigate()
   const isHome = variant === 'home'
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  /** Full CTI pages (markets / reports / dashboard) are superadmin-only; home block is for everyone. */
+  const showIntelNavLinks = !isHome || isSuperAdmin
 
   const [marketTab, setMarketTab] = useState('all')
-  const [country, setCountry] = useState('IT')
-  const [city, setCity] = useState('Milan')
+  const [country, setCountry] = useState(DEFAULT_COUNTRY)
+  const [city, setCity] = useState(() => getDefaultCityForCountry(DEFAULT_COUNTRY))
   const [timeframe, setTimeframe] = useState('5y')
   const [indicators, setIndicators] = useState(null)
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [reportLoading, setReportLoading] = useState(false)
   const [err, setErr] = useState(null)
+  const indicatorsAbortRef = useRef(null)
+  const reportAbortRef = useRef(null)
 
   const countriesInMarket = useMemo(() => getCountriesFiltered(marketTab), [marketTab])
   const cityOptions = useMemo(() => getCountryByCode(country)?.cities ?? [], [country])
@@ -109,39 +118,57 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
   }, [marketTab, country, countriesInMarket])
 
   const loadIndicators = useCallback(async () => {
+    indicatorsAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    indicatorsAbortRef.current = ctrl
     setLoading(true)
     setErr(null)
+    setIndicators(null)
     try {
-      const data = await fetchCtiIndicators(country, timeframe)
+      const data = await fetchCtiIndicators(country, timeframe, { signal: ctrl.signal })
+      if (ctrl.signal.aborted) return
       setIndicators(data)
     } catch (e) {
+      if (e?.name === 'AbortError') return
       setErr(e?.message || 'Failed to load indicators')
       setIndicators(null)
     } finally {
-      setLoading(false)
+      if (!ctrl.signal.aborted) setLoading(false)
     }
   }, [country, timeframe])
 
   const loadReport = useCallback(async () => {
     if (isHome) return
+    reportAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    reportAbortRef.current = ctrl
+    setReportLoading(true)
+    setReport(null)
     try {
-      const data = await fetchCtiReport(country, city)
+      const data = await fetchCtiReport(country, city, { signal: ctrl.signal })
+      if (ctrl.signal.aborted) return
       setReport(data)
-    } catch {
+    } catch (e) {
+      if (e?.name === 'AbortError') return
       setReport(null)
+    } finally {
+      if (!ctrl.signal.aborted) setReportLoading(false)
     }
   }, [country, city, isHome])
 
   useEffect(() => {
     loadIndicators()
+    return () => indicatorsAbortRef.current?.abort()
   }, [loadIndicators])
 
   useEffect(() => {
     if (isHome) {
       setReport(null)
+      setReportLoading(false)
       return
     }
     loadReport()
+    return () => reportAbortRef.current?.abort()
   }, [loadReport, isHome])
 
   const accent = 'var(--color-primary, #000888)'
@@ -153,8 +180,11 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
           {err}
         </p>
       )}
-      {loading && !indicators && <p className="cti-loading">Loading indicators…</p>}
-      <div className={`cti-kpi-grid cti-kpi-grid--two-col`}>
+      {loading && <p className="cti-loading">Loading indicators…</p>}
+      <div
+        className={`cti-kpi-grid cti-kpi-grid--two-col${loading ? ' cti-kpi-grid--loading' : ''}`}
+        aria-busy={loading}
+      >
         {KPI_DEFS.map((def) => {
           const series = indicators?.[def.key] || []
           const { value, year } = latestValue(series)
@@ -194,15 +224,19 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
         <span className="cti-brand-muted">Strefex</span>
       </div>
       <div className="cti-topnav-links">
-        <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/markets')}>
-          Markets
-        </button>
-        <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/reports')}>
-          Reports
-        </button>
-        <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/dashboard')}>
-          Dashboard
-        </button>
+        {showIntelNavLinks && (
+          <>
+            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/markets')}>
+              Markets
+            </button>
+            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/reports')}>
+              Reports
+            </button>
+            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/dashboard')}>
+              Dashboard
+            </button>
+          </>
+        )}
         <button type="button" className="cti-nav-item cti-nav-item--primary" onClick={() => navigate('/profile')}>
           <Icon name="profile" size={16} />
           Profile
@@ -287,16 +321,26 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
           Cost Transformation Intelligence
         </h2>
         <p className="cti-subtitle">
-          Pick a market and country, explore the globe, and review headline macro indicators. Detailed demand KPIs,
-          CPI tables, and month-on-month momentum live on the{' '}
-          <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/dashboard')}>
-            dashboard
-          </button>{' '}
-          or{' '}
-          <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/reports')}>
-            report
-          </button>
-          .
+          Pick a market and country, explore the globe, and review headline macro indicators.
+          {isSuperAdmin ? (
+            <>
+              {' '}
+              Detailed demand KPIs, CPI tables, and month-on-month momentum live on the{' '}
+              <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/dashboard')}>
+                dashboard
+              </button>{' '}
+              or{' '}
+              <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/reports')}>
+                report
+              </button>
+              .
+            </>
+          ) : (
+            <>
+              {' '}
+              Deeper analytics workspaces are limited to platform superadmin accounts.
+            </>
+          )}
         </p>
         {topNav}
 
@@ -395,6 +439,7 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
                   <h3 className="cti-main-title">Cost / demand</h3>
                   <p className="cti-main-blurb">Model salary &amp; cost index vs. real income and purchasing power.</p>
                 </div>
+                {reportLoading && <p className="cti-loading">Loading cost &amp; demand metrics…</p>}
                 <CtiDemandKpiMiniGrid report={report} />
               </div>
             </div>

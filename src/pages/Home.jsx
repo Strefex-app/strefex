@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
@@ -7,8 +7,9 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
-import CostTransformationIntelligence from '../components/CostTransformationIntelligence'
 import Icon from '../components/Icon'
+
+const CostTransformationIntelligence = lazy(() => import('../components/CostTransformationIntelligence'))
 import './Home.css'
 
 const QUICK_ACTIONS = [
@@ -96,7 +97,15 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="home-page">
-        <CostTransformationIntelligence />
+        <Suspense
+          fallback={
+            <section className="home-cti-fallback home-card" aria-busy="true">
+              <p className="home-cti-fallback__text">Loading Cost Transformation Intelligence…</p>
+            </section>
+          }
+        >
+          <CostTransformationIntelligence />
+        </Suspense>
         {/* Top indicator cards */}
         <div className="home-indicators">
           <div className="home-indicator-card">

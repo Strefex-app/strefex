@@ -269,6 +269,12 @@
   margin-bottom: 14px;
 }
 
+.cti-kpi-grid--loading {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
 .cti-kpi-card {
   padding: 12px;
   border-radius: 10px;

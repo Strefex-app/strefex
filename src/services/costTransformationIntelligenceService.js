@@ -18,14 +18,23 @@ const API_TIMEOUT_MS = 14_000
 const WB_TIMEOUT_MS = 12_000
 
 async function fetchWithTimeout(url, options = {}) {
-  const { timeoutMs = API_TIMEOUT_MS, ...rest } = options
+  const { timeoutMs = API_TIMEOUT_MS, signal: externalSignal, ...rest } = options
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  const abort = () => ctrl.abort()
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(t)
+      throw new DOMException('Aborted', 'AbortError')
+    }
+    externalSignal.addEventListener('abort', abort, { once: true })
+  }
   try {
     const res = await fetch(url, { ...rest, signal: ctrl.signal })
     return res
   } finally {
     clearTimeout(t)
+    if (externalSignal) externalSignal.removeEventListener('abort', abort)
   }
 }
 
@@ -35,9 +44,9 @@ function extractYearData(rows) {
   return out.slice().reverse()
 }
 
-async function fetchWorldBankDirect(country, indicator, perPage = 50) {
+async function fetchWorldBankDirect(country, indicator, perPage = 50, signal) {
   const url = `${WB_BASE}/country/${country}/indicator/${indicator}?format=json&per_page=${perPage}`
-  const r = await fetchWithTimeout(url, { timeoutMs: WB_TIMEOUT_MS })
+  const r = await fetchWithTimeout(url, { timeoutMs: WB_TIMEOUT_MS, signal })
   if (!r.ok) throw new Error(`World Bank ${r.status}`)
   const data = await r.json()
   if (!data || !Array.isArray(data) || data.length < 2 || data[1] == null) return []
@@ -94,45 +103,61 @@ export async function fetchCtiInflationMomentum(country) {
   }
 }
 
-export async function fetchCtiIndicators(country, timeframe) {
+/**
+ * @param {string} country ISO2
+ * @param {string} timeframe
+ * @param {{ signal?: AbortSignal }} [opts]
+ */
+export async function fetchCtiIndicators(country, timeframe, opts = {}) {
+  const { signal } = opts
   try {
     const q = `/cti/indicators?country=${encodeURIComponent(country)}&timeframe=${encodeURIComponent(timeframe)}`
-    const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS })
+    const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS, signal })
     if (res.ok) {
       const ct = res.headers.get('content-type') || ''
       if (ct.includes('application/json')) return await res.json()
     }
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e
     /* timeout, network, CORS on absolute API URL, etc. */
   }
 
   try {
     const out = {}
     for (const [key, code] of Object.entries(INDICATORS)) {
-      const rows = await fetchWorldBankDirect(country, code)
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+      const rows = await fetchWorldBankDirect(country, code, 50, signal)
       out[key] = trimTimeframe(extractYearData(rows), timeframe)
     }
     return out
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e
     return mockIndicators()
   }
 }
 
-export async function fetchCtiReport(country, city) {
+/**
+ * @param {string} country
+ * @param {string} city
+ * @param {{ signal?: AbortSignal }} [opts]
+ */
+export async function fetchCtiReport(country, city, opts = {}) {
+  const { signal } = opts
   try {
     const q = `/cti/report?country=${encodeURIComponent(country)}&city=${encodeURIComponent(city)}`
-    const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS })
+    const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS, signal })
     if (res.ok) {
       const ct = res.headers.get('content-type') || ''
       if (ct.includes('application/json')) return await res.json()
     }
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e
     /* fall through */
   }
 
   try {
     const keys = Object.keys(INDICATORS)
-    const fetched = await Promise.all(keys.map((k) => fetchWorldBankDirect(country, INDICATORS[k])))
+    const fetched = await Promise.all(keys.map((k) => fetchWorldBankDirect(country, INDICATORS[k], 50, signal)))
     const rowsByKey = {}
     keys.forEach((k, i) => {
       rowsByKey[k] = extractYearData(fetched[i])
@@ -202,7 +227,8 @@ export async function fetchCtiReport(country, city) {
       },
       kpi_extras: computeKpiExtrasFromCpi(cpi),
     }
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e
     return mockReport(city)
   }
 }

@@ -183,6 +183,13 @@ const Industry = ({ children, requiredTier = 'free' }) => (
   </P>
 )
 
+/** `/intelligence` → dashboard for superadmin, otherwise home (CTI on home is public to all logged-in users). */
+function IntelligenceRootRedirect() {
+  const role = useAuthStore((s) => s.role)
+  if (role === 'superadmin') return <Navigate to="/intelligence/dashboard" replace />
+  return <Navigate to="/main-menu" replace />
+}
+
 /** After in-app navigation (incl. browser back), push debounced workspace data so nothing is lost on idle. */
 function WorkspaceSyncOnNavigate() {
   const location = useLocation()
@@ -289,10 +296,10 @@ function App() {
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
-          <Route path="/intelligence" element={<Navigate to="/intelligence/dashboard" replace />} />
-          <Route path="/intelligence/dashboard" element={<P><IntelligenceDashboard /></P>} />
-          <Route path="/intelligence/markets" element={<P><IntelligenceMarkets /></P>} />
-          <Route path="/intelligence/reports" element={<P><IntelligenceReports /></P>} />
+          <Route path="/intelligence" element={<P><IntelligenceRootRedirect /></P>} />
+          <Route path="/intelligence/dashboard" element={<SuperAdmin><IntelligenceDashboard /></SuperAdmin>} />
+          <Route path="/intelligence/markets" element={<SuperAdmin><IntelligenceMarkets /></SuperAdmin>} />
+          <Route path="/intelligence/reports" element={<SuperAdmin><IntelligenceReports /></SuperAdmin>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />
