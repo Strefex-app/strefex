@@ -1,0 +1,622 @@
+/* Cost Transformation Intelligence — home dashboard strip */
+.cti-shell {
+  margin-bottom: 16px;
+}
+
+.cti-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.cti-subtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+
+.cti-topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated, rgba(0, 8, 136, 0.04));
+}
+
+.cti-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cti-logo {
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+
+.cti-brand-muted {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.cti-topnav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cti-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text, #1a1a2e);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cti-nav-item:hover {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+.cti-nav-item--primary {
+  border-color: var(--border-light);
+  background: var(--bg-card);
+}
+
+.cti-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.cti-layout--markets {
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+}
+
+.cti-layout--dash {
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+}
+
+@media (max-width: 720px) {
+  .cti-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cti-layout--dash {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cti-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+
+.cti-filter-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.cti-filter label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.cti-filter--markets {
+  gap: 0;
+}
+
+.cti-market-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 112px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.cti-market-tab {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated, rgba(0, 8, 136, 0.04));
+  color: var(--color-text, #1a1a2e);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.cti-market-tab:hover {
+  border-color: var(--color-primary, #000888);
+  color: var(--color-primary, #000888);
+}
+
+.cti-market-tab--active {
+  border-color: var(--color-primary, #000888);
+  background: rgba(0, 8, 136, 0.1);
+  color: var(--color-primary, #000888);
+}
+
+.cti-globe-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cti-globe-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+.cti-globe-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  background: #cfd4dc;
+  min-height: 240px;
+  max-width: 100%;
+}
+
+.cti-globe-root {
+  display: block;
+}
+
+.cti-globe-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.cti-cal-fallback {
+  font-size: 12px;
+  color: var(--color-muted);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-light);
+}
+
+.cti-select,
+.cti-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-page, #fff);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.cti-main {
+  min-width: 0;
+}
+
+.cti-main-header {
+  margin-bottom: 12px;
+}
+
+.cti-main-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  color: var(--color-text);
+}
+
+.cti-headline {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cti-error {
+  font-size: 12px;
+  color: #c0392b;
+  margin: 0 0 8px 0;
+}
+
+.cti-loading {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 12px 0;
+}
+
+.cti-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cti-kpi-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  min-width: 0;
+}
+
+.cti-kpi-head {
+  margin-bottom: 8px;
+}
+
+.cti-kpi-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.cti-kpi-sub {
+  display: block;
+  font-size: 10px;
+  color: var(--color-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.cti-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cti-kpi-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.cti-kpi-unit {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 4px;
+  color: var(--color-muted);
+}
+
+.cti-kpi-year {
+  font-size: 11px;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.cti-spark {
+  width: 100%;
+  height: 36px;
+  display: block;
+}
+
+.cti-spark-empty {
+  font-size: 12px;
+  color: var(--color-muted);
+  padding: 8px 0;
+}
+
+.cti-derived {
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.cti-derived-title {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 10px 0 8px 0;
+  color: var(--color-text);
+}
+
+.cti-derived-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cti-derived-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0, 8, 136, 0.06);
+  border: 1px solid rgba(0, 8, 136, 0.12);
+  min-width: 120px;
+}
+
+.cti-derived-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.cti-derived-pill strong {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+[data-theme='dark'] .cti-derived-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-light);
+}
+
+/* —— Home: [ globe | calendar+day ] / [ indicators under globe ] —— */
+.cti-shell--home .cti-home-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Globe column is only as wide as the map (no dead space before the calendar). */
+.cti-home-top {
+  display: grid;
+  grid-template-columns: minmax(240px, min(380px, 100%)) minmax(0, 1fr);
+  gap: 10px 12px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.cti-home-globe-cell {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.cti-home-schedule-cell {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: min(300px, 72vh);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cti-home-schedule-cell > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cti-home-indicators-cell {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .cti-home-top {
+    grid-template-columns: 1fr;
+  }
+
+  .cti-home-globe-cell,
+  .cti-home-schedule-cell,
+  .cti-home-indicators-cell {
+    grid-column: 1;
+  }
+
+  .cti-home-schedule-cell {
+    grid-row: 2;
+  }
+
+  .cti-home-indicators-cell {
+    grid-row: 3;
+  }
+}
+
+.cti-home-indicators-inner {
+  min-width: 0;
+}
+
+.cti-main-header--home {
+  margin-bottom: 2px;
+}
+
+.cti-main-header--home .cti-main-title {
+  font-size: 13px;
+}
+
+.cti-main-header--home .cti-main-blurb {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.cti-kpi-grid--two-col {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.cti-kpi-card--two-col {
+  padding: 8px 10px;
+  min-height: 102px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cti-kpi-card--two-col .cti-kpi-head {
+  margin-bottom: 4px;
+}
+
+.cti-kpi-card--two-col .cti-kpi-title {
+  font-size: 11px;
+}
+
+.cti-kpi-card--two-col .cti-kpi-sub {
+  font-size: 9px;
+}
+
+.cti-kpi-card--two-col .cti-kpi-value {
+  font-size: 17px;
+}
+
+.cti-kpi-card--two-col .cti-spark {
+  height: 28px;
+  margin-top: auto;
+}
+
+/* —— Dashboard: globe + stacked macro / demand 2×2 —— */
+.cti-dash-top {
+  display: grid;
+  grid-template-columns: minmax(200px, min(340px, 100%)) minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.cti-dash-globe-col {
+  min-width: 0;
+  max-width: 360px;
+}
+
+.cti-dash-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cti-dash-panel .cti-main-header {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 960px) {
+  .cti-dash-top {
+    grid-template-columns: 1fr;
+  }
+
+  .cti-dash-globe-col {
+    max-width: 100%;
+  }
+}
+
+.cti-home-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.cti-filter--inline {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.cti-filter--inline label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.cti-globe-wrap--gray {
+  background: linear-gradient(180deg, #e4e6ea 0%, #d8dce2 50%, #cfd4dc 100%);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.cti-main--home {
+  padding-top: 4px;
+}
+
+.cti-main-blurb {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.cti-inline-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cti-inline-link:hover {
+  opacity: 0.85;
+}
+
+.cti-shell--home {
+  margin-bottom: 10px;
+}
+
+.cti-shell--home .cti-title {
+  margin-bottom: 2px;
+}
+
+.cti-shell--home .cti-subtitle {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cti-shell--home .cti-topnav {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+}
+
+.cti-shell--dashboard {
+  padding-bottom: 8px;
+}

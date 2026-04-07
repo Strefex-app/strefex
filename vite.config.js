@@ -9,6 +9,15 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: false,
+    /* Proxy API to local FastAPI so VITE_API_BASE_URL default /api/v1 works in dev */
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        /* Avoid hanging forever when uvicorn is not running */
+        timeout: 15000,
+      },
+    },
   },
 
   build: {
@@ -22,6 +31,7 @@ export default defineConfig({
           'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
           'vendor-pdf': ['jspdf', 'html2canvas'],
           'vendor-maps': ['react-simple-maps'],
+          'vendor-globe': ['globe.gl', 'three', 'three-globe'],
           'vendor-sentry': ['@sentry/react'],
         },
       },
@@ -36,7 +46,7 @@ export default defineConfig({
 
   /* Optimise dev server dependency pre-bundling */
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'zustand'],
+    include: ['react', 'react-dom', 'react-router-dom', 'zustand', 'globe.gl', 'three', 'countries-list'],
   },
 
   test: {

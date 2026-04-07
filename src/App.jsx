@@ -136,6 +136,9 @@ import {
   ERPIntegrations,
   TemplateLibrary,
   AuditLogs,
+  IntelligenceDashboard,
+  IntelligenceMarkets,
+  IntelligenceReports,
   NotFoundPage,
 } from './routes/lazyPages'
 
@@ -286,6 +289,10 @@ function App() {
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
+          <Route path="/intelligence" element={<Navigate to="/intelligence/dashboard" replace />} />
+          <Route path="/intelligence/dashboard" element={<P><IntelligenceDashboard /></P>} />
+          <Route path="/intelligence/markets" element={<P><IntelligenceMarkets /></P>} />
+          <Route path="/intelligence/reports" element={<P><IntelligenceReports /></P>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />

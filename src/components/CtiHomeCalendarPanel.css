@@ -1,0 +1,186 @@
+/* Home CTI strip: calendar + day list fill the column with readable, unscaled cells */
+.cti-home-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  max-height: min(440px, 82vh);
+  box-sizing: border-box;
+}
+
+.cti-home-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cti-home-cal__title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+.cti-home-cal__link {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.cti-home-cal__link:hover {
+  text-decoration: underline;
+}
+
+.cti-home-cal__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.cti-home-cal__month {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  padding: 6px 8px 8px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Native compact calendar size — no scale() so labels and cells stay sharp */
+.cti-home-cal__month .platform-cal {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__toolbar {
+  margin-bottom: 6px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__title {
+  font-size: 14px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__nav {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__cell--head {
+  font-size: 10px;
+  padding: 4px 1px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__cell--day {
+  min-height: 36px;
+  padding: 4px 2px 2px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__cell--empty {
+  min-height: 32px;
+}
+
+.cti-home-cal__month .platform-cal--compact .platform-cal__daynum {
+  font-size: 12px;
+}
+
+.cti-home-cal__day {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  padding: 8px 10px;
+  overflow: hidden;
+}
+
+.cti-home-cal__day-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.cti-home-cal__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.cti-home-cal__ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cti-home-cal__li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.cti-home-cal__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.cti-home-cal__li-text {
+  min-width: 0;
+}
+
+.cti-home-cal__more {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.cti-home-cal__more:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .cti-home-cal {
+    max-height: min(400px, 75vh);
+  }
+}

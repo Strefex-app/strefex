@@ -1,0 +1,83 @@
+.cti-mom-panel {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated, rgba(0, 8, 136, 0.04));
+}
+
+.cti-mom-panel__title {
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: var(--color-text);
+}
+
+.cti-mom-panel__intro {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-muted);
+  margin: 0 0 12px 0;
+}
+
+.cti-mom-panel__loading {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.cti-mom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+
+.cti-mom-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+
+.cti-mom-card__h {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px 0;
+  color: var(--color-primary);
+}
+
+.cti-mom-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+}
+
+.cti-mom-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.cti-mom-list li span {
+  color: var(--color-muted);
+}
+
+.cti-mom-list__meta {
+  display: block !important;
+  font-size: 10px;
+  color: var(--color-muted);
+  border: none !important;
+  padding-top: 8px !important;
+}
+
+.cti-mom-card__note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted);
+  margin: 0;
+}
