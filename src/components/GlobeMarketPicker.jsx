@@ -143,6 +143,14 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
       if (!el || !globeRef.current) return
       const w = el.offsetWidth || 300
       globeRef.current.width(w).height(height)
+      /* Mobile: let the canvas receive taps/drags without the browser stealing them for scroll/zoom. */
+      const canvas = el.querySelector('canvas')
+      if (canvas) {
+        canvas.style.touchAction = 'none'
+        canvas.style.width = '100%'
+        canvas.style.height = `${height}px`
+        canvas.style.display = 'block'
+      }
     }
     resize()
     const ro = new ResizeObserver(resize)
@@ -172,7 +180,9 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
         applyColors()
         readyRef.current = true
         requestAnimationFrame(() => {
-          if (!cancelled) focusSelectedCountry()
+          if (cancelled) return
+          resize()
+          focusSelectedCountry()
         })
       })
       .catch(() => {})

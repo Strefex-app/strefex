@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useServiceRequestStore } from './store/serviceRequestStore'
@@ -190,12 +190,28 @@ function IntelligenceRootRedirect() {
   return <Navigate to="/main-menu" replace />
 }
 
-/** After in-app navigation (incl. browser back), push debounced workspace data so nothing is lost on idle. */
+const WORKSPACE_FLUSH_DEBOUNCE_MS = 450
+
+/** After navigation, debounce Supabase workspace pushes so rapid route changes do not queue redundant work. */
 function WorkspaceSyncOnNavigate() {
   const location = useLocation()
+  const debounceRef = useRef(null)
+
   useEffect(() => {
-    void flushPendingWorkspacePushes()
+    debounceRef.current = window.setTimeout(() => {
+      debounceRef.current = null
+      void flushPendingWorkspacePushes()
+    }, WORKSPACE_FLUSH_DEBOUNCE_MS)
+
+    return () => {
+      if (debounceRef.current != null) {
+        window.clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
+      void flushPendingWorkspacePushes()
+    }
   }, [location.pathname, location.search])
+
   return null
 }
 

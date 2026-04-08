@@ -113,6 +113,11 @@ let _refreshTimer = null
 let _refreshStorageListener = null
 let _refreshFocusListener = null
 let _refreshVisibilityListener = null
+/** Single-flight: overlapping refreshFromDatabase calls share one Supabase round-trip. */
+let _refreshDbInFlight = null
+
+/** Polling interval while the tab is visible (hidden tabs pause interval to save battery & network). */
+const SERVICE_REQUEST_POLL_MS_VISIBLE = 12000
 
 const stripStorageMeta = (request) => {
   const next = { ...request }
@@ -819,67 +824,74 @@ export const useServiceRequestStore = create((set, get) => ({
 
   refreshFromDatabase: async () => {
     if (!isSupabaseConfigured) return
-    set({ isRefreshing: true })
-    try {
-      const role = getUserRole()
-      const companyId = getAuthCompanyId()
-      const userEmail = normalizeEmail(getAuthSnapshot()?.user?.email)
-      const canSeeAll = role === 'superadmin' || role === 'auditor_external'
+    if (_refreshDbInFlight) return _refreshDbInFlight
 
-      const requestsPromise = canSeeAll
-        ? serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
-        : (companyId
-          ? serviceRequestsService.list(companyId, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
-          : Promise.resolve([]))
+    _refreshDbInFlight = (async () => {
+      set({ isRefreshing: true })
+      try {
+        const role = getUserRole()
+        const companyId = getAuthCompanyId()
+        const userEmail = normalizeEmail(getAuthSnapshot()?.user?.email)
+        const canSeeAll = role === 'superadmin' || role === 'auditor_external'
 
-      const notificationsByCompanyPromise = canSeeAll
-        ? notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
-        : (companyId
-          ? notificationsService.list(companyId, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
-          : Promise.resolve([]))
+        const requestsPromise = canSeeAll
+          ? serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+          : (companyId
+            ? serviceRequestsService.list(companyId, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+            : Promise.resolve([]))
 
-      const notificationsByTargetPromise = canSeeAll || !userEmail
-        ? Promise.resolve([])
-        : notificationsService.list(null, {
-          limit: 500,
-          orderBy: 'created_at',
-          ascending: false,
-          filters: [['target_email', 'eq', userEmail]],
-        }).catch(() => [])
+        const notificationsByCompanyPromise = canSeeAll
+          ? notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+          : (companyId
+            ? notificationsService.list(companyId, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+            : Promise.resolve([]))
 
-      const [dbRequestsRaw, dbNotificationsByCompanyRaw, dbNotificationsByTargetRaw] = await Promise.all([
-        requestsPromise,
-        notificationsByCompanyPromise,
-        notificationsByTargetPromise,
-      ])
-      const dbNotificationsRaw = dedupeById([
-        ...(Array.isArray(dbNotificationsByCompanyRaw) ? dbNotificationsByCompanyRaw : []),
-        ...(Array.isArray(dbNotificationsByTargetRaw) ? dbNotificationsByTargetRaw : []),
-      ])
-      const dbRequests = (Array.isArray(dbRequestsRaw) ? dbRequestsRaw : [])
-        .map(mapDbRequestToLocal)
-        .filter(Boolean)
-      const dbNotifications = (Array.isArray(dbNotificationsRaw) ? dbNotificationsRaw : [])
-        .map(mapDbNotificationToLocal)
-        .filter(Boolean)
+        const notificationsByTargetPromise = canSeeAll || !userEmail
+          ? Promise.resolve([])
+          : notificationsService.list(null, {
+            limit: 500,
+            orderBy: 'created_at',
+            ascending: false,
+            filters: [['target_email', 'eq', userEmail]],
+          }).catch(() => [])
 
-      if (dbRequests.length > 0) {
-        const merged = dedupeById([...dbRequests, ...loadRequestsByRole()])
-        persistRequestsByRole(merged)
+        const [dbRequestsRaw, dbNotificationsByCompanyRaw, dbNotificationsByTargetRaw] = await Promise.all([
+          requestsPromise,
+          notificationsByCompanyPromise,
+          notificationsByTargetPromise,
+        ])
+        const dbNotificationsRaw = dedupeById([
+          ...(Array.isArray(dbNotificationsByCompanyRaw) ? dbNotificationsByCompanyRaw : []),
+          ...(Array.isArray(dbNotificationsByTargetRaw) ? dbNotificationsByTargetRaw : []),
+        ])
+        const dbRequests = (Array.isArray(dbRequestsRaw) ? dbRequestsRaw : [])
+          .map(mapDbRequestToLocal)
+          .filter(Boolean)
+        const dbNotifications = (Array.isArray(dbNotificationsRaw) ? dbNotificationsRaw : [])
+          .map(mapDbNotificationToLocal)
+          .filter(Boolean)
+
+        if (dbRequests.length > 0) {
+          const merged = dedupeById([...dbRequests, ...loadRequestsByRole()])
+          persistRequestsByRole(merged)
+        }
+        if (dbNotifications.length > 0) {
+          const mergedNotifs = dedupeById([...dbNotifications, ...loadNotificationsByRole()])
+          save(NOTIF_KEY, mergedNotifs)
+        }
+        set({
+          requests: loadRequestsByRole(),
+          notifications: loadNotificationsByRole(),
+          globalNotifications: loadGlobal(),
+          lastRefreshedAt: new Date().toISOString(),
+        })
+      } finally {
+        set({ isRefreshing: false })
+        _refreshDbInFlight = null
       }
-      if (dbNotifications.length > 0) {
-        const mergedNotifs = dedupeById([...dbNotifications, ...loadNotificationsByRole()])
-        save(NOTIF_KEY, mergedNotifs)
-      }
-      set({
-        requests: loadRequestsByRole(),
-        notifications: loadNotificationsByRole(),
-        globalNotifications: loadGlobal(),
-        lastRefreshedAt: new Date().toISOString(),
-      })
-    } finally {
-      set({ isRefreshing: false })
-    }
+    })()
+
+    return _refreshDbInFlight
   },
 
   startRefreshSequence: () => {
@@ -887,10 +899,21 @@ export const useServiceRequestStore = create((set, get) => ({
       get().refreshFromStorage()
       get().refreshFromDatabase().catch(() => {})
     }
-    run()
-    if (!_refreshTimer) {
-      _refreshTimer = setInterval(run, 12000)
+
+    const armPollingTimer = () => {
+      if (_refreshTimer) {
+        clearInterval(_refreshTimer)
+        _refreshTimer = null
+      }
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return
+      }
+      _refreshTimer = setInterval(run, SERVICE_REQUEST_POLL_MS_VISIBLE)
     }
+
+    run()
+    armPollingTimer()
+
     if (!_refreshStorageListener) {
       _refreshStorageListener = (e) => {
         if (!e?.key) return
@@ -910,7 +933,10 @@ export const useServiceRequestStore = create((set, get) => ({
     }
     if (!_refreshVisibilityListener) {
       _refreshVisibilityListener = () => {
-        if (document.visibilityState === 'visible') run()
+        if (document.visibilityState === 'visible') {
+          run()
+        }
+        armPollingTimer()
       }
       document.addEventListener('visibilitychange', _refreshVisibilityListener)
     }

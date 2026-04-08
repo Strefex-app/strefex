@@ -99,6 +99,9 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
   const [err, setErr] = useState(null)
   const indicatorsAbortRef = useRef(null)
   const reportAbortRef = useRef(null)
+  /** Monotonic generation so only the latest fetch updates UI / loading (fixes races with AbortController on mobile). */
+  const indicatorsGenRef = useRef(0)
+  const reportGenRef = useRef(0)
 
   const countriesInMarket = useMemo(() => getCountriesFiltered(marketTab), [marketTab])
   const cityOptions = useMemo(() => getCountryByCode(country)?.cities ?? [], [country])
@@ -118,6 +121,7 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
   }, [marketTab, country, countriesInMarket])
 
   const loadIndicators = useCallback(async () => {
+    const gen = ++indicatorsGenRef.current
     indicatorsAbortRef.current?.abort()
     const ctrl = new AbortController()
     indicatorsAbortRef.current = ctrl
@@ -126,19 +130,21 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     setIndicators(null)
     try {
       const data = await fetchCtiIndicators(country, timeframe, { signal: ctrl.signal })
-      if (ctrl.signal.aborted) return
+      if (gen !== indicatorsGenRef.current) return
       setIndicators(data)
     } catch (e) {
       if (e?.name === 'AbortError') return
+      if (gen !== indicatorsGenRef.current) return
       setErr(e?.message || 'Failed to load indicators')
       setIndicators(null)
     } finally {
-      if (!ctrl.signal.aborted) setLoading(false)
+      if (gen === indicatorsGenRef.current) setLoading(false)
     }
   }, [country, timeframe])
 
   const loadReport = useCallback(async () => {
     if (isHome) return
+    const gen = ++reportGenRef.current
     reportAbortRef.current?.abort()
     const ctrl = new AbortController()
     reportAbortRef.current = ctrl
@@ -146,13 +152,14 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     setReport(null)
     try {
       const data = await fetchCtiReport(country, city, { signal: ctrl.signal })
-      if (ctrl.signal.aborted) return
+      if (gen !== reportGenRef.current) return
       setReport(data)
     } catch (e) {
       if (e?.name === 'AbortError') return
+      if (gen !== reportGenRef.current) return
       setReport(null)
     } finally {
-      if (!ctrl.signal.aborted) setReportLoading(false)
+      if (gen === reportGenRef.current) setReportLoading(false)
     }
   }, [country, city, isHome])
 

@@ -28,14 +28,34 @@ export default function AnalyticsProvider({ children }) {
     })
   }, [location.pathname, planId, role])
 
-  // Sync subscription from backend on login
+  // Sync subscription from backend after login — deferred so first paint / route chunk are not contended
   useEffect(() => {
-    if (isAuthenticated) {
-      stripeService.getSubscription().then((sub) => {
-        if (sub?.plan_id) {
-          setPlan(sub.plan_id, sub.status || 'active', sub.trial_ends_at || null)
-        }
-      })
+    if (!isAuthenticated) return undefined
+    let cancelled = false
+    const run = () => {
+      stripeService
+        .getSubscription()
+        .then((sub) => {
+          if (cancelled) return
+          if (sub?.plan_id) {
+            setPlan(sub.plan_id, sub.status || 'active', sub.trial_ends_at || null)
+          }
+        })
+        .catch(() => {})
+    }
+    let idleId
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleId = requestIdleCallback(() => run(), { timeout: 4000 })
+    } else {
+      idleId = window.setTimeout(run, 1)
+    }
+    return () => {
+      cancelled = true
+      if (typeof requestIdleCallback !== 'undefined' && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(idleId)
+      } else {
+        window.clearTimeout(idleId)
+      }
     }
   }, [isAuthenticated, setPlan])
 

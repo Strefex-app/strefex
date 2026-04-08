@@ -193,10 +193,22 @@
   background: #cfd4dc;
   min-height: 240px;
   max-width: 100%;
+  /* Avoid iOS double-tap zoom delay on the control; inner canvas uses touch-action: none (GlobeMarketPicker). */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .cti-globe-root {
   display: block;
+  width: 100%;
+  min-height: inherit;
+}
+
+@media (max-width: 900px) {
+  .cti-globe-wrap {
+    min-height: min(260px, 55vw);
+    width: 100%;
+  }
 }
 
 .cti-globe-fallback {
