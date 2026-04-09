@@ -130,12 +130,14 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
     let cancelled = false
 
     const globe = new Globe(el)
+      .enablePointerInteraction(true)
       .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg')
       .backgroundImageUrl(null)
       .backgroundColor('#cfd4dc')
       .showAtmosphere(true)
       .atmosphereColor('rgba(100, 140, 190, 0.28)')
-      .lineHoverPrecision(0)
+      /* Slightly wider hit target for country taps on phones */
+      .lineHoverPrecision(0.35)
 
     globeRef.current = globe
 
@@ -184,7 +186,8 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
             const name = d.properties?.ADMIN || d.properties?.NAME || ''
             return `<div style="padding:4px 8px;background:rgba(0,0,0,.78);color:#fff;border-radius:6px;font-size:12px">${name}</div>`
           })
-          .onPolygonClick((polygon) => {
+          .onPolygonClick((polygon, ev) => {
+            if (ev?.preventDefault) ev.preventDefault()
             const iso = isoFromFeature(polygon)
             if (iso) onSelectRef.current(iso)
           })

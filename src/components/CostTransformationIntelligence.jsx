@@ -14,6 +14,11 @@ const CTI_GLOBE_PX = 240
 
 const DEFAULT_COUNTRY = 'DE'
 
+/** Debounce globe taps so rapid touches do not queue conflicting fetches (mobile). */
+const GLOBE_COUNTRY_DEBOUNCE_MS = 140
+/** Avoid hammering World Bank when tab focus flips on phones. */
+const CTI_REFETCH_THROTTLE_MS = 2200
+
 const KPI_DEFS = [
   {
     key: 'gdp',
@@ -66,6 +71,10 @@ function MiniSparkline({ series, accent }) {
   )
 }
 
+function selectValueUpper(e) {
+  return String(e.target.value || '').toUpperCase()
+}
+
 /** Home CTI strip: globe, calendar, macro KPIs. Full analytics live under Intelligence → Reports / Fin Market. */
 export default function CostTransformationIntelligence() {
   const navigate = useNavigate()
@@ -75,17 +84,40 @@ export default function CostTransformationIntelligence() {
   const [marketTab, setMarketTab] = useState('all')
   const [country, setCountry] = useState(DEFAULT_COUNTRY)
   const [timeframe, setTimeframe] = useState('5y')
-  const [indicators, setIndicators] = useState(null)
+  /** Only commit indicator JSON when it matches this country+timeframe (avoids stale UI on slow mobile networks). */
+  const [indicatorBundle, setIndicatorBundle] = useState({
+    country: null,
+    timeframe: null,
+    data: null,
+  })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
   const indicatorsAbortRef = useRef(null)
   const indicatorsGenRef = useRef(0)
+  const globeCountryTimerRef = useRef(null)
+  const lastCtiRefetchRef = useRef(0)
 
   const countriesInMarket = useMemo(() => getCountriesFiltered(marketTab), [marketTab])
 
-  const handleCountryChange = useCallback((code) => {
-    setCountry(code)
+  const setCountryFromDropdown = useCallback((code) => {
+    setCountry(String(code || '').toUpperCase())
   }, [])
+
+  const handleGlobeCountrySelect = useCallback((code) => {
+    const upper = String(code || '').toUpperCase()
+    if (globeCountryTimerRef.current) clearTimeout(globeCountryTimerRef.current)
+    globeCountryTimerRef.current = setTimeout(() => {
+      globeCountryTimerRef.current = null
+      setCountry(upper)
+    }, GLOBE_COUNTRY_DEBOUNCE_MS)
+  }, [])
+
+  useEffect(
+    () => () => {
+      if (globeCountryTimerRef.current) clearTimeout(globeCountryTimerRef.current)
+    },
+    [],
+  )
 
   useEffect(() => {
     const ok = countriesInMarket.some((c) => c.code === country)
@@ -99,18 +131,18 @@ export default function CostTransformationIntelligence() {
     indicatorsAbortRef.current?.abort()
     const ctrl = new AbortController()
     indicatorsAbortRef.current = ctrl
+    const myCountry = country
+    const myTimeframe = timeframe
     setLoading(true)
     setErr(null)
-    setIndicators(null)
     try {
-      const data = await fetchCtiIndicators(country, timeframe, { signal: ctrl.signal })
+      const data = await fetchCtiIndicators(myCountry, myTimeframe, { signal: ctrl.signal })
       if (gen !== indicatorsGenRef.current) return
-      setIndicators(data)
+      setIndicatorBundle({ country: myCountry, timeframe: myTimeframe, data })
     } catch (e) {
       if (e?.name === 'AbortError') return
       if (gen !== indicatorsGenRef.current) return
       setErr(e?.message || 'Failed to load indicators')
-      setIndicators(null)
     } finally {
       if (gen === indicatorsGenRef.current) setLoading(false)
     }
@@ -124,6 +156,35 @@ export default function CostTransformationIntelligence() {
     }
   }, [loadIndicators])
 
+  const maybeRefetchIndicators = useCallback(() => {
+    const now = Date.now()
+    if (now - lastCtiRefetchRef.current < CTI_REFETCH_THROTTLE_MS) return
+    lastCtiRefetchRef.current = now
+    loadIndicators()
+  }, [loadIndicators])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') maybeRefetchIndicators()
+    }
+    const onOnline = () => maybeRefetchIndicators()
+    const onPageShow = (e) => {
+      if (e.persisted) maybeRefetchIndicators()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('pageshow', onPageShow)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('pageshow', onPageShow)
+    }
+  }, [maybeRefetchIndicators])
+
+  const indicatorsInSync =
+    indicatorBundle.country === country && indicatorBundle.timeframe === timeframe && indicatorBundle.data != null
+  const indicators = indicatorsInSync ? indicatorBundle.data : null
+
   const accent = 'var(--color-primary, #000888)'
   const kpiGridClass = `cti-kpi-grid cti-kpi-grid--home-row${loading ? ' cti-kpi-grid--loading' : ''}`
   const kpiCardClass = 'cti-kpi-card cti-kpi-card--home-row'
@@ -136,6 +197,11 @@ export default function CostTransformationIntelligence() {
         </p>
       )}
       {loading && <p className="cti-loading">Loading indicators…</p>}
+      {!loading && !err && !indicatorsInSync && indicatorBundle.data != null && (
+        <p className="cti-muted cti-indicators-wait" role="status">
+          Switching country…
+        </p>
+      )}
       <div className={kpiGridClass} aria-busy={loading}>
         {KPI_DEFS.map((def) => {
           const series = indicators?.[def.key] || []
@@ -215,9 +281,11 @@ export default function CostTransformationIntelligence() {
       <label htmlFor="cti-country">Country</label>
       <select
         id="cti-country"
-        value={country}
-        onChange={(e) => handleCountryChange(String(e.target.value || '').toUpperCase())}
         className="cti-select"
+        value={country}
+        autoComplete="off"
+        onChange={(e) => setCountryFromDropdown(selectValueUpper(e))}
+        onInput={(e) => setCountryFromDropdown(selectValueUpper(e))}
       >
         {countriesInMarket.map((c) => (
           <option key={c.code} value={c.code}>
@@ -233,9 +301,10 @@ export default function CostTransformationIntelligence() {
       <label htmlFor="cti-timeframe">Timeframe</label>
       <select
         id="cti-timeframe"
+        className="cti-select"
         value={timeframe}
         onChange={(e) => setTimeframe(e.target.value)}
-        className="cti-select"
+        onInput={(e) => setTimeframe(e.target.value)}
       >
         <option value="5y">5 years</option>
         <option value="10y">10 years</option>
@@ -247,7 +316,7 @@ export default function CostTransformationIntelligence() {
   const globeBlock = (
     <div className="cti-globe-block">
       <span className="cti-filter-label">Map</span>
-      <p className="cti-globe-hint">Click a country on the globe or use the country control.</p>
+      <p className="cti-globe-hint">Tap a country on the globe or use the country control.</p>
       <div
         className="cti-globe-wrap cti-globe-wrap--gray"
         style={{ minHeight: CTI_GLOBE_PX, height: CTI_GLOBE_PX }}
@@ -256,7 +325,7 @@ export default function CostTransformationIntelligence() {
           <GlobeMarketPicker
             selectedIso2={country}
             marketTabId={marketTab}
-            onCountrySelect={handleCountryChange}
+            onCountrySelect={handleGlobeCountrySelect}
             height={CTI_GLOBE_PX}
           />
         </Suspense>

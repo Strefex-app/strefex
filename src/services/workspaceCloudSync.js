@@ -4,6 +4,10 @@
  *
  * Pull runs after login rehydration; local changes debounce-push to
  * tenant_workspace_snapshots (company_id + state_key).
+ *
+ * Synced keys (see SYNC_SPECS): projects, vendors, rfqs, contracts, procurement, cost,
+ * enterprise, production, templates, audit_logs, hr_space, account_registry, profile_contacts,
+ * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain).
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
 import { tenantKey } from '../utils/tenantStorage'
@@ -22,6 +26,7 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
+import { useMessengerStore } from '../store/messengerStore'
 
 const DEBOUNCE_MS = 2500
 const PROFILE_CONTACTS_STORAGE = 'strefex-profile-contacts'
@@ -453,6 +458,57 @@ const SYNC_SPECS = [
       (!Array.isArray(p?.globalNotifications) || p.globalNotifications.length === 0),
     subscribe: (cb) => useServiceRequestStore.subscribe(cb),
   },
+  {
+    key: 'messenger',
+    extract: () => {
+      const s = useMessengerStore.getState()
+      return {
+        encryptionAtRest: !!s.encryptionAtRest,
+        groups: s.groups || [],
+        topics: s.topics || [],
+        topicEdgeKinds: s.topicEdgeKinds && typeof s.topicEdgeKinds === 'object' ? s.topicEdgeKinds : {},
+        topicTemplates: Array.isArray(s.topicTemplates) ? s.topicTemplates : [],
+        taskBoards: s.taskBoards || [],
+        conversations: s.conversations || [],
+      }
+    },
+    apply: (p) => {
+      if (!p || typeof p !== 'object') return
+      const cur = useMessengerStore.getState()
+      useMessengerStore.setState({
+        encryptionAtRest: typeof p.encryptionAtRest === 'boolean' ? p.encryptionAtRest : cur.encryptionAtRest,
+        groups: Array.isArray(p.groups) ? p.groups : cur.groups,
+        topics: Array.isArray(p.topics) ? p.topics : cur.topics,
+        topicEdgeKinds:
+          p.topicEdgeKinds && typeof p.topicEdgeKinds === 'object' ? p.topicEdgeKinds : cur.topicEdgeKinds,
+        topicTemplates:
+          Array.isArray(p.topicTemplates) && p.topicTemplates.length > 0 ? p.topicTemplates : cur.topicTemplates,
+        taskBoards: Array.isArray(p.taskBoards) ? p.taskBoards : cur.taskBoards,
+        conversations: Array.isArray(p.conversations) ? p.conversations : cur.conversations,
+      })
+    },
+    isEmpty: (p) => {
+      if (!p) return true
+      if (Array.isArray(p.groups) && p.groups.length > 0) return false
+      if (Array.isArray(p.topics) && p.topics.length > 0) return false
+      if (
+        Array.isArray(p.conversations) &&
+        p.conversations.some((c) => Array.isArray(c.messages) && c.messages.length > 0)
+      ) {
+        return false
+      }
+      if (
+        Array.isArray(p.taskBoards) &&
+        p.taskBoards.some((b) =>
+          (b.columns || []).some((col) => Array.isArray(col.cards) && col.cards.length > 0),
+        )
+      ) {
+        return false
+      }
+      return true
+    },
+    subscribe: (cb) => useMessengerStore.subscribe(cb),
+  },
 ]
 
 /**
@@ -490,13 +546,18 @@ function attachLifecycleSync() {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      void pullWorkspaceSnapshots()
+      /* Flush first so edits made just before backgrounding upload before we merge remote (mobile Safari). */
+      void flushPendingWorkspacePushes().finally(() => {
+        void pullWorkspaceSnapshots()
+      })
     } else {
       void flushPendingWorkspacePushes()
     }
   })
   window.addEventListener('pageshow', () => {
-    void pullWorkspaceSnapshots()
+    void flushPendingWorkspacePushes().finally(() => {
+      void pullWorkspaceSnapshots()
+    })
   })
   window.addEventListener('pagehide', () => {
     void flushPendingWorkspacePushes()

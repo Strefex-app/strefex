@@ -196,6 +196,8 @@
   box-sizing: border-box;
   position: relative;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .cti-globe-root {
@@ -273,6 +275,15 @@
   font-size: 13px;
   color: var(--color-muted);
   margin: 0 0 12px 0;
+}
+
+.cti-muted {
+  color: var(--color-muted);
+}
+
+.cti-indicators-wait {
+  font-size: 12px;
+  margin: 0 0 8px 0;
 }
 
 .cti-kpi-grid {

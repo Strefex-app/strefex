@@ -191,13 +191,18 @@ export async function fetchCtiIndicators(country, timeframe, opts = {}) {
   }
 
   try {
-    const out = {}
-    for (const [key, code] of Object.entries(INDICATORS)) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-      const rows = await fetchWorldBankDirect(country, code, 50, signal)
-      out[key] = trimTimeframe(extractYearData(rows), timeframe)
-    }
+    const entries = Object.entries(INDICATORS)
+    const rowsList = await Promise.all(
+      entries.map(async ([, code]) => {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+        return fetchWorldBankDirect(country, code, 50, signal)
+      }),
+    )
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    const out = {}
+    entries.forEach(([key], i) => {
+      out[key] = trimTimeframe(extractYearData(rowsList[i]), timeframe)
+    })
     return out
   } catch (e) {
     if (e?.name === 'AbortError') throw e
