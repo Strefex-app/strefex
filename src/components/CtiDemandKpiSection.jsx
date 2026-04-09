@@ -55,6 +55,7 @@ export default function CtiDemandKpiSection({ report, hideExplainerCards = false
 
   const extras = mergeKpiExtras(report)
   const salary = report.review?.salary ?? 32000
+  const gni = report.national_income?.gni_per_capita_usd
   const spotlight = extras.spotlight_rows || []
 
   return (
@@ -65,9 +66,12 @@ export default function CtiDemandKpiSection({ report, hideExplainerCards = false
             <h4 className="cti-derived-title">Cost / demand KPIs (indicator engine)</h4>
             <p className="cti-derived-lead">
               Numbers below use a <strong>model salary</strong> of{' '}
-              {usdFmt.format(Number(salary))} {CTI_SALARY_CURRENCY} and a <strong>cost index</strong> of{' '}
-              {report.review?.cost_index ?? 120} (benchmark for relative costs). They explain purchasing power and demand
-              pressure in simple terms — not a bank forecast.
+              {usdFmt.format(Number(salary))} {CTI_SALARY_CURRENCY}
+              {gni != null && Math.abs(Number(salary) - Number(gni)) < 2 && (
+                <> (aligned to latest World Bank GNI per capita for the selected country)</>
+              )}
+              {' '}and a <strong>cost index</strong> of {report.review?.cost_index ?? 120} (benchmark for relative costs).
+              They explain purchasing power and demand pressure in simple terms — not a bank forecast.
             </p>
           </div>
 

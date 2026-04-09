@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import Icon from '../../components/Icon'
 import { fetchCtiReport } from '../../services/costTransformationIntelligenceService'
+import { fetchFinMarketBoard } from '../../services/finMarketDataService'
 import CtiDemandKpiSection, { formatKpiValue } from '../../components/CtiDemandKpiSection'
 import { CTI_DEMAND_KPI_DEFS } from '../../data/ctiDemandKpiContent'
 import { ALL_COUNTRIES, getCountryByCode, getDefaultCityForCountry } from '../../data/worldMarkets'
 import './IntelligencePages.css'
+
+const CtiInflationMomentumPanel = lazy(() => import('../../components/CtiInflationMomentumPanel'))
 
 const DEFAULT_REPORT_COUNTRY = 'DE'
 
@@ -62,6 +65,7 @@ function ReportExecutiveStrip({ report, countryName, cityName }) {
   const strat = report.financial_statement?.strategy || {}
   const kpis = report.kpis || {}
   const kpiByKey = Object.fromEntries(CTI_DEMAND_KPI_DEFS.map((d) => [d.key, d]))
+  const ni = report.national_income || {}
 
   const tiles = [
     {
@@ -111,6 +115,36 @@ function ReportExecutiveStrip({ report, countryName, cityName }) {
           : 'From macro & industry tilt',
       wide: true,
     },
+    ...(ni.gni_per_capita_usd != null
+      ? [
+          {
+            id: 'gni',
+            label: 'GNI per capita (mean)',
+            value: `$${Number(ni.gni_per_capita_usd).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+            hint: `World Bank Atlas · ${ni.gni_year || '—'}`,
+          },
+        ]
+      : []),
+    ...(ni.gdp_per_capita_ppp != null
+      ? [
+          {
+            id: 'gdpppp',
+            label: 'GDP per capita (PPP)',
+            value: `$${Number(ni.gdp_per_capita_ppp).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+            hint: `Intl $ · ${ni.gdp_ppp_year || '—'}`,
+          },
+        ]
+      : []),
+    ...(ni.gini_index != null
+      ? [
+          {
+            id: 'gini',
+            label: 'Gini index',
+            value: fmtNum(ni.gini_index, 1),
+            hint: `Inequality · ${ni.gini_year || '—'}`,
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -380,6 +414,196 @@ function ReviewDataSection({ review }) {
   )
 }
 
+function fmtMomYoyPct(n) {
+  if (n == null || Number.isNaN(Number(n))) return '—'
+  const x = Number(n)
+  return `${x > 0 ? '+' : ''}${x.toFixed(2)}%`
+}
+
+function MarketBenchmarkMomentumSection({ board, loading, err }) {
+  return (
+    <section className="intel-report__section intel-report__section--momentum" aria-labelledby="intel-mom-heading">
+      <h3 id="intel-mom-heading" className="intel-report__section-title">
+        Global benchmarks — MoM / YoY (Investing-style performance table)
+      </h3>
+      <p className="intel-muted intel-report__section-lead">
+        Month-over-month and year-over-year % changes on <strong>monthly closes</strong> (same idea as retail macro quote
+        boards). Source: Yahoo Finance chart API — not Investing.com or Finviz (no third-party scraping).
+      </p>
+      {err && (
+        <p className="intel-error" role="alert">
+          {err}
+        </p>
+      )}
+      {loading && !board && <p className="intel-muted">Loading benchmark grid…</p>}
+      {board?.entries?.length > 0 && (
+        <div className="intel-table-wrap">
+          <table className="intel-table intel-mom-table">
+            <thead>
+              <tr>
+                <th>Instrument</th>
+                <th className="intel-fs__num">Last</th>
+                <th className="intel-fs__num">MoM %</th>
+                <th className="intel-fs__num">YoY %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.entries.map((row) => (
+                <tr key={row.key}>
+                  <td>
+                    <strong>{row.label}</strong>
+                    <span className="intel-fin-sym">{row.symbol}</span>
+                  </td>
+                  <td className="intel-fs__num">
+                    {row.lastClose != null ? Number(row.lastClose).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
+                  </td>
+                  <td className="intel-fs__num">{fmtMomYoyPct(row.mom_pct)}</td>
+                  <td className="intel-fs__num">{fmtMomYoyPct(row.yoy_pct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {board?.fetched_at && (
+        <p className="intel-muted intel-report__section-lead" style={{ marginTop: 10 }}>
+          Updated {new Date(board.fetched_at).toLocaleString()} (UTC)
+        </p>
+      )}
+    </section>
+  )
+}
+
+function NationalIncomeDetailSection({ ni, countryName }) {
+  if (!ni || typeof ni !== 'object') return null
+  const hasAny =
+    ni.gni_per_capita_usd != null ||
+    ni.gdp_per_capita_ppp != null ||
+    ni.gdp_per_capita_usd != null ||
+    ni.gini_index != null
+  if (!hasAny && !ni.error) return null
+
+  return (
+    <section className="intel-report__section" aria-labelledby="intel-ni-heading">
+      <h3 id="intel-ni-heading" className="intel-report__section-title">
+        National income &amp; distribution (World Bank)
+      </h3>
+      <p className="intel-muted intel-report__section-lead">
+        <strong>Mean</strong> measures below are from national accounts (per person). A true <strong>household median</strong>{' '}
+        income requires survey microdata (e.g. EU-SILC, US CPS, national statistical offices) — not a single annual
+        World Bank field for every country.
+      </p>
+      {ni.error && (
+        <p className="intel-error" role="alert">
+          {ni.error}
+        </p>
+      )}
+      {hasAny && (
+        <div className="intel-table-wrap">
+          <table className="intel-table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th className="intel-fs__num">Value</th>
+                <th>Year</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ni.gni_per_capita_usd != null && (
+                <tr>
+                  <td>GNI per capita (Atlas, USD) — national-accounts mean</td>
+                  <td className="intel-fs__num">
+                    ${Number(ni.gni_per_capita_usd).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </td>
+                  <td>{ni.gni_year || '—'}</td>
+                </tr>
+              )}
+              {ni.gdp_per_capita_ppp != null && (
+                <tr>
+                  <td>GDP per capita, PPP (international $)</td>
+                  <td className="intel-fs__num">
+                    ${Number(ni.gdp_per_capita_ppp).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </td>
+                  <td>{ni.gdp_ppp_year || '—'}</td>
+                </tr>
+              )}
+              {ni.gdp_per_capita_usd != null && (
+                <tr>
+                  <td>GDP per capita, nominal (USD)</td>
+                  <td className="intel-fs__num">
+                    ${Number(ni.gdp_per_capita_usd).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </td>
+                  <td>{ni.gdp_nominal_year || '—'}</td>
+                </tr>
+              )}
+              {ni.gini_index != null && (
+                <tr>
+                  <td>Gini index (income inequality)</td>
+                  <td className="intel-fs__num">{fmtNum(ni.gini_index, 1)}</td>
+                  <td>{ni.gini_year || '—'}</td>
+                </tr>
+              )}
+              <tr>
+                <td>Household median income (PPP)</td>
+                <td className="intel-fs__num" colSpan={2}>
+                  Not published as one World Bank field for all countries — use EU-SILC, US CPS, or national labour
+                  surveys for the true median.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {ni.note && <p className="intel-muted">{ni.note}</p>}
+      <p className="intel-muted">
+        Jurisdiction context: <strong>{countryName}</strong>. Pair these series with your payroll and pricing benchmarks.
+      </p>
+    </section>
+  )
+}
+
+function ManufacturerStrategicPlansSection({ scenarios }) {
+  if (!Array.isArray(scenarios) || scenarios.length === 0) return null
+  return (
+    <section className="intel-report__section" aria-labelledby="intel-mfg-heading">
+      <h3 id="intel-mfg-heading" className="intel-report__section-title">
+        Manufacturer scenarios &amp; action plans
+      </h3>
+      <p className="intel-muted intel-report__section-lead">
+        Deterministic playbooks derived from the macro line items and CTI KPI posture — intended for workshop discussion,
+        not as prescriptive legal or investment advice.
+      </p>
+      <ul className="intel-mfg-list">
+        {scenarios.map((s) => (
+          <li key={s.id} className="intel-mfg-card">
+            <div className="intel-mfg-card__head">
+              <span className="intel-mfg-card__title">{s.title}</span>
+              <span className="intel-mfg-card__meta">
+                {s.horizon}
+                {s.priority != null ? ` · Priority score ${s.priority}` : ''}
+              </span>
+            </div>
+            <p className="intel-mfg-card__summary">{s.summary}</p>
+            <div>
+              <strong className="intel-mfg-card__sub">Actions</strong>
+              <ul>
+                {(s.actions || []).map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+            {s.kpi_focus?.length > 0 && (
+              <p className="intel-mfg-card__kpis">
+                <strong>KPI focus:</strong> {s.kpi_focus.join(' · ')}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function ScenarioSection({ report }) {
   const rows = report.scenarios?.length ? report.scenarios : report.simulation
   const meta = report.scenario_meta || report.scenarioMeta
@@ -463,6 +687,10 @@ export default function IntelligenceReports() {
   const [err, setErr] = useState(null)
   const [showRaw, setShowRaw] = useState(false)
   const loadAbortRef = useRef(null)
+  const [finBoard, setFinBoard] = useState(null)
+  const [finLoading, setFinLoading] = useState(true)
+  const [finErr, setFinErr] = useState(null)
+  const finAbortRef = useRef(null)
 
   const citiesForCountry = getCountryByCode(country)?.cities || []
   const cityControl =
@@ -504,6 +732,29 @@ export default function IntelligenceReports() {
   }, [load])
 
   useEffect(() => {
+    finAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    finAbortRef.current = ctrl
+    setFinLoading(true)
+    setFinErr(null)
+    fetchFinMarketBoard({ signal: ctrl.signal })
+      .then((b) => {
+        if (!ctrl.signal.aborted) setFinBoard(b)
+      })
+      .catch((e) => {
+        if (e?.name === 'AbortError') return
+        if (!ctrl.signal.aborted) {
+          setFinErr(e?.message || 'Benchmarks unavailable')
+          setFinBoard(null)
+        }
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setFinLoading(false)
+      })
+    return () => finAbortRef.current?.abort()
+  }, [])
+
+  useEffect(() => {
     const opts = getCountryByCode(country)?.cities
     if (opts?.length && !opts.includes(city)) {
       setCity(opts[0])
@@ -519,8 +770,9 @@ export default function IntelligenceReports() {
         <header className="intel-page__header intel-page__header--reports">
           <h1 className="intel-page__title">Intelligence reports</h1>
           <p className="intel-page__lead">
-            Analytical dashboard: macro context, cost and demand indicators, and scenario views — built from World Bank
-            series and the CTI engine. Use the executive snapshot for a quick read; tables retain full detail.
+            Macro statement, national income (World Bank means), cost/demand KPIs aligned to the layout, global benchmark
+            MoM/YoY (Yahoo Finance), ECB/WB momentum where available, and manufacturer action scenarios — consolidated
+            without duplicating the separate Fin Market board.
           </p>
         </header>
 
@@ -558,14 +810,26 @@ export default function IntelligenceReports() {
 
             <ReportExecutiveStrip report={report} countryName={countryName} cityName={city} />
 
+            <MarketBenchmarkMomentumSection board={finBoard} loading={finLoading} err={finErr} />
+
             <FinancialStatementSection fs={report.financial_statement} />
+
+            <NationalIncomeDetailSection ni={report.national_income} countryName={countryName} />
+
+            <Suspense fallback={<p className="intel-muted">Loading inflation momentum…</p>}>
+              <CtiInflationMomentumPanel country={country} />
+            </Suspense>
 
             {report.kpis && (
               <section className="intel-report__section intel-report__section--cti-kpis">
                 <h3 className="intel-report__section-title">Demand &amp; purchasing power (indicator engine)</h3>
-                <CtiDemandKpiSection report={report} />
+                <div className="intel-cti-kpi-wrap">
+                  <CtiDemandKpiSection report={report} />
+                </div>
               </section>
             )}
+
+            <ManufacturerStrategicPlansSection scenarios={report.manufacturer_strategies} />
 
             <ReviewDataSection review={report.review} />
 
@@ -650,11 +914,11 @@ export default function IntelligenceReports() {
         )}
 
         <p className="intel-page__nav">
-          <Link to="/intelligence/markets" className="intel-link">
-            <Icon name="arrow-left" size={16} /> Architecture
+          <Link to="/main-menu" className="intel-link">
+            <Icon name="arrow-left" size={16} /> Home
           </Link>
-          <Link to="/intelligence/dashboard" className="intel-link">
-            Dashboard <Icon name="arrow-right" size={16} />
+          <Link to="/intelligence/fin-market" className="intel-link">
+            Fin Market <Icon name="arrow-right" size={16} />
           </Link>
         </p>
       </div>

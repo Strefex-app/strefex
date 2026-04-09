@@ -136,8 +136,7 @@ import {
   ERPIntegrations,
   TemplateLibrary,
   AuditLogs,
-  IntelligenceDashboard,
-  IntelligenceMarkets,
+  IntelligenceFinMarket,
   IntelligenceReports,
   NotFoundPage,
 } from './routes/lazyPages'
@@ -183,10 +182,10 @@ const Industry = ({ children, requiredTier = 'free' }) => (
   </P>
 )
 
-/** `/intelligence` → dashboard for superadmin, otherwise home (CTI on home is public to all logged-in users). */
+/** `/intelligence` → reports for superadmin, otherwise main menu (CTI on home is available to all logged-in users). */
 function IntelligenceRootRedirect() {
   const role = useAuthStore((s) => s.role)
-  if (role === 'superadmin') return <Navigate to="/intelligence/dashboard" replace />
+  if (role === 'superadmin') return <Navigate to="/intelligence/reports" replace />
   return <Navigate to="/main-menu" replace />
 }
 
@@ -313,9 +312,10 @@ function App() {
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/intelligence" element={<P><IntelligenceRootRedirect /></P>} />
-          <Route path="/intelligence/dashboard" element={<SuperAdmin><IntelligenceDashboard /></SuperAdmin>} />
-          <Route path="/intelligence/markets" element={<SuperAdmin><IntelligenceMarkets /></SuperAdmin>} />
           <Route path="/intelligence/reports" element={<SuperAdmin><IntelligenceReports /></SuperAdmin>} />
+          <Route path="/intelligence/fin-market" element={<SuperAdmin><IntelligenceFinMarket /></SuperAdmin>} />
+          <Route path="/intelligence/dashboard" element={<Navigate to="/intelligence/reports" replace />} />
+          <Route path="/intelligence/markets" element={<Navigate to="/intelligence/reports" replace />} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />

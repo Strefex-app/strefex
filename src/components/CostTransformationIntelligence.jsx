@@ -2,23 +2,12 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import Icon from './Icon'
-import {
-  fetchCtiIndicators,
-  fetchCtiReport,
-  latestValue,
-} from '../services/costTransformationIntelligenceService'
-import {
-  MARKET_TABS,
-  getCountriesFiltered,
-  getCountryByCode,
-  getDefaultCityForCountry,
-} from '../data/worldMarkets'
+import { fetchCtiIndicators, latestValue } from '../services/costTransformationIntelligenceService'
+import { MARKET_TABS, getCountriesFiltered } from '../data/worldMarkets'
 import './CostTransformationIntelligence.css'
 
 const GlobeMarketPicker = lazy(() => import('./GlobeMarketPicker'))
 const CtiHomeCalendarPanel = lazy(() => import('./CtiHomeCalendarPanel'))
-import CtiDemandKpiSection, { CtiDemandKpiMiniGrid } from './CtiDemandKpiSection'
-const CtiInflationMomentumPanel = lazy(() => import('./CtiInflationMomentumPanel'))
 
 /** Globe height; sized so the home row aligns with the calendar strip. */
 const CTI_GLOBE_PX = 240
@@ -77,46 +66,31 @@ function MiniSparkline({ series, accent }) {
   )
 }
 
-/**
- * @param {{ variant?: 'home' | 'dashboard' }} props
- * Home: globe + global indicators only. Dashboard: full analytics, MoM, cost/demand KPIs.
- */
-export default function CostTransformationIntelligence({ variant = 'home' }) {
+/** Home CTI strip: globe, calendar, macro KPIs. Full analytics live under Intelligence → Reports / Fin Market. */
+export default function CostTransformationIntelligence() {
   const navigate = useNavigate()
-  const isHome = variant === 'home'
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  /** Full CTI pages (markets / reports / dashboard) are superadmin-only; home block is for everyone. */
-  const showIntelNavLinks = !isHome || isSuperAdmin
+  const showIntelNavLinks = isSuperAdmin
 
   const [marketTab, setMarketTab] = useState('all')
   const [country, setCountry] = useState(DEFAULT_COUNTRY)
-  const [city, setCity] = useState(() => getDefaultCityForCountry(DEFAULT_COUNTRY))
   const [timeframe, setTimeframe] = useState('5y')
   const [indicators, setIndicators] = useState(null)
-  const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [reportLoading, setReportLoading] = useState(false)
   const [err, setErr] = useState(null)
   const indicatorsAbortRef = useRef(null)
-  const reportAbortRef = useRef(null)
-  /** Monotonic generation so only the latest fetch updates UI / loading (fixes races with AbortController on mobile). */
   const indicatorsGenRef = useRef(0)
-  const reportGenRef = useRef(0)
 
   const countriesInMarket = useMemo(() => getCountriesFiltered(marketTab), [marketTab])
-  const cityOptions = useMemo(() => getCountryByCode(country)?.cities ?? [], [country])
 
   const handleCountryChange = useCallback((code) => {
     setCountry(code)
-    setCity(getDefaultCityForCountry(code))
   }, [])
 
   useEffect(() => {
     const ok = countriesInMarket.some((c) => c.code === country)
     if (!ok && countriesInMarket.length) {
-      const next = countriesInMarket[0].code
-      setCountry(next)
-      setCity(getDefaultCityForCountry(next))
+      setCountry(countriesInMarket[0].code)
     }
   }, [marketTab, country, countriesInMarket])
 
@@ -142,48 +116,17 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     }
   }, [country, timeframe])
 
-  const loadReport = useCallback(async () => {
-    if (isHome) return
-    const gen = ++reportGenRef.current
-    reportAbortRef.current?.abort()
-    const ctrl = new AbortController()
-    reportAbortRef.current = ctrl
-    setReportLoading(true)
-    setReport(null)
-    try {
-      const data = await fetchCtiReport(country, city, { signal: ctrl.signal })
-      if (gen !== reportGenRef.current) return
-      setReport(data)
-    } catch (e) {
-      if (e?.name === 'AbortError') return
-      if (gen !== reportGenRef.current) return
-      setReport(null)
-    } finally {
-      if (gen === reportGenRef.current) setReportLoading(false)
-    }
-  }, [country, city, isHome])
-
   useEffect(() => {
     loadIndicators()
-    return () => indicatorsAbortRef.current?.abort()
+    return () => {
+      indicatorsGenRef.current += 1
+      indicatorsAbortRef.current?.abort()
+    }
   }, [loadIndicators])
 
-  useEffect(() => {
-    if (isHome) {
-      setReport(null)
-      setReportLoading(false)
-      return
-    }
-    loadReport()
-    return () => reportAbortRef.current?.abort()
-  }, [loadReport, isHome])
-
   const accent = 'var(--color-primary, #000888)'
-
-  const kpiGridClass = isHome
-    ? `cti-kpi-grid cti-kpi-grid--home-row${loading ? ' cti-kpi-grid--loading' : ''}`
-    : `cti-kpi-grid cti-kpi-grid--two-col${loading ? ' cti-kpi-grid--loading' : ''}`
-  const kpiCardClass = isHome ? 'cti-kpi-card cti-kpi-card--home-row' : 'cti-kpi-card cti-kpi-card--two-col'
+  const kpiGridClass = `cti-kpi-grid cti-kpi-grid--home-row${loading ? ' cti-kpi-grid--loading' : ''}`
+  const kpiCardClass = 'cti-kpi-card cti-kpi-card--home-row'
 
   const indicatorsGrid = (
     <>
@@ -224,8 +167,6 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     </>
   )
 
-  const indicatorsBlock = isHome ? <div className="cti-home-indicators-inner">{indicatorsGrid}</div> : indicatorsGrid
-
   const topNav = (
     <nav className="cti-topnav" aria-label="Intelligence navigation">
       <div className="cti-brand">
@@ -235,14 +176,11 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
       <div className="cti-topnav-links">
         {showIntelNavLinks && (
           <>
-            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/markets')}>
-              Markets
-            </button>
             <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/reports')}>
               Reports
             </button>
-            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/dashboard')}>
-              Dashboard
+            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/fin-market')}>
+              Fin Market
             </button>
           </>
         )}
@@ -278,7 +216,7 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
       <select
         id="cti-country"
         value={country}
-        onChange={(e) => handleCountryChange(e.target.value)}
+        onChange={(e) => handleCountryChange(String(e.target.value || '').toUpperCase())}
         className="cti-select"
       >
         {countriesInMarket.map((c) => (
@@ -310,7 +248,10 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     <div className="cti-globe-block">
       <span className="cti-filter-label">Map</span>
       <p className="cti-globe-hint">Click a country on the globe or use the country control.</p>
-      <div className={`cti-globe-wrap ${isHome ? 'cti-globe-wrap--gray' : ''}`}>
+      <div
+        className="cti-globe-wrap cti-globe-wrap--gray"
+        style={{ minHeight: CTI_GLOBE_PX, height: CTI_GLOBE_PX }}
+      >
         <Suspense fallback={<div className="cti-globe-fallback">Loading globe…</div>}>
           <GlobeMarketPicker
             selectedIso2={country}
@@ -323,140 +264,55 @@ export default function CostTransformationIntelligence({ variant = 'home' }) {
     </div>
   )
 
-  if (isHome) {
-    return (
-      <section className="cti-shell home-card cti-shell--home" aria-labelledby="cti-heading">
-        <h2 id="cti-heading" className="cti-title">
-          Cost Transformation Intelligence
-        </h2>
-        <p className="cti-subtitle">
-          Pick a market and country, explore the globe, and review headline macro indicators.
-          {isSuperAdmin ? (
-            <>
-              {' '}
-              Detailed demand KPIs, CPI tables, and month-on-month momentum live on the{' '}
-              <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/dashboard')}>
-                dashboard
-              </button>{' '}
-              or{' '}
-              <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/reports')}>
-                report
-              </button>
-              .
-            </>
-          ) : (
-            <>
-              {' '}
-              Deeper analytics workspaces are limited to platform superadmin accounts.
-            </>
-          )}
-        </p>
-        {topNav}
-
-        <div className="cti-home-body">
-          <div className="cti-home-toolbar">
-            {marketSelect}
-            {countrySelect}
-            {timeframeSelect}
-          </div>
-          <div
-            className="cti-home-top"
-            style={{ '--cti-globe-h': `${CTI_GLOBE_PX}px` }}
-          >
-            <div className="cti-home-globe-cell">{globeBlock}</div>
-            <div className="cti-home-schedule-cell">
-              <Suspense fallback={<div className="cti-cal-fallback">Loading calendar…</div>}>
-                <CtiHomeCalendarPanel />
-              </Suspense>
-            </div>
-          </div>
-          <div className="cti-home-indicators-row">
-            <div className="cti-main-header cti-main-header--home">
-              <h3 className="cti-main-title">Global indicators</h3>
-              <p className="cti-main-blurb">World Bank series for the selected country and timeframe.</p>
-            </div>
-            {indicatorsBlock}
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  /* ——— Dashboard (full) ——— */
   return (
-    <section className="cti-shell cti-shell--dashboard" aria-labelledby="cti-dash-heading">
-      <h2 id="cti-dash-heading" className="cti-title">
+    <section className="cti-shell home-card cti-shell--home" aria-labelledby="cti-heading">
+      <h2 id="cti-heading" className="cti-title">
         Cost Transformation Intelligence
       </h2>
       <p className="cti-subtitle">
-        Full macro context: map, city-level report inputs, high-frequency inflation momentum, and indicator-engine KPIs.
+        Pick a market and country, explore the globe, and review headline macro indicators.
+        {isSuperAdmin ? (
+          <>
+            {' '}
+            Open the{' '}
+            <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/reports')}>
+              intelligence report
+            </button>{' '}
+            for cost/demand KPIs, scenarios, and national income context, or{' '}
+            <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/fin-market')}>
+              Fin Market
+            </button>{' '}
+            for benchmark indices and volatility.
+          </>
+        ) : (
+          <>
+            {' '}
+            Deeper analytics workspaces are limited to platform superadmin accounts.
+          </>
+        )}
       </p>
       {topNav}
 
-      <div
-        className="cti-layout cti-layout--markets cti-layout--dash"
-        style={{ '--cti-globe-h': `${CTI_GLOBE_PX}px` }}
-      >
-        <aside className="cti-sidebar" aria-label="Filters">
+      <div className="cti-home-body">
+        <div className="cti-home-toolbar">
           {marketSelect}
           {countrySelect}
-          <div className="cti-filter">
-            <label htmlFor="cti-city">City</label>
-            {cityOptions.length > 0 ? (
-              <select
-                id="cti-city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="cti-select"
-              >
-                {cityOptions.map((x) => (
-                  <option key={x} value={x}>
-                    {x}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="cti-city"
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="cti-input"
-                placeholder="City"
-                autoComplete="off"
-              />
-            )}
-          </div>
           {timeframeSelect}
-        </aside>
-
-        <div className="cti-main cti-main--dashboard">
-          <div className="cti-dash-top">
-            <div className="cti-dash-globe-col">
-              {globeBlock}
-            </div>
-            <div className="cti-dash-right">
-              <div className="cti-dash-panel">
-                <div className="cti-main-header">
-                  <h3 className="cti-main-title">Global indicators</h3>
-                  {report?.headline && <p className="cti-headline">{report.headline}</p>}
-                </div>
-                {indicatorsBlock}
-              </div>
-              <div className="cti-dash-panel">
-                <div className="cti-main-header">
-                  <h3 className="cti-main-title">Cost / demand</h3>
-                  <p className="cti-main-blurb">Model salary &amp; cost index vs. real income and purchasing power.</p>
-                </div>
-                {reportLoading && <p className="cti-loading">Loading cost &amp; demand metrics…</p>}
-                <CtiDemandKpiMiniGrid report={report} />
-              </div>
-            </div>
+        </div>
+        <div className="cti-home-top" style={{ '--cti-globe-h': `${CTI_GLOBE_PX}px` }}>
+          <div className="cti-home-globe-cell">{globeBlock}</div>
+          <div className="cti-home-schedule-cell">
+            <Suspense fallback={<div className="cti-cal-fallback">Loading calendar…</div>}>
+              <CtiHomeCalendarPanel />
+            </Suspense>
           </div>
-          <Suspense fallback={<p className="cti-loading">Loading analytics panels…</p>}>
-            <CtiInflationMomentumPanel country={country} />
-            <CtiDemandKpiSection report={report} hideExplainerCards />
-          </Suspense>
+        </div>
+        <div className="cti-home-indicators-row">
+          <div className="cti-main-header cti-main-header--home">
+            <h3 className="cti-main-title">Global indicators</h3>
+            <p className="cti-main-blurb">World Bank series for the selected country and timeframe.</p>
+          </div>
+          <div className="cti-home-indicators-inner">{indicatorsGrid}</div>
         </div>
       </div>
     </section>

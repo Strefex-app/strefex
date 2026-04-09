@@ -193,20 +193,21 @@
   background: #cfd4dc;
   min-height: 240px;
   max-width: 100%;
-  /* Avoid iOS double-tap zoom delay on the control; inner canvas uses touch-action: none (GlobeMarketPicker). */
-  touch-action: manipulation;
+  box-sizing: border-box;
+  position: relative;
   -webkit-tap-highlight-color: transparent;
 }
 
 .cti-globe-root {
   display: block;
   width: 100%;
-  min-height: inherit;
+  box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
+  /* Do not shrink below WebGL size — min(260px, 55vw) made the globe tiny or clipped on phones. */
   .cti-globe-wrap {
-    min-height: min(260px, 55vw);
+    min-height: 240px;
     width: 100%;
   }
 }

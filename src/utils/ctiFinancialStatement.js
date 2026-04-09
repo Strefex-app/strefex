@@ -24,8 +24,11 @@ function calculateIndicators(raw) {
   const import_ = seriesAvg(raw.import)
   const energy = seriesAvg(raw.energy)
 
-  const salary = 35000
-  const costIndex = 120 + inflation
+  const salary =
+    raw.salary != null && Number(raw.salary) > 0 ? Number(raw.salary) : 35000
+  const explicitCost = raw.cost_index != null ? Number(raw.cost_index) : null
+  const costIndex =
+    explicitCost != null && explicitCost > 0 ? explicitCost : 120 + inflation
   const logisticsCost = 100 + energy / 100
   const realIncome = inflation === -100 ? salary : salary / (1 + inflation / 100)
   const purchasingPower = costIndex ? (realIncome / costIndex) * 100 : 0
@@ -101,6 +104,8 @@ export function buildFinancialStatementFromSeries(country, city, data) {
     export: data?.export || [],
     import: data?.import || [],
     energy: data?.energy || [],
+    salary: data?.salary,
+    cost_index: data?.cost_index,
   }
   const ind = calculateIndicators(raw)
   const strat = strategyEngine(ind)

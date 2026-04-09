@@ -153,8 +153,19 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
       }
     }
     resize()
+    queueMicrotask(() => resize())
+    requestAnimationFrame(() => {
+      resize()
+      requestAnimationFrame(() => resize())
+    })
     const ro = new ResizeObserver(resize)
     ro.observe(el)
+
+    const onViewportChange = () => {
+      requestAnimationFrame(() => resize())
+    }
+    window.addEventListener('resize', onViewportChange)
+    window.addEventListener('orientationchange', onViewportChange)
 
     fetch(GEOJSON_URL)
       .then((r) => {
@@ -190,6 +201,8 @@ export default function GlobeMarketPicker({ selectedIso2, marketTabId, onCountry
     return () => {
       cancelled = true
       readyRef.current = false
+      window.removeEventListener('resize', onViewportChange)
+      window.removeEventListener('orientationchange', onViewportChange)
       ro.disconnect()
       if (globeRef.current) {
         globeRef.current._destructor()

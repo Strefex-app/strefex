@@ -1,6 +1,7 @@
 import env from '../config/env'
 import { buildFinancialStatementFromSeries } from '../utils/ctiFinancialStatement'
 import { computeKpiExtrasFromCpi } from '../utils/ctiKpiExtras'
+import { buildManufacturerStrategicScenarios } from '../utils/ctiManufacturerStrategies'
 
 const WB_BASE = 'https://api.worldbank.org/v2'
 const INDICATORS = {
@@ -81,6 +82,69 @@ function apiUrl(pathAndQuery) {
 /**
  * ECB monthly HICP momentum (MoM change in YoY rate, pp) + WB GDP annual growth delta.
  */
+const INCOME_WB_CODES = [
+  ['NY.GNP.PCAP.CD', 'gni_per_capita_usd', 'gni_year'],
+  ['NY.GDP.PCAP.PP.CD', 'gdp_per_capita_ppp', 'gdp_ppp_year'],
+  ['NY.GDP.PCAP.CD', 'gdp_per_capita_usd', 'gdp_nominal_year'],
+  ['SI.POV.GINI', 'gini_index', 'gini_year'],
+]
+
+/**
+ * Latest World Bank national accounts / inequality points for the jurisdiction.
+ * GNI per capita is a national-accounts mean (not a household survey median).
+ * @param {string} country ISO2
+ * @param {{ signal?: AbortSignal }} [opts]
+ */
+export async function fetchNationalIncomeContext(country, opts = {}) {
+  const { signal } = opts
+  const out = {
+    country,
+    source: 'World Bank Open Data',
+    gni_per_capita_usd: null,
+    gni_year: null,
+    gdp_per_capita_ppp: null,
+    gdp_ppp_year: null,
+    gdp_per_capita_usd: null,
+    gdp_nominal_year: null,
+    gini_index: null,
+    gini_year: null,
+    note:
+      'GNI and GDP per capita are national-accounts means (per person), not household survey medians. Pair with EU-SILC, US CPS, or national statistics for true medians.',
+  }
+  try {
+    for (const [code, valKey, yearKey] of INCOME_WB_CODES) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+      const rows = await fetchWorldBankDirect(country, code, 10, signal)
+      const series = extractYearData(rows)
+      const last = series[series.length - 1]
+      if (last && last.value != null) {
+        out[valKey] = Number(last.value)
+        out[yearKey] = last.year
+      }
+    }
+    return out
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e
+    return { ...out, error: e?.message || 'Income context unavailable' }
+  }
+}
+
+async function attachReportEnrichment(report, country, signal) {
+  if (!report || typeof report !== 'object') return report
+  if (!report.national_income) {
+    try {
+      report.national_income = await fetchNationalIncomeContext(country, { signal })
+    } catch (e) {
+      if (e?.name === 'AbortError') throw e
+      report.national_income = { country, error: e?.message || 'Failed to load income context' }
+    }
+  }
+  if (!Array.isArray(report.manufacturer_strategies) || report.manufacturer_strategies.length === 0) {
+    report.manufacturer_strategies = buildManufacturerStrategicScenarios(report)
+  }
+  return report
+}
+
 export async function fetchCtiInflationMomentum(country) {
   try {
     const q = `/cti/inflation-momentum?country=${encodeURIComponent(country)}`
@@ -115,7 +179,11 @@ export async function fetchCtiIndicators(country, timeframe, opts = {}) {
     const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS, signal })
     if (res.ok) {
       const ct = res.headers.get('content-type') || ''
-      if (ct.includes('application/json')) return await res.json()
+      if (ct.includes('application/json')) {
+        const data = await res.json()
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+        return data
+      }
     }
   } catch (e) {
     if (e?.name === 'AbortError') throw e
@@ -129,9 +197,11 @@ export async function fetchCtiIndicators(country, timeframe, opts = {}) {
       const rows = await fetchWorldBankDirect(country, code, 50, signal)
       out[key] = trimTimeframe(extractYearData(rows), timeframe)
     }
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     return out
   } catch (e) {
     if (e?.name === 'AbortError') throw e
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     return mockIndicators()
   }
 }
@@ -148,7 +218,11 @@ export async function fetchCtiReport(country, city, opts = {}) {
     const res = await fetchWithTimeout(apiUrl(q), { timeoutMs: API_TIMEOUT_MS, signal })
     if (res.ok) {
       const ct = res.headers.get('content-type') || ''
-      if (ct.includes('application/json')) return await res.json()
+      if (ct.includes('application/json')) {
+        const data = await res.json()
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+        return attachReportEnrichment(data, country, signal)
+      }
     }
   } catch (e) {
     if (e?.name === 'AbortError') throw e
@@ -156,6 +230,10 @@ export async function fetchCtiReport(country, city, opts = {}) {
   }
 
   try {
+    const ni = await fetchNationalIncomeContext(country, { signal }).catch((err) => ({
+      country,
+      error: err?.message,
+    }))
     const keys = Object.keys(INDICATORS)
     const fetched = await Promise.all(keys.map((k) => fetchWorldBankDirect(country, INDICATORS[k], 50, signal)))
     const rowsByKey = {}
@@ -165,8 +243,11 @@ export async function fetchCtiReport(country, city, opts = {}) {
     const gdp = rowsByKey.gdp
     const cpi = rowsByKey.cpi
     const inflationPct = mean(cpi.map((x) => x.value).filter((v) => v != null)) ?? 2
-    const salary = 32000
-    const costIndex = 120
+    const salary =
+      ni?.gni_per_capita_usd != null && ni.gni_per_capita_usd > 0
+        ? Math.round(ni.gni_per_capita_usd)
+        : 32000
+    const costIndex = 120 + inflationPct
     const dec = inflationPct / 100
     const realIncome = dec > -0.99 ? salary / (1 + dec) : salary
     const demand = realIncome - costIndex
@@ -208,10 +289,11 @@ export async function fetchCtiReport(country, city, opts = {}) {
         'Grid over inflation 2%/5% and policy-rate labels 2%/5%. Demand stress is salary minus the inflation shock term.',
       rows: scenarios.length,
     }
-    return {
+    const baseReport = {
       headline: `${city}: Cost vs Purchasing Power Imbalance`,
       financial_statement: financialStatement,
       review: dataPayload,
+      national_income: ni,
       scenario_meta: scenarioMeta,
       problems: ['Purchasing power decline', 'Real estate inflation', 'Demand polarization'],
       solutions: ['Location arbitrage', 'Automation', 'Supply chain optimization'],
@@ -227,6 +309,8 @@ export async function fetchCtiReport(country, city, opts = {}) {
       },
       kpi_extras: computeKpiExtrasFromCpi(cpi),
     }
+    baseReport.manufacturer_strategies = buildManufacturerStrategicScenarios(baseReport)
+    return baseReport
   } catch (e) {
     if (e?.name === 'AbortError') throw e
     return mockReport(city)
@@ -280,10 +364,11 @@ function mockReport(city) {
       })
     }
   }
-  return {
+  const demo = {
     headline: `${city}: Cost vs Purchasing Power Imbalance (demo data)`,
     financial_statement: financialStatement,
     review: dataPayload,
+    national_income: { country: 'US', note: 'Demo — no live World Bank income fetch.' },
     scenario_meta: {
       salary_input: salary,
       cost_index_input: costIndex,
@@ -305,6 +390,8 @@ function mockReport(city) {
     },
     kpi_extras: computeKpiExtrasFromCpi(dataPayload.cpi),
   }
+  demo.manufacturer_strategies = buildManufacturerStrategicScenarios(demo)
+  return demo
 }
 
 export function latestValue(series) {

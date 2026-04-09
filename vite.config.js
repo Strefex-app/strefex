@@ -17,6 +17,13 @@ export default defineConfig({
         /* Avoid hanging forever when uvicorn is not running */
         timeout: 15000,
       },
+      /* Yahoo Finance chart API (browser CORS otherwise). Fin Market + report momentum use this in dev only. */
+      '/yf': {
+        target: 'https://query1.finance.yahoo.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/yf/, ''),
+        timeout: 15000,
+      },
     },
   },
 

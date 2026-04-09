@@ -684,6 +684,121 @@
   color: var(--color-text);
 }
 
+/* Reports: cost/demand KPI block fits statement width */
+.intel-cti-kpi-wrap {
+  min-width: 0;
+}
+
+.intel-cti-kpi-wrap .cti-derived-grid--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px 14px;
+}
+
+.intel-cti-kpi-wrap .cti-inflation-panel {
+  margin-top: 14px;
+}
+
+.intel-mom-table {
+  font-size: 12px;
+}
+
+.intel-fin-sym {
+  display: block;
+  font-size: 10px;
+  color: var(--color-muted);
+  font-family: ui-monospace, monospace;
+  margin-top: 2px;
+}
+
+.intel-mfg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.intel-mfg-card {
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--bg-page);
+}
+
+.intel-mfg-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.intel-mfg-card__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.intel-mfg-card__meta {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.intel-mfg-card__summary {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+  margin: 0 0 10px 0;
+}
+
+.intel-mfg-card__sub {
+  font-size: 11px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.intel-mfg-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.intel-mfg-card__kpis {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+/* Fin Market page */
+.intel-fin-source,
+.intel-fin-meta {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.intel-fin-group {
+  margin-bottom: 20px;
+}
+
+.intel-fin-group__title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin: 0 0 10px 0;
+}
+
+.intel-fin-table .intel-fin-err {
+  font-size: 11px;
+  color: #b71c1c;
+}
+
 @media print {
   .intel-page__nav,
   .intel-report-controls,
