@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import Icon from '../../components/Icon'
 import { fetchCtiReport } from '../../services/costTransformationIntelligenceService'
-import { fetchFinMarketBoard } from '../../services/finMarketDataService'
 import CtiDemandKpiSection, { formatKpiValue } from '../../components/CtiDemandKpiSection'
 import { CTI_DEMAND_KPI_DEFS } from '../../data/ctiDemandKpiContent'
 import { ALL_COUNTRIES, getCountryByCode, getDefaultCityForCountry } from '../../data/worldMarkets'
@@ -414,66 +413,6 @@ function ReviewDataSection({ review }) {
   )
 }
 
-function fmtMomYoyPct(n) {
-  if (n == null || Number.isNaN(Number(n))) return '—'
-  const x = Number(n)
-  return `${x > 0 ? '+' : ''}${x.toFixed(2)}%`
-}
-
-function MarketBenchmarkMomentumSection({ board, loading, err }) {
-  return (
-    <section className="intel-report__section intel-report__section--momentum" aria-labelledby="intel-mom-heading">
-      <h3 id="intel-mom-heading" className="intel-report__section-title">
-        Global benchmarks — MoM / YoY (Investing-style performance table)
-      </h3>
-      <p className="intel-muted intel-report__section-lead">
-        Month-over-month and year-over-year % changes on <strong>monthly closes</strong> (same idea as retail macro quote
-        boards). Source: Yahoo Finance chart API — not Investing.com or Finviz (no third-party scraping).
-      </p>
-      {err && (
-        <p className="intel-error" role="alert">
-          {err}
-        </p>
-      )}
-      {loading && !board && <p className="intel-muted">Loading benchmark grid…</p>}
-      {board?.entries?.length > 0 && (
-        <div className="intel-table-wrap">
-          <table className="intel-table intel-mom-table">
-            <thead>
-              <tr>
-                <th>Instrument</th>
-                <th className="intel-fs__num">Last</th>
-                <th className="intel-fs__num">MoM %</th>
-                <th className="intel-fs__num">YoY %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {board.entries.map((row) => (
-                <tr key={row.key}>
-                  <td>
-                    <strong>{row.label}</strong>
-                    <span className="intel-fin-sym">{row.symbol}</span>
-                  </td>
-                  <td className="intel-fs__num">
-                    {row.lastClose != null ? Number(row.lastClose).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
-                  </td>
-                  <td className="intel-fs__num">{fmtMomYoyPct(row.mom_pct)}</td>
-                  <td className="intel-fs__num">{fmtMomYoyPct(row.yoy_pct)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {board?.fetched_at && (
-        <p className="intel-muted intel-report__section-lead" style={{ marginTop: 10 }}>
-          Updated {new Date(board.fetched_at).toLocaleString()} (UTC)
-        </p>
-      )}
-    </section>
-  )
-}
-
 function NationalIncomeDetailSection({ ni, countryName }) {
   if (!ni || typeof ni !== 'object') return null
   const hasAny =
@@ -687,10 +626,6 @@ export default function IntelligenceReports() {
   const [err, setErr] = useState(null)
   const [showRaw, setShowRaw] = useState(false)
   const loadAbortRef = useRef(null)
-  const [finBoard, setFinBoard] = useState(null)
-  const [finLoading, setFinLoading] = useState(true)
-  const [finErr, setFinErr] = useState(null)
-  const finAbortRef = useRef(null)
 
   const citiesForCountry = getCountryByCode(country)?.cities || []
   const cityControl =
@@ -732,29 +667,6 @@ export default function IntelligenceReports() {
   }, [load])
 
   useEffect(() => {
-    finAbortRef.current?.abort()
-    const ctrl = new AbortController()
-    finAbortRef.current = ctrl
-    setFinLoading(true)
-    setFinErr(null)
-    fetchFinMarketBoard({ signal: ctrl.signal })
-      .then((b) => {
-        if (!ctrl.signal.aborted) setFinBoard(b)
-      })
-      .catch((e) => {
-        if (e?.name === 'AbortError') return
-        if (!ctrl.signal.aborted) {
-          setFinErr(e?.message || 'Benchmarks unavailable')
-          setFinBoard(null)
-        }
-      })
-      .finally(() => {
-        if (!ctrl.signal.aborted) setFinLoading(false)
-      })
-    return () => finAbortRef.current?.abort()
-  }, [])
-
-  useEffect(() => {
     const opts = getCountryByCode(country)?.cities
     if (opts?.length && !opts.includes(city)) {
       setCity(opts[0])
@@ -770,9 +682,8 @@ export default function IntelligenceReports() {
         <header className="intel-page__header intel-page__header--reports">
           <h1 className="intel-page__title">Intelligence reports</h1>
           <p className="intel-page__lead">
-            Macro statement, national income (World Bank means), cost/demand KPIs aligned to the layout, global benchmark
-            MoM/YoY (Yahoo Finance), ECB/WB momentum where available, and manufacturer action scenarios — consolidated
-            without duplicating the separate Fin Market board.
+            Macro statement, national income (World Bank means), cost/demand KPIs aligned to the layout, ECB/WB momentum
+            where available, and manufacturer action scenarios.
           </p>
         </header>
 
@@ -809,8 +720,6 @@ export default function IntelligenceReports() {
             <h2 className="intel-report__headline">{report.headline}</h2>
 
             <ReportExecutiveStrip report={report} countryName={countryName} cityName={city} />
-
-            <MarketBenchmarkMomentumSection board={finBoard} loading={finLoading} err={finErr} />
 
             <FinancialStatementSection fs={report.financial_statement} />
 
@@ -916,9 +825,6 @@ export default function IntelligenceReports() {
         <p className="intel-page__nav">
           <Link to="/main-menu" className="intel-link">
             <Icon name="arrow-left" size={16} /> Home
-          </Link>
-          <Link to="/intelligence/fin-market" className="intel-link">
-            Fin Market <Icon name="arrow-right" size={16} />
           </Link>
         </p>
       </div>

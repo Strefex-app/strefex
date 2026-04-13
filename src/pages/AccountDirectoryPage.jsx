@@ -35,6 +35,22 @@ const ENTRY_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
+const REGISTRY_SOURCE_FILTER = [
+  { value: 'all', label: 'All origins' },
+  { value: 'web_signup', label: 'Web signup' },
+  { value: 'spreadsheet_import', label: 'Imported' },
+  { value: 'platform_extract', label: 'Platform extract' },
+  { value: 'manual', label: 'Manual' },
+]
+
+function formatDirectoryRegistrySource(v) {
+  if (v === 'web_signup') return 'Web signup'
+  if (v === 'spreadsheet_import') return 'Imported'
+  if (v === 'platform_extract') return 'Extract'
+  if (v === 'manual') return 'Manual'
+  return v ? String(v) : '—'
+}
+
 const EMPTY_FORM = {
   entry_type: 'contact',
   company_name: '',
@@ -116,6 +132,7 @@ export default function AccountDirectoryPage() {
   const [filterCompanyId, setFilterCompanyId] = useState('')
   const [rfqIssuerCompanyId, setRfqIssuerCompanyId] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('all')
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -200,6 +217,7 @@ export default function AccountDirectoryPage() {
     const q = query.trim().toLowerCase()
     return rows.filter((r) => {
       if (typeFilter !== 'all' && r.entry_type !== typeFilter) return false
+      if (sourceFilter !== 'all' && (r.registry_source || 'manual') !== sourceFilter) return false
       if (!q) return true
       const hay = [
         r.company_name,
@@ -207,6 +225,7 @@ export default function AccountDirectoryPage() {
         r.email,
         r.country,
         r.source_ref,
+        r.registry_source,
         r.metadata?.source_company_id,
         r.metadata?.source_buyer_id,
         r.metadata?.source_supplier_id,
@@ -215,7 +234,7 @@ export default function AccountDirectoryPage() {
         .join(' ')
       return hay.includes(q)
     })
-  }, [rows, query, typeFilter])
+  }, [rows, query, typeFilter, sourceFilter])
 
   const companyNameById = useMemo(() => {
     const m = new Map()
@@ -274,6 +293,7 @@ export default function AccountDirectoryPage() {
     setSaving(true)
     setFeedback('')
     try {
+      const prev = editingId ? rows.find((row) => row.id === editingId) : null
       const payload = {
         company_id,
         entry_type: form.entry_type || 'contact',
@@ -289,6 +309,7 @@ export default function AccountDirectoryPage() {
         category_id: trimOrNull(form.category_id),
         source_ref: trimOrNull(form.source_ref),
         visible_in_exec_summary_superadmin: Boolean(form.visible_in_exec_summary_superadmin),
+        registry_source: editingId ? (prev?.registry_source || 'manual') : 'manual',
         metadata: {},
       }
       if (!payload.company_name) throw new Error('Company name is required.')
@@ -362,6 +383,7 @@ export default function AccountDirectoryPage() {
           industry_label: trimOrNull(r.industry_label),
           source_ref: trimOrNull(r.source_ref) || `import:${file.name}`,
           visible_in_exec_summary_superadmin: isSuperAdmin,
+          registry_source: 'spreadsheet_import',
           metadata: { import_file: file.name },
         })
         n += 1
@@ -429,8 +451,9 @@ export default function AccountDirectoryPage() {
           <div>
             <h1 className="sd-title">Account directory</h1>
             <p className="sd-subtitle">
-              Each organization sees only its own entries. Superadmin sees every account with source metadata (extract,
-              import, manual). Tag industries for executive-summary rollups. Import{' '}
+              Each organization sees only its own entries. Superadmin sees every account. Web registrations sync into
+              this table automatically (origin: Web signup); spreadsheet rows are tagged as Imported. Extract and manual
+              entries are labeled separately. Import{' '}
               <strong>Company list (2025) for platform.xlsx</strong> after choosing the target company.
             </p>
           </div>
@@ -560,6 +583,16 @@ export default function AccountDirectoryPage() {
                 ))}
               </select>
             </div>
+            <div className="sd-form-group">
+              <label>Origin</label>
+              <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+                {REGISTRY_SOURCE_FILTER.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="sd-form-group sd-form-full">
               <label>Search</label>
               <input
@@ -637,6 +670,7 @@ export default function AccountDirectoryPage() {
                     <th>Email</th>
                     <th>Industry</th>
                     <th>Exec (SA)</th>
+                    <th>Origin</th>
                     <th>Source</th>
                     <th />
                   </tr>
@@ -666,6 +700,9 @@ export default function AccountDirectoryPage() {
                       <td>{r.email || '—'}</td>
                       <td>{r.industry_hub_id || r.industry_label || '—'}</td>
                       <td>{r.visible_in_exec_summary_superadmin ? 'Yes' : '—'}</td>
+                      <td>
+                        <span className="ad-muted">{formatDirectoryRegistrySource(r.registry_source)}</span>
+                      </td>
                       <td>
                         <span className="ad-muted" title={JSON.stringify(r.metadata || {})}>
                           {r.source_ref || r.metadata?.source_company_id || '—'}

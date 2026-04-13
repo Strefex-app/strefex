@@ -414,7 +414,26 @@ a.app-page-btn-secondary {
   a.app-page-btn-primary,
   a.app-page-btn-outline,
   a.app-page-btn-secondary {
-    padding: 9px 14px;
-    font-size: 13px;
+    padding: 12px 16px;
+    font-size: 15px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .app-page-btn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-page-btn-row > .app-page-btn-primary,
+  .app-page-btn-row > .app-page-btn-outline,
+  .app-page-btn-row > .app-page-btn-secondary,
+  .app-page-btn-row > .app-page-btn-danger,
+  .app-page-btn-row > a.app-page-btn-primary,
+  .app-page-btn-row > a.app-page-btn-outline {
+    width: 100%;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
   }
 }

@@ -97,6 +97,7 @@ export function mapRowToPayload(o, defaultSourceRef) {
     website: trimOrNull(o.website),
     row_index: rowIndex,
     source_ref: trimOrNull(o.source_ref) || defaultSourceRef || null,
+    registry_source: 'spreadsheet_import',
     metadata: {},
   }
 }

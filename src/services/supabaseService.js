@@ -238,6 +238,19 @@ export const profilesService = {
     if (error) throw error
     return data || []
   },
+
+  /**
+   * Platform directory: all profiles + companies (RLS: superadmin / auditor_external only).
+   */
+  async listAllWithCompanies() {
+    if (!isSupabaseConfigured) return []
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, phone, role, metadata, created_at, company_id, companies(*)')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
 }
 
 /* ================================================================

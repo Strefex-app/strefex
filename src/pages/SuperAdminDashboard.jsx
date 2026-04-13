@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { PLANS, getPlanById, BUYER_TRIAL_DAYS } from '../services/stripeService'
@@ -12,6 +12,7 @@ import useAuditStore, { MODULES as AUDIT_MODULES, SEVERITIES as AUDIT_SEVERITIES
 import { useAuthStore } from '../store/authStore'
 import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAuth'
 import authService from '../services/authService'
+import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -101,6 +102,15 @@ const EXTEND_PERIODS = [
   { value: 180, label: '6 Months' },
   { value: 365, label: '1 Year' },
 ]
+
+function trialPromoAccountTypeLabel(accountType) {
+  if (accountType === 'service_provider') return 'Service Provider'
+  if (accountType === 'buyer') return 'Buyer'
+  if (accountType === 'seller') return 'Seller'
+  if (accountType === 'auditor') return 'Auditor'
+  if (accountType) return String(accountType).replace(/_/g, ' ')
+  return '—'
+}
 
 /* Grantable features — grouped by the plan tier that unlocks them */
 const GRANTABLE_FEATURES = [
@@ -219,6 +229,31 @@ function MiniBarChart({ items, maxVal }) {
   )
 }
 
+function profileRowToAccountStub(p) {
+  const co = p?.companies
+  const md = p?.metadata && typeof p.metadata === 'object' ? p.metadata : {}
+  const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
+  const accountType = types[0] || co?.account_type || 'seller'
+  const industries = Array.isArray(md.industries) ? md.industries : md.industry ? [md.industry] : []
+  return {
+    id: p.id,
+    email: String(p.email || '').trim().toLowerCase(),
+    company: co?.name || md.company_name || '',
+    contactName: p.full_name,
+    fullName: p.full_name,
+    accountType,
+    plan: co?.plan || 'start',
+    status: co?.status === 'active' ? 'active' : p.status || 'active',
+    registeredAt: p.created_at || new Date().toISOString(),
+    industries,
+    categories: md.categories && typeof md.categories === 'object' ? md.categories : {},
+    serviceCategories: Array.isArray(md.service_categories) ? md.service_categories : [],
+    auditorDocuments: md.auditor_documents || '',
+    auditorVerificationStatus: md.auditor_verification_status || null,
+    _source: 'supabase',
+  }
+}
+
 /* ═══════════════════════════════════════════════════════
  *  SUPER ADMIN DASHBOARD
  * ═══════════════════════════════════════════════════════ */
@@ -247,6 +282,30 @@ export default function SuperAdminDashboard() {
 
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const updateRegistryAccount = useAccountRegistry((s) => s.updateAccount)
+  const rehydrateRegistryFromStorage = useAccountRegistry((s) => s.rehydrateRegistryFromStorage)
+  const authRole = useAuthStore((s) => s.role)
+  const [supabaseProfileRows, setSupabaseProfileRows] = useState([])
+
+  useEffect(() => {
+    rehydrateRegistryFromStorage()
+  }, [rehydrateRegistryFromStorage])
+
+  useEffect(() => {
+    if (authRole !== 'superadmin' && authRole !== 'auditor_external') return
+    if (!isSupabaseConfigured) return
+    let cancelled = false
+    void profilesService
+      .listAllWithCompanies()
+      .then((rows) => {
+        if (!cancelled) setSupabaseProfileRows(Array.isArray(rows) ? rows : [])
+      })
+      .catch(() => {
+        if (!cancelled) setSupabaseProfileRows([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [authRole])
 
   const syncCurrentSessionIfAffected = useCallback((updatedEmail) => {
     const currentEmail = String(useAuthStore.getState().user?.email || '').toLowerCase()
@@ -263,11 +322,6 @@ export default function SuperAdminDashboard() {
   const [trialPromoCode, setTrialPromoCode] = useState('')
   const [trialFeedback, setTrialFeedback] = useState('')
 
-  const buyerAccounts = useMemo(
-    () => [...accounts, ...registryAccounts].filter((a) => a.accountType === 'buyer'),
-    [accounts, registryAccounts]
-  )
-
   /* ── Feature grants state ────────────────────────────── */
   const [featureGrants, setFeatureGrants] = useState(loadFeatureGrants)
   const [grantCompany, setGrantCompany] = useState('')
@@ -283,7 +337,62 @@ export default function SuperAdminDashboard() {
     (g) => g.expiresAt && new Date(g.expiresAt) <= new Date()
   ), [featureGrants])
 
-  const selectedGrantAccount = useMemo(() => accounts.find((a) => a.id === grantCompany), [accounts, grantCompany])
+  const normalizedAccounts = useMemo(() => {
+    const fromDb = supabaseProfileRows.map(profileRowToAccountStub)
+    const merged = [...accounts, ...registryAccounts, ...fromDb]
+    const dedup = new Map()
+    let seq = 0
+    for (const a of merged) {
+      const email = String(a.email || '').trim().toLowerCase()
+      const key = email || `id:${a.id ?? seq}`
+      seq += 1
+      const row = {
+        ...a,
+        id: a.id || `acct-${seq}`,
+        company: a.company || a.companyName || 'Business Account',
+        email: email || String(a.email || ''),
+        name: a.name || a.contactName || a.fullName || '—',
+        accountType: a.accountType || 'seller',
+        plan: a.plan || 'start',
+        status: a.status || 'active',
+        registeredAt: a.registeredAt || new Date().toISOString(),
+        lastActive: a.lastActive || a.registeredAt || new Date().toISOString(),
+        industries: Array.isArray(a.industries)
+          ? a.industries
+          : Array.isArray(a.industry)
+            ? a.industry
+            : a.industry
+              ? [a.industry]
+              : [],
+        categories: a.categories || {},
+        users: Number(a.users || 0),
+        projects: Number(a.projects || 0),
+        auditorDocuments: a.auditorDocuments || a.metadata?.auditor_documents || '',
+        auditorVerificationStatus:
+          a.auditorVerificationStatus || a.metadata?.auditor_verification_status || null,
+        registryLookupKey: String(email || a.email || a.id || '').toLowerCase(),
+      }
+      const prev = dedup.get(key)
+      if (!prev) {
+        dedup.set(key, row)
+        continue
+      }
+      const prevIsUuid = String(prev.id || '').length === 36 && !String(prev.id).startsWith('pending')
+      const nextIsUuid = String(row.id || '').length === 36 && !String(row.id).startsWith('pending')
+      dedup.set(
+        key,
+        nextIsUuid && !prevIsUuid
+          ? { ...prev, ...row, id: row.id }
+          : { ...row, ...prev, id: prevIsUuid ? prev.id : row.id },
+      )
+    }
+    return [...dedup.values()]
+  }, [accounts, registryAccounts, supabaseProfileRows])
+
+  const selectedGrantAccount = useMemo(
+    () => normalizedAccounts.find((a) => a.id === grantCompany),
+    [normalizedAccounts, grantCompany],
+  )
 
   /* Features that can be granted to the selected account (only features above their current plan) */
   const availableGrantFeatures = useMemo(() => {
@@ -296,7 +405,7 @@ export default function SuperAdminDashboard() {
 
   const handleGrantFeature = useCallback(() => {
     if (!grantCompany || grantFeatures.length === 0) return
-    const acct = accounts.find((a) => a.id === grantCompany)
+    const acct = normalizedAccounts.find((a) => a.id === grantCompany)
     if (!acct) return
 
     const now = new Date()
@@ -326,7 +435,7 @@ export default function SuperAdminDashboard() {
     setGrantFeatures([])
     setGrantFeedback(`Granted ${newGrants.length} feature(s) to ${acct.company}`)
     setTimeout(() => setGrantFeedback(''), 4000)
-  }, [grantCompany, grantFeatures, grantPeriod, accounts, featureGrants])
+  }, [grantCompany, grantFeatures, grantPeriod, normalizedAccounts, featureGrants])
 
   const handleRevokeGrant = useCallback((grantId) => {
     const updated = featureGrants.filter((g) => g.id !== grantId)
@@ -363,34 +472,41 @@ export default function SuperAdminDashboard() {
   const [srAssignEmail, setSrAssignEmail] = useState('')
   const [srNewStatus, setSrNewStatus] = useState('')
 
-  /* ── Computed analytics ──────────────────────────────── */
+  /* ── Computed analytics (demo + local registry + Supabase) ── */
   const analytics = useMemo(() => {
-    const total = accounts.length
-    const buyers = accounts.filter((a) => a.accountType === 'buyer')
-    const sellers = accounts.filter((a) => a.accountType === 'seller')
-    const serviceProviders = accounts.filter((a) => a.accountType === 'service_provider')
-    const active = accounts.filter((a) => a.status === 'active')
-    const trialing = accounts.filter((a) => a.status === 'trialing')
-    const canceled = accounts.filter((a) => a.status === 'canceled')
-    const totalTeamMembers = accounts.reduce((s, a) => s + (a.teamMembers?.length || 0), 0)
+    const rows = normalizedAccounts
+    const total = rows.length
+    const buyers = rows.filter((a) => a.accountType === 'buyer')
+    const sellers = rows.filter((a) => a.accountType === 'seller')
+    const serviceProviders = rows.filter((a) => a.accountType === 'service_provider')
+    const active = rows.filter((a) => a.status === 'active')
+    const trialing = rows.filter((a) => a.status === 'trialing')
+    const canceled = rows.filter((a) => a.status === 'canceled')
+    const totalTeamMembers = rows.reduce((s, a) => s + (a.teamMembers?.length || 0), 0)
 
-    // Plan distribution
     const planCounts = {}
-    PLANS.forEach((p) => { planCounts[p.id] = 0 })
-    accounts.forEach((a) => { planCounts[a.plan] = (planCounts[a.plan] || 0) + 1 })
-    const paid = accounts.filter((a) => a.plan !== 'start')
-    const free = accounts.filter((a) => a.plan === 'start')
+    PLANS.forEach((p) => {
+      planCounts[p.id] = 0
+    })
+    rows.forEach((a) => {
+      planCounts[a.plan] = (planCounts[a.plan] || 0) + 1
+    })
+    const paid = rows.filter((a) => a.plan !== 'start')
+    const free = rows.filter((a) => a.plan === 'start')
 
-    // Industry distribution
     const industryCounts = {}
-    INDUSTRIES.forEach((ind) => { industryCounts[ind.id] = 0 })
-    accounts.forEach((a) => {
-      (a.industry || []).forEach((ind) => { industryCounts[ind] = (industryCounts[ind] || 0) + 1 })
+    INDUSTRIES.forEach((ind) => {
+      industryCounts[ind.id] = 0
+    })
+    rows.forEach((a) => {
+      const inds = a.industries || (Array.isArray(a.industry) ? a.industry : a.industry ? [a.industry] : [])
+      inds.forEach((ind) => {
+        industryCounts[ind] = (industryCounts[ind] || 0) + 1
+      })
     })
 
-    // Equipment distribution (top 10)
     const equipCounts = {}
-    accounts.forEach((a) => {
+    rows.forEach((a) => {
       Object.entries(a.categories || {}).forEach(([ind, cats]) => {
         cats.forEach((cat) => {
           const catDef = (EQUIPMENT_CATEGORIES_BY_INDUSTRY[ind] || []).find((c) => c.id === cat)
@@ -404,22 +520,20 @@ export default function SuperAdminDashboard() {
       .slice(0, 10)
       .map(([label, value]) => ({ label, value, color: '#000888' }))
 
-    // Revenue estimation
-    const monthlyRevenue = accounts.reduce((sum, a) => {
+    const monthlyRevenue = rows.reduce((sum, a) => {
       const plan = PLANS.find((p) => p.id === a.plan)
       if (!plan) return sum
       const price = plan.price
       return a.status !== 'canceled' ? sum + price : sum
     }, 0)
 
-    // Registration timeline (last 6 months)
     const now = Date.now()
     const monthMs = 30 * 86400000
     const regTimeline = []
     for (let i = 5; i >= 0; i--) {
       const from = now - (i + 1) * monthMs
       const to = now - i * monthMs
-      const count = accounts.filter((a) => {
+      const count = rows.filter((a) => {
         const t = new Date(a.registeredAt).getTime()
         return t >= from && t < to
       }).length
@@ -427,31 +541,52 @@ export default function SuperAdminDashboard() {
       regTimeline.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), value: count, color: '#000888' })
     }
 
-    // Total users & projects
-    const totalUsers = accounts.reduce((s, a) => s + (a.users || 0), 0)
-    const totalProjects = accounts.reduce((s, a) => s + (a.projects || 0), 0)
+    const totalUsers = rows.reduce((s, a) => s + (a.users || 0), 0)
+    const totalProjects = rows.reduce((s, a) => s + (a.projects || 0), 0)
 
-    // Expiring soon (within 30 days)
-    const expiringSoon = accounts.filter((a) => {
+    const expiringSoon = rows.filter((a) => {
       const d = daysUntil(a.validUntil)
       return d !== null && d >= 0 && d <= 30 && a.status !== 'canceled'
     })
 
-    // Recently registered (last 14 days)
-    const recentlyRegistered = accounts
-      .filter((a) => (now - new Date(a.registeredAt).getTime()) < 14 * 86400000)
+    const recentlyRegistered = rows
+      .filter((a) => now - new Date(a.registeredAt).getTime() < 14 * 86400000)
       .sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt))
 
     return {
-      total, buyers, sellers, serviceProviders, active, trialing, canceled,
+      total,
+      buyers,
+      sellers,
+      serviceProviders,
+      active,
+      trialing,
+      canceled,
       totalTeamMembers,
-      planCounts, paid, free,
-      industryCounts, topEquipment,
-      monthlyRevenue, regTimeline,
-      totalUsers, totalProjects,
-      expiringSoon, recentlyRegistered,
+      planCounts,
+      paid,
+      free,
+      industryCounts,
+      topEquipment,
+      monthlyRevenue,
+      regTimeline,
+      totalUsers,
+      totalProjects,
+      expiringSoon,
+      recentlyRegistered,
     }
-  }, [accounts])
+  }, [normalizedAccounts])
+
+  const trialPromoEligibleAccounts = useMemo(
+    () =>
+      normalizedAccounts
+        .filter((a) => a.status !== 'canceled')
+        .sort((a, b) =>
+          String(a.company || a.email || '').localeCompare(String(b.company || b.email || ''), undefined, {
+            sensitivity: 'base',
+          }),
+        ),
+    [normalizedAccounts],
+  )
 
   /* ── Security analytics ─────────────────────────────── */
   const secAnalytics = useMemo(() => {
@@ -504,32 +639,6 @@ export default function SuperAdminDashboard() {
     setSecurityEvents(updated)
     try { localStorage.setItem(SEC_KEY, JSON.stringify(updated)) } catch { /* */ }
   }
-
-  const normalizedAccounts = useMemo(() => {
-    const merged = [...accounts, ...registryAccounts]
-    return merged.map((a, idx) => ({
-      ...a,
-      id: a.id || `acct-${idx + 1}`,
-      company: a.company || a.companyName || 'Business Account',
-      email: a.email || '',
-      name: a.name || a.contactName || a.fullName || '—',
-      accountType: a.accountType || 'seller',
-      plan: a.plan || 'start',
-      status: a.status || 'active',
-      registeredAt: a.registeredAt || new Date().toISOString(),
-      lastActive: a.lastActive || a.registeredAt || new Date().toISOString(),
-      industries: Array.isArray(a.industries)
-        ? a.industries
-        : (Array.isArray(a.industry) ? a.industry : (a.industry ? [a.industry] : [])),
-      categories: a.categories || {},
-      users: Number(a.users || 0),
-      projects: Number(a.projects || 0),
-      auditorDocuments: a.auditorDocuments || a.metadata?.auditor_documents || '',
-      auditorVerificationStatus: a.auditorVerificationStatus || a.metadata?.auditor_verification_status || null,
-      // Prefer email for registry updates because account IDs can differ across merged sources.
-      registryLookupKey: a.email || a.id,
-    }))
-  }, [accounts, registryAccounts])
 
   /* ── Filtered account list ──────────────────────────── */
   const filteredAccounts = useMemo(() => {
@@ -742,7 +851,7 @@ export default function SuperAdminDashboard() {
           <h3 className="sad-widget-title">Revenue by Plan (Monthly)</h3>
           <MiniBarChart
             items={PLANS.filter((p) => p.price > 0).map((p) => {
-              const count = accounts.filter((a) => a.plan === p.id && a.status !== 'canceled')
+              const count = normalizedAccounts.filter((a) => a.plan === p.id && a.status !== 'canceled')
               const revenue = count.reduce((s, a) => s + p.price, 0)
               return { label: `${p.name} (${count.length})`, value: revenue, color: planColor(p.id) }
             })}
@@ -1995,7 +2104,7 @@ export default function SuperAdminDashboard() {
               onChange={(e) => { setGrantCompany(e.target.value); setGrantFeatures([]) }}
             >
               <option value="">— Choose a company —</option>
-              {accounts
+              {normalizedAccounts
                 .filter((a) => a.status !== 'canceled')
                 .sort((a, b) => a.company.localeCompare(b.company))
                 .map((a) => (
@@ -2334,7 +2443,7 @@ export default function SuperAdminDashboard() {
   /* ── Trial Management handlers ─────────────────────────── */
   const handleExtendTrial = () => {
     if (!trialTargetCompany) return
-    const acct = [...accounts, ...registryAccounts].find((a) => a.id === trialTargetCompany)
+    const acct = normalizedAccounts.find((a) => a.id === trialTargetCompany)
     if (!acct) return
 
     const now = new Date()
@@ -2343,7 +2452,7 @@ export default function SuperAdminDashboard() {
       accountId: acct.id,
       company: acct.company,
       email: acct.email,
-      accountType: acct.accountType || 'buyer',
+      accountType: acct.accountType || 'seller',
       type: 'trial_extension',
       extraDays: trialExtendDays,
       grantedAt: now.toISOString(),
@@ -2368,7 +2477,7 @@ export default function SuperAdminDashboard() {
       return
     }
 
-    const acct = [...accounts, ...registryAccounts].find((a) => a.id === trialTargetCompany)
+    const acct = normalizedAccounts.find((a) => a.id === trialTargetCompany)
     if (!acct) return
 
     const now = new Date()
@@ -2377,7 +2486,7 @@ export default function SuperAdminDashboard() {
       accountId: acct.id,
       company: acct.company,
       email: acct.email,
-      accountType: acct.accountType || 'buyer',
+      accountType: acct.accountType || 'seller',
       type: 'promo_code',
       promoCode: normalized,
       planId: promo.planId,
@@ -2407,17 +2516,18 @@ export default function SuperAdminDashboard() {
       {/* Info */}
       <div className="sad-section" style={{ background: 'rgba(0,8,136,.04)', borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
         <p style={{ margin: 0, fontSize: 14, color: '#444', lineHeight: 1.6 }}>
-          <strong>Buyer Trial Policy:</strong> New buyer accounts receive a free <strong>{BUYER_TRIAL_DAYS}-day trial</strong> of the Basic plan.
-          After the trial expires, buyers must subscribe to continue using platform features.
-          You can extend trials or apply promo codes below.
+          <strong>Default buyer trial:</strong> New <strong>buyer</strong> accounts receive a free{' '}
+          <strong>{BUYER_TRIAL_DAYS}-day trial</strong> of the Basic plan. As superadmin you can extend trials or apply
+          promo codes to <strong>any active account</strong> (buyers, sellers, service providers, auditors, and other
+          types).
         </p>
       </div>
 
       {/* KPIs */}
       <div className="sad-kpi-row" style={{ marginBottom: 24 }}>
         <div className="sad-kpi-card">
-          <div className="sad-kpi-val">{buyerAccounts.length}</div>
-          <div className="sad-kpi-label">Buyer Accounts</div>
+          <div className="sad-kpi-val">{trialPromoEligibleAccounts.length}</div>
+          <div className="sad-kpi-label">Eligible accounts</div>
         </div>
         <div className="sad-kpi-card">
           <div className="sad-kpi-val">{trialGrants.filter((g) => g.type === 'trial_extension').length}</div>
@@ -2431,19 +2541,21 @@ export default function SuperAdminDashboard() {
 
       {/* Extend Trial form */}
       <div className="sad-section">
-        <h3 className="sad-section-title">Extend Buyer Trial</h3>
+        <h3 className="sad-section-title">Extend trial</h3>
         <div className="fg-form">
-          <div className="fg-form-row">
-            <div className="fg-form-group" style={{ flex: 2 }}>
-              <label className="fg-label">Select Buyer Account</label>
+          <div className="fg-form-row fg-trial-actions-row">
+            <div className="fg-form-group fg-trial-field--main">
+              <label className="fg-label">Select account</label>
               <select className="fg-select" value={trialTargetCompany} onChange={(e) => setTrialTargetCompany(e.target.value)}>
                 <option value="">— Select account —</option>
-                {buyerAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.company || a.email} ({a.email})</option>
+                {trialPromoEligibleAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.company || a.email} — {trialPromoAccountTypeLabel(a.accountType)} — {a.email}
+                  </option>
                 ))}
               </select>
             </div>
-            <div className="fg-form-group" style={{ flex: 1 }}>
+            <div className="fg-form-group fg-trial-field--secondary">
               <label className="fg-label">Extend By</label>
               <select className="fg-select" value={trialExtendDays} onChange={(e) => setTrialExtendDays(Number(e.target.value))}>
                 {EXTEND_PERIODS.map((p) => (
@@ -2451,8 +2563,9 @@ export default function SuperAdminDashboard() {
                 ))}
               </select>
             </div>
-            <div className="fg-form-group" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-end' }}>
+            <div className="fg-form-group fg-trial-field--btn">
               <button
+                type="button"
                 className="fg-grant-btn"
                 onClick={handleExtendTrial}
                 disabled={!trialTargetCompany}
@@ -2468,29 +2581,34 @@ export default function SuperAdminDashboard() {
       <div className="sad-section">
         <h3 className="sad-section-title">Apply Promo Code</h3>
         <div className="fg-form">
-          <div className="fg-form-row">
-            <div className="fg-form-group" style={{ flex: 2 }}>
-              <label className="fg-label">Select Buyer Account</label>
+          <div className="fg-form-row fg-trial-actions-row">
+            <div className="fg-form-group fg-trial-field--main">
+              <label className="fg-label">Select account</label>
               <select className="fg-select" value={trialTargetCompany} onChange={(e) => setTrialTargetCompany(e.target.value)}>
                 <option value="">— Select account —</option>
-                {buyerAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.company || a.email} ({a.email})</option>
+                {trialPromoEligibleAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.company || a.email} — {trialPromoAccountTypeLabel(a.accountType)} — {a.email}
+                  </option>
                 ))}
               </select>
             </div>
-            <div className="fg-form-group" style={{ flex: 1 }}>
+            <div className="fg-form-group fg-trial-field--secondary">
               <label className="fg-label">Promo Code</label>
               <input
                 type="text"
-                className="fg-select"
+                className="fg-select fg-input-upper"
                 value={trialPromoCode}
                 onChange={(e) => setTrialPromoCode(e.target.value)}
                 placeholder="e.g. STREFEX30"
-                style={{ textTransform: 'uppercase' }}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
               />
             </div>
-            <div className="fg-form-group" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-end' }}>
+            <div className="fg-form-group fg-trial-field--btn">
               <button
+                type="button"
                 className="fg-grant-btn"
                 onClick={handleApplyPromo}
                 disabled={!trialTargetCompany || !trialPromoCode.trim()}
@@ -2537,6 +2655,7 @@ export default function SuperAdminDashboard() {
                   <th>Date</th>
                   <th>Company</th>
                   <th>Email</th>
+                  <th>Account type</th>
                   <th>Type</th>
                   <th>Details</th>
                   <th>New Expiry</th>
@@ -2548,6 +2667,7 @@ export default function SuperAdminDashboard() {
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(g.grantedAt)}</td>
                     <td style={{ fontWeight: 600 }}>{g.company || '—'}</td>
                     <td>{g.email}</td>
+                    <td style={{ fontSize: 12 }}>{trialPromoAccountTypeLabel(g.accountType)}</td>
                     <td>
                       {g.type === 'trial_extension' && (
                         <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 11 }}>
@@ -2600,7 +2720,9 @@ export default function SuperAdminDashboard() {
           <button className={`sad-tab ${tab === 'trials' ? 'active' : ''}`} onClick={() => setTab('trials')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Trials & Promos
-            {buyerAccounts.length > 0 && <span className="sad-tab-badge">{buyerAccounts.length}</span>}
+            {trialPromoEligibleAccounts.length > 0 && (
+              <span className="sad-tab-badge">{trialPromoEligibleAccounts.length}</span>
+            )}
           </button>
           <button className={`sad-tab ${tab === 'feature-grants' ? 'active' : ''}`} onClick={() => setTab('feature-grants')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>

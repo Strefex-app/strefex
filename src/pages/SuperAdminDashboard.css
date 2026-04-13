@@ -155,6 +155,8 @@
 /* ── Table ────────────────────────────────────────────── */
 .sad-table-wrap {
   background: #fff; border-radius: 12px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   box-shadow: 0 2px 8px rgba(0,0,0,.05); border: 1px solid rgba(0,0,0,.06);
   margin-bottom: 16px;
 }
@@ -271,6 +273,25 @@
   .sad-kpis { grid-template-columns: 1fr; }
   .sad-header { padding: 16px; }
   .sad-detail-grid { grid-template-columns: 1fr 1fr; }
+  .sad-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sad-search {
+    min-width: 0;
+    width: 100%;
+    font-size: 16px;
+  }
+  .sad-select {
+    width: 100%;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .sad-tab {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
 }
 
 /* ── Dark mode ───────────────────────────────────────── */
@@ -667,11 +688,78 @@
 .fg-action-btn.revoke { color: #e74c3c; border-color: #e74c3c; }
 .fg-action-btn.revoke:hover { background: #fdecea; }
 
+/* Trial / promo — inline on wide screens, stacked on phones */
+.fg-form-row.fg-trial-actions-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.fg-trial-field--main { flex: 2 1 220px; min-width: 0; width: auto; }
+.fg-trial-field--secondary { flex: 1 1 160px; min-width: 0; width: auto; }
+.fg-trial-field--btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  width: auto;
+}
+.fg-grant-btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #000888;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 140px;
+  transition: background 0.15s;
+}
+.fg-grant-btn:hover:not(:disabled) { background: #000666; }
+.fg-grant-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.fg-input-upper { text-transform: uppercase; }
+
+[data-theme="dark"] .fg-grant-btn { background: #5dade2; color: #1a1a2e; }
+[data-theme="dark"] .fg-grant-btn:hover:not(:disabled) { background: #7ec8e3; }
+
 /* ── Feature Grants responsive ────────────────────────── */
 @media (max-width: 640px) {
   .fg-feature-grid { grid-template-columns: 1fr; }
   .fg-period-grid { flex-direction: column; }
-  .fg-period-btn { width: 100%; text-align: center; }
+  .fg-period-btn { width: 100%; text-align: center; min-height: 44px; }
+  .fg-form-row.fg-trial-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fg-trial-field--main,
+  .fg-trial-field--secondary,
+  .fg-trial-field--btn {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .fg-grant-btn {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  .fg-select {
+    max-width: none;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .fg-submit-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+    box-sizing: border-box;
+  }
+  .fg-action-btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .fg-feature-btn { min-height: 48px; }
 }
 
 /* ── Feature Grants dark mode ─────────────────────────── */

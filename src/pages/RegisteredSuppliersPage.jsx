@@ -86,6 +86,7 @@ function buildPayload(form) {
     website: trimOrNull(form.website),
     row_index: Number.isFinite(row_index) ? row_index : null,
     source_ref: trimOrNull(form.source_ref),
+    registry_source: 'manual',
     metadata: {},
   }
 }
@@ -171,6 +172,7 @@ export default function RegisteredSuppliersPage() {
         r.phone,
         r.website,
         r.source_ref,
+        r.registry_source,
         r.row_index != null ? String(r.row_index) : '',
       ]
         .map((x) => String(x || '').toLowerCase())
@@ -258,8 +260,14 @@ export default function RegisteredSuppliersPage() {
 
         const updateBody = { ...payload }
         delete updateBody.metadata
+        const prevRow = rows.find((x) => x.id === editingId)
+        const registry_source =
+          prevRow?.registry_source === 'spreadsheet_import' || prevRow?.registry_source === 'web_signup'
+            ? prevRow.registry_source
+            : updateBody.registry_source
         await platformRegisteredSuppliersService.update(editingId, {
           ...updateBody,
+          registry_source,
           presentation_files: nextPresentation,
           updated_at: new Date().toISOString(),
         })
@@ -573,6 +581,7 @@ export default function RegisteredSuppliersPage() {
                     <th>Phone</th>
                     <th>Web</th>
                     <th>Source</th>
+                    <th>Origin</th>
                     <th>RFQ / quote</th>
                     {canEdit && <th title="Presentation / marketing files">Docs</th>}
                     {canEdit && <th>Actions</th>}
@@ -625,6 +634,17 @@ export default function RegisteredSuppliersPage() {
                         </td>
                         <td className="buyer-dir-cell--muted" title={r.source_ref || ''}>
                           <span className="buyer-dir-td-clip">{r.source_ref || '—'}</span>
+                        </td>
+                        <td className="buyer-dir-cell--muted">
+                          <span className="buyer-dir-td-clip" title={r.registry_source || ''}>
+                            {r.registry_source === 'spreadsheet_import'
+                              ? 'Import'
+                              : r.registry_source === 'web_signup'
+                                ? 'Web'
+                                : r.registry_source === 'manual'
+                                  ? 'Manual'
+                                  : r.registry_source || '—'}
+                          </span>
                         </td>
                         <td className="buyer-dir-cell-rfq">
                           {rfqHref ? (

@@ -699,18 +699,6 @@
   margin-top: 14px;
 }
 
-.intel-mom-table {
-  font-size: 12px;
-}
-
-.intel-fin-sym {
-  display: block;
-  font-size: 10px;
-  color: var(--color-muted);
-  font-family: ui-monospace, monospace;
-  margin-top: 2px;
-}
-
 .intel-mfg-list {
   list-style: none;
   margin: 0;
@@ -774,29 +762,9 @@
   color: var(--color-muted);
 }
 
-/* Fin Market page */
-.intel-fin-source,
-.intel-fin-meta {
+.intel-table--compact td {
   font-size: 12px;
-  line-height: 1.45;
-}
-
-.intel-fin-group {
-  margin-bottom: 20px;
-}
-
-.intel-fin-group__title {
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted);
-  margin: 0 0 10px 0;
-}
-
-.intel-fin-table .intel-fin-err {
-  font-size: 11px;
-  color: #b71c1c;
+  padding: 6px 8px;
 }
 
 @media print {

@@ -14,6 +14,7 @@ export const REGISTERED_SUPPLIERS_EXPORT_HEADERS = [
   'website',
   'row_index',
   'source_ref',
+  'registry_source',
 ]
 
 export function rowToExportObject(r) {
@@ -29,6 +30,7 @@ export function rowToExportObject(r) {
     website: r.website ?? '',
     row_index: r.row_index != null ? String(r.row_index) : '',
     source_ref: r.source_ref ?? '',
+    registry_source: r.registry_source ?? '',
   }
 }
 

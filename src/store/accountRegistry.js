@@ -86,8 +86,40 @@ const getSessionEmailDomain = () => {
 
 /* ── Helpers ──────────────────────────────────────────── */
 
+/** Merge every `strefex-account-registry` slice (incl. `::guest` from signup before login). */
+function mergeAllRegistryLocalStorageSlices() {
+  const byEmail = new Map()
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i)
+    if (!key || (key !== REGISTRY_KEY && !key.startsWith(`${REGISTRY_KEY}::`))) continue
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const arr = JSON.parse(raw)
+      if (!Array.isArray(arr)) continue
+      for (const a of arr) {
+        const em = String(a?.email || '').trim().toLowerCase()
+        if (!em) continue
+        const prev = byEmail.get(em)
+        const t = new Date(a?.updatedAt || a?.registeredAt || 0).getTime()
+        const pt = prev ? new Date(prev?.updatedAt || prev?.registeredAt || 0).getTime() : -1
+        if (!prev || t >= pt) byEmail.set(em, a)
+      }
+    } catch {
+      /* skip bad slice */
+    }
+  }
+  return [...byEmail.values()]
+}
+
 const loadRegistry = () => {
   try {
+    const role = getAuthRole()
+    if (role === 'superadmin' || role === 'auditor_external') {
+      const merged = mergeAllRegistryLocalStorageSlices()
+      if (merged.length > 0) return merged
+    }
+
     const scopedRaw = localStorage.getItem(getRegistryKey())
     if (scopedRaw) return JSON.parse(scopedRaw)
 
@@ -97,7 +129,6 @@ const loadRegistry = () => {
     const legacyAccounts = JSON.parse(legacyRaw)
     if (!Array.isArray(legacyAccounts) || legacyAccounts.length === 0) return null
 
-    const role = getAuthRole()
     if (role === 'superadmin') return legacyAccounts
 
     const scope = getCompanyScope()
@@ -178,6 +209,14 @@ mergeRegistryIndex(initialAccounts)
 
 export const useAccountRegistry = create((set, get) => ({
   accounts: initialAccounts,
+
+  /** Call after login (especially superadmin) so scoped `::guest` registrations appear. */
+  rehydrateRegistryFromStorage: () => {
+    const next = loadRegistry() || []
+    mergeRegistryIndex(next)
+    set({ accounts: next })
+    return next.length
+  },
 
   registerAccount: (account) => {
     const accounts = get().accounts

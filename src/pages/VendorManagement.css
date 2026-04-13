@@ -90,6 +90,37 @@
 /* Responsive */
 @media (max-width: 800px) { .vm-modal-grid { grid-template-columns: 1fr; } .vm-kpis { grid-template-columns: repeat(3, 1fr); } }
 
+@media (max-width: 640px) {
+  .vm-modal-overlay {
+    padding: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    align-items: flex-end;
+  }
+  .vm-modal {
+    max-height: min(92vh, 900px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px;
+    padding-bottom: max(20px, calc(16px + env(safe-area-inset-bottom, 0px)));
+  }
+  .vm-modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .vm-modal-actions .vm-btn,
+  .vm-modal-actions button {
+    min-height: 44px;
+    width: 100%;
+  }
+  .vm-field input,
+  .vm-field select {
+    font-size: 16px;
+    min-height: 44px;
+  }
+}
+
 /* Dark mode — tokens via --vm-text, --vm-card */
 [data-theme="dark"] { --vm-text: var(--color-primary); --vm-card: var(--bg-card); }
 [data-theme="dark"] .vm-search, [data-theme="dark"] .vm-select, [data-theme="dark"] .vm-field input, [data-theme="dark"] .vm-field select { background: var(--bg-input); border-color: var(--input-border); color: var(--color-primary); }

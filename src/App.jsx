@@ -136,7 +136,6 @@ import {
   ERPIntegrations,
   TemplateLibrary,
   AuditLogs,
-  IntelligenceFinMarket,
   IntelligenceReports,
   NotFoundPage,
 } from './routes/lazyPages'
@@ -313,7 +312,7 @@ function App() {
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/intelligence" element={<P><IntelligenceRootRedirect /></P>} />
           <Route path="/intelligence/reports" element={<SuperAdmin><IntelligenceReports /></SuperAdmin>} />
-          <Route path="/intelligence/fin-market" element={<SuperAdmin><IntelligenceFinMarket /></SuperAdmin>} />
+          <Route path="/intelligence/fin-market" element={<Navigate to="/intelligence/reports" replace />} />
           <Route path="/intelligence/dashboard" element={<Navigate to="/intelligence/reports" replace />} />
           <Route path="/intelligence/markets" element={<Navigate to="/intelligence/reports" replace />} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />

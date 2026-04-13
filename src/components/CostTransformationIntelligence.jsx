@@ -75,7 +75,7 @@ function selectValueUpper(e) {
   return String(e.target.value || '').toUpperCase()
 }
 
-/** Home CTI strip: globe, calendar, macro KPIs. Full analytics live under Intelligence → Reports / Fin Market. */
+/** Home CTI strip: globe, calendar, macro KPIs. Full analytics live under Intelligence → Reports (superadmin). */
 export default function CostTransformationIntelligence() {
   const navigate = useNavigate()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
@@ -245,9 +245,6 @@ export default function CostTransformationIntelligence() {
             <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/reports')}>
               Reports
             </button>
-            <button type="button" className="cti-nav-item" onClick={() => navigate('/intelligence/fin-market')}>
-              Fin Market
-            </button>
           </>
         )}
         <button type="button" className="cti-nav-item cti-nav-item--primary" onClick={() => navigate('/profile')}>
@@ -347,11 +344,7 @@ export default function CostTransformationIntelligence() {
             <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/reports')}>
               intelligence report
             </button>{' '}
-            for cost/demand KPIs, scenarios, and national income context, or{' '}
-            <button type="button" className="cti-inline-link" onClick={() => navigate('/intelligence/fin-market')}>
-              Fin Market
-            </button>{' '}
-            for benchmark indices and volatility.
+            for cost/demand KPIs, scenarios, and national income context.
           </>
         ) : (
           <>
