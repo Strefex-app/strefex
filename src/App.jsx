@@ -98,6 +98,7 @@ import {
   DeveloperDashboard,
   CompanyMessenger,
   SuperAdminDashboard,
+  SuperAdminAccountDetailPage,
   ServiceRequestManagement,
   EquipmentHub,
   ProductHub,
@@ -401,6 +402,7 @@ function App() {
           <Route path="/service-requests" element={<P><ServiceRequestManagement /></P>} />
           <Route path="/developer" element={<SuperAdmin><DeveloperDashboard /></SuperAdmin>} />
           <Route path="/admin-dashboard" element={<SuperAdmin><SuperAdminDashboard /></SuperAdmin>} />
+          <Route path="/admin-dashboard/account/:companyId" element={<SuperAdmin><SuperAdminAccountDetailPage /></SuperAdmin>} />
 
           {/* ── Cost Management (Premium only) ────────────── */}
           <Route path="/cost-management" element={<PlanGate feature="costManagement" planName="Premium"><CostManagement /></PlanGate>} />

@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAuth'
 import authService from '../services/authService'
 import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
+import { VISIBILITY_TIER_LABELS } from '../constants/companyProfileDirectory'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -23,6 +24,9 @@ const CAT_KEY = 'strefex-categories'
 const TICKET_KEY = 'strefex-support-tickets'
 const MSG_KEY = 'strefex-messages'
 const SEC_KEY = 'strefex-security-events'
+
+/** Supabase profile directory fetch size (merged into superadmin account list). */
+const PROFILE_DIRECTORY_PAGE = 250
 
 /* ── Severity helpers ────────────────────────────────── */
 const SEVERITY = {
@@ -237,6 +241,9 @@ function profileRowToAccountStub(p) {
   const industries = Array.isArray(md.industries) ? md.industries : md.industry ? [md.industry] : []
   return {
     id: p.id,
+    companyId: co?.id || null,
+    registrationCode: co?.registration_code || null,
+    visibilityTier: co?.visibility_tier || null,
     email: String(p.email || '').trim().toLowerCase(),
     company: co?.name || md.company_name || '',
     contactName: p.full_name,
@@ -285,6 +292,19 @@ export default function SuperAdminDashboard() {
   const rehydrateRegistryFromStorage = useAccountRegistry((s) => s.rehydrateRegistryFromStorage)
   const authRole = useAuthStore((s) => s.role)
   const [supabaseProfileRows, setSupabaseProfileRows] = useState([])
+  const [profilesDbHasMore, setProfilesDbHasMore] = useState(false)
+  const [profilesDbLoading, setProfilesDbLoading] = useState(false)
+
+  const fetchProfileDirectoryPage = useCallback(async (offset) => {
+    const { rows, hasMore } = await profilesService.listAllWithCompanies({
+      limit: PROFILE_DIRECTORY_PAGE,
+      offset,
+    })
+    return {
+      rows: Array.isArray(rows) ? rows : [],
+      hasMore: Boolean(hasMore),
+    }
+  }, [])
 
   useEffect(() => {
     rehydrateRegistryFromStorage()
@@ -294,18 +314,54 @@ export default function SuperAdminDashboard() {
     if (authRole !== 'superadmin' && authRole !== 'auditor_external') return
     if (!isSupabaseConfigured) return
     let cancelled = false
-    void profilesService
-      .listAllWithCompanies()
-      .then((rows) => {
-        if (!cancelled) setSupabaseProfileRows(Array.isArray(rows) ? rows : [])
+    setProfilesDbLoading(true)
+    void fetchProfileDirectoryPage(0)
+      .then(({ rows, hasMore }) => {
+        if (!cancelled) {
+          setSupabaseProfileRows(rows)
+          setProfilesDbHasMore(hasMore)
+        }
       })
       .catch(() => {
-        if (!cancelled) setSupabaseProfileRows([])
+        if (!cancelled) {
+          setSupabaseProfileRows([])
+          setProfilesDbHasMore(false)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProfilesDbLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [authRole])
+  }, [authRole, fetchProfileDirectoryPage])
+
+  const loadMoreProfilesFromDb = useCallback(() => {
+    if (!isSupabaseConfigured || profilesDbLoading || !profilesDbHasMore) return
+    setProfilesDbLoading(true)
+    const offset = supabaseProfileRows.length
+    void fetchProfileDirectoryPage(offset)
+      .then(({ rows, hasMore }) => {
+        setSupabaseProfileRows((prev) => {
+          const seen = new Set(prev.map((r) => r.id).filter(Boolean))
+          const next = [...prev]
+          for (const r of rows) {
+            if (r?.id) {
+              if (!seen.has(r.id)) {
+                seen.add(r.id)
+                next.push(r)
+              }
+            } else {
+              next.push(r)
+            }
+          }
+          return next
+        })
+        setProfilesDbHasMore(hasMore)
+      })
+      .catch(() => {})
+      .finally(() => setProfilesDbLoading(false))
+  }, [fetchProfileDirectoryPage, profilesDbHasMore, profilesDbLoading, supabaseProfileRows.length])
 
   const syncCurrentSessionIfAffected = useCallback((updatedEmail) => {
     const currentEmail = String(useAuthStore.getState().user?.email || '').toLowerCase()
@@ -884,13 +940,34 @@ export default function SuperAdminDashboard() {
         <div className="sad-filter-count">{filteredAccounts.length} accounts</div>
       </div>
 
+      {(authRole === 'superadmin' || authRole === 'auditor_external') && isSupabaseConfigured && (
+        <div className="sad-filters sad-filters-db-profiles">
+          <span className="sad-filter-count">
+            Supabase profiles merged into this list: {supabaseProfileRows.length}
+            {profilesDbHasMore ? ' (additional batches available)' : ''}
+          </span>
+          {profilesDbHasMore && (
+            <button
+              type="button"
+              className="sad-btn-secondary"
+              disabled={profilesDbLoading}
+              onClick={loadMoreProfilesFromDb}
+            >
+              {profilesDbLoading ? 'Loading…' : 'Load more profiles'}
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="sad-table-wrap">
         <table className="sad-table">
           <thead>
             <tr>
               <th>Company</th>
+              <th>Platform #</th>
               <th>Contact</th>
               <th>Type</th>
+              <th>Visibility</th>
               <th>Plan</th>
               <th>Status</th>
               <th>Industries</th>
@@ -907,18 +984,25 @@ export default function SuperAdminDashboard() {
               const d = daysUntil(a.validUntil)
               const isExpiring = d !== null && d >= 0 && d <= 30
               const isExpired = d !== null && d < 0
+              const rowKey = a.companyId || a.id
               return (
-                <tr key={a.id} className={`sad-row ${selectedAccount?.id === a.id ? 'selected' : ''}`} onClick={() => setSelectedAccount(selectedAccount?.id === a.id ? null : a)}>
+                <tr key={rowKey} className={`sad-row ${selectedAccount?.id === a.id ? 'selected' : ''}`} onClick={() => setSelectedAccount(selectedAccount?.id === a.id ? null : a)}>
                   <td className="sad-cell-company">
                     <div className="sad-company-name">{a.company}</div>
                     <div className="sad-company-id">{a.id}</div>
                   </td>
+                  <td className="sad-cell-num sad-mono">{a.registrationCode || '—'}</td>
                   <td>
                     <div className="sad-contact-name">{a.name}</div>
                     <div className="sad-contact-email">{a.email}</div>
                   </td>
                   <td>
                     <span className={`sad-type-badge ${a.accountType}`}>{a.accountType === 'buyer' ? 'Buyer' : a.accountType === 'service_provider' ? 'Service' : a.accountType === 'auditor' ? 'Auditor' : 'Seller'}</span>
+                  </td>
+                  <td>
+                    <span className="sad-tier-pill" title={a.visibilityTier || ''}>
+                      {(a.visibilityTier && VISIBILITY_TIER_LABELS[a.visibilityTier]) || '—'}
+                    </span>
                   </td>
                   <td>
                     <span className="sad-plan-badge" style={{ background: planColor(a.plan) + '1a', color: planColor(a.plan) }}>
@@ -962,8 +1046,22 @@ export default function SuperAdminDashboard() {
             <div>
               <h3 className="sad-detail-company">{selectedAccount.company}</h3>
               <p className="sad-detail-email">{selectedAccount.email}</p>
+              {selectedAccount.registrationCode && (
+                <p className="sad-detail-meta">Platform # <span className="sad-mono">{selectedAccount.registrationCode}</span></p>
+              )}
             </div>
-            <button className="sad-detail-close" onClick={() => setSelectedAccount(null)}>Close</button>
+            <div className="sad-detail-actions">
+              {selectedAccount.companyId && (
+                <button
+                  type="button"
+                  className="sad-btn-secondary"
+                  onClick={() => navigate(`/admin-dashboard/account/${selectedAccount.companyId}`)}
+                >
+                  Open platform profile
+                </button>
+              )}
+              <button className="sad-detail-close" onClick={() => setSelectedAccount(null)}>Close</button>
+            </div>
           </div>
           <div className="sad-detail-grid">
             <div className="sad-detail-item"><span className="sad-detail-label">Account ID</span><span className="sad-detail-value">{selectedAccount.id}</span></div>

@@ -7,6 +7,7 @@ import {
   platformRegisteredSuppliersService,
   supplierDirectoryStorageService,
 } from '../services/supabaseService'
+import { fetchGlobalCrudListPaged } from '../services/pagedDirectoryFetch'
 import { downloadCsv, exportExcel, exportPdf } from '../utils/registeredSuppliersExport'
 import { parseRegisteredSuppliersCsv, mapRowToPayload } from '../utils/registeredSuppliersCsv'
 import { parseDirectorySpreadsheetRows } from '../utils/directorySpreadsheetImport'
@@ -135,7 +136,7 @@ export default function RegisteredSuppliersPage() {
     setError('')
     setInfo('')
     try {
-      const data = await platformRegisteredSuppliersService.list(null, {
+      const data = await fetchGlobalCrudListPaged(platformRegisteredSuppliersService, {
         orderBy: 'company_name',
         ascending: true,
       })

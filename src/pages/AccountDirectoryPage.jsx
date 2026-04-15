@@ -5,8 +5,8 @@ import AppLayout from '../components/AppLayout'
 import {
   isSupabaseConfigured,
   accountDirectoryEntriesService,
-  companiesService,
 } from '../services/supabaseService'
+import { fetchCompaniesListPaged, fetchGlobalCrudListPaged } from '../services/pagedDirectoryFetch'
 import { extractDirectoryFromPlatform } from '../services/accountDirectoryService'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
 import { useAuthStore } from '../store/authStore'
@@ -159,7 +159,7 @@ export default function AccountDirectoryPage() {
   const loadCompanies = useCallback(async () => {
     if (!isSuperAdmin || !isSupabaseConfigured) return
     try {
-      const data = await companiesService.list()
+      const data = await companiesService.list({ limit: 15000 })
       const list = Array.isArray(data) ? data : []
       setCompanies(list)
       setImportTargetCompanyId((prev) => prev || myCompanyId || list[0]?.id || '')
@@ -182,7 +182,7 @@ export default function AccountDirectoryPage() {
       try {
         let data
         if (isSuperAdmin && !filterCompanyId) {
-          data = await accountDirectoryEntriesService.list(null, {
+          data = await fetchGlobalCrudListPaged(accountDirectoryEntriesService, {
             orderBy: 'company_name',
             ascending: true,
           })

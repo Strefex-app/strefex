@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { isSupabaseConfigured, platformDirectoryContactsService } from '../services/supabaseService'
+import { fetchGlobalCrudListPaged } from '../services/pagedDirectoryFetch'
 import { downloadCsv, exportExcel, exportPdf } from '../utils/platformDirectoryExport'
 import { buildRfqOrQuoteMailto } from '../utils/directoryRfqMailto'
 import '../styles/app-page.css'
@@ -66,7 +67,7 @@ export default function PlatformDirectoryPage() {
     if (opts.showSpinner) setLoading(true)
     setError('')
     try {
-      const data = await platformDirectoryContactsService.list(null, {
+      const data = await fetchGlobalCrudListPaged(platformDirectoryContactsService, {
         orderBy: 'company_name',
         ascending: true,
       })

@@ -9,6 +9,12 @@
  */
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 
+/**
+ * Cross-tenant `list(null, …)` without filters previously issued unbounded selects.
+ * Callers that truly need more rows must pass `limit` or `unbounded: true`.
+ */
+const DEFAULT_GLOBAL_UNFILTERED_LIST_LIMIT = 2000
+
 /* ================================================================
    AUTH
    ================================================================ */
@@ -198,6 +204,18 @@ export const profilesService = {
     return data
   },
 
+  /** Superadmin / tenant admin: profiles linked to a company (RLS applies). */
+  async listForCompany(companyId) {
+    if (!isSupabaseConfigured || !companyId) return []
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, phone, role, metadata, status, created_at, company_id')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return data || []
+  },
+
   async updateProfile(updates) {
     if (!isSupabaseConfigured) return null
     const user = (await supabase.auth.getUser()).data.user
@@ -240,16 +258,22 @@ export const profilesService = {
   },
 
   /**
-   * Platform directory: all profiles + companies (RLS: superadmin / auditor_external only).
+   * Platform directory: profiles + companies (RLS: superadmin / auditor_external only).
+   * @param {{ limit?: number, offset?: number }} [params]
+   * @returns {Promise<{ rows: object[], hasMore: boolean }>}
    */
-  async listAllWithCompanies() {
-    if (!isSupabaseConfigured) return []
+  async listAllWithCompanies(params = {}) {
+    if (!isSupabaseConfigured) return { rows: [], hasMore: false }
+    const limit = Math.min(Math.max(Number(params.limit) || 250, 1), 1000)
+    const offset = Math.max(Number(params.offset) || 0, 0)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, full_name, phone, role, metadata, created_at, company_id, companies(*)')
       .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
     if (error) throw error
-    return data || []
+    const rows = data || []
+    return { rows, hasMore: rows.length === limit }
   },
 }
 
@@ -291,12 +315,22 @@ export const companiesService = {
     return data
   },
 
-  async list() {
+  /**
+   * @param {{ limit?: number, offset?: number, unbounded?: boolean }} [options]
+   * Default caps the window to avoid loading the entire companies table in admin UIs.
+   */
+  async list(options = {}) {
     if (!isSupabaseConfigured) return []
-    const { data, error } = await supabase
+    const offset = Math.max(Number(options.offset) || 0, 0)
+    let query = supabase
       .from('companies')
       .select('*')
       .order('created_at', { ascending: false })
+    if (!options.unbounded) {
+      const limit = Math.min(Math.max(Number(options.limit) || 10000, 1), 50000)
+      query = query.range(offset, offset + limit - 1)
+    }
+    const { data, error } = await query
     if (error) throw error
     return data || []
   },
@@ -360,7 +394,16 @@ function createCrudService(tableName) {
       if (companyId) query = query.eq('company_id', companyId)
       if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending ?? false })
       else query = query.order('created_at', { ascending: false })
-      if (options.limit) query = query.limit(options.limit)
+      const hasFilters = Array.isArray(options.filters) && options.filters.length > 0
+      let effectiveLimit = options.limit
+      if (effectiveLimit === undefined && !options.unbounded && !companyId && !hasFilters) {
+        effectiveLimit = DEFAULT_GLOBAL_UNFILTERED_LIST_LIMIT
+      }
+      if (effectiveLimit != null && effectiveLimit !== false) {
+        const lim = Math.max(1, Number(effectiveLimit))
+        const off = Math.max(0, Number(options.offset) || 0)
+        query = query.range(off, off + lim - 1)
+      }
       if (options.filters) {
         options.filters.forEach(([col, op, val]) => {
           query = query.filter(col, op, val)
@@ -625,6 +668,30 @@ async function searchSuppliersWithoutRpc(params = {}) {
     ;(profs || []).forEach((p) => profileByVendor.set(p.supplier_id, Number(p.profile_completeness || 0)))
   }
 
+  /** Linked tenant company (seller / service provider) profile visibility — same semantics as search_suppliers RPC. */
+  const tierByVendorId = new Map()
+  if (vids.length) {
+    const { data: vendRows, error: ev } = await supabase.from('vendors').select('id, company_id').in('id', vids)
+    if (ev) throw ev
+    const cids = [...new Set((vendRows || []).map((x) => x.company_id).filter(Boolean))]
+    let comps = []
+    if (cids.length) {
+      const { data: compRows, error: ec } = await supabase
+        .from('companies')
+        .select('id, visibility_tier, account_type')
+        .in('id', cids)
+      if (ec) throw ec
+      comps = compRows || []
+    }
+    const compById = new Map(comps.map((c) => [c.id, c]))
+    ;(vendRows || []).forEach((v) => {
+      const c = compById.get(v.company_id)
+      if (c && (c.account_type === 'seller' || c.account_type === 'service_provider')) {
+        tierByVendorId.set(v.id, String(c.visibility_tier || 'incomplete'))
+      }
+    })
+  }
+
   const qLower = rawQ.toLowerCase()
   let out = rows.map((s) => {
     const sc = latestScore.get(s.id) || {}
@@ -633,7 +700,14 @@ async function searchSuppliersWithoutRpc(params = {}) {
     const risk = Number(sc.risk_score || 0)
     const auditScore = Number(au.audit_score || 0)
     const completeness = s.vendor_id ? (profileByVendor.get(s.vendor_id) || 0) : 0
-    const boosted = Math.round((overall + completeness * 0.2) * 100) / 100
+    const tenantTier = s.vendor_id ? tierByVendorId.get(s.vendor_id) || null : null
+    let tenantRank = 0
+    if (tenantTier === 'verified') tenantRank = 4
+    else if (tenantTier === 'premium') tenantRank = 3
+    else if (tenantTier === 'standard') tenantRank = 2
+    else if (tenantTier === 'incomplete') tenantRank = 1
+    const tierBonus = tenantRank === 4 ? 12 : tenantRank === 3 ? 7 : tenantRank === 2 ? 3 : 0
+    const boosted = Math.round((overall + completeness * 0.2 + tierBonus) * 100) / 100
     let relevance = 0
     if (qLower) {
       const n = (s.display_name || '').toLowerCase()
@@ -654,6 +728,8 @@ async function searchSuppliersWithoutRpc(params = {}) {
       boosted_score: boosted,
       created_at: s.created_at,
       relevance,
+      tenant_visibility_tier: tenantTier,
+      tenant_visibility_rank: tenantRank,
     }
   })
 
@@ -670,12 +746,14 @@ async function searchSuppliersWithoutRpc(params = {}) {
     out.sort(
       (a, b) =>
         (b.relevance || 0) - (a.relevance || 0)
+        || (b.tenant_visibility_rank || 0) - (a.tenant_visibility_rank || 0)
         || (b.boosted_score || 0) - (a.boosted_score || 0),
     )
   } else {
     out.sort(
       (a, b) =>
         (b.boosted_score || 0) - (a.boosted_score || 0)
+        || (b.tenant_visibility_rank || 0) - (a.tenant_visibility_rank || 0)
         || String(a.display_name || '').localeCompare(String(b.display_name || '')),
     )
   }
@@ -794,9 +872,10 @@ export const companyProfileAttachmentsService = {
   maxBytes: COMPANY_PROFILE_MAX_BYTES,
 
   /**
-   * @returns {{ id: string, path: string, name: string, mime_type: string, size_bytes: number, uploaded_at: string }}
+   * @param {string} [profileSlot] — e.g. company_presentation | production_photo | production_video | other
+   * @returns {{ id: string, path: string, name: string, mime_type: string, size_bytes: number, uploaded_at: string, profile_slot: string }}
    */
-  async upload(companyId, file) {
+  async upload(companyId, file, profileSlot = 'other') {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
     if (!companyId || !file) throw new Error('Missing company or file')
     if (file.size > COMPANY_PROFILE_MAX_BYTES) {
@@ -823,6 +902,7 @@ export const companyProfileAttachmentsService = {
       mime_type: file.type || 'application/octet-stream',
       size_bytes: file.size,
       uploaded_at: new Date().toISOString(),
+      profile_slot: profileSlot || 'other',
     }
   },
 

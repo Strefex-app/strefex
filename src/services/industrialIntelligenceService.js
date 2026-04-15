@@ -590,6 +590,11 @@ const industrialIntelligenceService = {
     })
     return (base || [])
       .filter((s) => Number(s.overall_score || 0) >= 60 && Number(s.profile_completeness || 0) >= 60)
+      .sort(
+        (a, b) =>
+          (Number(b.tenant_visibility_rank) || 0) - (Number(a.tenant_visibility_rank) || 0)
+          || (Number(b.boosted_score || b.boostedScore || 0) - Number(a.boosted_score || a.boostedScore || 0)),
+      )
       .slice(0, limit)
   },
 

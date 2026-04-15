@@ -267,6 +267,39 @@ async function cleanupLaunchStarterExamples() {
   }
 }
 
+/** Map joined `companies` row into auth tenant for Profile / dashboards. */
+function mapTenantFromProfileCompany(profile) {
+  const companyId = profile?.company_id
+  if (!companyId) return null
+  const c = profile?.companies
+  if (!c || typeof c !== 'object') {
+    return { id: companyId, name: String(companyId), slug: String(companyId) }
+  }
+  return {
+    id: c.id,
+    name: c.name,
+    slug: c.slug || c.id,
+    email: c.email,
+    phone: c.phone,
+    country: c.country,
+    city: c.city,
+    address: c.address,
+    website: c.website,
+    account_type: c.account_type,
+    industries: c.industries,
+    categories: c.categories,
+    metadata: c.metadata,
+    profile_attachments: c.profile_attachments,
+    plan: c.plan,
+    status: c.status,
+    registration_code: c.registration_code,
+    visibility_tier: c.visibility_tier,
+    external_audit_status: c.external_audit_status,
+    external_audit_passed_at: c.external_audit_passed_at,
+    external_audit_notes: c.external_audit_notes,
+  }
+}
+
 /**
  * After successful Supabase auth, sync with Zustand store.
  */
@@ -304,13 +337,7 @@ async function storeSupabaseSession(session, profile) {
       accountType: primaryAccountType,
       primaryAccountType,
     },
-    tenant: profile?.company_id
-      ? {
-          id: profile.company_id,
-          name: profile.companies?.name || profile.company_id,
-          slug: profile.companies?.slug || profile.company_id,
-        }
-      : null,
+    tenant: mapTenantFromProfileCompany(profile),
   })
 
   analytics.track('user_login', {
@@ -886,7 +913,7 @@ const authService = {
               accountType: effectiveAccountType,
               primaryAccountType: effectiveAccountType,
             },
-            tenant: current?.tenant || null,
+            tenant: mapTenantFromProfileCompany(profile) || current?.tenant || null,
           })
           useSubscriptionStore.getState().setAccountType(effectiveAccountType)
           return profile

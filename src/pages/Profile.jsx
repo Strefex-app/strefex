@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import { useAuthStore } from '../store/authStore'
@@ -10,6 +10,13 @@ import { useTranslation } from '../i18n/useTranslation'
 import { tenantKey } from '../utils/tenantStorage'
 import { PROFILE_CONTACTS_SYNC_EVENT, notifyProfileContactsDirty } from '../services/workspaceCloudSync'
 import { removeStoragePathsBestEffort } from '../utils/storageCleanup'
+import {
+  PROFILE_ATTACHMENT_SLOT,
+  PROFILE_ATTACHMENT_SLOT_LABELS,
+  VISIBILITY_TIER_LABELS,
+  isSellerLikeAccountType,
+} from '../constants/companyProfileDirectory'
+import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
 import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
 import './Profile.css'
@@ -268,7 +275,12 @@ const CONTACTS_KEY = 'strefex-profile-contacts'
 
 function normalizeCompanyProfileAttachments(raw) {
   if (!Array.isArray(raw)) return []
-  return raw.filter((f) => f && typeof f.path === 'string' && f.path.length > 0)
+  return raw
+    .filter((f) => f && typeof f.path === 'string' && f.path.length > 0)
+    .map((f) => ({
+      ...f,
+      profile_slot: f.profile_slot || PROFILE_ATTACHMENT_SLOT.OTHER,
+    }))
 }
 
 function isAllowedCompanyProfileFile(file) {
@@ -403,7 +415,11 @@ const Profile = () => {
       fullName: user?.fullName || '',
       phone: user?.phone || '',
       companyName: tenant?.name || '',
-      companyAddress: tenant?.metadata?.address || '',
+      companyAddress: tenant?.address || tenant?.metadata?.address || '',
+      country: tenant?.country || '',
+      city: tenant?.city || '',
+      website: tenant?.website || '',
+      companySummary: tenant?.metadata?.company_summary || '',
     })
   }, [tenant, user])
 
@@ -486,11 +502,22 @@ const Profile = () => {
     } else {
       setCompanyError('')
     }
-    if (accepted.length) setPendingProfileAttachments((prev) => [...prev, ...accepted])
+    if (accepted.length) {
+      setPendingProfileAttachments((prev) => [
+        ...prev,
+        ...accepted.map((file) => ({ file, profile_slot: PROFILE_ATTACHMENT_SLOT.OTHER })),
+      ])
+    }
   }
 
   const removePendingCompanyProfile = (index) => {
     setPendingProfileAttachments((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const setPendingAttachmentSlot = (index, profileSlot) => {
+    setPendingProfileAttachments((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, profile_slot: profileSlot } : row)),
+    )
   }
 
   const openCompanyProfileAttachment = async (meta) => {
@@ -712,6 +739,14 @@ const Profile = () => {
     ? `Trial (ends ${trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : '—'})`
     : status === 'canceled' ? 'Canceled' : 'Active'
 
+  const profileDirSnapshot = useMemo(() => {
+    if (!tenant?.id || !isSellerLikeAccountType(accountType)) return null
+    return evaluateCompanyProfileDirectory({
+      ...tenant,
+      account_type: accountType,
+    })
+  }, [tenant, accountType])
+
   const handleSaveCompanyInfo = async () => {
     setCompanyError('')
     if (!companyForm.fullName.trim()) {
@@ -735,25 +770,44 @@ const Profile = () => {
       let nextProfileAttachments = null
       if (canAttachCompanyProfile && isSupabaseConfigured && tenant.id) {
         const uploaded = []
-        for (const file of pendingProfileAttachments) {
-          const meta = await companyProfileAttachmentsService.upload(tenant.id, file)
+        for (const row of pendingProfileAttachments) {
+          const file = row?.file || row
+          const slot = row?.profile_slot || PROFILE_ATTACHMENT_SLOT.OTHER
+          const meta = await companyProfileAttachmentsService.upload(tenant.id, file, slot)
           uploaded.push(meta)
           if (meta?.path) uploadedPathsThisSave.push(meta.path)
         }
         nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
       }
 
+      const nextSummary = companyForm.companySummary.trim()
       const companyPayload = {
         name: companyForm.companyName.trim(),
         address: nextAddress || null,
+        country: companyForm.country.trim() || null,
+        city: companyForm.city.trim() || null,
+        website: companyForm.website.trim() || null,
         metadata: {
           ...(tenant.metadata || {}),
           address: nextAddress || null,
+          company_summary: nextSummary || null,
         },
       }
       if (canAttachCompanyProfile && nextProfileAttachments != null) {
         companyPayload.profile_attachments = nextProfileAttachments
       }
+
+      const mergedForEval = {
+        ...tenant,
+        ...companyPayload,
+        account_type: accountType,
+        industries: tenant?.industries ?? companyPayload.industries ?? [],
+        profile_attachments:
+          nextProfileAttachments != null ? nextProfileAttachments : tenant?.profile_attachments,
+      }
+      const vis = buildCompanyVisibilityUpdate(mergedForEval)
+      companyPayload.visibility_tier = vis.visibility_tier
+      companyPayload.metadata = { ...companyPayload.metadata, ...vis.metadata }
 
       const updatedCompany = await companiesService.update(tenant.id, companyPayload)
 
@@ -779,6 +833,12 @@ const Profile = () => {
       setTenant({
         ...(tenant || {}),
         name: updatedCompany?.name || companyForm.companyName.trim(),
+        address: updatedCompany?.address ?? nextAddress || null,
+        country: updatedCompany?.country ?? companyForm.country.trim() || null,
+        city: updatedCompany?.city ?? companyForm.city.trim() || null,
+        website: updatedCompany?.website ?? companyForm.website.trim() || null,
+        registration_code: updatedCompany?.registration_code ?? tenant?.registration_code,
+        visibility_tier: updatedCompany?.visibility_tier ?? tenant?.visibility_tier,
         profile_attachments:
           updatedCompany?.profile_attachments != null
             ? normalizeCompanyProfileAttachments(updatedCompany.profile_attachments)
@@ -787,6 +847,7 @@ const Profile = () => {
           ...(tenant?.metadata || {}),
           ...(updatedCompany?.metadata || {}),
           address: nextAddress || null,
+          company_summary: nextSummary || null,
         },
       })
       setProfileAttachmentFiles([])
@@ -839,9 +900,30 @@ const Profile = () => {
                 </div>
                 <div className="prof-info-item full">
                   <span className="prof-info-label">Company Address</span>
-                  <span className="prof-info-value">{tenant?.metadata?.address || '—'}</span>
+                  <span className="prof-info-value">
+                    {tenant?.address || tenant?.metadata?.address || '—'}
+                  </span>
                 </div>
+                {tenant?.registration_code && (
+                  <div className="prof-info-item full">
+                    <span className="prof-info-label">Platform registration #</span>
+                    <span className="prof-info-value prof-mono">{tenant.registration_code}</span>
+                  </div>
+                )}
               </div>
+              {profileDirSnapshot && (
+                <div className="prof-dir-box" role="status">
+                  <p className="prof-dir-title">
+                    <strong>Directory status:</strong>{' '}
+                    {VISIBILITY_TIER_LABELS[profileDirSnapshot.visibilityTier] || profileDirSnapshot.visibilityTier}
+                  </p>
+                  <p className="prof-dir-hint">
+                    Mandatory profile complete → standard visibility on the platform. Tagged production photos (2+)
+                    and a production video → premium RFQ visibility. Passing an external audit → verified seller or
+                    service provider label (set by platform admin).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1093,6 +1175,45 @@ const Profile = () => {
                       disabled={savingCompany}
                     />
                   </div>
+                  <div className="prof-form-group">
+                    <label className="prof-form-label">Country</label>
+                    <input
+                      className="prof-form-input"
+                      value={companyForm.country}
+                      onChange={(e) => setCompanyForm((p) => ({ ...p, country: e.target.value }))}
+                      disabled={savingCompany}
+                    />
+                  </div>
+                  <div className="prof-form-group">
+                    <label className="prof-form-label">City</label>
+                    <input
+                      className="prof-form-input"
+                      value={companyForm.city}
+                      onChange={(e) => setCompanyForm((p) => ({ ...p, city: e.target.value }))}
+                      disabled={savingCompany}
+                    />
+                  </div>
+                  <div className="prof-form-group full">
+                    <label className="prof-form-label">Company website</label>
+                    <input
+                      className="prof-form-input"
+                      value={companyForm.website}
+                      onChange={(e) => setCompanyForm((p) => ({ ...p, website: e.target.value }))}
+                      disabled={savingCompany}
+                      placeholder="https://"
+                    />
+                  </div>
+                  <div className="prof-form-group full">
+                    <label className="prof-form-label">Company summary (min. 40 characters for full profile)</label>
+                    <textarea
+                      className="prof-form-input"
+                      rows={4}
+                      value={companyForm.companySummary}
+                      onChange={(e) => setCompanyForm((p) => ({ ...p, companySummary: e.target.value }))}
+                      disabled={savingCompany}
+                      placeholder="What you manufacture or deliver, key capabilities, certifications, markets…"
+                    />
+                  </div>
                   {canAttachCompanyProfile && (
                     <div className="prof-form-group full prof-profile-attachments-block">
                       <label className="prof-form-label">Profile attachments</label>
@@ -1123,6 +1244,25 @@ const Profile = () => {
                               {profileAttachmentFiles.map((meta) => (
                                 <div key={meta.id || meta.path} className="prof-doc-file">
                                   <span className="prof-doc-file-name">{meta.name || meta.path}</span>
+                                  <select
+                                    className="prof-attach-slot"
+                                    value={meta.profile_slot || PROFILE_ATTACHMENT_SLOT.OTHER}
+                                    disabled={savingCompany}
+                                    onChange={(e) => {
+                                      const v = e.target.value
+                                      setProfileAttachmentFiles((prev) =>
+                                        prev.map((f) =>
+                                          (f.id || f.path) === (meta.id || meta.path) ? { ...f, profile_slot: v } : f,
+                                        ),
+                                      )
+                                    }}
+                                  >
+                                    {Object.values(PROFILE_ATTACHMENT_SLOT).map((slot) => (
+                                      <option key={slot} value={slot}>
+                                        {PROFILE_ATTACHMENT_SLOT_LABELS[slot] || slot}
+                                      </option>
+                                    ))}
+                                  </select>
                                   <span className="prof-doc-file-meta">
                                     {meta.size_bytes != null ? formatSize(meta.size_bytes) : ''}
                                   </span>
@@ -1146,23 +1286,38 @@ const Profile = () => {
                                   </button>
                                 </div>
                               ))}
-                              {pendingProfileAttachments.map((file, idx) => (
-                                <div key={`pending-${idx}-${file.name}`} className="prof-doc-file prof-doc-file-pending">
-                                  <span className="prof-doc-file-name">{file.name}</span>
-                                  <span className="prof-doc-file-meta">
-                                    {formatSize(file.size)} · pending upload
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="prof-icon-btn danger small"
-                                    title="Remove"
-                                    disabled={savingCompany}
-                                    onClick={() => removePendingCompanyProfile(idx)}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
+                              {pendingProfileAttachments.map((row, idx) => {
+                                const file = row?.file || row
+                                return (
+                                  <div key={`pending-${idx}-${file.name}`} className="prof-doc-file prof-doc-file-pending">
+                                    <span className="prof-doc-file-name">{file.name}</span>
+                                    <select
+                                      className="prof-attach-slot"
+                                      value={row.profile_slot || PROFILE_ATTACHMENT_SLOT.OTHER}
+                                      disabled={savingCompany}
+                                      onChange={(e) => setPendingAttachmentSlot(idx, e.target.value)}
+                                    >
+                                      {Object.values(PROFILE_ATTACHMENT_SLOT).map((slot) => (
+                                        <option key={slot} value={slot}>
+                                          {PROFILE_ATTACHMENT_SLOT_LABELS[slot] || slot}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="prof-doc-file-meta">
+                                      {formatSize(file.size)} · pending upload
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="prof-icon-btn danger small"
+                                      title="Remove"
+                                      disabled={savingCompany}
+                                      onClick={() => removePendingCompanyProfile(idx)}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </div>
                           )}
                           <button

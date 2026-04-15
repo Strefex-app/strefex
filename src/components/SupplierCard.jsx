@@ -1,9 +1,12 @@
 import SupplierScoreBadge from './SupplierScoreBadge'
+import { tenantVisibilityLabel, tenantVisibilityTierFromRow } from '../utils/tenantVisibilityLabel'
 
 export default function SupplierCard({ supplier, onSelect, onShortlist }) {
   if (!supplier) return null
   const completeness = Number(supplier.profile_completeness || 0)
   const boosted = completeness >= 80
+  const visTier = tenantVisibilityTierFromRow(supplier)
+  const visLabel = tenantVisibilityLabel(visTier)
   return (
     <div
       style={{
@@ -24,6 +27,18 @@ export default function SupplierCard({ supplier, onSelect, onShortlist }) {
           <div style={{ marginTop: 4, fontSize: 12, color: '#166534' }}>
             Profile completeness: {completeness}%
           </div>
+          {visLabel && (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                color: visTier === 'verified' ? '#0f5132' : visTier === 'premium' ? '#664d03' : '#1e40af',
+              }}
+            >
+              {visLabel}
+            </div>
+          )}
         </div>
         <SupplierScoreBadge score={supplier.overall_score || supplier.overallScore || 0} risk={supplier.risk_score || supplier.riskScore || 0} />
       </div>
