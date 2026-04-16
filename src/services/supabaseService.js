@@ -519,8 +519,18 @@ export const analyticsEventsService = createCrudService('analytics_events')
 export const platformDirectoryContactsService = createCrudService('platform_directory_contacts')
 /** Superadmin-only RLS — tooling / international supplier registry (not public vendor profiles) */
 export const platformRegisteredSuppliersService = createCrudService('platform_registered_suppliers')
-/** Per-tenant directory; superadmin sees all companies (RLS) */
-export const accountDirectoryEntriesService = createCrudService('account_directory_entries')
+const accountDirectoryEntriesServiceBase = createCrudService('account_directory_entries')
+
+/** Per-tenant directory; superadmin sees all companies (RLS). Includes batched insert for spreadsheet import. */
+export const accountDirectoryEntriesService = {
+  ...accountDirectoryEntriesServiceBase,
+  async createMany(records) {
+    if (!isSupabaseConfigured || !Array.isArray(records) || records.length === 0) return []
+    const { data, error } = await supabase.from('account_directory_entries').insert(records).select()
+    if (error) throw error
+    return data || []
+  },
+}
 
 /* ── Workspace snapshots (cross-device Zustand / UI state) ─── */
 export const workspaceSnapshotsService = {

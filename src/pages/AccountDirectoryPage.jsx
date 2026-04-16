@@ -120,11 +120,19 @@ function parseSpreadsheetRows(jsonRows) {
   })
 }
 
+const IMPORT_CHUNK_SIZE = 80
+
 export default function AccountDirectoryPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const myCompanyId = getStoredCompanyId()
+  const authUser = useAuthStore((s) => s.user)
+  const authTenant = useAuthStore((s) => s.tenant)
+  const myCompanyId = useMemo(() => {
+    const fromUser = authUser?.companyId || authUser?.company_id
+    const fromTenant = authTenant?.id
+    return fromUser || fromTenant || getStoredCompanyId()
+  }, [authUser, authTenant])
 
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
@@ -159,7 +167,7 @@ export default function AccountDirectoryPage() {
   const loadCompanies = useCallback(async () => {
     if (!isSuperAdmin || !isSupabaseConfigured) return
     try {
-      const data = await companiesService.list({ limit: 15000 })
+      const data = await fetchCompaniesListPaged({ pageSize: 2500, maxRows: 25000 })
       const list = Array.isArray(data) ? data : []
       setCompanies(list)
       setImportTargetCompanyId((prev) => prev || myCompanyId || list[0]?.id || '')
@@ -366,10 +374,10 @@ export default function AccountDirectoryPage() {
         ''
       if (!target) throw new Error('Select target company for import.')
 
-      let n = 0
+      const toInsert = []
       for (const r of parsed) {
         if (!r.company_name && !r.email) continue
-        await accountDirectoryEntriesService.create({
+        toInsert.push({
           company_id: target,
           entry_type: 'contact',
           company_name: r.company_name || r.email || 'Unknown',
@@ -386,7 +394,12 @@ export default function AccountDirectoryPage() {
           registry_source: 'spreadsheet_import',
           metadata: { import_file: file.name },
         })
-        n += 1
+      }
+      let n = 0
+      for (let i = 0; i < toInsert.length; i += IMPORT_CHUNK_SIZE) {
+        const chunk = toInsert.slice(i, i + IMPORT_CHUNK_SIZE)
+        await accountDirectoryEntriesService.createMany(chunk)
+        n += chunk.length
       }
       setFeedback(`Imported ${n} rows into company ${companyNameById.get(target) || target}.`)
       await loadRows({ showSpinner: false })
@@ -442,7 +455,7 @@ export default function AccountDirectoryPage() {
 
   return (
     <AppLayout>
-      <div className="sd-page">
+      <div className="sd-page ad-directory-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/procurement')}>
           ← Back
         </button>

@@ -52,3 +52,29 @@
   color: var(--color-muted);
   align-self: center;
 }
+
+/* Narrow viewports: comfortable padding, scrollable wide table, tappable row actions */
+@media (max-width: 900px) {
+  .ad-directory-page.sd-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ad-directory-page .ad-table-wrap {
+    margin-left: -4px;
+    margin-right: -4px;
+    border-radius: 8px;
+  }
+  .ad-directory-page .ad-table .sd-link-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 4px;
+    box-sizing: border-box;
+  }
+  .ad-directory-page .ad-table tbody td {
+    padding: 10px 10px;
+  }
+}
