@@ -31,7 +31,6 @@ export default defineConfig({
           'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
           'vendor-pdf': ['jspdf', 'html2canvas'],
           'vendor-maps': ['react-simple-maps'],
-          'vendor-globe': ['globe.gl', 'three', 'three-globe'],
           'vendor-sentry': ['@sentry/react'],
         },
       },
@@ -46,7 +45,7 @@ export default defineConfig({
 
   /* Optimise dev server dependency pre-bundling */
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'zustand', 'globe.gl', 'three', 'countries-list'],
+    include: ['react', 'react-dom', 'react-router-dom', 'zustand', 'countries-list'],
   },
 
   test: {

@@ -6,16 +6,16 @@ import { fetchCtiIndicators, latestValue } from '../services/costTransformationI
 import { MARKET_TABS, getCountriesFiltered } from '../data/worldMarkets'
 import './CostTransformationIntelligence.css'
 
-const GlobeMarketPicker = lazy(() => import('./GlobeMarketPicker'))
+const MapMarketPicker = lazy(() => import('./MapMarketPicker'))
 const CtiHomeCalendarPanel = lazy(() => import('./CtiHomeCalendarPanel'))
 
-/** Globe height; sized so the home row aligns with the calendar strip. */
-const CTI_GLOBE_PX = 240
+/** Map height; sized so the home row aligns with the calendar strip. */
+const CTI_MAP_PX = 240
 
 const DEFAULT_COUNTRY = 'DE'
 
-/** Debounce globe taps so rapid touches do not queue conflicting fetches (mobile). */
-const GLOBE_COUNTRY_DEBOUNCE_MS = 140
+/** Debounce map taps so rapid touches do not queue conflicting fetches (mobile). */
+const MAP_COUNTRY_DEBOUNCE_MS = 140
 /** Avoid hammering World Bank when tab focus flips on phones. */
 const CTI_REFETCH_THROTTLE_MS = 2200
 
@@ -75,7 +75,7 @@ function selectValueUpper(e) {
   return String(e.target.value || '').toUpperCase()
 }
 
-/** Home CTI strip: globe, calendar, macro KPIs. Full analytics live under Intelligence → Reports (superadmin). */
+/** Home CTI strip: 2D map, calendar, macro KPIs. Full analytics live under Intelligence → Reports (superadmin). */
 export default function CostTransformationIntelligence() {
   const navigate = useNavigate()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
@@ -94,7 +94,7 @@ export default function CostTransformationIntelligence() {
   const [err, setErr] = useState(null)
   const indicatorsAbortRef = useRef(null)
   const indicatorsGenRef = useRef(0)
-  const globeCountryTimerRef = useRef(null)
+  const mapCountryTimerRef = useRef(null)
   const lastCtiRefetchRef = useRef(0)
 
   const countriesInMarket = useMemo(() => getCountriesFiltered(marketTab), [marketTab])
@@ -103,18 +103,18 @@ export default function CostTransformationIntelligence() {
     setCountry(String(code || '').toUpperCase())
   }, [])
 
-  const handleGlobeCountrySelect = useCallback((code) => {
+  const handleMapCountrySelect = useCallback((code) => {
     const upper = String(code || '').toUpperCase()
-    if (globeCountryTimerRef.current) clearTimeout(globeCountryTimerRef.current)
-    globeCountryTimerRef.current = setTimeout(() => {
-      globeCountryTimerRef.current = null
+    if (mapCountryTimerRef.current) clearTimeout(mapCountryTimerRef.current)
+    mapCountryTimerRef.current = setTimeout(() => {
+      mapCountryTimerRef.current = null
       setCountry(upper)
-    }, GLOBE_COUNTRY_DEBOUNCE_MS)
+    }, MAP_COUNTRY_DEBOUNCE_MS)
   }, [])
 
   useEffect(
     () => () => {
-      if (globeCountryTimerRef.current) clearTimeout(globeCountryTimerRef.current)
+      if (mapCountryTimerRef.current) clearTimeout(mapCountryTimerRef.current)
     },
     [],
   )
@@ -310,20 +310,20 @@ export default function CostTransformationIntelligence() {
     </div>
   )
 
-  const globeBlock = (
+  const mapBlock = (
     <div className="cti-globe-block">
       <span className="cti-filter-label">Map</span>
-      <p className="cti-globe-hint">Tap a country on the globe or use the country control.</p>
+      <p className="cti-globe-hint">Tap a country on the map or use the country control.</p>
       <div
         className="cti-globe-wrap cti-globe-wrap--gray"
-        style={{ minHeight: CTI_GLOBE_PX, height: CTI_GLOBE_PX }}
+        style={{ minHeight: CTI_MAP_PX, height: CTI_MAP_PX }}
       >
-        <Suspense fallback={<div className="cti-globe-fallback">Loading globe…</div>}>
-          <GlobeMarketPicker
+        <Suspense fallback={<div className="cti-globe-fallback">Loading map…</div>}>
+          <MapMarketPicker
             selectedIso2={country}
             marketTabId={marketTab}
-            onCountrySelect={handleGlobeCountrySelect}
-            height={CTI_GLOBE_PX}
+            onCountrySelect={handleMapCountrySelect}
+            height={CTI_MAP_PX}
           />
         </Suspense>
       </div>
@@ -336,7 +336,7 @@ export default function CostTransformationIntelligence() {
         Cost Transformation Intelligence
       </h2>
       <p className="cti-subtitle">
-        Pick a market and country, explore the globe, and review headline macro indicators.
+        Pick a market and country, explore the map, and review headline macro indicators.
         {isSuperAdmin ? (
           <>
             {' '}
@@ -361,8 +361,8 @@ export default function CostTransformationIntelligence() {
           {countrySelect}
           {timeframeSelect}
         </div>
-        <div className="cti-home-top" style={{ '--cti-globe-h': `${CTI_GLOBE_PX}px` }}>
-          <div className="cti-home-globe-cell">{globeBlock}</div>
+        <div className="cti-home-top" style={{ '--cti-globe-h': `${CTI_MAP_PX}px` }}>
+          <div className="cti-home-globe-cell">{mapBlock}</div>
           <div className="cti-home-schedule-cell">
             <Suspense fallback={<div className="cti-cal-fallback">Loading calendar…</div>}>
               <CtiHomeCalendarPanel />

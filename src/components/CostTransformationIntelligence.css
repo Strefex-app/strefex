@@ -206,8 +206,18 @@
   box-sizing: border-box;
 }
 
+.cti-map-market-root {
+  position: relative;
+  z-index: 0;
+}
+.cti-map-market-root svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 @media (max-width: 900px) {
-  /* Do not shrink below WebGL size — min(260px, 55vw) made the globe tiny or clipped on phones. */
+  /* Keep map readable on small screens (2D SVG scales with container). */
   .cti-globe-wrap {
     min-height: 240px;
     width: 100%;

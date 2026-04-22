@@ -56,6 +56,12 @@ export const useProjectStore = create(
           tasks: [],
           revisions: [{ id: 'rev-' + Date.now(), date: now, note: 'Project created', snapshot: null }],
           resources: projectData.resources || [],
+          /* Falcon-style PPM: portfolio health, tags, KPIs / benefits, risk register */
+          portfolioRag: projectData.portfolioRag || 'green',
+          tags: Array.isArray(projectData.tags) ? projectData.tags : [],
+          benefitNote: projectData.benefitNote || '',
+          kpis: Array.isArray(projectData.kpis) ? projectData.kpis : [],
+          risks: Array.isArray(projectData.risks) ? projectData.risks : [],
         }
         set((state) => ({ projects: [...state.projects, newProject] }))
         syncProjectsCloudNow()
@@ -240,12 +246,17 @@ export const useProjectStore = create(
         const avgProgress = totalTasks > 0
           ? Math.round(flatTasks.reduce((sum, t) => sum + (t.progressPercent || 0), 0) / totalTasks)
           : 0
+        const risks = project.risks || []
+        const openRisks = risks.filter((r) => r && r.status !== 'closed' && r.status !== 'mitigated').length
+        const escalatedRisks = risks.filter((r) => r && r.escalated && r.status !== 'closed').length
         return {
           totalTasks, completedTasks, inProgressTasks,
           notStartedTasks: totalTasks - completedTasks - inProgressTasks,
           totalCost, budget: project.budget || 0,
           budgetRemaining: (project.budget || 0) - totalCost,
           avgProgress,
+          openRisks,
+          escalatedRisks,
         }
       },
 
@@ -279,6 +290,13 @@ if (typeof window !== 'undefined') {
             _createdBy: getUserId(),
             resources: [],
             revisions: [{ id: 'rev-starter-001', date: today, note: 'Starter project created', snapshot: null }],
+            portfolioRag: 'green',
+            tags: ['onboarding', 'pilot'],
+            benefitNote: 'Reduce time-to-first RFQ for the tenant.',
+            kpis: [
+              { id: 'kpi-starter-1', name: 'Suppliers shortlisted', target: 10, current: 0, unit: 'count' },
+            ],
+            risks: [],
             tasks: [
               {
                 id: 'task-starter-001',

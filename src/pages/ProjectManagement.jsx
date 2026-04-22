@@ -19,6 +19,11 @@ const PROJECT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 const STATUS_COLORS = { complete: '#27ae60', 'in-progress': '#2563eb', 'not-started': '#94a3b8' }
 const DEP_LABELS = { FS: 'Finish → Start', SS: 'Start → Start' }
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+const RAG_OPTIONS = [
+  { value: 'green', label: 'On track' },
+  { value: 'amber', label: 'Watch' },
+  { value: 'red', label: 'At risk' },
+]
 
 /* ═══════════════════════════════════════════════════════
  *  HELPERS
@@ -39,6 +44,12 @@ function fmtShortDate(d) {
 }
 function fmtMonthYear(d) {
   return d.toLocaleString('en', { month: 'short', year: 'numeric' })
+}
+function ragDotClass(rag) {
+  const r = String(rag || 'green').toLowerCase()
+  if (r === 'red') return 'gc-rag gc-rag--red'
+  if (r === 'amber') return 'gc-rag gc-rag--amber'
+  return 'gc-rag gc-rag--green'
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -82,7 +93,7 @@ const ProjectManagement = () => {
   const projectLimit = useLimit('maxProjects', projects.length)
 
   /* ── UI State ─────────────────────────────────────── */
-  const [view, setView] = useState('timeline')
+  const [view, setView] = useState('timeline') // timeline | table | portfolio (Falcon-style PPM rollup)
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id || null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [taskListOpen, setTaskListOpen] = useState(true)
@@ -98,6 +109,11 @@ const ProjectManagement = () => {
   const [showRevisions, setShowRevisions] = useState(false)
   const [showResources, setShowResources] = useState(false)
   const [showBaseline, setShowBaseline] = useState(false)
+  const [showFalconKpis, setShowFalconKpis] = useState(false)
+  const [showFalconRisks, setShowFalconRisks] = useState(false)
+  const [showFalconTags, setShowFalconTags] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const [portfolioReportFeedback, setPortfolioReportFeedback] = useState('')
   const [revisionNote, setRevisionNote] = useState('')
   const [newResourceName, setNewResourceName] = useState('')
   const [contextMenu, setContextMenu] = useState(null)
@@ -150,6 +166,185 @@ const ProjectManagement = () => {
     allTasksFlat.forEach((t) => t.assignee && set.add(t.assignee))
     return [...set].sort()
   }, [allTasksFlat])
+
+  const portfolioRows = useMemo(() => {
+    return projects.map((p, i) => {
+      const st = getProjectStats(p.id)
+      const rag = p.portfolioRag || 'green'
+      const tags = (p.tags || []).join(', ') || '—'
+      const kpiList = p.kpis || []
+      let kpiOk = 0
+      kpiList.forEach((k) => {
+        const t = Number(k.target) || 0
+        const c = Number(k.current) || 0
+        if (t <= 0) return
+        if (c >= t * 0.85) kpiOk += 1
+      })
+      const kpiLabel = kpiList.length ? `${kpiOk}/${kpiList.length} ≥85% target` : '—'
+      return {
+        project: p,
+        color: PROJECT_COLORS[i % PROJECT_COLORS.length],
+        rag,
+        tags,
+        kpiLabel,
+        stats: st,
+      }
+    })
+  }, [projects, getProjectStats])
+
+  /** Falcon-style portfolio executive summary (roll-up across all workspaces). */
+  const portfolioExecutiveSummary = useMemo(() => {
+    const reportDate = new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    let ragGreen = 0
+    let ragAmber = 0
+    let ragRed = 0
+    let totalTasks = 0
+    let completedTasks = 0
+    let sumProgressWeighted = 0
+    let totalBudget = 0
+    let totalSpent = 0
+    let openRisksAll = 0
+    let escalatedRisksAll = 0
+    let kpiTotal = 0
+    let kpiOnTrack = 0
+    const atRiskNames = []
+    const riskHotList = []
+    const benefitLines = []
+
+    projects.forEach((p) => {
+      const st = getProjectStats(p.id)
+      const rag = String(p.portfolioRag || 'green').toLowerCase()
+      if (rag === 'red') {
+        ragRed += 1
+        atRiskNames.push(p.name)
+      } else if (rag === 'amber') ragAmber += 1
+      else ragGreen += 1
+
+      const n = st?.totalTasks ?? 0
+      totalTasks += n
+      completedTasks += st?.completedTasks ?? 0
+      if (n > 0) sumProgressWeighted += (st?.avgProgress ?? 0) * n
+
+      totalBudget += Number(p.budget) || 0
+      totalSpent += st?.totalCost ?? 0
+      openRisksAll += st?.openRisks ?? 0
+      escalatedRisksAll += st?.escalatedRisks ?? 0
+
+      ;(p.kpis || []).forEach((k) => {
+        kpiTotal += 1
+        const t = Number(k.target) || 0
+        const c = Number(k.current) || 0
+        if (t > 0 && c >= t * 0.85) kpiOnTrack += 1
+      })
+
+      const bn = (p.benefitNote || '').trim()
+      if (bn) benefitLines.push({ name: p.name, text: bn })
+
+      ;(p.risks || []).forEach((r) => {
+        if (!r || r.status === 'closed' || r.status === 'mitigated') return
+        if (r.severity === 'high' || r.escalated) {
+          riskHotList.push({
+            project: p.name,
+            title: (r.title || '').trim() || '(Untitled risk)',
+            severity: r.severity || 'med',
+            escalated: Boolean(r.escalated),
+          })
+        }
+      })
+    })
+
+    const weightedAvgProgress = totalTasks > 0 ? Math.round(sumProgressWeighted / totalTasks) : 0
+    const primaryCurrency = projects[0]?.currency || 'USD'
+    const budgetRemaining = totalBudget - totalSpent
+    const narrative = (() => {
+      if (projects.length === 0) return 'No projects in the portfolio yet. Create a workspace to begin tracking delivery, KPIs, and risks.'
+      const parts = []
+      parts.push(`The portfolio comprises ${projects.length} project${projects.length === 1 ? '' : 's'} with ${totalTasks} scheduled task${totalTasks === 1 ? '' : 's'}.`)
+      parts.push(`Weighted delivery progress is ${weightedAvgProgress}%.`)
+      if (ragRed > 0) parts.push(`${ragRed} project${ragRed === 1 ? '' : 's'} ${ragRed === 1 ? 'is' : 'are'} marked at risk (red).`)
+      else if (ragAmber > 0) parts.push(`${ragAmber} project${ragAmber === 1 ? '' : 's'} require attention (amber).`)
+      else parts.push('All projects are marked on track (green) at portfolio level.')
+      if (openRisksAll > 0) parts.push(`${openRisksAll} open risk${openRisksAll === 1 ? '' : 's'} across the portfolio${escalatedRisksAll > 0 ? `, including ${escalatedRisksAll} escalated (red flag)` : ''}.`)
+      if (kpiTotal > 0) parts.push(`KPI attainment: ${kpiOnTrack} of ${kpiTotal} KPIs at or above 85% of target.`)
+      parts.push(`Financial roll-up: ${primaryCurrency} ${totalSpent.toLocaleString()} spent of ${primaryCurrency} ${totalBudget.toLocaleString()} budget (${budgetRemaining >= 0 ? 'under' : 'over'} plan).`)
+      return parts.join(' ')
+    })()
+
+    return {
+      reportDate,
+      projectCount: projects.length,
+      ragGreen,
+      ragAmber,
+      ragRed,
+      totalTasks,
+      completedTasks,
+      weightedAvgProgress,
+      totalBudget,
+      totalSpent,
+      budgetRemaining,
+      openRisksAll,
+      escalatedRisksAll,
+      kpiTotal,
+      kpiOnTrack,
+      atRiskNames,
+      riskHotList: riskHotList.slice(0, 14),
+      benefitLines,
+      primaryCurrency,
+      narrative,
+    }
+  }, [projects, getProjectStats])
+
+  const copyPortfolioReport = useCallback(() => {
+    const s = portfolioExecutiveSummary
+    const lines = []
+    lines.push('STREFEX — Portfolio executive summary')
+    lines.push(`Generated: ${s.reportDate}`)
+    lines.push('')
+    lines.push(s.narrative)
+    lines.push('')
+    lines.push('— RAG —')
+    lines.push(`On track (green): ${s.ragGreen} · Watch (amber): ${s.ragAmber} · At risk (red): ${s.ragRed}`)
+    if (s.atRiskNames.length) lines.push(`At-risk projects: ${s.atRiskNames.join('; ')}`)
+    lines.push('')
+    lines.push('— Delivery —')
+    lines.push(`Tasks: ${s.totalTasks} total, ${s.completedTasks} complete, portfolio progress ${s.weightedAvgProgress}% (weighted).`)
+    lines.push('')
+    lines.push('— Finance —')
+    lines.push(`${s.primaryCurrency} budget ${s.totalBudget.toLocaleString()} · spent ${s.totalSpent.toLocaleString()} · remaining ${s.budgetRemaining.toLocaleString()}`)
+    lines.push('')
+    lines.push('— Risks —')
+    lines.push(`Open: ${s.openRisksAll} · Escalated: ${s.escalatedRisksAll}`)
+    s.riskHotList.forEach((r) => {
+      lines.push(`  • [${r.project}] ${r.title} (${r.severity}${r.escalated ? ', escalated' : ''})`)
+    })
+    lines.push('')
+    lines.push('— KPIs —')
+    lines.push(`${s.kpiOnTrack} / ${s.kpiTotal} at ≥85% of target`)
+    lines.push('')
+    lines.push('— Project register —')
+    portfolioRows.forEach((row) => {
+      const p = row.project
+      const st = row.stats
+      lines.push(`${p.name} | RAG ${row.rag} | tasks ${st?.totalTasks ?? 0} | progress ${st?.avgProgress ?? 0}% | ${p.currency} spent ${(st?.totalCost ?? 0).toLocaleString()} | open risks ${st?.openRisks ?? 0}`)
+    })
+    const text = lines.join('\n')
+    const clip = navigator.clipboard?.writeText
+    if (typeof clip !== 'function') {
+      setPortfolioReportFeedback('Clipboard not available in this context.')
+      setTimeout(() => setPortfolioReportFeedback(''), 5000)
+      return
+    }
+    void clip(text).then(
+      () => {
+        setPortfolioReportFeedback('Report copied to clipboard.')
+        setTimeout(() => setPortfolioReportFeedback(''), 4000)
+      },
+      () => {
+        setPortfolioReportFeedback('Could not copy — try again or copy sections manually.')
+        setTimeout(() => setPortfolioReportFeedback(''), 5000)
+      },
+    )
+  }, [portfolioExecutiveSummary, portfolioRows])
 
   /* ── Date range for timeline ─────────────────────── */
   const dateRange = useMemo(() => {
@@ -660,61 +855,106 @@ const ProjectManagement = () => {
   return (
     <AppLayout>
       <div className="gc-page" onClick={handleCloseContextMenu}>
-        {/* ── Compact Top Bar ──────────────────────────── */}
+        {/* ── Top bar (platform-aligned) ───────────────── */}
         <div className="gc-topbar">
-          <div className="gc-topbar-left">
-            <button className="gc-back" onClick={() => navigate(-1)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
-            </button>
-            <h1 className="gc-title">Project Management</h1>
-            <div className="gc-view-tabs">
-              <button className={`gc-vtab ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>Gantt Chart</button>
-              <button className={`gc-vtab ${view === 'table' ? 'active' : ''}`} onClick={() => setView('table')}>Table</button>
+          <div className="gc-topbar-inner gc-topbar-inner--layout">
+            <div className="gc-topbar-row gc-topbar-row--primary">
+              <button type="button" className="gc-back" onClick={() => navigate(-1)} aria-label="Back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
+              </button>
+              <div className="gc-topbar-heading">
+                <h1 className="gc-title">Project Management</h1>
+                <div className="gc-view-tabs" role="tablist" aria-label="Schedule view">
+                  <button type="button" role="tab" aria-selected={view === 'timeline'} className={`gc-vtab ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>Gantt Chart</button>
+                  <button type="button" role="tab" aria-selected={view === 'table'} className={`gc-vtab ${view === 'table' ? 'active' : ''}`} onClick={() => setView('table')}>Table</button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={view === 'portfolio'}
+                    className={`gc-vtab ${view === 'portfolio' ? 'active' : ''}`}
+                    onClick={() => setView('portfolio')}
+                    title="Portfolio executive summary and project register"
+                  >
+                    Portfolio
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="gc-topbar-actions">
-            <button className="gc-btn-sm" onClick={() => setShowFilter(!showFilter)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Filter
-            </button>
-            <button className="gc-btn-sm" onClick={handleExportPDF}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
-              PDF
-            </button>
-            <button className={`gc-btn-sm ${fitState ? 'gc-btn-active' : ''}`} onClick={handleFitToggle} title={fitState ? 'Reset zoom to normal' : 'Fit entire project in one screen'}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {fitState
-                  ? <><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></>
-                  : <><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></>
-                }
-              </svg>
-              {fitState ? 'Reset Zoom' : 'Fit to Screen'}
-            </button>
-            {selectedProjectId && (
-              <>
-                <button className="gc-btn-sm" onClick={() => setShowRevisions(true)}>Revisions</button>
-                <button className="gc-btn-sm" onClick={() => setShowResources(true)}>Resources</button>
-                <button className="gc-btn-sm" onClick={() => { setBaseline(selectedProjectId); setShowBaseline(true) }}>Baseline</button>
-                <button className="gc-btn-sm" onClick={() => setShowBaseline(!showBaseline)}>{showBaseline ? 'Hide BL' : 'Show BL'}</button>
-              </>
-            )}
-            <button className="gc-btn-sm gc-btn-outline" onClick={() => projectLimit.allowed ? setShowAddProject(true) : alert(`Project limit reached (${projectLimit.limit}).`)}>
-              + Project{projectLimit.limit !== Infinity ? ` (${projectLimit.remaining})` : ''}
-            </button>
-            <button className="gc-btn-primary" onClick={() => setShowAddTask(true)}>+ New Task</button>
+
+            <div className="gc-topbar-toolbar" aria-label="Project actions">
+              <div className="gc-topbar-toolbar-left">
+                {selectedProjectId ? (
+                  <div className="gc-toolbar-cluster gc-toolbar-cluster--stretch">
+                    <span className="gc-toolbar-cluster-label">Workspace</span>
+                    <div className="gc-toolbar-group gc-toolbar-group--wrap">
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowRevisions(true)}>Revisions</button>
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowResources(true)}>Resources</button>
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => { setBaseline(selectedProjectId); setShowBaseline(true) }}>Baseline</button>
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowBaseline(!showBaseline)}>{showBaseline ? 'Hide BL' : 'Show BL'}</button>
+                      <span className="gc-toolbar-sep" aria-hidden />
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconKpis(true)} title="Effects, benefits, and KPI tracking">
+                        KPIs &amp; benefits
+                      </button>
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconRisks(true)} title="Risk register and red-flag escalation">
+                        Risks
+                      </button>
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconTags(true)} title="Portfolio tags">
+                        Tags
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="gc-toolbar-cluster">
+                  <span className="gc-toolbar-cluster-label">View</span>
+                  <div className="gc-toolbar-group">
+                    <button type="button" className={`app-page-btn-outline app-page-btn-sm gc-toolbar-btn ${showFilter ? 'gc-toolbar-btn--active' : ''}`} onClick={() => setShowFilter(!showFilter)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                      Filter
+                    </button>
+                    <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={handleExportPDF}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
+                      PDF
+                    </button>
+                    <button type="button" className={`app-page-btn-outline app-page-btn-sm gc-toolbar-btn ${fitState ? 'gc-toolbar-btn--active' : ''}`} onClick={handleFitToggle} title={fitState ? 'Reset zoom to normal' : 'Fit entire project in one screen'}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        {fitState
+                          ? <><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></>
+                          : <><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></>
+                        }
+                      </svg>
+                      {fitState ? 'Reset Zoom' : 'Fit to Screen'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="gc-toolbar-cluster gc-toolbar-cluster--cta">
+                <span className="gc-toolbar-cluster-label">Add</span>
+                <div className="gc-toolbar-group">
+                  <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => projectLimit.allowed ? setShowAddProject(true) : alert(`Project limit reached (${projectLimit.limit}).`)}>
+                    + Project{projectLimit.limit !== Infinity ? ` (${projectLimit.remaining})` : ''}
+                  </button>
+                  <button type="button" className="app-page-btn-primary gc-toolbar-btn-primary" onClick={() => setShowAddTask(true)}>+ New Task</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── Filter Row ───────────────────────────────── */}
         {showFilter && (
-          <div className="gc-filter-row">
-            <label>Status <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">All</option><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="complete">Complete</option></select></label>
-            <label>Assignee <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">All</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+          <div className="gc-filter-shell">
+            <div className="gc-filter-row">
+              <label>Status <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">All</option><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="complete">Complete</option></select></label>
+              <label>Assignee <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">All</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+            </div>
           </div>
         )}
 
-        {/* ── Compact Stats ────────────────────────────── */}
-        {stats && selectedProject && (
+        {/* ── Project KPI strip — Gantt/Table only (Portfolio has its own pulse) ─ */}
+        {stats && selectedProject && view !== 'portfolio' && (
+          <div className="gc-stats-shell">
           <div className="gc-stats-bar">
             <div className="gc-stat"><span className="gc-stat-n">{stats.totalTasks}</span> Tasks</div>
             <div className="gc-stat gc-stat-green"><span className="gc-stat-n">{stats.completedTasks}</span> Done</div>
@@ -724,6 +964,12 @@ const ProjectManagement = () => {
             <div className={`gc-stat ${stats.budgetRemaining < 0 ? 'gc-stat-red' : 'gc-stat-green'}`}>
               <span className="gc-stat-n">{selectedProject.currency} {stats.budgetRemaining.toLocaleString()}</span> Remaining
             </div>
+            {stats.openRisks > 0 && (
+              <div className={`gc-stat ${stats.escalatedRisks > 0 ? 'gc-stat-red' : 'gc-stat-orange'}`}>
+                <span className="gc-stat-n">{stats.openRisks}</span> Open risks{stats.escalatedRisks > 0 ? ` · ${stats.escalatedRisks} escalated` : ''}
+              </div>
+            )}
+          </div>
           </div>
         )}
 
@@ -747,12 +993,27 @@ const ProjectManagement = () => {
                 </button>
                 {projects.map((p, i) => (
                   <div key={p.id} className={`gc-ws-item ${selectedProjectId === p.id ? 'active' : ''}`}>
-                    <button className="gc-ws-select" onClick={() => setSelectedProjectId(p.id)}>
+                    <span className={ragDotClass(p.portfolioRag)} title="Portfolio health (RAG)" aria-hidden />
+                    <button type="button" className="gc-ws-select" onClick={() => setSelectedProjectId(p.id)}>
                       <span className="gc-ws-dot" style={{ background: PROJECT_COLORS[i % PROJECT_COLORS.length] }} />
                       <span className="gc-ws-name">{p.name}</span>
                       <span className="gc-ws-count">{flattenTasks(p.tasks).length}</span>
                     </button>
-                    <button className="gc-ws-del" onClick={(e) => { e.stopPropagation(); handleDeleteProject(p.id) }}>
+                    <select
+                      className="gc-ws-rag-select"
+                      aria-label={`RAG status for ${p.name}`}
+                      value={p.portfolioRag || 'green'}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        updateProject(p.id, { portfolioRag: e.target.value })
+                      }}
+                    >
+                      {RAG_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <button type="button" className="gc-ws-del" onClick={(e) => { e.stopPropagation(); handleDeleteProject(p.id) }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                   </div>
@@ -762,7 +1023,221 @@ const ProjectManagement = () => {
           </aside>
 
           {/* Main Area */}
-          <main className="gc-main">
+          <main className={`gc-main${view === 'portfolio' ? ' gc-main--portfolio' : ''}`}>
+            {view === 'portfolio' && (
+              <div className="pm-portfolio-shell app-page">
+                <div className="app-page-card pm-portfolio-report">
+                  <div className="pm-portfolio-report-header">
+                    <div className="pm-portfolio-report-intro">
+                      <h2 className="app-page-title">Portfolio executive summary</h2>
+                      <p className="app-page-subtitle pm-portfolio-report-meta">
+                        Roll-up as of <strong>{portfolioExecutiveSummary.reportDate}</strong>
+                        {' · '}
+                        {portfolioExecutiveSummary.projectCount} project{portfolioExecutiveSummary.projectCount === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <div className="pm-portfolio-report-actions">
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => copyPortfolioReport()}>
+                        Copy report
+                      </button>
+                    </div>
+                  </div>
+                  {portfolioReportFeedback ? (
+                    <p className="app-page-alert app-page-alert--success pm-portfolio-feedback">
+                      {portfolioReportFeedback}
+                    </p>
+                  ) : null}
+
+                  <details className="pm-portfolio-narrative-details">
+                    <summary className="pm-portfolio-narrative-summary">
+                      Executive narrative
+                      <span className="pm-portfolio-narrative-hint">Optional detail — metrics below are authoritative</span>
+                    </summary>
+                    <p className="app-page-body pm-portfolio-narrative">{portfolioExecutiveSummary.narrative}</p>
+                  </details>
+
+                  <div className="app-page-section-label pm-portfolio-pulse-heading">Portfolio pulse</div>
+                  <div className="pm-portfolio-kpi-grid pm-metric-grid">
+                    <div className="pm-metric-tile pm-metric-tile--muted">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.projectCount}</div>
+                      <div className="pm-metric-tile-label">Projects</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--green">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.ragGreen}</div>
+                      <div className="pm-metric-tile-label">On track</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--amber">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.ragAmber}</div>
+                      <div className="pm-metric-tile-label">Watch</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--red">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.ragRed}</div>
+                      <div className="pm-metric-tile-label">At risk</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--blue">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.weightedAvgProgress}%</div>
+                      <div className="pm-metric-tile-label">Weighted progress</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--muted">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.completedTasks}/{portfolioExecutiveSummary.totalTasks}</div>
+                      <div className="pm-metric-tile-label">Tasks complete</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--orange">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.primaryCurrency} {portfolioExecutiveSummary.totalSpent.toLocaleString()}</div>
+                      <div className="pm-metric-tile-label">Total spent</div>
+                    </div>
+                    <div className={`pm-metric-tile ${portfolioExecutiveSummary.budgetRemaining < 0 ? 'pm-metric-tile--red' : 'pm-metric-tile--green'}`}>
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.primaryCurrency} {portfolioExecutiveSummary.budgetRemaining.toLocaleString()}</div>
+                      <div className="pm-metric-tile-label">Budget remaining</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--muted">
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.openRisksAll}</div>
+                      <div className="pm-metric-tile-label">Open risks</div>
+                    </div>
+                    <div className={`pm-metric-tile ${portfolioExecutiveSummary.escalatedRisksAll > 0 ? 'pm-metric-tile--red' : 'pm-metric-tile--muted'}`}>
+                      <div className="pm-metric-tile-value">{portfolioExecutiveSummary.escalatedRisksAll}</div>
+                      <div className="pm-metric-tile-label">Escalated</div>
+                    </div>
+                    <div className="pm-metric-tile pm-metric-tile--muted">
+                      <div className="pm-metric-tile-value">
+                        {portfolioExecutiveSummary.kpiTotal > 0
+                          ? `${portfolioExecutiveSummary.kpiOnTrack}/${portfolioExecutiveSummary.kpiTotal}`
+                          : '—'}
+                      </div>
+                      <div className="pm-metric-tile-label">KPIs ≥85% target</div>
+                    </div>
+                  </div>
+
+                  {portfolioExecutiveSummary.atRiskNames.length > 0 && (
+                    <div className="app-page-section" style={{ marginTop: 8 }}>
+                      <div className="app-page-section-label">Projects at risk (RAG red)</div>
+                      <p className="app-page-section-value">{portfolioExecutiveSummary.atRiskNames.join(' · ')}</p>
+                    </div>
+                  )}
+
+                  <div className="app-page-section" style={{ marginTop: 8 }}>
+                    <div className="app-page-section-label">Risk &amp; escalation highlights</div>
+                    {portfolioExecutiveSummary.riskHotList.length === 0 ? (
+                      <p className="app-page-body">No high-severity or escalated open risks logged.</p>
+                    ) : (
+                      <ul className="pm-portfolio-bullet-list">
+                        {portfolioExecutiveSummary.riskHotList.map((r, idx) => (
+                          <li key={`${r.project}-${idx}`}>
+                            <strong>{r.project}</strong> — {r.title}
+                            <span className="pm-portfolio-meta">
+                              {' '}
+                              ({r.severity}
+                              {r.escalated ? ', escalated' : ''})
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="app-page-section" style={{ marginTop: 8, borderBottom: 'none', paddingBottom: 0 }}>
+                    <div className="app-page-section-label">Strategic benefits (per project)</div>
+                    {portfolioExecutiveSummary.benefitLines.length === 0 ? (
+                      <p className="app-page-body">Add narrative under KPIs &amp; benefits for each project to surface outcomes here.</p>
+                    ) : (
+                      <ul className="pm-portfolio-benefit-list">
+                        {portfolioExecutiveSummary.benefitLines.map((b) => (
+                          <li key={b.name}>
+                            <span className="pm-portfolio-benefit-name">{b.name}</span>
+                            <span className="pm-portfolio-benefit-text">{b.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div className="app-page-card">
+                  <h3 className="app-page-section-heading">Project register</h3>
+                  <p className="app-page-subtitle" style={{ marginTop: -4 }}>
+                    Traffic-light status, tags, delivery, finance, risks, and KPI snapshot. Use actions to open the Gantt for detail scheduling.
+                  </p>
+                  <div className="stx-fluid-table-wrap">
+                    <table className="stx-fluid-table">
+                      <thead>
+                        <tr>
+                          <th>RAG</th>
+                          <th>Project</th>
+                          <th>Tags</th>
+                          <th>Tasks</th>
+                          <th>Done</th>
+                          <th>Progress</th>
+                          <th>Budget</th>
+                          <th>Spent</th>
+                          <th>Open risks</th>
+                          <th>KPIs (≥85%)</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {portfolioRows.length === 0 && (
+                          <tr>
+                            <td colSpan={11} className="app-page-list-empty">
+                              No projects yet. Create one from + Project.
+                            </td>
+                          </tr>
+                        )}
+                        {portfolioRows.map((row) => {
+                          const p = row.project
+                          const st = row.stats
+                          return (
+                            <tr key={p.id}>
+                              <td>
+                                <select
+                                  className="pm-portfolio-table-rag"
+                                  value={row.rag}
+                                  onChange={(e) => updateProject(p.id, { portfolioRag: e.target.value })}
+                                  aria-label="RAG status"
+                                >
+                                  {RAG_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <span className="gc-ws-dot" style={{ background: row.color }} />
+                                <strong>{p.name}</strong>
+                              </td>
+                              <td className="pm-portfolio-tags-cell">{row.tags}</td>
+                              <td>{st?.totalTasks ?? 0}</td>
+                              <td>{st?.completedTasks ?? 0}</td>
+                              <td>{st?.avgProgress ?? 0}%</td>
+                              <td>{p.currency} {(p.budget || 0).toLocaleString()}</td>
+                              <td>{p.currency} {(st?.totalCost ?? 0).toLocaleString()}</td>
+                              <td>
+                                {st?.openRisks ?? 0}
+                                {st?.escalatedRisks ? (
+                                  <span className="pm-portfolio-meta"> ({st.escalatedRisks} escalated)</span>
+                                ) : null}
+                              </td>
+                              <td>{row.kpiLabel}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="app-page-btn-primary app-page-btn-sm"
+                                  onClick={() => {
+                                    setSelectedProjectId(p.id)
+                                    setView('timeline')
+                                  }}
+                                >
+                                  Open Gantt
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {view === 'table' && (
               <div className="gc-table-wrap">
                 <table className="gc-table">
@@ -912,6 +1387,256 @@ const ProjectManagement = () => {
         {/* ═══════════════════════════════════════════════
          *  MODALS
          * ═══════════════════════════════════════════════ */}
+
+        {/* Falcon-style PPM: KPIs & benefits */}
+        {showFalconKpis && selectedProject && selectedProjectId && (
+          <div className="pm-modal-overlay" onClick={() => setShowFalconKpis(false)}>
+            <div className="pm-modal pm-modal-lg pm-modal--platform" onClick={(e) => e.stopPropagation()}>
+              <h3 className="app-page-title" style={{ fontSize: 18 }}>KPIs &amp; strategic benefits</h3>
+              <p className="app-page-body gc-falcon-hint">
+                Measurable targets and benefit narrative for executives — complements the Gantt schedule.
+              </p>
+              <div className="pm-form-group">
+                <label className="pm-label">Benefits / strategic note</label>
+                <textarea
+                  className="pm-input"
+                  rows={3}
+                  value={selectedProject.benefitNote || ''}
+                  onChange={(e) => updateProject(selectedProjectId, { benefitNote: e.target.value })}
+                  placeholder="Expected outcomes, savings, time-to-market…"
+                />
+              </div>
+              <h4 className="app-page-section-label" style={{ marginTop: 16 }}>KPIs</h4>
+              {(selectedProject.kpis || []).length === 0 ? (
+                <p className="pm-no-tasks">No KPIs yet. Add one to track attainment vs target.</p>
+              ) : null}
+              {(selectedProject.kpis || []).map((k, idx) => (
+                <div key={k.id} className="gc-falcon-kpi-row">
+                  <input
+                    className="pm-input"
+                    value={k.name}
+                    placeholder="KPI name"
+                    onChange={(e) => {
+                      const kpis = [...(selectedProject.kpis || [])]
+                      kpis[idx] = { ...kpis[idx], name: e.target.value }
+                      updateProject(selectedProjectId, { kpis })
+                    }}
+                  />
+                  <input
+                    type="number"
+                    className="pm-input gc-falcon-num"
+                    value={k.current}
+                    title="Current"
+                    onChange={(e) => {
+                      const kpis = [...(selectedProject.kpis || [])]
+                      kpis[idx] = { ...kpis[idx], current: parseFloat(e.target.value) || 0 }
+                      updateProject(selectedProjectId, { kpis })
+                    }}
+                  />
+                  <span className="gc-falcon-slash">/</span>
+                  <input
+                    type="number"
+                    className="pm-input gc-falcon-num"
+                    value={k.target}
+                    title="Target"
+                    onChange={(e) => {
+                      const kpis = [...(selectedProject.kpis || [])]
+                      kpis[idx] = { ...kpis[idx], target: parseFloat(e.target.value) || 0 }
+                      updateProject(selectedProjectId, { kpis })
+                    }}
+                  />
+                  <input
+                    className="pm-input gc-falcon-unit"
+                    value={k.unit || ''}
+                    placeholder="unit"
+                    onChange={(e) => {
+                      const kpis = [...(selectedProject.kpis || [])]
+                      kpis[idx] = { ...kpis[idx], unit: e.target.value }
+                      updateProject(selectedProjectId, { kpis })
+                    }}
+                  />
+                    <button
+                      type="button"
+                      className="app-page-btn-danger app-page-btn-sm"
+                      onClick={() => {
+                        const kpis = (selectedProject.kpis || []).filter((_, j) => j !== idx)
+                        updateProject(selectedProjectId, { kpis })
+                      }}
+                    >
+                      Remove
+                    </button>
+                </div>
+              ))}
+              <div className="pm-modal-buttons pm-modal-buttons--platform" style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="app-page-btn-outline app-page-btn-sm"
+                  onClick={() => {
+                    const kpis = [...(selectedProject.kpis || []), {
+                      id: `kpi-${Date.now()}`,
+                      name: '',
+                      target: 100,
+                      current: 0,
+                      unit: 'count',
+                    }]
+                    updateProject(selectedProjectId, { kpis })
+                  }}
+                >
+                  + Add KPI
+                </button>
+                <button type="button" className="app-page-btn-primary app-page-btn-sm" onClick={() => setShowFalconKpis(false)}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Falcon-style PPM: risk register */}
+        {showFalconRisks && selectedProject && selectedProjectId && (
+          <div className="pm-modal-overlay" onClick={() => setShowFalconRisks(false)}>
+            <div className="pm-modal pm-modal-lg pm-modal--platform" onClick={(e) => e.stopPropagation()}>
+              <h3 className="app-page-title" style={{ fontSize: 18 }}>Risk register</h3>
+              <p className="app-page-body gc-falcon-hint">
+                Track issues with severity and status; mark <strong>Escalated</strong> for red-flag governance.
+              </p>
+              {(selectedProject.risks || []).length === 0 ? (
+                <p className="pm-no-tasks">No risks logged.</p>
+              ) : null}
+              {(selectedProject.risks || []).map((r, idx) => (
+                <div key={r.id} className="gc-falcon-risk-card">
+                  <input
+                    className="pm-input"
+                    value={r.title}
+                    placeholder="Risk / issue title"
+                    onChange={(e) => {
+                      const risks = [...(selectedProject.risks || [])]
+                      risks[idx] = { ...risks[idx], title: e.target.value }
+                      updateProject(selectedProjectId, { risks })
+                    }}
+                  />
+                  <div className="pm-form-row gc-falcon-risk-controls">
+                    <label className="pm-label">Severity</label>
+                    <select
+                      className="pm-select"
+                      value={r.severity || 'med'}
+                      onChange={(e) => {
+                        const risks = [...(selectedProject.risks || [])]
+                        risks[idx] = { ...risks[idx], severity: e.target.value }
+                        updateProject(selectedProjectId, { risks })
+                      }}
+                    >
+                      <option value="low">Low</option>
+                      <option value="med">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                    <label className="pm-label">Status</label>
+                    <select
+                      className="pm-select"
+                      value={r.status || 'open'}
+                      onChange={(e) => {
+                        const risks = [...(selectedProject.risks || [])]
+                        risks[idx] = { ...risks[idx], status: e.target.value }
+                        updateProject(selectedProjectId, { risks })
+                      }}
+                    >
+                      <option value="open">Open</option>
+                      <option value="mitigated">Mitigated</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                    <label className="gc-falcon-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(r.escalated)}
+                        onChange={(e) => {
+                          const risks = [...(selectedProject.risks || [])]
+                          risks[idx] = { ...risks[idx], escalated: e.target.checked }
+                          updateProject(selectedProjectId, { risks })
+                        }}
+                      />
+                      Escalated (red flag)
+                    </label>
+                    <button
+                      type="button"
+                      className="app-page-btn-danger app-page-btn-sm"
+                      onClick={() => {
+                        const risks = (selectedProject.risks || []).filter((_, j) => j !== idx)
+                        updateProject(selectedProjectId, { risks })
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="pm-modal-buttons pm-modal-buttons--platform">
+                <button
+                  type="button"
+                  className="app-page-btn-outline app-page-btn-sm"
+                  onClick={() => {
+                    const risks = [...(selectedProject.risks || []), {
+                      id: `risk-${Date.now()}`,
+                      title: '',
+                      severity: 'med',
+                      status: 'open',
+                      escalated: false,
+                    }]
+                    updateProject(selectedProjectId, { risks })
+                  }}
+                >
+                  + Add risk
+                </button>
+                <button type="button" className="app-page-btn-primary app-page-btn-sm" onClick={() => setShowFalconRisks(false)}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Falcon-style PPM: tags */}
+        {showFalconTags && selectedProject && selectedProjectId && (
+          <div className="pm-modal-overlay" onClick={() => setShowFalconTags(false)}>
+            <div className="pm-modal pm-modal--platform" onClick={(e) => e.stopPropagation()}>
+              <h3 className="app-page-title" style={{ fontSize: 18 }}>Portfolio tags</h3>
+              <p className="app-page-body gc-falcon-hint">Flexible labels for matrix orgs, programs, or customers (shown in the portfolio register).</p>
+              <div className="gc-falcon-tags">
+                {(selectedProject.tags || []).map((tag) => (
+                  <span key={tag} className="gc-falcon-tag">
+                    {tag}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${tag}`}
+                      onClick={() => {
+                        const tags = (selectedProject.tags || []).filter((t) => t !== tag)
+                        updateProject(selectedProjectId, { tags })
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="pm-form-group">
+                <label className="pm-label">Add tag</label>
+                <input
+                  className="pm-input"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    e.preventDefault()
+                    const t = tagInput.trim()
+                    if (!t) return
+                    const tags = [...new Set([...(selectedProject.tags || []), t])]
+                    updateProject(selectedProjectId, { tags })
+                    setTagInput('')
+                  }}
+                  placeholder="Type and press Enter"
+                />
+              </div>
+              <div className="pm-modal-buttons pm-modal-buttons--platform">
+                <button type="button" className="app-page-btn-primary app-page-btn-sm" onClick={() => { setTagInput(''); setShowFalconTags(false) }}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Add Project */}
         {showAddProject && (

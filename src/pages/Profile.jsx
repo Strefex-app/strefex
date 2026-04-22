@@ -833,10 +833,10 @@ const Profile = () => {
       setTenant({
         ...(tenant || {}),
         name: updatedCompany?.name || companyForm.companyName.trim(),
-        address: updatedCompany?.address ?? nextAddress || null,
-        country: updatedCompany?.country ?? companyForm.country.trim() || null,
-        city: updatedCompany?.city ?? companyForm.city.trim() || null,
-        website: updatedCompany?.website ?? companyForm.website.trim() || null,
+        address: (updatedCompany?.address ?? nextAddress) || null,
+        country: (updatedCompany?.country ?? companyForm.country.trim()) || null,
+        city: (updatedCompany?.city ?? companyForm.city.trim()) || null,
+        website: (updatedCompany?.website ?? companyForm.website.trim()) || null,
         registration_code: updatedCompany?.registration_code ?? tenant?.registration_code,
         visibility_tier: updatedCompany?.visibility_tier ?? tenant?.visibility_tier,
         profile_attachments:
