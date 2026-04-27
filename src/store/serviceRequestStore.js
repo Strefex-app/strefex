@@ -822,6 +822,30 @@ export const useServiceRequestStore = create((set, get) => ({
     })
   },
 
+  /** Append a platform-scoped notification visible to the target user (e.g. feature grants). */
+  pushGlobalPlatformNotification: ({ targetEmail, title, message, type = 'platform' }) => {
+    const normalizedTarget = normalizeEmail(targetEmail)
+    if (!normalizedTarget) return
+    const row = {
+      id: `GNOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      requestId: null,
+      requestCompanyId: null,
+      requestCompanyDomain: '',
+      title: String(title || 'STREFEX'),
+      message: String(message || ''),
+      priority: 'Normal',
+      fromEmail: 'platform@strefex.com',
+      targetEmail: normalizedTarget,
+      read: false,
+      readBy: [],
+      createdAt: new Date().toISOString(),
+    }
+    const next = dedupeById([row, ...(get().globalNotifications || [])])
+    saveGlobal(next)
+    set({ globalNotifications: next })
+  },
+
   refreshFromDatabase: async () => {
     if (!isSupabaseConfigured) return
     if (_refreshDbInFlight) return _refreshDbInFlight

@@ -14,6 +14,7 @@ import authService from './services/authService'
 import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
+import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
 
 /* ── Code-split pages (see routes/lazyPages.js) ──────────── */
 import {
@@ -94,6 +95,10 @@ import {
   HrAttendanceModule,
   HrHiringRecruitment,
   HrEmployeeProfile,
+  ForgeHub,
+  ForgeMembershipAssessment,
+  ForgeProjects,
+  ForgeClubDocumentPage,
   CommunitySupport,
   DeveloperDashboard,
   CompanyMessenger,
@@ -137,7 +142,6 @@ import {
   ERPIntegrations,
   TemplateLibrary,
   AuditLogs,
-  IntelligenceReports,
   NotFoundPage,
 } from './routes/lazyPages'
 
@@ -181,13 +185,6 @@ const Industry = ({ children, requiredTier = 'free' }) => (
     <IndustryGuard requiredTier={requiredTier}>{children}</IndustryGuard>
   </P>
 )
-
-/** `/intelligence` → reports for superadmin, otherwise main menu (CTI on home is available to all logged-in users). */
-function IntelligenceRootRedirect() {
-  const role = useAuthStore((s) => s.role)
-  if (role === 'superadmin') return <Navigate to="/intelligence/reports" replace />
-  return <Navigate to="/main-menu" replace />
-}
 
 const WORKSPACE_FLUSH_DEBOUNCE_MS = 450
 
@@ -311,11 +308,7 @@ function App() {
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
-          <Route path="/intelligence" element={<P><IntelligenceRootRedirect /></P>} />
-          <Route path="/intelligence/reports" element={<SuperAdmin><IntelligenceReports /></SuperAdmin>} />
-          <Route path="/intelligence/fin-market" element={<Navigate to="/intelligence/reports" replace />} />
-          <Route path="/intelligence/dashboard" element={<Navigate to="/intelligence/reports" replace />} />
-          <Route path="/intelligence/markets" element={<Navigate to="/intelligence/reports" replace />} />
+          <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
           <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
           <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />
@@ -460,6 +453,12 @@ function App() {
           <Route path="/hr-space/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrAttendanceModule /></PlanGate>} />
           <Route path="/hr-space/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrHiringRecruitment /></PlanGate>} />
           <Route path="/hr-space/employees/:employeeId" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrEmployeeProfile /></PlanGate>} />
+
+          {/* Forge — superadmin only (community hub & onboarding tools) */}
+          <Route path={FORGE_PATHS.membershipOnboarding} element={<SuperAdmin><ForgeMembershipAssessment /></SuperAdmin>} />
+          <Route path={FORGE_PATHS.hub} element={<SuperAdmin><ForgeHub /></SuperAdmin>} />
+          <Route path={FORGE_PATHS.projects} element={<SuperAdmin><ForgeProjects /></SuperAdmin>} />
+          <Route path={FORGE_PATH_CLUB_DOC} element={<SuperAdmin><ForgeClubDocumentPage /></SuperAdmin>} />
 
           <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space" /></PlanGate>} />
           <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/qualification-matrix" /></PlanGate>} />

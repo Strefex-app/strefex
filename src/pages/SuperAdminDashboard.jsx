@@ -14,6 +14,7 @@ import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAu
 import authService from '../services/authService'
 import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
 import { VISIBILITY_TIER_LABELS } from '../constants/companyProfileDirectory'
+import { loadFeatureGrants, saveFeatureGrants } from '../utils/featureGrants'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -65,21 +66,6 @@ function loadDemoAccounts() {
     if (raw) return JSON.parse(raw)
   } catch { /* */ }
   return []
-}
-
-/* ── Feature grants storage ───────────────────────────── */
-const GRANTS_KEY = 'strefex-feature-grants'
-
-function loadFeatureGrants() {
-  try {
-    const raw = localStorage.getItem(GRANTS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch { /* */ }
-  return []
-}
-
-function saveFeatureGrants(grants) {
-  try { localStorage.setItem(GRANTS_KEY, JSON.stringify(grants)) } catch { /* */ }
 }
 
 /* ── Trial extensions / promo grants storage ────────────── */
@@ -488,6 +474,16 @@ export default function SuperAdminDashboard() {
     const updated = [...featureGrants, ...newGrants]
     setFeatureGrants(updated)
     saveFeatureGrants(updated)
+    const targetEmail = String(acct.email || '').trim()
+    if (targetEmail) {
+      const labels = newGrants.map((g) => g.featureLabel).join(', ')
+      useServiceRequestStore.getState().pushGlobalPlatformNotification({
+        targetEmail,
+        title: 'Management tools unlocked',
+        message: `Your account has been granted access to: ${labels}. These features are available in your workspace now (refresh if a menu was already open).`,
+        type: 'feature_grant',
+      })
+    }
     setGrantFeatures([])
     setGrantFeedback(`Granted ${newGrants.length} feature(s) to ${acct.company}`)
     setTimeout(() => setGrantFeedback(''), 4000)

@@ -1,0 +1,98 @@
+/* Club document viewer — toolbar matches HR Space / headcount card pattern */
+
+.forge-club-doc-page .forge-club-doc-toolbar {
+  margin-bottom: 14px;
+}
+
+.forge-club-doc-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.forge-club-doc-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, #e8e8ef);
+  background: var(--bg-surface, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary, #1a1a2e);
+  cursor: pointer;
+}
+
+.forge-club-doc-tool:hover:not(:disabled) {
+  background: var(--bg-surface-hover, #f5f5f8);
+}
+
+.forge-club-doc-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.forge-club-doc-tool--active {
+  border-color: var(--color-primary, #000888);
+  background: rgba(0, 8, 136, 0.06);
+}
+
+.forge-club-doc-tool--primary {
+  background: var(--color-primary, #1b2a4a);
+  color: #fff;
+  border-color: transparent;
+}
+
+.forge-club-doc-tool--primary:hover:not(:disabled) {
+  opacity: 0.92;
+  background: var(--color-primary, #1b2a4a);
+}
+
+.forge-club-doc-saved {
+  font-size: 13px;
+  color: var(--color-secondary, #2e7d32);
+  font-weight: 600;
+}
+
+.forge-club-doc-error,
+.forge-club-doc-loading {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.forge-club-doc-error {
+  color: #b00020;
+}
+
+.forge-club-doc-frame-wrap {
+  background: var(--border-light, #eee);
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  min-height: 72vh;
+}
+
+.forge-club-doc-frame {
+  display: block;
+  width: 100%;
+  min-height: 72vh;
+  border: none;
+  background: #faf7f2;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .forge-club-doc-frame-wrap {
+    border: none;
+    min-height: auto;
+  }
+
+  .forge-club-doc-frame {
+    min-height: 100%;
+  }
+}

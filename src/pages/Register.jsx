@@ -13,6 +13,7 @@ import './Login.css'
 import './Register.css'
 
 const INDUSTRIES = [
+  { id: 'general', label: 'General / Other' },
   { id: 'automotive', label: 'Automotive' },
   { id: 'machinery', label: 'Machinery' },
   { id: 'electronics', label: 'Electronics' },
@@ -43,7 +44,7 @@ function RegisterForm() {
   const [company, setCompany] = useState('')
   const [accountTypes, setAccountTypes] = useState(['seller'])
   const [selectedPlan, setSelectedPlan] = useState('start')
-  const [selectedIndustry, setSelectedIndustry] = useState('automotive')
+  const [selectedIndustry, setSelectedIndustry] = useState('')
   const [selectedServiceCategories, setSelectedServiceCategories] = useState([])
   const [auditorDocuments, setAuditorDocuments] = useState('')
   const [error, setError] = useState('')
@@ -59,7 +60,7 @@ function RegisterForm() {
   const { t } = useTranslation()
 
   const primaryAccountType = accountTypes[0] || 'seller'
-  const primaryIndustry = selectedIndustry || 'automotive'
+  const primaryIndustry = selectedIndustry
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 

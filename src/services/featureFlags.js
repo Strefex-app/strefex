@@ -18,6 +18,7 @@
 import { create } from 'zustand'
 import { getPlanById, getEffectiveLimits, getTierLevel, TIERS, BUYER_TRIAL_DAYS } from './stripeService'
 import { useAuthStore } from '../store/authStore'
+import { FEATURE_GRANTS_STORAGE_KEY, userHasActiveFeatureGrant } from '../utils/featureGrants'
 
 /* ── Promo code definitions ────────────────────────────── */
 const PROMO_CODES = {
@@ -67,6 +68,9 @@ const stored = getStored()
 /* ── Subscription store ──────────────────────────────────── */
 
 export const useSubscriptionStore = create((set, get) => ({
+  /** Bumped when `strefex-feature-grants` changes (other tab) so feature hooks re-render. */
+  grantsVersion: 0,
+
   /** Current plan ID: 'start' | 'basic' | 'standard' | 'premium' | 'enterprise' */
   planId: stored?.planId || 'start',
 
@@ -205,7 +209,22 @@ export const useSubscriptionStore = create((set, get) => ({
     // Buyer trial expired or subscription canceled — read-only with minimal access
     if (status === 'trial_expired' || status === 'canceled') {
       const base = { basicDashboard: true, companyProfile: true }
-      return base[featureKey] ?? false
+      if (base[featureKey]) return true
+      try {
+        const u = useAuthStore.getState()?.user
+        if (userHasActiveFeatureGrant(featureKey, u?.email, u?.id)) return true
+      } catch {
+        /* ignore */
+      }
+      return false
+    }
+
+    // Superadmin-granted features (platform localStorage; match email / account id)
+    try {
+      const u = useAuthStore.getState()?.user
+      if (userHasActiveFeatureGrant(featureKey, u?.email, u?.id)) return true
+    } catch {
+      /* ignore */
     }
 
     // Check dynamic overrides first
@@ -256,11 +275,22 @@ export const useSubscriptionStore = create((set, get) => ({
   },
 }))
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === FEATURE_GRANTS_STORAGE_KEY) {
+      useSubscriptionStore.setState((s) => ({ grantsVersion: (s.grantsVersion || 0) + 1 }))
+    }
+  })
+}
+
 /* ── React hooks ─────────────────────────────────────────── */
 
 /** Check if a boolean feature is available. */
 export function useFeatureFlag(featureKey) {
-  return useSubscriptionStore((s) => s.hasFeature(featureKey))
+  return useSubscriptionStore((s) => {
+    void s.grantsVersion
+    return s.hasFeature(featureKey)
+  })
 }
 
 /** Check if user's tier >= required tier. */

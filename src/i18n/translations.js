@@ -102,9 +102,6 @@ const translations = {
   'home.audit': { en: 'Audit', zh: '审核', es: 'Auditoría', fr: 'Audit', de: 'Audit', ru: 'Аудит' },
   'home.projectManagement': { en: 'Project Management', zh: '项目管理', es: 'Gestión de Proyectos', fr: 'Gestion de Projet', de: 'Projektmanagement', ru: 'Управление проектами' },
   'home.programManagement': { en: 'Program Management', zh: '项目集管理', es: 'Gestión de Programas', fr: 'Gestion de Programme', de: 'Programmmanagement', ru: 'Управление программами' },
-  'home.ctiHideSection': { en: 'Hide section', zh: '收起', es: 'Ocultar sección', fr: 'Masquer la section', de: 'Abschnitt ausblenden', ru: 'Скрыть блок' },
-  'home.ctiShowSection': { en: 'Show Cost Transformation Intelligence', zh: '显示成本转型情报', es: 'Mostrar inteligencia de transformación de costos', fr: 'Afficher Cost Transformation Intelligence', de: 'Cost Transformation Intelligence einblenden', ru: 'Показать Cost Transformation Intelligence' },
-
   /* ── Industry names ─────────────────────────────────────────── */
   'industry.automotive': { en: 'Automotive Industry', zh: '汽车工业', es: 'Industria Automotriz', fr: 'Industrie Automobile', de: 'Automobilindustrie', ru: 'Автомобильная промышленность' },
   'industry.machinery': { en: 'Machinery Industry', zh: '机械工业', es: 'Industria de Maquinaria', fr: 'Industrie des Machines', de: 'Maschinenbau', ru: 'Машиностроение' },

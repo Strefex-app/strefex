@@ -7,6 +7,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './ManagementHub.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
+import { FORGE_BASE } from '../constants/forgeSpaceRoutes'
 
 /* ── Management modules definition ─────────────────────── */
 const MANAGEMENT_MODULES = [
@@ -32,6 +33,18 @@ const MANAGEMENT_MODULES = [
     featureKey: 'productionManagement',
     planLabel: 'Premium',
     minRole: 'manager',
+  },
+  {
+    id: 'forge',
+    label: 'Forge',
+    description:
+      'Community hub: registration, member and committee rosters, membership onboarding scorecards, pipeline stats, and future committee and analytics modules',
+    path: FORGE_BASE,
+    icon: 'clipboard',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    minRole: 'manager',
+    superadminOnly: true,
   },
   {
     id: 'project',
@@ -157,9 +170,11 @@ export default function ManagementHub() {
   const hasRole = useAuthStore((s) => s.hasRole)
   const { t } = useTranslation()
 
-  // Filter modules by role requirement (e.g. Team Management requires admin)
+  // Filter modules by role requirement (e.g. Team Management requires admin); Forge is superadmin-only.
   const visibleModules = MANAGEMENT_MODULES.filter(
-    (mod) => !mod.minRole || isSuperAdmin || hasRole(mod.minRole)
+    (mod) =>
+      (!mod.superadminOnly || isSuperAdmin) &&
+      (!mod.minRole || isSuperAdmin || hasRole(mod.minRole)),
   )
 
   return (

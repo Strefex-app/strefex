@@ -3,9 +3,12 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simp
 import { getCountryCode } from 'countries-list'
 import { getCountriesFiltered } from '../data/worldMarkets'
 
-/** Same Natural Earth layer as the old globe picker — small GeoJSON, no WebGL / Three. */
-const GEOJSON_URL =
-  'https://cdn.jsdelivr.net/npm/globe.gl@2.45.2/example/datasets/ne_110m_admin_0_countries.geojson'
+/**
+ * Same Natural Earth layer as the old globe picker (GeoJSON).
+ * Served from `/public/geo/` so production CSP (`connect-src 'self'`) allows fetch;
+ * jsDelivr was blocked on Vercel — map worked on localhost only.
+ */
+const GEOJSON_URL = `${import.meta.env.BASE_URL}geo/ne_110m_admin_0_countries.geojson`
 
 function isoFromGeo(geo) {
   const props = geo?.properties || {}
@@ -21,7 +24,7 @@ function isoFromGeo(geo) {
   return null
 }
 
-export default function MapMarketPicker({ selectedIso2, marketTabId, onCountrySelect, height = 240 }) {
+export default function MapMarketPicker({ selectedIso2, marketTabId, onCountrySelect, height = 288 }) {
   const inMarketSet = useMemo(() => {
     if (marketTabId === 'all') return null
     return new Set(getCountriesFiltered(marketTabId).map((c) => c.code))
@@ -45,12 +48,12 @@ export default function MapMarketPicker({ selectedIso2, marketTabId, onCountrySe
       <ComposableMap
         projection="geoNaturalEarth1"
         projectionConfig={{
-          scale: 88,
-          center: [0, 5],
+          scale: 108,
+          center: [0, 8],
         }}
         style={{ width: '100%', height: '100%', maxWidth: '100%' }}
       >
-        <ZoomableGroup zoom={1} minZoom={0.85} maxZoom={4} center={[0, 12]}>
+        <ZoomableGroup zoom={1.12} minZoom={0.88} maxZoom={4} center={[0, 14]}>
           <Geographies geography={GEOJSON_URL}>
             {({ geographies }) =>
               geographies.map((geo) => {
