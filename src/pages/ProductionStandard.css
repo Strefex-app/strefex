@@ -44,7 +44,7 @@
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #fff;
   width: fit-content;
 }
@@ -205,7 +205,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 32px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #333;
 }
 
@@ -435,7 +435,7 @@
 
 .std-sum-value {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #333;
 }
 
@@ -618,7 +618,7 @@
   color: #fff;
   border-radius: 12px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .ct-info {
@@ -645,7 +645,7 @@
 .ct-score {
   display: block;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #27ae60;
 }
 
@@ -672,7 +672,7 @@
 
 .phase span {
   display: block;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-size: 14px;
   margin-bottom: 4px;
 }
@@ -726,7 +726,7 @@
   justify-content: center;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #fff;
 }
 
@@ -782,7 +782,7 @@
 .rating-letter {
   display: block;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .vda-rating.green .rating-letter { color: #27ae60; }

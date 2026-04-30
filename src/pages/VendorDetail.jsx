@@ -524,7 +524,7 @@ export default function VendorDetail() {
                     <td>{c.title}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(c.date)}</td>
                     <td><span className="vd-conn-status">{c.status}</span></td>
-                    <td style={{ fontWeight: 700 }}>${(c.amount || 0).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600 }}>${(c.amount || 0).toLocaleString()}</td>
                   </tr>
                 )
               })}

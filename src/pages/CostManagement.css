@@ -53,12 +53,15 @@
 .cost-mgmt-indicator-card {
   background: var(--bg-card);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 18px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
 }
 
 .cost-mgmt-indicator-icon {
@@ -98,7 +101,7 @@
 
 .cost-mgmt-indicator-value {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   line-height: 1.2;
 }
@@ -358,7 +361,7 @@
 
 .category-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   margin-bottom: 8px;
 }
@@ -427,14 +430,14 @@
 .cm-modal { background: var(--bg-card); border-radius: 14px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); animation: cmModalIn .2s ease; }
 @keyframes cmModalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .cm-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light); }
-.cm-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary); }
+.cm-modal-header h3 { margin: 0; font-size: 16px; font-weight: var(--font-semibold); color: var(--color-primary); }
 .cm-modal-close { background: none; border: none; font-size: 20px; color: var(--color-muted); cursor: pointer; padding: 4px; border-radius: 6px; line-height: 1; }
 .cm-modal-close:hover { background: var(--bg-surface); color: var(--color-primary); }
 .cm-modal-body { padding: 16px 20px; }
 .cm-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; }
 .cm-modal-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--color-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
-.cm-modal-save { padding: 8px 16px; border-radius: 8px; border: none; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.cm-modal-save { padding: 8px 16px; border-radius: 8px; border: none; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer; }
 .cm-modal-save:hover { background: var(--btn-primary-hover); }
-.cm-field-label { display: block; font-size: 12px; font-weight: 700; color: var(--color-secondary); margin-bottom: 6px; }
+.cm-field-label { display: block; font-size: 12px; font-weight: var(--font-semibold); color: var(--color-secondary); margin-bottom: 6px; }
 .cm-field-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-input); color: var(--color-primary); }
 .cm-field-input:focus { outline: none; border-color: var(--color-primary); }

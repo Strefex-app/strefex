@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole } from '../utils/tenantStorage'
+import {
+  allocateNextBuyerSequence,
+  formatBuyerRef,
+  formatBuyerSplitRef,
+} from '../utils/buyerRequestNumbers'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 import { isSupabaseConfigured, rfqsService } from '../services/supabaseService'
 
@@ -66,7 +71,12 @@ const toDbRfqPayload = (rfq) => ({
   requirements: rfq?.requirements || {},
   attachments: Array.isArray(rfq?.attachments) ? rfq.attachments : [],
   responses: Array.isArray(rfq?.sellerResponses) ? rfq.sellerResponses : [],
-  metadata: { local_id: rfq?.id || null, response_count: Number(rfq?.responses || 0) },
+  metadata: {
+    local_id: rfq?.id || null,
+    response_count: Number(rfq?.responses || 0),
+    buyer_ref: rfq?.buyerRefDisplay || null,
+    buyer_ref_seq: rfq?.buyerRefSeq != null ? rfq.buyerRefSeq : null,
+  },
   sent_at: rfq?.sentAt || null,
   created_at: rfq?.createdAt || null,
   updated_at: new Date().toISOString(),
@@ -177,17 +187,37 @@ const useRfqStore = create(
         const target = state.rfqs.find((rfq) => rfq.id === id)
         if (!target) return state
 
+        const buyerEmailNorm = normalizeEmail(target.buyerEmail || target._createdBy)
+        let buyerRefSeq =
+          typeof target.buyerRefSeq === 'number' && !Number.isNaN(target.buyerRefSeq) && target.buyerRefSeq > 0
+            ? target.buyerRefSeq
+            : 0
+        let buyerRefDisplay = target.buyerRefDisplay
+        if (!buyerRefDisplay) {
+          buyerRefSeq = buyerRefSeq > 0 ? buyerRefSeq : allocateNextBuyerSequence(buyerEmailNorm)
+          buyerRefDisplay = formatBuyerRef(buyerRefSeq)
+        }
+        const buyerBase = buyerRefDisplay
+
         const updatedRfqs = state.rfqs.map((rfq) =>
           rfq.id === id
-            ? { ...rfq, status: 'sent', sentAt }
+            ? {
+                ...rfq,
+                status: 'sent',
+                sentAt,
+                buyerRefDisplay,
+                ...(buyerRefSeq > 0 ? { buyerRefSeq } : {}),
+              }
             : rfq
         )
 
         const invited = toArray(target.suppliers)
+        const splitTotal = invited.length
         const existingKeys = new Set(
           state.receivedRfqs.map((r) => `${r.rfqId || ''}::${String(r.sellerId || '').toLowerCase()}::${normalizeEmail(r.sellerEmail)}`)
         )
         const generatedReceived = invited.map((supplier, idx) => {
+          const sellerSplitRef = formatBuyerSplitRef(buyerBase, idx + 1, splitTotal)
           if (typeof supplier === 'string') {
             const resolvedEmail = findAccountEmailById(supplier)
             return {
@@ -196,6 +226,8 @@ const useRfqStore = create(
               title: target.title,
               buyerCompany: target.buyerCompany || target.companyName || 'Buyer',
               buyerEmail: normalizeEmail(target.buyerEmail || target._createdBy),
+              buyerRefDisplay: buyerBase,
+              buyerSplitRef: sellerSplitRef,
               industryId: target.industryId,
               categoryId: target.categoryId,
               requirements: target.requirements || {},
@@ -212,6 +244,8 @@ const useRfqStore = create(
             title: target.title,
             buyerCompany: target.buyerCompany || target.companyName || 'Buyer',
             buyerEmail: normalizeEmail(target.buyerEmail || target._createdBy),
+            buyerRefDisplay: buyerBase,
+            buyerSplitRef: sellerSplitRef,
             industryId: target.industryId,
             categoryId: target.categoryId,
             requirements: target.requirements || {},

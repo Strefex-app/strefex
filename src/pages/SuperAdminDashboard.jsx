@@ -1815,7 +1815,7 @@ export default function SuperAdminDashboard() {
                       </span>
                     </td>
                     <td><span className="sad-badge" style={{ background: `${planColor(u.plan)}20`, color: planColor(u.plan) }}>{u.plan}</span></td>
-                    <td><span className="sad-badge" style={{ background: `${roleObj.color}15`, color: roleObj.color, fontWeight: 700 }}>{roleObj.label}</span></td>
+                    <td><span className="sad-badge" style={{ background: `${roleObj.color}15`, color: roleObj.color, fontWeight: 600 }}>{roleObj.label}</span></td>
                     <td>
                       <select
                         value={u.role}
@@ -1950,7 +1950,7 @@ export default function SuperAdminDashboard() {
                 onClick={() => { setSelectedRfqCompany(c.company); setSelectedRfqDetail(null) }}
               >
                 <div className="sad-panel-item-top">
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a2e' }}>{c.company}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a2e' }}>{c.company}</span>
                   <span className="sad-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>{c.rfqs.length} RFQs</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{c.email}</div>
@@ -2004,7 +2004,7 @@ export default function SuperAdminDashboard() {
                             <span className="sad-badge" style={{ background: `${sc[rfq.status] || '#888'}15`, color: sc[rfq.status] || '#888' }}>
                               {rfq.status}
                             </span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: respCount > 0 ? '#2e7d32' : '#ccc' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: respCount > 0 ? '#2e7d32' : '#ccc' }}>
                               {respCount} resp.
                             </span>
                           </div>
@@ -2049,9 +2049,9 @@ export default function SuperAdminDashboard() {
                                 <tr key={r.sellerId}>
                                   <td style={{ fontWeight: 600 }}>{r.sellerName}</td>
                                   <td style={{ color: '#888' }}>{r.sellerEmail}</td>
-                                  <td style={{ fontWeight: 700, color: r.price === bestPrice ? '#2e7d32' : '#333' }}>
+                                  <td style={{ fontWeight: 600, color: r.price === bestPrice ? '#2e7d32' : '#333' }}>
                                     ${r.price?.toLocaleString()}
-                                    {r.price === bestPrice && <span style={{ marginLeft: 4, fontSize: 10, color: '#2e7d32', fontWeight: 700 }}>✓ Best</span>}
+                                    {r.price === bestPrice && <span style={{ marginLeft: 4, fontSize: 10, color: '#2e7d32', fontWeight: 600 }}>✓ Best</span>}
                                   </td>
                                   <td style={{ color: r.leadTime === bestLead ? '#2e7d32' : '#333', fontWeight: r.leadTime === bestLead ? 700 : 400 }}>
                                     {r.leadTime}d
@@ -2509,7 +2509,7 @@ export default function SuperAdminDashboard() {
                     <span
                       style={{
                         color: sevColors[l.severity] || '#888',
-                        fontWeight: 800,
+                        fontWeight: 600,
                         fontSize: 10,
                         textTransform: 'uppercase',
                       }}
@@ -2724,8 +2724,8 @@ export default function SuperAdminDashboard() {
               <tbody>
                 {Object.entries(PROMO_CODES).map(([code, cfg]) => (
                   <tr key={code}>
-                    <td><code style={{ background: 'rgba(0,8,136,.06)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>{code}</code></td>
-                    <td><span style={{ color: planColor(cfg.planId), fontWeight: 700, textTransform: 'capitalize' }}>{cfg.planId}</span></td>
+                    <td><code style={{ background: 'rgba(0,8,136,.06)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{code}</code></td>
+                    <td><span style={{ color: planColor(cfg.planId), fontWeight: 600, textTransform: 'capitalize' }}>{cfg.planId}</span></td>
                     <td>{cfg.trialDays} days</td>
                     <td>{cfg.description}</td>
                   </tr>
@@ -2764,12 +2764,12 @@ export default function SuperAdminDashboard() {
                     <td style={{ fontSize: 12 }}>{trialPromoAccountTypeLabel(g.accountType)}</td>
                     <td>
                       {g.type === 'trial_extension' && (
-                        <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 11 }}>
+                        <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
                           +{g.extraDays} days
                         </span>
                       )}
                       {g.type === 'promo_code' && (
-                        <span style={{ background: 'rgba(0,8,136,.08)', color: '#000888', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 11 }}>
+                        <span style={{ background: 'rgba(0,8,136,.08)', color: '#000888', padding: '2px 8px', borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
                           Promo: {g.promoCode}
                         </span>
                       )}

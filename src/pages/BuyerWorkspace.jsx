@@ -127,7 +127,7 @@ export default function BuyerWorkspace() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div className="app-page">
         <div className="app-page-card">
           <h2 className="app-page-title">Buyer Workspace</h2>
           <p className="app-page-subtitle">Search, shortlist, compare, and send RFQs at enterprise scale.</p>
@@ -240,7 +240,7 @@ export default function BuyerWorkspace() {
             <div style={{ display: 'grid', gap: 8 }}>
               {notifications.map((n) => (
                 <div key={n.id} style={{ border: '1px solid #e4e7ec', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{n.title || n.type || 'Notification'}</div>
+                  <div style={{ fontWeight: 600 }}>{n.title || n.type || 'Notification'}</div>
                   <div style={{ color: '#475467', fontSize: 13 }}>{n.message || ''}</div>
                 </div>
               ))}

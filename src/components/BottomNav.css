@@ -56,7 +56,7 @@
   background: #e74c3c;
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   line-height: 16px;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);

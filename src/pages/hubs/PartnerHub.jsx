@@ -27,6 +27,33 @@ export default function PartnerHub() {
         </div>
 
         <div className="app-page-card">
+          <h2 className="hub-landing__section-label">Platform services (any account)</h2>
+          <p className="hub-landing__subtitle" style={{ marginTop: 0, marginBottom: 16 }}>
+            Order STREFEX services and track your requests — you do not need a service-provider registration to place an order.
+          </p>
+          <div className="hub-landing__grid">
+            <Link to="/service-hub" className="hub-landing__card stx-click-feedback">
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
+                <Icon name="service-requests" size={22} />
+              </span>
+              <h3 className="hub-landing__card-title">Browse &amp; order services</h3>
+              <p className="hub-landing__card-desc">
+                Open the service hub, pick a category, and submit a service request (same flow as buyers).
+              </p>
+            </Link>
+            <Link to="/service-requests" className="hub-landing__card stx-click-feedback">
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(46,125,50,.12)', color: '#2e7d32' }}>
+                <Icon name="check-square" size={22} />
+              </span>
+              <h3 className="hub-landing__card-title">My service requests</h3>
+              <p className="hub-landing__card-desc">
+                See service orders placed by your account (submitted as buyer or seller).
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="app-page-card">
           <h2 className="hub-landing__section-label">Supplier (seller)</h2>
           <div className="hub-landing__grid">
             <Link to="/dashboard/supplier" className="hub-landing__card stx-click-feedback">
@@ -70,9 +97,9 @@ export default function PartnerHub() {
                   <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
                     <Icon name="service-requests" size={22} />
                   </span>
-                  <h3 className="hub-landing__card-title">Service requests</h3>
+                  <h3 className="hub-landing__card-title">Service request management</h3>
                   <p className="hub-landing__card-desc">
-                    Manage incoming service work and client requests.
+                    Full queue: assign, update status, and notes for incoming work (admin/manager tools when applicable).
                   </p>
                 </Link>
                 <Link to="/service-provider-dashboard" className="hub-landing__card stx-click-feedback">

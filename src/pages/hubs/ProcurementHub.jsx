@@ -43,6 +43,24 @@ export default function ProcurementHub() {
                 Your organisation’s contacts, customers, and equipment suppliers — import and manage in one place.
               </p>
             </Link>
+            <Link to="/service-hub" className="hub-landing__card stx-click-feedback">
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
+                <Icon name="service-requests" size={22} />
+              </span>
+              <h3 className="hub-landing__card-title">Order platform services</h3>
+              <p className="hub-landing__card-desc">
+                Project management, supplier services, and quality — place a service request without registering as a service provider.
+              </p>
+            </Link>
+            <Link to="/service-requests" className="hub-landing__card stx-click-feedback">
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(46,125,50,.12)', color: '#2e7d32' }}>
+                <Icon name="check-square" size={22} />
+              </span>
+              <h3 className="hub-landing__card-title">My service requests</h3>
+              <p className="hub-landing__card-desc">
+                Track status of service orders you have submitted (reference numbers B-…).
+              </p>
+            </Link>
           </div>
         </div>
 

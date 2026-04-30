@@ -240,6 +240,21 @@ export default function ForgeHub() {
                       </div>
                     </button>
 
+                    {group.id === 'onboarding' && (
+                      <div className="forge-hub-onboarding-create-wrap">
+                        <button
+                          type="button"
+                          className="headcount-action-item headcount-action-add stx-click-feedback forge-hub-onboarding-create"
+                          onClick={() => navigate(`${FORGE_PATHS.membershipOnboarding}?new=true`)}
+                        >
+                          <span className="headcount-action-icon">
+                            <Icon name="plus" size={20} />
+                          </span>
+                          {t('forge.hub.onboarding.create', 'New onboarding case')}
+                        </button>
+                      </div>
+                    )}
+
                     <div id={pageListId} className="forge-hub-hub-pages" role="group" aria-label={`${hubLabel} — ${t('forge.hub.pagesInHub', 'Pages')}`}>
                       {group.modules.map((m) => (
                         <button

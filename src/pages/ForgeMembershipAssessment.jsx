@@ -64,8 +64,9 @@ function thresholdBadge(n) {
 }
 
 export default function ForgeMembershipAssessment() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const caseFromUrl = searchParams.get('case') ?? ''
+  const wantNewFromUrl = searchParams.get('new') === 'true'
   const { t } = useTranslation()
   const [shellTab, setShellTab] = useState('assess')
   const [assessmentId, setAssessmentId] = useState(null)
@@ -166,11 +167,62 @@ export default function ForgeMembershipAssessment() {
     const caseParam = caseFromUrl || null
     ;(function init() {
       try {
+        if (wantNewFromUrl) {
+          const index = loadMembershipAssessmentIndex()
+          const id = `c_${Date.now()}`
+          const year = new Date().getFullYear()
+          const seq = String(index.length + 1).padStart(3, '0')
+          const today = new Date().toISOString().split('T')[0]
+          if (!cancelled) {
+            setAssessmentId(id)
+            setState({
+              ...emptyAssessmentState(),
+              fields: { nomRef: `NOM-${year}-${seq}`, submitDate: today },
+            })
+            setHydrated(true)
+            setSaveStatus('')
+            setSearchParams({ case: id }, { replace: true })
+          }
+          return
+        }
+
         const index = loadMembershipAssessmentIndex()
+
+        if (caseParam) {
+          const raw = localStorage.getItem(`${STORE_VER}-${caseParam}`)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (!cancelled) {
+              setAssessmentId(caseParam)
+              setState(mergeLoadedState(emptyAssessmentState(), parsed))
+              setHydrated(true)
+              setSaveStatus('saved')
+              window.setTimeout(() => setSaveStatus(''), 1800)
+            }
+            return
+          }
+          const inIndex = index.some((c) => c.id === caseParam)
+          const looksLikeNewClientId = String(caseParam).startsWith('c_')
+          if (inIndex || looksLikeNewClientId) {
+            const year = new Date().getFullYear()
+            const seq = String(index.length + 1).padStart(3, '0')
+            const today = new Date().toISOString().split('T')[0]
+            if (!cancelled) {
+              setAssessmentId(caseParam)
+              setState({
+                ...emptyAssessmentState(),
+                fields: { nomRef: `NOM-${year}-${seq}`, submitDate: today },
+              })
+              setHydrated(true)
+              setSaveStatus('')
+            }
+            return
+          }
+          /* Unknown case id in URL — fall through to default list */
+        }
+
         if (index.length) {
-          const preferred =
-            caseParam && index.some((c) => c.id === caseParam) ? caseParam : index[0].id
-          const last = index.find((c) => c.id === preferred) || index[0]
+          const last = index[0]
           const raw = localStorage.getItem(`${STORE_VER}-${last.id}`)
           const parsed = raw ? JSON.parse(raw) : null
           if (!cancelled) {
@@ -206,7 +258,7 @@ export default function ForgeMembershipAssessment() {
     return () => {
       cancelled = true
     }
-  }, [caseFromUrl])
+  }, [caseFromUrl, wantNewFromUrl, setSearchParams])
 
   const openNewAssessment = () => {
     if (!window.confirm(t('forge.confirmNew', 'Start a new assessment? Current work is saved and can be reopened from All Assessments.')))

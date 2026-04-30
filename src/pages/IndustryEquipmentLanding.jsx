@@ -257,7 +257,7 @@ const IndustryEquipmentLanding = () => {
           {showCatPicker && (
             <div className="home-modal-overlay" onClick={() => setShowCatPicker(false)}>
               <div className="home-modal" onClick={(e) => e.stopPropagation()}>
-                <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Select Equipment Category</h3>
+                <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Select Equipment Category</h3>
                 <p style={{ margin: '0 0 20px', fontSize: 14, color: '#666', lineHeight: 1.5 }}>
                   Browse sellers under <strong>{categories.find(c => c.id === showCatPicker)?.name || showCatPicker}</strong>?
                   {!allCategoriesOpen && (

@@ -24,7 +24,7 @@
 
 .hr-mod-title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary, #1a1a2e);
   margin: 0 0 6px 0;
 }
@@ -785,6 +785,6 @@
   border: none;
   background: var(--btn-primary-bg, #000888);
   color: var(--btn-primary-text, #fff);
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
 }

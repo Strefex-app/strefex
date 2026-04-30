@@ -47,7 +47,7 @@ export default function RFQBuilder({ shortlisted = [], onSubmit }) {
         <input type="number" value={targetMoq} onChange={(e) => setTargetMoq(e.target.value)} placeholder="Target MOQ" />
       </div>
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 8, padding: 8 }}>
-        <div style={{ marginBottom: 8, fontWeight: 700 }}>Select suppliers</div>
+        <div style={{ marginBottom: 8, fontWeight: 600 }}>Select suppliers</div>
         {shortlisted.length === 0 ? (
           <div style={{ color: '#667085' }}>No shortlisted suppliers.</div>
         ) : (

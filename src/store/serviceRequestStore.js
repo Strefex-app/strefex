@@ -13,6 +13,7 @@
  *   - Superadmin can see all requests (platform level)
  */
 import { create } from 'zustand'
+import { allocateNextBuyerSequence, formatBuyerRef } from '../utils/buyerRequestNumbers'
 import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
 
@@ -99,6 +100,32 @@ const getCompanyDomain = (email) => {
 const getTenantCompanyScope = (tenantId) => String(tenantId || '').split('::')[0].toLowerCase()
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
+
+/** Human-readable status for activity summaries */
+const REQ_STATUS_LABEL = {
+  new: 'New',
+  assigned: 'Assigned',
+  on_hold: 'On hold',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  recalled: 'Recalled',
+}
+
+let _nextId = Date.now()
+
+/** Append-only entries: one chronological history per request until completed. */
+const pushActivity = (existingLog, { kind, actorEmail, summary, detail, at }) => {
+  const row = {
+    id: `SRACT-${String(++_nextId)}`,
+    at: at || new Date().toISOString(),
+    kind,
+    actorEmail: normalizeEmail(actorEmail),
+    summary: String(summary || ''),
+  }
+  if (detail != null && String(detail).trim() !== '') row.detail = String(detail).trim()
+  return [...(Array.isArray(existingLog) ? existingLog : []), row]
+}
 
 const dedupeById = (items) => {
   const map = new Map()
@@ -242,6 +269,7 @@ const mapDbRequestToLocal = (row) => {
     assignedBy: row?.assigned_by || row?.assignedBy || null,
     assignedAt: row?.assigned_at || row?.assignedAt || null,
     adminNotes: Array.isArray(row?.admin_notes) ? row.admin_notes : [],
+    activityLog: Array.isArray(metadata?.activity_log) ? metadata.activity_log : [],
     createdAt,
     updatedAt,
   }
@@ -299,6 +327,7 @@ const toDbRequestPayload = (request) => ({
     preferred_provider_name: request?.preferredProviderName || null,
     preferred_provider_email: normalizeEmail(request?.preferredProviderEmail),
     request_source: request?.requestSource || null,
+    activity_log: Array.isArray(request?.activityLog) ? request.activityLog : [],
   },
   created_at: request?.createdAt || new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -505,8 +534,6 @@ function canManageRequest(request) {
   return String(request.assignedTo || '').toLowerCase() === userId
 }
 
-let _nextId = Date.now()
-
 export const useServiceRequestStore = create((set, get) => ({
   requests: loadRequestsByRole(),
   notifications: loadNotificationsByRole(),
@@ -549,11 +576,29 @@ export const useServiceRequestStore = create((set, get) => ({
     requestSource,
   }) => {
     const currentRequests = loadRequestsByRole()
-    const id = `SR-${new Date().getFullYear()}-${String(++_nextId).slice(-6)}`
+    const buyerRefSeq = allocateNextBuyerSequence(email || getUserId())
+    const id = formatBuyerRef(buyerRefSeq)
     const normalizedPreferredProviderEmail = normalizeEmail(preferredProviderEmail)
     const autoAssignable = normalizedPreferredProviderEmail && isAssignableAuditorOrServiceProvider(normalizedPreferredProviderEmail)
+    const createdAtIso = new Date().toISOString()
+    let activityLog = pushActivity([], {
+      kind: 'request_created',
+      actorEmail: email,
+      summary: `${services.length} service(s): ${services.join(', ')}`,
+      at: createdAtIso,
+    })
+    if (autoAssignable) {
+      activityLog = pushActivity(activityLog, {
+        kind: 'assigned',
+        actorEmail: email,
+        summary: `Routed to ${preferredProviderName || normalizedPreferredProviderEmail || 'assignee'}`,
+        detail: 'Request was routed automatically.',
+      })
+    }
     const request = {
       id,
+      buyerRefSeq,
+      buyerRefDisplay: id,
       services,
       industryId,
       industryLabel: industryLabel || null,
@@ -580,10 +625,11 @@ export const useServiceRequestStore = create((set, get) => ({
       status: autoAssignable ? 'assigned' : 'new', // new | assigned | on_hold | in_progress | completed | cancelled | recalled
       assignedTo: autoAssignable ? normalizedPreferredProviderEmail : null, // email of assigned manager/admin
       assignedBy: autoAssignable ? 'auto-routing' : null, // email of admin who assigned
-      assignedAt: autoAssignable ? new Date().toISOString() : null,
+      assignedAt: autoAssignable ? createdAtIso : null,
       adminNotes: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      activityLog,
+      createdAt: createdAtIso,
+      updatedAt: createdAtIso,
     }
 
     const updated = [request, ...currentRequests]
@@ -654,18 +700,22 @@ export const useServiceRequestStore = create((set, get) => ({
     const targetAssignee = normalizeEmail(assigneeEmail)
     const current = currentRequests.find((r) => r.id === requestId)
     if (!canManageRequest(current)) return
-    const updated = currentRequests.map((r) =>
-      r.id === requestId
-        ? {
-            ...r,
-            status: 'assigned',
-            assignedTo: targetAssignee,
-            assignedBy: assignerEmail,
-            assignedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }
-        : r
-    )
+    const updated = currentRequests.map((r) => {
+      if (r.id !== requestId) return r
+      return {
+        ...r,
+        status: 'assigned',
+        assignedTo: targetAssignee,
+        assignedBy: assignerEmail,
+        assignedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        activityLog: pushActivity(r.activityLog, {
+          kind: 'assigned',
+          actorEmail: assignerEmail,
+          summary: `Assigned to ${targetAssignee}`,
+        }),
+      }
+    })
     persistRequestsByRole(updated)
 
     // Create notification for the assignee
@@ -721,7 +771,19 @@ export const useServiceRequestStore = create((set, get) => ({
           at: new Date().toISOString(),
         })
       }
-      return { ...r, status, adminNotes, updatedAt: new Date().toISOString() }
+      const statusLabel = REQ_STATUS_LABEL[status] || String(status || '').replace(/_/g, ' ')
+      return {
+        ...r,
+        status,
+        adminNotes,
+        updatedAt: new Date().toISOString(),
+        activityLog: pushActivity(r.activityLog, {
+          kind: 'status_changed',
+          actorEmail: updaterEmail,
+          summary: `Status → ${statusLabel}`,
+          ...(note ? { detail: note } : {}),
+        }),
+      }
     })
     persistRequestsByRole(updated)
     const nextReq = updated.find((r) => r.id === requestId)
@@ -777,7 +839,17 @@ export const useServiceRequestStore = create((set, get) => ({
         by: authorEmail,
         at: new Date().toISOString(),
       }]
-      return { ...r, adminNotes, updatedAt: new Date().toISOString() }
+      return {
+        ...r,
+        adminNotes,
+        updatedAt: new Date().toISOString(),
+        activityLog: pushActivity(r.activityLog, {
+          kind: 'note_added',
+          actorEmail: authorEmail,
+          summary: 'Note added',
+          detail: note,
+        }),
+      }
     })
     persistRequestsByRole(updated)
     const updatedRequest = updated.find((r) => r.id === requestId)

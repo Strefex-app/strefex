@@ -5,7 +5,8 @@ import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useAuthStore } from '../store/authStore'
 import { tenantKey } from '../utils/tenantStorage'
-import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
+import WorldMap from '../components/WorldMap'
+import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -77,13 +78,23 @@ export default function ProductExecutiveSummary() {
     }))
   }, [registeredServiceProviders])
 
+  const sellerMapLocations = useMemo(() =>
+    registeredSellers
+      .map((s, idx) => {
+        const coords = getApproximateLngLatOrFallback({ country: s.country, city: s.city, address: s.address, seed: s.id })
+        const name = canSeeNames ? (s.company || s.contactName || 'Supplier') : `Supplier #${String(idx + 1).padStart(2, '0')}`
+        return { id: s.id, name, coordinates: coords, city: s.city, country: s.country }
+      })
+      .filter(Boolean),
+  [registeredSellers, canSeeNames])
+
   if (!category || !process) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <a className="app-page-back-link" href="#" onClick={(e) => { e.preventDefault(); goBack() }}>← Back</a>
           <div className="app-page-card" style={{ textAlign: 'center', padding: 40 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>Not Found</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>Not Found</h2>
             <p style={{ color: '#888' }}>The requested manufacturing process was not found.</p>
           </div>
         </div>
@@ -100,19 +111,27 @@ export default function ProductExecutiveSummary() {
 
   return (
     <AppLayout>
-      <div className="exec-summary-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div className="exec-summary-page">
         {/* Header */}
         <div className="exec-summary-header">
           <a className="exec-summary-back" href="#" onClick={(e) => { e.preventDefault(); goBack() }}>
             ← Back
           </a>
+          <div className="exec-summary-brand">
+            <img
+              src={`${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`}
+              alt="STREFEX"
+              className="exec-logo-img exec-logo-img--executive"
+            />
+            <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
             <h1 className="exec-summary-title" style={{ margin: 0 }}>
               Executive Summary — {processLabel}
             </h1>
             <span style={{
               fontSize: 10, padding: '3px 8px', borderRadius: 4,
-              background: `${category.color}14`, color: category.color, fontWeight: 700,
+              background: `${category.color}14`, color: category.color, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.5px',
             }}>
               {industryLabel} · {category.name}
@@ -145,32 +164,32 @@ export default function ProductExecutiveSummary() {
 
         {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          <div className="app-page-widgets-dash">
             {/* KPI Cards */}
             <div className="app-page-card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Registered Suppliers</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e' }}>0</div>
+              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>0</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>For {processLabel} in {industryLabel}</div>
             </div>
             <div className="app-page-card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Avg Lead Time</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e' }}>--</div>
+              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>--</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Weeks (avg across suppliers)</div>
             </div>
             <div className="app-page-card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Avg Rating</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e' }}>--</div>
+              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>--</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Based on 0 reviews</div>
             </div>
             <div className="app-page-card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Active RFQs</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e' }}>0</div>
+              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>0</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Quote requests in progress</div>
             </div>
 
             {/* Process Details Card */}
             <div className="app-page-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Process Overview</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Process Overview</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#888', fontWeight: 600, marginBottom: 4 }}>Manufacturing Category</div>
@@ -193,7 +212,7 @@ export default function ProductExecutiveSummary() {
 
             {/* Actions */}
             <div className="app-page-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Actions</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Actions</h3>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => navigate(quoteUrl())} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -262,7 +281,7 @@ export default function ProductExecutiveSummary() {
             />
 
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Registered Suppliers — {processLabel}</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600 }}>Registered Suppliers — {processLabel}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>
                 Suppliers registered for {processLabel} in the {industryLabel} industry.
                 {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Requester view keeps identities masked. Superadmin can view full details.</span>}
@@ -279,7 +298,7 @@ export default function ProductExecutiveSummary() {
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 6 }}>No suppliers registered yet</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e', marginBottom: 6 }}>No suppliers registered yet</div>
                 <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
                   Be the first to register as a <strong>{processLabel}</strong> supplier for the <strong>{industryLabel}</strong> industry.
                 </div>
@@ -305,12 +324,12 @@ export default function ProductExecutiveSummary() {
 
         {/* ─── MARKET ANALYSIS TAB ─── */}
         {activeTab === 'market' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <div className="app-page-widgets-dash" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' }}>
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Price Index</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Price Index</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Relative pricing for {processLabel} in {industryLabel} compared to global average.</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: '#1a1a2e' }}>100</span>
+                <span style={{ fontSize: 32, fontWeight: 600, color: '#1a1a2e' }}>100</span>
                 <span style={{ fontSize: 14, color: '#888' }}>/ 100 baseline</span>
               </div>
               <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: '#e2e8f0' }}>
@@ -320,31 +339,30 @@ export default function ProductExecutiveSummary() {
             </div>
 
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Geographic Distribution</h3>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Where {processLabel} suppliers are located globally.</div>
-              <div style={{
-                height: 120, borderRadius: 10, background: '#f8fafc', border: '1px dashed #cbd5e1',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontSize: 13, color: '#94a3b8' }}>Map will populate with supplier registrations</span>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Geographic Distribution</h3>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
+                Approximate supplier locations by country/city from registered accounts (exact addresses not shown). Zoom is disabled.
+              </div>
+              <div className="exec-map-container exec-map-container--landscape">
+                <WorldMap variant="executive" locations={sellerMapLocations} />
               </div>
             </div>
 
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Capacity Utilization</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Capacity Utilization</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Average capacity utilization among {processLabel} suppliers.</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: '#1a1a2e' }}>--</span>
+                <span style={{ fontSize: 32, fontWeight: 600, color: '#1a1a2e' }}>--</span>
                 <span style={{ fontSize: 14, color: '#888' }}>%</span>
               </div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Awaiting supplier data</div>
             </div>
 
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Lead Time Benchmark</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Lead Time Benchmark</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Average lead time for {processLabel} orders.</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: '#1a1a2e' }}>--</span>
+                <span style={{ fontSize: 32, fontWeight: 600, color: '#1a1a2e' }}>--</span>
                 <span style={{ fontSize: 14, color: '#888' }}>weeks</span>
               </div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Will calculate from supplier data</div>
@@ -354,9 +372,9 @@ export default function ProductExecutiveSummary() {
 
         {/* ─── QUALITY TAB ─── */}
         {activeTab === 'quality' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <div className="app-page-widgets-dash" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' }}>
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Certifications</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Certifications</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Common certifications for {processLabel} suppliers in {industryLabel}.</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {['ISO 9001', 'ISO 14001', 'IATF 16949', 'ISO 13485', 'AS9100'].map((cert) => (
@@ -372,7 +390,7 @@ export default function ProductExecutiveSummary() {
             </div>
 
             <div className="app-page-card" style={{ padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Quality Metrics</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Quality Metrics</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>Average quality KPIs for {processLabel}.</div>
               <div style={{ display: 'grid', gap: 12 }}>
                 {[
@@ -383,7 +401,7 @@ export default function ProductExecutiveSummary() {
                 ].map((kpi) => (
                   <div key={kpi.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
                     <span style={{ fontSize: 13, color: '#475569' }}>{kpi.label}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{kpi.value}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{kpi.value}</span>
                   </div>
                 ))}
               </div>
@@ -391,7 +409,7 @@ export default function ProductExecutiveSummary() {
             </div>
 
             <div className="app-page-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Risk Assessment</h3>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Risk Assessment</h3>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>Supply chain risk indicators for {processLabel} in {industryLabel}.</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                 {[
@@ -402,7 +420,7 @@ export default function ProductExecutiveSummary() {
                 ].map((risk) => (
                   <div key={risk.label} style={{ padding: '12px 16px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: 12, color: '#888', fontWeight: 600, marginBottom: 6 }}>{risk.label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: risk.color }}>{risk.level}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: risk.color }}>{risk.level}</div>
                   </div>
                 ))}
               </div>

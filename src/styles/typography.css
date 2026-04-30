@@ -1,0 +1,288 @@
+/**
+ * Platform typography baseline + containment.
+ * Tokens live in index.css (:root).
+ */
+
+/* ── Root baseline (inherits into components) ───────────────── */
+#root {
+  min-height: 100%;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  min-width: 0;
+}
+
+/* Default semantic headings inside the app shell */
+#root h1 {
+  font-size: var(--text-page-title);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+  margin: 0 0 0.35em;
+}
+
+#root h2 {
+  font-size: var(--text-section);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+  margin: 0 0 0.35em;
+}
+
+#root h3 {
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-primary);
+  margin: 0 0 0.35em;
+}
+
+#root h4 {
+  font-size: var(--text-subheading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-primary);
+  margin: 0 0 0.35em;
+}
+
+#root p {
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  margin: 0 0 0.75em;
+  color: inherit;
+}
+
+#root p:last-child {
+  margin-bottom: 0;
+}
+
+#root strong,
+#root b {
+  font-weight: var(--font-medium);
+}
+
+#root small,
+#root .text-caption {
+  font-size: var(--text-caption);
+  line-height: var(--leading-snug);
+}
+
+/* ── Main column: shrink correctly so copy wraps ───────────── */
+.app-layout .app-main > * {
+  min-width: 0;
+}
+
+/* ── Cards / shells: stay within frame ─────────────────────── */
+.home-page,
+.industry-hub-page,
+.exec-summary-page,
+.app-page,
+.app-page-card,
+.home-card,
+.industry-hub-card,
+.industry-hub-header,
+.dark-list-container,
+.exec-indicator-card,
+.exec-map-card {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Flex/grid text columns: allow shrink + wrap (opt-in on tight rows) */
+.stx-text-wrap {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.stx-text-display {
+  font-size: var(--text-display);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-none);
+}
+
+.stx-text-page-title {
+  font-size: var(--text-page-title);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+}
+
+.stx-text-section {
+  font-size: var(--text-section);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+}
+
+.stx-text-heading {
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-primary);
+}
+
+.stx-text-subheading {
+  font-size: var(--text-subheading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-primary);
+}
+
+.stx-text-lead {
+  font-size: var(--text-lead);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
+.stx-text-body {
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
+.stx-text-body-strong {
+  font-size: var(--text-body);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  color: var(--color-primary);
+}
+
+.stx-text-small {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.stx-text-caption {
+  font-size: var(--text-caption);
+  line-height: var(--leading-snug);
+  color: var(--color-muted);
+}
+
+.stx-text-overline {
+  font-size: var(--text-overline);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ── KPI / indicator metrics: centered figures + captions (stripes, hubs, admin) ─ */
+.bd-kpi-body,
+.sd-kpi-body,
+.spd-kpi-body {
+  width: 100%;
+  text-align: center;
+}
+.bd-kpi-value,
+.sd-kpi-value,
+.spd-kpi-value {
+  width: 100%;
+  text-align: center;
+}
+
+.sad-kpi {
+  text-align: center;
+}
+.sad-kpi-body {
+  width: 100%;
+  text-align: center;
+}
+.sad-kpi-value,
+.sad-kpi-label {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+.sad-kpi-card .sad-kpi-val {
+  width: 100%;
+  text-align: center;
+}
+
+.home-indicator-card > .home-indicator-icon + div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+}
+.home-indicator-value {
+  width: 100%;
+  text-align: center;
+}
+
+.industry-hub-indicator-card > .industry-hub-indicator-icon + div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+}
+.industry-hub-indicator-value,
+.industry-hub-indicator-label {
+  width: 100%;
+  text-align: center;
+}
+
+.cost-mgmt-indicator-card > .cost-mgmt-indicator-icon + div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+}
+.cost-mgmt-indicator-value,
+.cost-mgmt-indicator-label {
+  width: 100%;
+  text-align: center;
+}
+
+.enterprise-indicator-card > .indicator-icon + div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+}
+.enterprise-indicator-card .indicator-value,
+.enterprise-indicator-card .indicator-label {
+  width: 100%;
+  text-align: center;
+}
+
+.headcount-indicator-content {
+  align-items: center;
+  text-align: center;
+}
+.headcount-indicator-value,
+.headcount-indicator-label {
+  width: 100%;
+  text-align: center;
+}
+
+.production-indicator-card .indicator-value,
+.production-indicator-card .indicator-label {
+  width: 100%;
+  text-align: center;
+}
+.production-indicator-card > div:has(> .indicator-value) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+}

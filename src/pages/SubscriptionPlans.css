@@ -22,7 +22,7 @@
   text-align: center;
   padding: 32px 36px 26px !important;
 }
-.sp-header-card .app-page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.sp-header-card .app-page-title { font-size: 28px; font-weight: var(--font-semibold); margin-bottom: 8px; }
 .sp-header-card .app-page-subtitle { font-size: 16px; margin-bottom: 0; color: var(--color-secondary); }
 
 /* ── Billing selector ──────────────────────────────────────── */
@@ -42,7 +42,7 @@
 .sp-billing-opt.active { background: var(--bg-card); color: var(--color-primary); box-shadow: var(--shadow-sm); }
 .sp-billing-badge {
   display: inline-block; background: var(--accent-light); color: var(--accent-text);
-  padding: 3px 11px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  padding: 3px 11px; border-radius: 10px; font-size: 13px; font-weight: var(--font-semibold);
 }
 .sp-billing-badge.best { background: var(--accent-light); color: var(--accent-text); }
 
@@ -92,7 +92,7 @@
 }
 .sp-stripe-plan-name {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 .sp-stripe-popular {
   background: var(--accent-light);
@@ -100,11 +100,11 @@
   border-radius: 8px;
   padding: 2px 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 .sp-stripe-price {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 .sp-stripe-subprice {
@@ -140,7 +140,7 @@
 .sp-card-popular-tag {
   position: absolute; top: -1px; right: 22px;
   background: var(--accent-hover); color: var(--btn-primary-text);
-  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  font-size: 13px; font-weight: var(--font-semibold); text-transform: uppercase; letter-spacing: .5px;
   padding: 6px 16px; border-radius: 0 0 8px 8px;
 }
 
@@ -149,23 +149,23 @@
   display: flex; align-items: center; gap: 10px;
   border-bottom: 2px solid transparent; padding-bottom: 16px; margin-bottom: 16px;
 }
-.sp-card-name { font-size: 24px; font-weight: 700; letter-spacing: .3px; }
+.sp-card-name { font-size: 24px; font-weight: var(--font-semibold); letter-spacing: .3px; }
 .sp-card-badge {
   display: inline-block; padding: 3px 12px; border-radius: 8px;
-  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  font-size: 12px; font-weight: var(--font-semibold); text-transform: uppercase; letter-spacing: .4px;
 }
 .sp-card-badge.current { background: var(--accent-light); color: var(--accent-text); }
 
 /* ── Price block ───────────────────────────────────────────── */
 .sp-card-price-block { margin-bottom: 18px; }
-.sp-card-price { font-size: 40px; font-weight: 800; color: var(--color-primary); line-height: 1.1; }
-.sp-card-currency { font-size: 24px; font-weight: 700; vertical-align: top; margin-right: 2px; }
+.sp-card-price { font-size: 40px; font-weight: var(--font-semibold); color: var(--color-primary); line-height: 1.1; }
+.sp-card-currency { font-size: 24px; font-weight: var(--font-semibold); vertical-align: top; margin-right: 2px; }
 .sp-card-interval { font-size: 17px; font-weight: 500; color: var(--color-muted); }
 .sp-card-savings { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .sp-card-original { font-size: 16px; color: var(--color-muted); text-decoration: line-through; }
 .sp-card-save {
   display: inline-block; background: var(--accent-light); color: var(--accent-text);
-  padding: 3px 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  padding: 3px 12px; border-radius: 8px; font-size: 14px; font-weight: var(--font-semibold);
 }
 .sp-card-storage {
   display: inline-flex; align-items: center; gap: 6px;
@@ -231,12 +231,12 @@
   font-weight: 600; border-bottom: 2px solid var(--border-color); white-space: nowrap;
 }
 .sp-comparison-table td { padding: 14px 20px; border-bottom: 1px solid var(--bg-surface); color: var(--color-primary); }
-.sp-td-plan { font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.sp-td-plan { font-weight: var(--font-semibold); color: var(--color-primary); display: flex; align-items: center; gap: 10px; font-size: 16px; }
 .sp-td-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .sp-tbl-current td { background: var(--accent-light); }
 .sp-th-badge {
   display: inline-block; background: var(--accent-light); color: var(--accent-text);
-  padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: var(--font-semibold);
   margin-left: 5px; vertical-align: middle;
 }
 .sp-th-badge.best { background: var(--accent-light); color: var(--accent-text); }
@@ -279,8 +279,8 @@
   border-bottom: 2px solid transparent; padding-bottom: 16px; margin-bottom: 20px;
   display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
 }
-.sp-modal-name { font-size: 26px; font-weight: 800; margin: 0; }
-.sp-modal-price { font-size: 20px; font-weight: 700; color: var(--color-primary); }
+.sp-modal-name { font-size: 26px; font-weight: var(--font-semibold); margin: 0; }
+.sp-modal-price { font-size: 20px; font-weight: var(--font-semibold); color: var(--color-primary); }
 .sp-modal-storage { font-size: 15px; color: var(--color-primary); font-weight: 600; }
 
 .sp-modal-section-title { font-size: 16px; font-weight: 600; color: var(--color-secondary); margin: 0 0 12px; }

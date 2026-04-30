@@ -17,6 +17,7 @@ import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
+import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
@@ -117,6 +118,7 @@ const ExecutiveSummary = () => {
               name: profile?.companies?.name || profile?.full_name || profile?.email || 'Supplier',
               country: md.country || '—',
               city: md.city || '—',
+              address: md.address || '',
               coordinates: md.coordinates || null,
               industries: Array.isArray(md.industries) ? md.industries : (md.industry ? [md.industry] : []),
               categories: Object.values(categoriesByIndustry).flat(),
@@ -162,7 +164,8 @@ const ExecutiveSummary = () => {
         name: a.company,
         country: a.country || '—',
         city: a.city || '—',
-        coordinates: a.coordinates || [0, 0],
+        address: a.address || '',
+        coordinates: a.coordinates || null,
         industries: a.industries || [],
         categories: Object.values(a.categories || {}).flat(),
         source: 'registered',
@@ -191,9 +194,31 @@ const ExecutiveSummary = () => {
     const staticLocs = getSupplierLocations(industryId, categoryId)
     const staticIds = new Set(staticLocs.map((l) => l.id))
     const registryAndDb = [...registeredSellers, ...dbRegisteredSellers]
+
+    const approximateFor = (a) =>
+      getApproximateLngLatOrFallback({
+        country: a.country,
+        city: a.city,
+        address: a.address,
+        seed: String(a.id ?? a.name ?? ''),
+      })
+
     const regLocs = registryAndDb
-      .filter((a) => !staticIds.has(a.id) && a.coordinates)
-      .map((a) => ({ id: a.id, name: a.company || a.name || 'Supplier', coordinates: a.coordinates, country: a.country || '—', city: a.city || '—', rating: a.rating ?? 0, riskLevel: a.riskLevel ?? 50, fitLevel: a.fitLevel ?? 50 }))
+      .filter((a) => !staticIds.has(a.id))
+      .map((a) => {
+        const coords = approximateFor(a)
+        return {
+          id: a.id,
+          name: a.company || a.name || 'Supplier',
+          coordinates: coords,
+          country: a.country || '—',
+          city: a.city || '—',
+          rating: a.rating ?? 0,
+          riskLevel: a.riskLevel ?? 50,
+          fitLevel: a.fitLevel ?? 50,
+        }
+      })
+
     const allLocs = [...staticLocs, ...regLocs]
     // Anonymize names on map for non-premium buyers
     if (!canSeeNames) {
@@ -327,7 +352,7 @@ const ExecutiveSummary = () => {
           <div className="exec-header">
             <div className="exec-header-left">
               <div className="exec-logo-container">
-                <img src="/assets/strefex-logo-black.svg" alt="STREFEX" className="exec-logo-img" />
+                <img src={`${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`} alt="STREFEX" className="exec-logo-img exec-logo-img--executive" />
               </div>
               <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
               <p className="app-page-subtitle">
@@ -386,24 +411,20 @@ const ExecutiveSummary = () => {
           {/* Map Section */}
           <div className="app-page-card exec-map-card">
             <h3 className="exec-section-title">Supplier Locations</h3>
+            <p className="exec-map-disclaimer">
+              Pins use approximate positions from supplier country/city (and registry address fields where available), not precise street coordinates.
+            </p>
             <div className="exec-map-container">
-              <WorldMap 
+              <WorldMap
+                variant="executive"
                 locations={supplierLocations}
                 onMarkerClick={handleMarkerClick}
                 selectedId={selectedSupplier?.id}
-                markerColor="#4CAF50"
-                selectedMarkerColor="#2196F3"
               />
             </div>
             <div className="exec-map-legend">
               <span className="legend-item">
-                <span className="legend-dot green" /> High Rating (≥4.5)
-              </span>
-              <span className="legend-item">
-                <span className="legend-dot orange" /> Medium Rating (4.0-4.5)
-              </span>
-              <span className="legend-item">
-                <span className="legend-dot red" /> Low Rating (&lt;4.0)
+                <span className="legend-dot champagne" /> Supplier location (approximate pin)
               </span>
             </div>
           </div>

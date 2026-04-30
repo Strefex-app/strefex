@@ -31,7 +31,7 @@ const OFFLINE_HTML = `<!DOCTYPE html>
   <title>STREFEX — Offline</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    body{font-family:'Quattrocento Sans',Candara,Calibri,'Segoe UI',Roboto,Arial,sans-serif;
          background:#000222;color:#fff;display:flex;align-items:center;
          justify-content:center;min-height:100vh;text-align:center;padding:2rem}
     .wrap{max-width:420px}

@@ -10,7 +10,7 @@
 
 .svc-btn-group-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #334155;
   margin-bottom: 8px;
 }
@@ -52,6 +52,13 @@
   background: linear-gradient(135deg, #000888 0%, #1d4ed8 100%);
   color: #ffffff;
   box-shadow: 0 8px 16px rgba(0, 8, 136, 0.28);
+}
+
+.svc-toggle-btn.svc-toggle-btn--package {
+  flex: 1 1 100%;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .svc-toggle-check {
@@ -143,7 +150,7 @@
 .svc-provider-summary-title {
   margin: 0 0 10px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #1d4ed8;
 }
 
@@ -163,7 +170,7 @@
 .svc-provider-summary-label {
   font-size: 11px;
   color: #64748b;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   margin-bottom: 4px;

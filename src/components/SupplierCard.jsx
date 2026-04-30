@@ -20,7 +20,7 @@ export default function SupplierCard({ supplier, onSelect, onShortlist }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontWeight: 700 }}>{supplier.display_name || supplier.displayName || supplier.legal_name || 'Supplier'}</div>
+          <div style={{ fontWeight: 600 }}>{supplier.display_name || supplier.displayName || supplier.legal_name || 'Supplier'}</div>
           <div style={{ fontSize: 12, color: '#475467' }}>
             {supplier.country || 'Unknown country'} · {supplier.industry || 'General'}
           </div>

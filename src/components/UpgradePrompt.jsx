@@ -40,7 +40,7 @@ export default function UpgradePrompt({ feature = 'This feature', requiredPlan =
         </svg>
       </div>
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a2e', margin: '0 0 8px' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 600, color: '#1a1a2e', margin: '0 0 8px' }}>
         Upgrade Required
       </h2>
       <p style={{ fontSize: 15, color: '#666', lineHeight: 1.7, margin: '0 0 8px' }}>

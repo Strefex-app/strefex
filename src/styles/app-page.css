@@ -1,12 +1,15 @@
 /**
  * Shared page layout and card design (matches Home).
  * Import in all AppLayout pages for consistent look.
+ * Content width follows AppLayout `.app-main` (full width minus its padding), same as `.home-page`.
  */
 .app-page {
   max-width: 100%;
+  width: 100%;
   min-width: 0;
   margin: 0 auto;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .app-page-card {
@@ -23,30 +26,35 @@
 }
 
 .app-page-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
   color: var(--color-primary);
   margin: 0 0 4px 0;
 }
 
 /* Slightly larger card section heading (e.g. Buyer Workspace blocks) */
 .app-page-card h3.app-page-section-heading {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--text-section);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   margin: 0 0 12px 0;
 }
 
 .app-page-subtitle {
-  font-size: 14px;
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
   color: var(--color-secondary);
   margin: 0 0 20px 0;
 }
 
 .app-page-body {
-  font-size: 14px;
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
   color: var(--color-secondary);
   margin: 0;
-  line-height: 1.5;
 }
 
 /* Action buttons / list items */
@@ -60,8 +68,9 @@
   background: var(--bg-surface);
   width: 100%;
   text-align: left;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-body);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-snug);
   color: var(--color-primary);
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s;
@@ -103,8 +112,9 @@
 }
 
 .app-page-section-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-overline);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -112,10 +122,11 @@
 }
 
 .app-page-section-value {
-  font-size: 16px;
+  font-size: var(--text-subheading);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
   color: var(--color-primary);
   margin: 0;
-  line-height: 1.5;
 }
 
 /* List of clickable items */
@@ -149,14 +160,16 @@
 }
 
 .app-page-list-item-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-subheading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
   color: var(--color-primary);
   margin: 0 0 4px 0;
 }
 
 .app-page-list-item-desc {
-  font-size: 13px;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
   color: var(--color-secondary);
   margin: 0;
 }
@@ -176,14 +189,15 @@
 
 .app-page-list-item-arrow {
   color: var(--color-muted);
-  font-size: 18px;
+  font-size: var(--text-heading);
   margin-left: 12px;
 }
 
 .app-page-list-empty {
   padding: 24px;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
   color: var(--color-secondary);
   background: var(--bg-surface);
   border-radius: 8px;
@@ -193,8 +207,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-body);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-snug);
   color: var(--color-secondary);
   margin-bottom: 16px;
   text-decoration: none;
@@ -238,7 +253,7 @@ button.app-page-back-link {
   min-height: 40px;
   justify-content: center;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: var(--text-small);
   box-sizing: border-box;
 }
 
@@ -248,8 +263,9 @@ button.app-page-back-link {
   align-items: center;
   padding: 6px 12px;
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-small);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
   color: var(--color-primary);
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -269,8 +285,9 @@ a.app-page-btn-secondary {
   gap: 8px;
   padding: 10px 18px;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-body);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
@@ -349,8 +366,8 @@ a.app-page-btn-secondary {
 
 .app-page-btn-sm {
   padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-small);
+  font-weight: var(--font-semibold);
 }
 
 .app-page-btn-primary:disabled,
@@ -372,8 +389,8 @@ a.app-page-btn-secondary {
 /* ── Inline alerts ───────────────────────────────────────── */
 .app-page-alert {
   margin-top: 12px;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
 }
 
 .app-page-alert--error {
@@ -402,6 +419,48 @@ a.app-page-btn-secondary {
   margin-top: 4px;
 }
 
+/* Equal-height widget rows (same rhythm as Home `.home-main`) */
+.app-page-widgets-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+  margin-bottom: 24px;
+}
+
+.app-page-widgets-row--sidebar {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+}
+
+.app-page-widgets-dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+  margin-bottom: 24px;
+}
+
+.app-page-widgets-row > .app-page-card,
+.app-page-widgets-dash > .app-page-card {
+  margin-bottom: 0;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .app-page-widgets-row,
+  .app-page-widgets-row--sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .app-page-card {
     padding: 20px;
@@ -415,7 +474,7 @@ a.app-page-btn-secondary {
   a.app-page-btn-outline,
   a.app-page-btn-secondary {
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: var(--text-lead);
     min-height: 44px;
     box-sizing: border-box;
   }

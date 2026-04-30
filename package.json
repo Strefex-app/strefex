@@ -17,6 +17,7 @@
     "@stripe/react-stripe-js": "^5.6.0",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/supabase-js": "^2.97.0",
+    "d3-geo": "^2.0.2",
     "countries-list": "^3.3.0",
     "firebase": "^12.9.0",
     "html2canvas": "^1.4.1",

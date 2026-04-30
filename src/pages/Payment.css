@@ -366,7 +366,7 @@
   background: var(--bg-surface);
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-icon);
 }
 
@@ -597,7 +597,7 @@
   margin-top: 12px;
   padding-top: 16px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 

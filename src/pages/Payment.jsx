@@ -403,7 +403,7 @@ export default function Payment() {
         <div className="app-page-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 13, color: '#888', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600 }}>Current Plan</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a2e', marginTop: 4 }}>
+            <div style={{ fontSize: 20, fontWeight: 600, color: '#1a1a2e', marginTop: 4 }}>
               {planObj?.name || 'Start'} {subStatus === 'trialing' ? '(Trial)' : ''}
             </div>
             <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
@@ -481,7 +481,7 @@ export default function Payment() {
                     <path d="M12 9v2m0 4h.01M5.07 19h13.86c1.1 0 1.8-1.17 1.25-2.12l-6.93-12a1.44 1.44 0 0 0-2.5 0l-6.93 12c-.55.95.15 2.12 1.25 2.12z" stroke="#e65100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a1a2e', margin: '0 0 8px' }}>Admin Access Required</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1a1a2e', margin: '0 0 8px' }}>Admin Access Required</h2>
                 <p style={{ fontSize: 15, color: '#666', margin: '0 0 24px', maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
                   Only company administrators can process plan payments. Please ask your company admin to approve and pay for this upgrade.
                 </p>
@@ -500,7 +500,7 @@ export default function Payment() {
                     <path d="M20 6L9 17l-5-5" stroke="#2e7d32" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a2e', margin: '0 0 8px' }}>Payment Submitted!</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 600, color: '#1a1a2e', margin: '0 0 8px' }}>Payment Submitted!</h2>
                 <p style={{ fontSize: 15, color: '#666', margin: '0 0 8px', maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
                   Your payment for the <strong>{checkoutPlan.name}</strong> plan has been submitted successfully.
                 </p>
@@ -534,7 +534,7 @@ export default function Payment() {
                 <div style={{ padding: '16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 600, color: '#1a1a2e' }}>{checkoutPlan.name} Plan</span>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: '#2e7d32' }}>
+                    <span style={{ fontSize: 20, fontWeight: 600, color: '#2e7d32' }}>
                       ${getPlanPrice(checkoutPlan, accountType, checkoutBilling)}
                       <span style={{ fontSize: 13, fontWeight: 400, color: '#888' }}>
                         /mo{checkoutBilling === 'annual' ? ' (billed yearly)' : checkoutBilling === 'triennial' ? ' (billed every 3 years)' : ''}

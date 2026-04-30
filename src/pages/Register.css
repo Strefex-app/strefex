@@ -26,7 +26,7 @@
   background: var(--bg-surface-hover);
   color: var(--color-secondary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,7 +115,7 @@
 
 .reg-account-type-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: inherit;
 }
 
@@ -193,7 +193,7 @@
   background: var(--accent);
   color: var(--btn-primary-text);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   padding: 2px 8px;
   border-radius: 10px;
   text-transform: uppercase;
@@ -202,13 +202,13 @@
 
 .reg-plan-name {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
 .reg-plan-price {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -256,7 +256,7 @@
 .reg-payment-amount {
   margin-left: auto;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -377,7 +377,7 @@
   padding: 20px 24px; border-bottom: 1px solid var(--border-color);
 }
 .reg-agreement-modal-header h2 {
-  margin: 0; font-size: 18px; font-weight: 700; color: var(--color-primary);
+  margin: 0; font-size: 18px; font-weight: var(--font-semibold); color: var(--color-primary);
 }
 .reg-agreement-close {
   background: none; border: none; cursor: pointer;
@@ -392,7 +392,7 @@
   line-height: 1.7;
 }
 .reg-agreement-modal-body h3 {
-  font-size: 15px; font-weight: 700; color: var(--color-primary);
+  font-size: 15px; font-weight: var(--font-semibold); color: var(--color-primary);
   margin: 20px 0 8px; padding-top: 8px;
   border-top: 1px solid var(--border-light);
 }

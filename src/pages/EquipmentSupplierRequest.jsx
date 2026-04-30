@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
-import { useServiceRequestStore } from '../store/serviceRequestStore'
+import useRfqStore from '../store/rfqStore'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getEquipmentForIndustryCategory } from '../data/equipmentByIndustryCategory'
+import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
 import '../styles/app-page.css'
 import './EquipmentSupplierRequest.css'
 
@@ -21,7 +22,8 @@ const EquipmentSupplierRequest = () => {
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
-  const submitRequest = useServiceRequestStore((s) => s.submitRequest)
+  const addRfq = useRfqStore((s) => s.addRfq)
+  const sendRfq = useRfqStore((s) => s.sendRfq)
 
   // ── Product context from query params ──
   const isProductContext = searchParams.get('context') === 'product'
@@ -47,6 +49,8 @@ const EquipmentSupplierRequest = () => {
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submittedBuyerRef, setSubmittedBuyerRef] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
   const industryId = formData.industryId || paramIndustryId || qIndustry
   const categories = useMemo(
@@ -78,39 +82,77 @@ const EquipmentSupplierRequest = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    setIsSubmitting(true)
+    setSubmitError('')
     const industryLabel = INDUSTRY_OPTIONS.find((opt) => opt.id === formData.industryId)?.label || formData.industryId
     const selectedCategory = categories.find((cat) => cat.id === formData.categoryId)?.name || formData.categoryId
     const selectedEquipment = equipmentList.find((eq) => eq.id === formData.equipmentId)?.name || formData.equipmentId
-    const serviceLabel = isProductContext ? 'Product Supplier Quote Request' : 'Equipment Supplier Selection'
-    const serviceItems = isProductContext
-      ? [`Product Quote: ${qProductCategory}${qProcess ? ` / ${qProcess}` : ''}`]
-      : [`Equipment: ${selectedEquipment || 'N/A'}`]
-    submitRequest({
-      services: serviceItems,
-      industryId: formData.industryId,
-      industryLabel,
-      companyName: formData.companyName,
-      contactName: user?.fullName || formData.companyName,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      preferredDate: '',
-      priority: isProductContext ? 'High' : 'Normal',
-      description: isProductContext
-        ? `Quote request for ${qProductCategory}${qProcess ? ` / ${qProcess}` : ''} in ${qIndustryLabel || qIndustry}.`
-        : `Equipment type: ${selectedCategory || 'N/A'}; Equipment: ${selectedEquipment || 'N/A'}.`,
-      notes: formData.notes || '',
-      attachmentNames: [],
-      accountType: user?.accountType || 'buyer',
-      serviceCategoryId: isProductContext ? 'product-quote' : 'equipment-sourcing',
-      serviceCategoryLabel: serviceLabel,
-      requestSource: isProductContext ? 'product-equipment-request' : 'equipment-request-page',
-    })
-    setTimeout(() => {
-      setIsSubmitting(false)
+
+    const staticSuppliers =
+      !isProductContext && formData.categoryId
+        ? getSuppliersByIndustryAndCategory(formData.industryId, formData.categoryId)
+        : getSuppliersByIndustry(formData.industryId)
+    const seen = new Set()
+    const supplierIds = []
+    const maxSuppliers = 12
+    const pushUnique = (id) => {
+      if (!id || seen.has(id) || supplierIds.length >= maxSuppliers) return
+      seen.add(id)
+      supplierIds.push(id)
+    }
+    ;(staticSuppliers || []).forEach((s) => pushUnique(s?.id))
+
+    if (supplierIds.length === 0) {
+      setSubmitError(
+        'No suppliers are available for this industry yet. Complete your Executive Summary to invite suppliers or try another industry.'
+      )
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const title = isProductContext
+        ? `Product quote — ${qProductCategory}${qProcess ? ` (${qProcess})` : ''}`
+        : `Equipment sourcing — ${selectedEquipment || selectedCategory || industryLabel}`
+      const descriptionBlock = isProductContext
+        ? `Quote request for ${qProductCategory}${qProcess ? ` / ${qProcess}` : ''} in ${qIndustryLabel || qIndustry}.${formData.notes ? ` Notes: ${formData.notes}` : ''}`
+        : `Equipment type: ${selectedCategory || 'N/A'}; Equipment: ${selectedEquipment || 'N/A'}.${
+            formData.notes ? ` Notes: ${formData.notes}` : ''
+          }`
+      const rfq = {
+        title,
+        industryId: formData.industryId,
+        categoryId: isProductContext ? '' : formData.categoryId || '',
+        requirements: {
+          quantity: 1,
+          maxLeadTime: 90,
+          maxPrice: 110,
+          minRating: 4,
+          requestDetail: descriptionBlock,
+          companyName: formData.companyName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          contactName: user?.fullName || formData.companyName,
+          rfqKind: isProductContext ? 'product-component' : 'equipment',
+        },
+        suppliers: supplierIds,
+        buyerEmail: formData.email || user?.email || '',
+        buyerCompany: formData.companyName || tenant?.name || user?.companyName || '',
+      }
+      const created = addRfq(rfq)
+      if (!created?.id) {
+        setSubmitError('Could not create RFQ. Please try again.')
+        setIsSubmitting(false)
+        return
+      }
+      sendRfq(created.id)
+      setSubmittedBuyerRef(created.buyerRefDisplay || '')
       setIsSubmitted(true)
-    }, 250)
+    } catch {
+      setSubmitError('Could not send RFQ. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isSubmitted) {
@@ -127,8 +169,11 @@ const EquipmentSupplierRequest = () => {
                   <path d="M9 11L12 14L22 4M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <h2 className="app-page-title">Request sent</h2>
-              <p className="app-page-body">Your equipment supplier selection request has been submitted. We will connect you with suppliers based on your selection.</p>
+            <h2 className="app-page-title">RFQ sent</h2>
+            <p className="app-page-body">
+              Your request was sent as an RFQ{submittedBuyerRef ? ` (${submittedBuyerRef})` : ''}.
+              {isProductContext ? ' Suppliers can respond with quotes from their dashboards.' : ' Suppliers matched to your industry will receive this RFQ.'}
+            </p>
               <button type="button" className="app-page-action" style={{ marginTop: 16, maxWidth: 200 }} onClick={goBack}>
                 Back
               </button>
@@ -160,7 +205,7 @@ const EquipmentSupplierRequest = () => {
             background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
             border: '1px solid #bfdbfe',
           }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#1e40af' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: '#1e40af' }}>
               Pre-selected Product Information
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -325,10 +370,25 @@ const EquipmentSupplierRequest = () => {
               </div>
             </div>
 
+            {submitError && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#991b1b',
+                  fontSize: 14,
+                }}
+              >
+                {submitError}
+              </div>
+            )}
             <div className="equipment-form-actions">
               <button type="button" className="app-page-action" style={{ flex: 1 }} onClick={() => navigate(-1)}>Cancel</button>
               <button type="submit" className="equipment-submit-button" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send request'}
+                {isSubmitting ? 'Sending...' : 'Send RFQ'}
               </button>
             </div>
           </form>

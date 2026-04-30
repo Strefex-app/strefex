@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
+import { mergeRequestTimelineEntries, ACTIVITY_KIND_LABEL } from '../utils/serviceRequestTimeline'
 import '../styles/app-page.css'
 import './ServiceRequestManagement.css'
 
@@ -32,6 +33,7 @@ export default function ServiceRequestManagement() {
   const isSuperAdmin = role === 'superadmin'
   const isAdmin = role === 'admin' || isSuperAdmin
   const isManager = role === 'manager' || isAdmin
+  const isOrderingUser = !isAdmin && !isManager
 
   const requests = useServiceRequestStore((s) => s.getSafeRequests())
   const assignRequest = useServiceRequestStore((s) => s.assignRequest)
@@ -47,10 +49,17 @@ export default function ServiceRequestManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [assignEmail, setAssignEmail] = useState('')
+  const [statusNote, setStatusNote] = useState('')
   const [newNote, setNewNote] = useState('')
   const [newStatus, setNewStatus] = useState('')
 
+  const [activityOpen, setActivityOpen] = useState(false)
+
   const stats = useMemo(() => getStats(), [requests]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setActivityOpen(false)
+  }, [selectedRequest])
 
   // Filter requests
   const filteredRequests = useMemo(() => {
@@ -108,8 +117,8 @@ export default function ServiceRequestManagement() {
 
   const handleStatusUpdate = (requestId) => {
     if (!newStatus) return
-    updateRequestStatus(requestId, newStatus, newNote || null, user?.email)
-    setNewNote('')
+    updateRequestStatus(requestId, newStatus, statusNote || null, user?.email)
+    setStatusNote('')
     setNewStatus('')
   }
 
@@ -121,6 +130,11 @@ export default function ServiceRequestManagement() {
 
   const selected = selectedRequest ? requests.find((r) => r.id === selectedRequest) : null
 
+  const activityEntries = useMemo(
+    () => (selected ? mergeRequestTimelineEntries(selected) : []),
+    [selected]
+  )
+
   return (
     <AppLayout>
       <div className="app-page srm-page">
@@ -129,8 +143,24 @@ export default function ServiceRequestManagement() {
           ← Back
         </a>
         <div className="app-page-card">
-          <h2 className="app-page-title">Service Request Management</h2>
-          <p className="app-page-subtitle">Manage, assign, and track all incoming service requests.</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
+            <div>
+              <h2 className="app-page-title">{isOrderingUser ? 'Service requests' : 'Service Request Management'}</h2>
+              <p className="app-page-subtitle">
+                {isOrderingUser
+                  ? 'Service orders you have placed (reference B-…). Buyers and sellers use the same list — no separate service-provider signup is required to submit a request.'
+                  : 'Manage, assign, and track all incoming service requests.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="app-page-action"
+              style={{ whiteSpace: 'nowrap' }}
+              onClick={() => navigate('/service-hub')}
+            >
+              {isOrderingUser ? 'Order a service' : 'New order (service hub)'}
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -328,6 +358,13 @@ export default function ServiceRequestManagement() {
                         <option value="cancelled">Cancelled</option>
                         {isSuperAdmin && <option value="recalled">Recalled</option>}
                       </select>
+                      <textarea
+                        value={statusNote}
+                        onChange={(e) => setStatusNote(e.target.value)}
+                        placeholder="Optional note with this status change…"
+                        className="srm-textarea srm-status-note"
+                        rows={2}
+                      />
                       <button type="button" className="srm-btn-primary" onClick={() => handleStatusUpdate(selected.id)} disabled={!newStatus}>
                         Update
                       </button>
@@ -335,37 +372,75 @@ export default function ServiceRequestManagement() {
                   </div>
                 )}
 
-                {/* Admin Notes */}
-                <div className="srm-detail-section">
-                  <label>Notes ({selected.adminNotes?.length || 0})</label>
-                  {selected.adminNotes?.length > 0 && (
-                    <div className="srm-notes-list">
-                      {selected.adminNotes.map((note, i) => (
-                        <div key={i} className="srm-note">
-                          <div className="srm-note-header">
-                            <span className="srm-note-author">{note.by}</span>
-                            <span className="srm-note-date">{note.at ? new Date(note.at).toLocaleString() : ''}</span>
-                          </div>
-                          <p className="srm-note-text">{note.text}</p>
+                {/* Activity: one threaded history per request (assign, status, notes) */}
+                <div className="srm-detail-section srm-activity-section">
+                  <label>Activity &amp; history</label>
+                  <p className="srm-activity-lead">
+                    All changes for this reference stay on one thread so you can see assigned → in progress → done in order.
+                  </p>
+                  {activityEntries.length === 0 ? (
+                    <p className="srm-empty srm-activity-empty">No activity recorded yet.</p>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="srm-activity-fold-trigger"
+                        onClick={() => setActivityOpen(!activityOpen)}
+                        aria-expanded={activityOpen}
+                        aria-controls="srm-activity-panel"
+                        id="srm-activity-fold-trigger"
+                      >
+                        <span className="srm-activity-fold-arrow" aria-hidden>
+                          {activityOpen ? '▾' : '▸'}
+                        </span>
+                        <span>History of changes</span>
+                        <span className="srm-activity-fold-count">({activityEntries.length})</span>
+                      </button>
+                      {activityOpen && (
+                        <div className="srm-activity-dropdown" id="srm-activity-panel" role="region" aria-labelledby="srm-activity-fold-trigger">
+                          <ol className="srm-activity-timeline">
+                            {activityEntries.map((e) => (
+                              <li key={e.id} className="srm-activity-row">
+                                <span className="srm-activity-kind">
+                                  {ACTIVITY_KIND_LABEL[e.kind] || e.kind}
+                                </span>
+                                <time className="srm-activity-time" dateTime={e.at}>
+                                  {e.at ? new Date(e.at).toLocaleString() : '—'}
+                                </time>
+                                <div className="srm-activity-summary">{e.summary}</div>
+                                {e.detail && (
+                                  <div className="srm-activity-detail">{e.detail}</div>
+                                )}
+                                {e.actorEmail && (
+                                  <div className="srm-activity-actor">{e.actorEmail}</div>
+                                )}
+                              </li>
+                            ))}
+                          </ol>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
-                  {isManager && (
+                </div>
+
+                {/* Notes — same store as timeline; form appends both note + activity row */}
+                {isManager && (
+                  <div className="srm-detail-section">
+                    <label>Add a note</label>
                     <div className="srm-note-form">
                       <textarea
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
-                        placeholder="Add a note..."
+                        placeholder="Add a note… (appears in Activity above)"
                         className="srm-textarea"
                         rows={2}
                       />
                       <button type="button" className="srm-btn-secondary" onClick={() => handleAddNote(selected.id)} disabled={!newNote.trim()}>
-                        Add Note
+                        Save note
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div className="srm-detail-footer">
                   <span>Created: {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : '—'}</span>

@@ -97,7 +97,7 @@ export default function BuyerDashboard() {
           {isSuperAdmin && (
             <span style={{
               padding: '5px 14px', borderRadius: 20, background: 'rgba(198,40,40,.08)',
-              color: '#c62828', fontSize: 12, fontWeight: 700, alignSelf: 'flex-start',
+              color: '#c62828', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start',
             }}>
               SUPERADMIN VIEW
             </span>
@@ -231,7 +231,8 @@ export default function BuyerDashboard() {
                         <div className="bd-rfq-left">
                           <span className="bd-rfq-title">{rfq.title}</span>
                           <span className="bd-rfq-meta">
-                            {rfq.industryId} &bull; Sent to {rfq.suppliers?.length || 0} suppliers &bull; Due: {rfq.dueDate}
+                            {rfq.buyerRefDisplay ? `${rfq.buyerRefDisplay} · ` : ''}
+                            {rfq.industryId} &bull; Sent to {rfq.suppliers?.length || 0} suppliers &bull; Due: {rfq.dueDate || '—'}
                           </span>
                         </div>
                         <div className="bd-rfq-right">

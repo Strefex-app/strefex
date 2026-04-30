@@ -88,7 +88,7 @@ export default function SupplierWorkspace() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
           ← Partners
         </button>
@@ -98,7 +98,7 @@ export default function SupplierWorkspace() {
           {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
           {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
           <div style={{ display: 'grid', gap: 8 }}>
-            <label style={{ fontWeight: 700 }}>Supplier membership</label>
+            <label style={{ fontWeight: 600 }}>Supplier membership</label>
             <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
               {memberships.length === 0 && <option value="">No supplier membership</option>}
               {memberships.map((m) => (
@@ -184,7 +184,7 @@ export default function SupplierWorkspace() {
             <div style={{ display: 'grid', gap: 8 }}>
               {notifications.map((n) => (
                 <div key={n.id} style={{ border: '1px solid #e4e7ec', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{n.title || n.type || 'Notification'}</div>
+                  <div style={{ fontWeight: 600 }}>{n.title || n.type || 'Notification'}</div>
                   <div style={{ color: '#475467', fontSize: 13 }}>{n.message || ''}</div>
                 </div>
               ))}

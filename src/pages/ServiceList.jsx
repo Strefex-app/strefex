@@ -8,6 +8,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import '../styles/app-page.css'
 import './AuditRequest.css'
 import './ServiceList.css'
+import { PROJECT_MANAGEMENT_SCOPE, PROJECT_MANAGEMENT_SCOPE_IDS } from '../data/projectManagementScopeServices'
 
 /* ── Available services ─────────────────────────────────────── */
 const SERVICE_OPTIONS = [
@@ -20,9 +21,7 @@ const SERVICE_OPTIONS = [
   { id: 'buy-off', label: 'Buy Off', group: 'Supplier Services' },
   { id: 'industrialization', label: 'Industrialization', group: 'Supplier Services' },
   { id: 'shipment-documentation', label: 'Shipment Documentation', group: 'Supplier Services' },
-  { id: 'project-management-basic', label: 'Project Management — Basic', group: 'Project Management' },
-  { id: 'project-management-standard', label: 'Project Management — Standard', group: 'Project Management' },
-  { id: 'project-management-premium', label: 'Project Management — Premium', group: 'Project Management' },
+  ...PROJECT_MANAGEMENT_SCOPE.map((item) => ({ ...item, group: 'Project Management' })),
 ]
 
 const INDUSTRY_OPTIONS = [
@@ -40,9 +39,9 @@ const SERVICE_CATEGORY_LABELS = {
   'quality-services': 'Quality & Compliance',
 }
 
-/** Map service category IDs to the service option groups / ids */
+/** Map service category IDs to the service option IDs to pre-check — aligned with Service Hub pills per category */
 const SERVICE_CATEGORY_TO_OPTIONS = {
-  'project-management': SERVICE_OPTIONS.filter((s) => s.group === 'Project Management').map((s) => s.id),
+  'project-management': [...PROJECT_MANAGEMENT_SCOPE_IDS],
   'supplier-services': SERVICE_OPTIONS.filter((s) => s.group === 'Supplier Services' && !['buy-off', 'shipment-acceptance', 'shipment-documentation', 'industrialization'].includes(s.id)).map((s) => s.id),
   'quality-services': SERVICE_OPTIONS.filter((s) => ['buy-off', 'shipment-acceptance', 'shipment-documentation', 'industrialization'].includes(s.id)).map((s) => s.id),
 }
@@ -225,7 +224,7 @@ const ServiceList = () => {
             background: 'linear-gradient(135deg, #fff3e0 0%, #fef9f0 100%)',
             border: '1px solid #ffcc80',
           }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#e65100' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: '#e65100' }}>
               Pre-selected Service Category
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -291,6 +290,11 @@ const ServiceList = () => {
               {groups.map((group) => (
                 <div key={group} className="svc-btn-group">
                   <div className="svc-btn-group-label">{group}</div>
+                  {group === 'Project Management' && (
+                    <p className="svc-package-hint" style={{ margin: '0 0 10px', fontSize: 13, color: '#64748b', lineHeight: 1.45 }}>
+                      Same scopes as on the Service Hub (2D/3D design, engineering, planning, coordination, reporting). Toggle what you need; coming from Project Management here, all scopes are selected by default.
+                    </p>
+                  )}
                   <div className="svc-btn-grid">
                     {SERVICE_OPTIONS.filter((s) => s.group === group).map((svc) => {
                       const isActive = selectedServices.includes(svc.id)
@@ -307,7 +311,7 @@ const ServiceList = () => {
                               : <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
                             }
                           </span>
-                          {svc.label}
+                          <span style={{ display: 'block', textAlign: 'left' }}>{svc.label}</span>
                         </button>
                       )
                     })}

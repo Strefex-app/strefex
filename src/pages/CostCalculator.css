@@ -151,7 +151,7 @@
 
 .product-list-current {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -317,7 +317,7 @@
 
 .cost-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
 
@@ -627,7 +627,7 @@
 
 .total-cost-value {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -729,7 +729,7 @@
 
 .breakdown-total-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -809,7 +809,7 @@
 
 .margin-value {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   min-width: 50px;
   text-align: right;
@@ -854,7 +854,7 @@
 
 .pr-value {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
   color: var(--color-primary);
 }

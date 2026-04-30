@@ -52,12 +52,16 @@
 .enterprise-indicator-card {
   background: var(--bg-card);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 18px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  position: relative;
 }
 
 .indicator-icon {
@@ -92,7 +96,7 @@
 
 .indicator-value {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   line-height: 1.2;
 }
@@ -355,14 +359,14 @@
 .em-modal { background: var(--bg-card); border-radius: 14px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); animation: emModalIn .2s ease; }
 @keyframes emModalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .em-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light); }
-.em-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary); }
+.em-modal-header h3 { margin: 0; font-size: 16px; font-weight: var(--font-semibold); color: var(--color-primary); }
 .em-modal-close { background: none; border: none; font-size: 20px; color: var(--color-muted); cursor: pointer; padding: 4px; border-radius: 6px; line-height: 1; }
 .em-modal-close:hover { background: var(--bg-surface); color: var(--color-primary); }
 .em-modal-body { padding: 16px 20px; }
 .em-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; }
 .em-modal-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--color-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
-.em-modal-save { padding: 8px 16px; border-radius: 8px; border: none; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.em-modal-save { padding: 8px 16px; border-radius: 8px; border: none; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer; }
 .em-modal-save:hover { background: var(--btn-primary-hover); }
-.em-field-label { display: block; font-size: 12px; font-weight: 700; color: var(--color-secondary); margin-bottom: 6px; }
+.em-field-label { display: block; font-size: 12px; font-weight: var(--font-semibold); color: var(--color-secondary); margin-bottom: 6px; }
 .em-field-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-input); color: var(--color-primary); }
 .em-field-input:focus { outline: none; border-color: var(--color-primary); }

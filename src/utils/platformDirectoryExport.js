@@ -67,7 +67,7 @@ export async function exportPdf(rows, title = 'Buyer directory') {
   const wrap = document.createElement('div')
   wrap.setAttribute('data-buyer-dir-pdf', '1')
   wrap.style.cssText =
-    'position:fixed;left:-12000px;top:0;width:1100px;background:#fff;padding:16px;color:#111;font-family:system-ui,Segoe UI,Roboto,sans-serif;'
+    "position:fixed;left:-12000px;top:0;width:1100px;background:#fff;padding:16px;color:#111;font-family:'Quattrocento Sans',Candara,Calibri,'Segoe UI',Roboto,sans-serif;"
 
   const h1 = document.createElement('h1')
   h1.textContent = title

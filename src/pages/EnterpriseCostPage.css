@@ -93,7 +93,7 @@
 
 .summary-stat-value {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 

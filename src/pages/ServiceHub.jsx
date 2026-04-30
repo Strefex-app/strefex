@@ -9,6 +9,7 @@ import { getEffectiveLimits } from '../services/stripeService'
 import '../styles/app-page.css'
 import './Home.css'
 import './IndustryHub.css'
+import { PROJECT_MANAGEMENT_SCOPE_LABELS } from '../data/projectManagementScopeServices'
 
 const SERVICE_CATEGORIES = [
   {
@@ -17,7 +18,7 @@ const SERVICE_CATEGORIES = [
     description: '2D/3D Design, Engineering, full project lifecycle management',
     color: '#000888',
     bg: 'rgba(0,8,136,.06)',
-    items: ['2D/3D Design', 'Engineering', 'Planning', 'Coordination', 'Reporting'],
+    items: PROJECT_MANAGEMENT_SCOPE_LABELS,
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
         <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -85,7 +86,7 @@ export default function ServiceHub() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div className="app-page">
         <a
           className="app-page-back-link"
           href="/main-menu"
@@ -177,8 +178,8 @@ export default function ServiceHub() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{cat.label}</span>
-                      {chosen && <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: `${cat.color}16`, color: cat.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Registered</span>}
+                      <span style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e' }}>{cat.label}</span>
+                      {chosen && <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: `${cat.color}16`, color: cat.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Registered</span>}
                     </div>
                     <p style={{ margin: '2px 0 12px', fontSize: 13, color: '#666', lineHeight: 1.45 }}>{cat.description}</p>
 

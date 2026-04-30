@@ -13,7 +13,7 @@
 .forge-proj-card-title {
   margin: 0 0 14px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary-text, #1a1a2e);
 }
 
@@ -106,7 +106,7 @@
 }
 
 .forge-proj-row-title {
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-size: 15px;
   margin-bottom: 4px;
 }
@@ -128,7 +128,7 @@
 
 .forge-proj-badge {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 3px 8px;

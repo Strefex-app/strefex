@@ -1,22 +1,25 @@
 /* Landing grids for Buyers / Partners / Admin hubs */
+/* Full width inside AppLayout `.app-main`, same as Home */
 .hub-landing {
-  max-width: 960px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
 .hub-landing__title {
-  font-size: 1.65rem;
-  font-weight: 700;
+  font-size: var(--text-page-title);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   color: var(--color-primary);
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
 }
 
 .hub-landing__subtitle {
-  font-size: 14px;
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
   color: var(--color-secondary);
   margin: 0 0 22px 0;
-  line-height: 1.5;
   max-width: 52ch;
 }
 
@@ -72,16 +75,18 @@ button.hub-landing__card {
 }
 
 .hub-landing__card-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-subheading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
   color: var(--color-primary);
   margin: 0;
 }
 
 .hub-landing__card-desc {
-  font-size: 13px;
+  font-size: var(--text-small);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-snug);
   color: var(--color-secondary);
-  line-height: 1.45;
   margin: 0;
 }
 
@@ -90,8 +95,9 @@ button.hub-landing__card {
 }
 
 .hub-landing__section-label {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-overline);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-muted);
@@ -103,8 +109,9 @@ button.hub-landing__card {
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--text-caption);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   background: var(--accent-light);

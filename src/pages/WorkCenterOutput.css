@@ -244,7 +244,7 @@
 
 .wco-ind-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -454,7 +454,7 @@
   margin-left: 1px;
 }
 
-.wco-t-num.bold { font-weight: 700; }
+.wco-t-num.bold { font-weight: var(--font-semibold); }
 .wco-t-num.red { color: var(--danger); }
 .wco-t-num.orange { color: #f39c12; }
 .wco-t-num.green { color: #27ae60; }
@@ -551,7 +551,7 @@
 }
 
 .wco-sum-row.bold { font-weight: 600; }
-.wco-sum-row.bold span:last-child { font-weight: 700; }
+.wco-sum-row.bold span:last-child { font-weight: var(--font-semibold); }
 .wco-sum-row.red span:last-child { color: var(--danger); }
 
 /* OEE Gauge */

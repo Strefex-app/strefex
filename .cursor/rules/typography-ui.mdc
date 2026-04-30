@@ -1,0 +1,17 @@
+---
+description: STREFEX typography tokens, utilities, and copy containment in layouts
+alwaysApply: true
+---
+
+# Typography (STREFEX)
+
+- **Tokens** live in `src/index.css` (`:root`): `--text-display` through `--text-overline`, `--font-*`, `--leading-*`. Primary UI **`--font-sans`** is **Quattrocento Sans** (loaded from Google Fonts) with Candara / Segoe UI / system fallbacks; **`--font-serif`** matches the same stack for continuity.
+- **Global baseline** (`#root`, headings `h1–h4`, `p`) is in `src/styles/typography.css` (imported from `main.jsx`). Prefer semantic HTML; do not re-specify size unless needed.
+- **Shared layout classes** (`app-page-title`, `home-card-title`, `industry-hub-*`, etc.) map to the same tokens — extend those classes instead of raw `fontSize` in JSX.
+- **Weights**: UI emphasis tops out at **`--font-semibold` (600)**. **`--font-bold`** is also **600** (heavy 700–900 blur on system fonts). Prefer **`--font-regular`** / **`--font-medium`** for body and secondary labels. **`strong`/`b`** in `#root` use **`--font-medium`** only.
+- **Utilities** for one-offs: `stx-text-display`, `stx-text-page-title`, `stx-text-section`, `stx-text-heading`, `stx-text-lead`, `stx-text-body`, `stx-text-small`, `stx-text-caption`, `stx-text-wrap` (see `src/styles/typography.css`).
+- **Copy must stay in the frame**: use `min-width: 0` on flex text columns; wrap user content with `className="stx-text-wrap"` when inside tight flex rows; avoid `white-space: nowrap` on long sentences. Prefer `overflow-wrap: break-word` (already on `#root` and major shells).
+
+### Do not
+
+- Scatter new `fontSize: 14` / `font-size: 14px` across pages unless there is no matching token yet — add a token or reuse `var(--text-*)`.

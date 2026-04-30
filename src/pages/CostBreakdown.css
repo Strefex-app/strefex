@@ -65,7 +65,7 @@
 
 .summary-value {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -456,7 +456,7 @@
 
 .metric-value {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -507,7 +507,7 @@
 
 .product-category-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   display: block;
   margin-bottom: 12px;

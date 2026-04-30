@@ -21,7 +21,7 @@
 .platform-cal__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary, #1a1a2e);
   flex: 1;
   text-align: center;

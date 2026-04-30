@@ -14,6 +14,10 @@
   min-width: 0;
 }
 
+.exec-summary-brand {
+  margin-bottom: 10px;
+}
+
 .exec-logo-container {
   margin-bottom: 12px;
 }
@@ -25,10 +29,25 @@
   background: transparent;
 }
 
+.exec-logo-img--executive {
+  height: auto;
+  max-height: 48px;
+  max-width: min(100%, 380px);
+}
+
+
+.exec-map-disclaimer {
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-muted);
+  margin: 0 0 10px;
+}
+
 .exec-subtitle {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--text-overline);
+  font-weight: var(--font-semibold);
   letter-spacing: 2px;
+  line-height: var(--leading-tight);
   color: var(--color-muted);
   text-transform: uppercase;
   margin: 0 0 4px;
@@ -43,8 +62,9 @@
   border: none;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--text-body);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
   cursor: pointer;
   white-space: nowrap;
   transition: background .15s;
@@ -72,9 +92,10 @@
 
 .exec-indicator-label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-overline);
+  font-weight: var(--font-semibold);
   letter-spacing: 1px;
+  line-height: var(--leading-tight);
   color: var(--color-muted);
   margin-bottom: 12px;
 }
@@ -98,36 +119,125 @@
 .exec-indicator-fill.capacity { background: #FF9800; }
 
 .exec-indicator-value {
-  font-size: 22px;
-  font-weight: 900;
+  font-size: var(--text-section);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-none);
   color: var(--color-primary);
 }
 
-/* Content row: Map + RFQ Stats */
+/* ── Shared layout tokens (Executive Summary suite) ─────────────────────────
+   Map viewport height is fixed (--exec-map-static-height); it does not expand with the row.
+   The map card still stretches to the KPI column height; slack sits above the map
+   (margin-top: auto) so the card bottom lines up with the last KPI card. */
+.executive-summary-page,
+.exec-summary-page {
+  --exec-content-sidebar-width: 240px;
+  --exec-map-static-height: 280px;
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Content row: map + KPI column — equal outer height (stretch) */
 .exec-content-row {
-  display: grid;
-  grid-template-columns: 1fr 240px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
   gap: 24px;
   margin-bottom: 24px;
-  align-items: start;
+  min-height: 0;
+}
+
+.exec-content-row > .exec-map-card {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.exec-content-row > .exec-rfq-stats {
+  flex: 0 0 var(--exec-content-sidebar-width);
+  width: var(--exec-content-sidebar-width);
+  min-width: 0;
+}
+
+/* KPI stack uses gap only; drop card bottom margins so row height stays predictable */
+.exec-rfq-stats > .exec-stat-card {
+  margin-bottom: 0;
 }
 
 .exec-map-card {
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  align-self: stretch;
+}
+
+.exec-map-card .exec-section-title {
+  margin-bottom: 8px;
+}
+
+.exec-map-card .exec-map-disclaimer {
+  margin-bottom: 8px;
 }
 
 .exec-section-title {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   margin: 0 0 16px;
 }
 
-.exec-map-container {
+/* Fixed-size map viewport; slack fills above it so card bottom aligns with KPI stack bottom */
+.exec-map-card .exec-map-container:not(.exec-map-container--landscape) {
   border-radius: 10px;
   overflow: hidden;
+  flex: 0 0 auto;
+  align-self: stretch;
+  height: var(--exec-map-static-height, 280px);
+  margin-top: auto;
+  margin-bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.exec-map-card .exec-section-title,
+.exec-map-card .exec-map-disclaimer {
+  flex-shrink: 0;
+}
+
+.exec-map-container .world-map-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Product / market tab: fixed landscape band (not in KPI row stretch) */
+.exec-map-container.exec-map-container--landscape {
+  width: 100%;
+  aspect-ratio: 2.15 / 1;
+  height: auto;
+  min-height: 200px;
+  max-height: 380px;
   margin-bottom: 12px;
-  min-height: 280px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.exec-map-container--landscape .world-map-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Label under map — pinned under fixed map with small gap */
+.exec-map-card .exec-map-legend {
+  flex-shrink: 0;
+  margin-top: 8px;
+  margin-bottom: 0;
 }
 
 .exec-map-legend {
@@ -154,6 +264,11 @@
 .legend-dot.green { background: #4CAF50; }
 .legend-dot.orange { background: #FF9800; }
 .legend-dot.red { background: #f44336; }
+.legend-dot.navy { background: #192a56; }
+.legend-dot.champagne {
+  background: #f7d794;
+  box-shadow: inset 0 0 0 1px rgba(25, 42, 86, 0.22);
+}
 
 /* RFQ stat cards (sidebar) */
 .exec-rfq-stats {
@@ -190,7 +305,7 @@
 
 .exec-stat-value {
   font-size: 24px;
-  font-weight: 900;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   line-height: 1.2;
 }
@@ -234,7 +349,7 @@
 
 .exec-highlight-premium {
   color: #e67e22;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .exec-upgrade-btn {
@@ -244,7 +359,7 @@
   background: #e67e22;
   color: #fff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   white-space: nowrap;
   transition: background .15s;
@@ -274,7 +389,7 @@
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   transition: background .15s;
 }
@@ -298,7 +413,7 @@
   text-align: left;
   padding: 10px 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -360,7 +475,7 @@
 
 .exec-reg-badge {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(46, 204, 113, 0.1);
@@ -370,7 +485,7 @@
 
 .exec-anon-badge {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--bg-surface);
@@ -387,7 +502,7 @@
 .city-name { font-size: 11px; color: var(--color-muted); }
 
 .rating-cell {
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-size: 14px;
 }
 
@@ -412,12 +527,12 @@
 
 .risk-value, .fit-value, .capacity-value {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   white-space: nowrap;
 }
 
 .time-cell { font-size: 13px; white-space: nowrap; }
-.price-cell { font-weight: 700; font-size: 14px; }
+.price-cell { font-weight: var(--font-semibold); font-size: 14px; }
 
 .table-action-btn {
   padding: 6px 14px;
@@ -426,7 +541,7 @@
   background: var(--bg-card);
   color: var(--color-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   transition: all .15s;
 }
@@ -496,7 +611,7 @@
 
 .detail-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -540,7 +655,7 @@
   left: 50%;
   transform: translateX(-50%);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -589,7 +704,7 @@
 .exec-modal-header h3 {
   margin: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -612,7 +727,7 @@
 .exec-form-group label {
   display: block;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-secondary);
   margin-bottom: 6px;
 }
@@ -741,7 +856,7 @@
 
 .matched-score {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: #27ae60;
 }
 
@@ -768,7 +883,7 @@
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   transition: background .15s;
 }
@@ -809,7 +924,7 @@
 
 .exec-summary-title {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
@@ -820,7 +935,18 @@
     grid-template-columns: 1fr;
   }
   .exec-content-row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .exec-content-row > .exec-map-card {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .exec-content-row > .exec-rfq-stats {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .exec-map-card .exec-map-container:not(.exec-map-container--landscape) {
+    margin-top: 0;
   }
   .exec-rfq-stats {
     flex-direction: row;

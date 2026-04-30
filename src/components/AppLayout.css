@@ -101,7 +101,7 @@
   background: #e74c3c;
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   line-height: 16px;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -174,7 +174,7 @@
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background: var(--accent-light);

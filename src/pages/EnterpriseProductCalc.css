@@ -98,7 +98,7 @@
 
 .epc-ov-value {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -190,7 +190,7 @@
 
 .epc-prod-price {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -303,7 +303,7 @@
 
 .epc-km-value {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -344,7 +344,7 @@
 
 .epc-ms-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
@@ -524,11 +524,11 @@
   padding-bottom: 10px;
   border-bottom: 2px solid var(--border-color);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
-.epc-bt-row.total-row .epc-bt-val { font-size: 18px; font-weight: 700; }
+.epc-bt-row.total-row .epc-bt-val { font-size: 18px; font-weight: var(--font-semibold); }
 
 .epc-bt-row.margin-row {
   padding-top: 10px;
@@ -636,7 +636,7 @@
 
 .epc-margin-val {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #1a1a2e;
   min-width: 50px;
   text-align: right;
@@ -675,7 +675,7 @@
 
 .epc-pr-value {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
   color: #1a1a2e;
 }
@@ -893,8 +893,8 @@
   font-size: 16px;
 }
 
-.epc-sim-impact .green { color: #27ae60; font-weight: 700; }
-.epc-sim-impact .red { color: var(--danger); font-weight: 700; }
+.epc-sim-impact .green { color: #27ae60; font-weight: var(--font-semibold); }
+.epc-sim-impact .red { color: var(--danger); font-weight: var(--font-semibold); }
 
 /* ─── Comparison Table ────────────────────────── */
 .epc-comparison-card {

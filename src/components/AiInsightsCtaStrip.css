@@ -20,7 +20,7 @@
 
 .ai-insights-cta-strip__title {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: var(--color-primary, #000888);
 }
 
@@ -43,7 +43,7 @@
   justify-content: center;
   padding: 8px 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   border-radius: 8px;
   text-decoration: none;
   color: var(--color-primary, #000888);

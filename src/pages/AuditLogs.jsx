@@ -54,12 +54,12 @@ export default function AuditLogs() {
 
         {/* KPIs */}
         <div className="aud-kpis">
-          <div className="aud-kpi"><span className="aud-kpi-n">{stats.total}</span>Total Events</div>
-          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#2980b9' }}>{stats.today}</span>Today</div>
-          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#e74c3c' }}>{stats.critical}</span>Critical</div>
-          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#e67e22' }}>{stats.warnings}</span>Warnings</div>
-          <div className="aud-kpi"><span className="aud-kpi-n">{stats.uniqueUsers}</span>Users</div>
-          <div className="aud-kpi"><span className="aud-kpi-n">{Object.keys(stats.byModule).filter((k) => stats.byModule[k] > 0).length}</span>Modules</div>
+          <div className="aud-kpi"><span className="aud-kpi-n">{stats.total}</span><span className="aud-kpi-l">Total Events</span></div>
+          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#2980b9' }}>{stats.today}</span><span className="aud-kpi-l">Today</span></div>
+          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#e74c3c' }}>{stats.critical}</span><span className="aud-kpi-l">Critical</span></div>
+          <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#e67e22' }}>{stats.warnings}</span><span className="aud-kpi-l">Warnings</span></div>
+          <div className="aud-kpi"><span className="aud-kpi-n">{stats.uniqueUsers}</span><span className="aud-kpi-l">Users</span></div>
+          <div className="aud-kpi"><span className="aud-kpi-n">{Object.keys(stats.byModule).filter((k) => stats.byModule[k] > 0).length}</span><span className="aud-kpi-l">Modules</span></div>
         </div>
 
         {/* Module breakdown */}

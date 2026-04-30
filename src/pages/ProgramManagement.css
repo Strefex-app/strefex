@@ -39,7 +39,7 @@
 
 .pgm-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   margin: 0;
   background: var(--btn-primary-bg);
@@ -538,7 +538,7 @@
   top: 4px;
   left: 4px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #ef4444;
   background: var(--bg-card);
   padding: 2px 6px;
@@ -572,7 +572,7 @@
 
 .pgm-modal-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   margin: 0 0 20px;
 }

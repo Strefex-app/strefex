@@ -41,7 +41,7 @@ export default function RFQResponseForm({ rfq, supplierId, onSubmit }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 8 }}>
-      <div style={{ fontWeight: 700 }}>{rfq?.title || 'RFQ Response'}</div>
+      <div style={{ fontWeight: 600 }}>{rfq?.title || 'RFQ Response'}</div>
       <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" />
       <input type="number" value={leadTime} onChange={(e) => setLeadTime(e.target.value)} placeholder="Lead time (days)" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>

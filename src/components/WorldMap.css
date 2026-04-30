@@ -1,10 +1,37 @@
+/* Align with src/index.css: Cloud paper + Midnight Navy + Champagne accent */
 .world-map-container {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--bg-surface-hover);
+  background: var(--map-chart-bg, #e8ecf4);
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid var(--map-chart-border, rgba(25, 42, 86, 0.12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.world-map-container--executive {
+  border-color: rgba(25, 42, 86, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.world-map-container--executive .map-marker--executive {
+  animation: none;
+}
+
+.world-map-container--executive .map-marker--executive:hover {
+  filter: drop-shadow(0 1px 2px rgba(25, 42, 86, 0.12)) drop-shadow(0 0 8px rgba(247, 215, 148, 0.55));
+}
+
+.world-map-container--executive .map-marker.selected {
+  filter: drop-shadow(0 0 6px rgba(247, 215, 148, 0.75));
+}
+
+.world-map-container svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--map-chart-bg, #e8ecf4) !important;
 }
 
 .map-marker {
@@ -12,11 +39,11 @@
 }
 
 .map-marker:hover {
-  filter: drop-shadow(0 0 4px rgba(76, 175, 80, 0.6));
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.45));
 }
 
 .map-marker.selected {
-  filter: drop-shadow(0 0 6px rgba(33, 150, 243, 0.8));
+  filter: drop-shadow(0 0 6px rgba(223, 208, 184, 0.85));
 }
 
 /* Pulse animation for markers */
@@ -43,17 +70,17 @@
   animation: none;
 }
 
-/* Tooltip styles */
 .map-tooltip {
   position: fixed;
-  background: rgba(30, 30, 40, 0.95);
-  color: white;
+  background: var(--bg-card, #ffffff);
+  color: var(--color-primary, #192a56);
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color, rgba(25, 42, 86, 0.1));
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(25, 42, 86, 0.1));
   min-width: 140px;
 }
 
@@ -65,7 +92,7 @@
 
 .map-tooltip-city {
   font-size: 12px;
-  color: var(--color-muted);
+  color: var(--color-muted, #666);
   margin-bottom: 6px;
 }
 
@@ -77,4 +104,13 @@
 .map-tooltip-fit {
   font-size: 12px;
   color: #2196F3;
+}
+
+.map-tooltip--executive {
+  border-color: rgba(25, 42, 86, 0.14);
+}
+
+.map-tooltip--executive .map-tooltip-rating,
+.map-tooltip--executive .map-tooltip-fit {
+  color: var(--color-primary, #192a56);
 }

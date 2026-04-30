@@ -18,7 +18,7 @@
   position: relative;
   z-index: 1;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 .stx-donut-clickable {
@@ -63,7 +63,7 @@
 .stx-donut-modal-header h4 {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 .stx-donut-modal-close {
@@ -97,7 +97,7 @@
 }
 .stx-donut-gap-val {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: var(--font-semibold);
 }
 .stx-donut-details {
   display: flex;
@@ -126,6 +126,6 @@
 }
 .stx-donut-detail-val {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }

@@ -91,7 +91,7 @@ export default function ProductHub() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div className="app-page">
         <a
           className="app-page-back-link"
           href="/main-menu"
@@ -209,7 +209,7 @@ export default function ProductHub() {
         {showPicker && (
           <div className="home-modal-overlay" onClick={() => setShowPicker(false)}>
             <div className="home-modal" onClick={(e) => e.stopPropagation()}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Register Industry</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Register Industry</h3>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: '#666', lineHeight: 1.5 }}>
                 Register your company under <strong>{(() => {
                   const selected = INDUSTRIES.find((i) => i.id === showPicker)

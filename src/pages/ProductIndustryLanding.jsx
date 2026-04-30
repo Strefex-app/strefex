@@ -119,7 +119,7 @@ export default function ProductIndustryLanding() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{cat.name}</span>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e' }}>{cat.name}</span>
                     <span style={{
                       fontSize: 10, padding: '2px 7px', borderRadius: 4,
                       background: `${cat.color}12`, color: cat.color, fontWeight: 600,

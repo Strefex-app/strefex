@@ -1,6 +1,6 @@
 .cs-page { max-width: 100%; }
 .cs-header { background: var(--bg-card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 20px; }
-.cs-title { font-size: 24px; font-weight: 700; color: var(--color-primary); margin: 0 0 6px; }
+.cs-title { font-size: 24px; font-weight: var(--font-semibold); color: var(--color-primary); margin: 0 0 6px; }
 .cs-subtitle { font-size: 14px; color: var(--color-secondary); margin: 0; }
 .cs-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg-surface); border-radius: 10px; padding: 4px; }
 .cs-tab { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; background: transparent; font-size: 14px; font-weight: 500; color: var(--color-secondary); cursor: pointer; transition: all .2s; }

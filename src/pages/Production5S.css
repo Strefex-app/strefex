@@ -108,7 +108,7 @@
 
 .fs-sum-value {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #333;
 }
 
@@ -187,7 +187,7 @@
 }
 
 .score-total {
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   font-size: 14px;
 }
 

@@ -356,7 +356,7 @@ const AddSupplier = () => {
             background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
             border: '1px solid #bfdbfe',
           }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#1e40af' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: '#1e40af' }}>
               Pre-selected Product Information
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -393,7 +393,7 @@ const AddSupplier = () => {
             background: 'linear-gradient(135deg, #fff3e0 0%, #fef9f0 100%)',
             border: '1px solid #ffcc80',
           }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#e65100' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: '#e65100' }}>
               Pre-selected Service Information
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>

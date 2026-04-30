@@ -4,7 +4,7 @@ export default function SupplierScoreBadge({ score = 0, risk = null }) {
   const bg = numeric >= 80 ? '#ecfdf3' : numeric >= 60 ? '#fff7ed' : '#fef3f2'
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ background: bg, color: tone, borderRadius: 999, padding: '4px 10px', fontWeight: 700, fontSize: 12 }}>
+      <span style={{ background: bg, color: tone, borderRadius: 999, padding: '4px 10px', fontWeight: 600, fontSize: 12 }}>
         Score {numeric.toFixed(1)}
       </span>
       {risk != null && (

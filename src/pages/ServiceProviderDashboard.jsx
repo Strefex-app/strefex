@@ -6,6 +6,10 @@ import { useAuthStore } from '../store/authStore'
 import { useServiceStore } from '../store/serviceStore'
 import AppLayout from '../components/AppLayout'
 import './ServiceProviderDashboard.css'
+import { PROJECT_MANAGEMENT_SCOPE_LABELS } from '../data/projectManagementScopeServices'
+
+/** Lowercased labels for matching stored service lines to the Project Management hub scopes */
+const PM_SCOPE_LABELS_LOWER = new Set(PROJECT_MANAGEMENT_SCOPE_LABELS.map((l) => l.toLowerCase()))
 
 /* ── Status badge helper ──────────────────────────────────── */
 const STATUS_MAP = {
@@ -52,6 +56,7 @@ export default function ServiceProviderDashboard() {
     const result = new Set()
     labels.forEach((label) => {
       if (label.includes('project management')) result.add('project-management')
+      if (PM_SCOPE_LABELS_LOWER.has(label)) result.add('project-management')
       if (
         label.includes('buy off') ||
         label.includes('buy-off') ||
@@ -138,7 +143,7 @@ export default function ServiceProviderDashboard() {
           {isSuperAdmin && (
             <span style={{
               padding: '5px 14px', borderRadius: 20, background: 'rgba(198,40,40,.08)',
-              color: '#c62828', fontSize: 12, fontWeight: 700, alignSelf: 'flex-start',
+              color: '#c62828', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start',
             }}>
               SUPERADMIN VIEW
             </span>

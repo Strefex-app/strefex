@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import NotificationsRequestHub from '../components/NotificationsRequestHub'
 import useExhibitionStore from '../store/exhibitionStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useTransactionStore, getCompanyDomain } from '../store/transactionStore'
@@ -56,6 +57,12 @@ export default function Notifications() {
   const markNotificationRead = useServiceRequestStore((s) => s.markNotificationRead)
   const requestNotifSummary = useServiceRequestStore((s) =>
     s.getNotificationSummary(user?.email)
+  )
+
+  const safeRequests = useServiceRequestStore((s) => s.getSafeRequests())
+  const serviceRequestsById = useMemo(
+    () => Object.fromEntries(safeRequests.map((r) => [r.id, r])),
+    [safeRequests]
   )
 
   const requestNotifications = requestNotifSummary?.all || []
@@ -696,38 +703,13 @@ export default function Notifications() {
                   : `${requestNotifications.length} total`}
               </span>
             </h3>
-            <div className="notif-list">
-              {requestNotifications.map((n) => {
-                const isUnread = !(n.readBy || []).includes(String(user?.email || '').toLowerCase())
-                return (
-                <div
-                  key={n.id}
-                  className={`notif-item info${isUnread ? ' notif-item-unread' : ''}`}
-                  onClick={() => {
-                    markNotificationRead(n.id, user?.email)
-                    if (isManager) navigate('/service-requests')
-                  }}
-                >
-                  <span className="notif-icon service">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                  <div className="notif-body">
-                    <div className="notif-name">{n.title}</div>
-                    <div className="notif-message">{n.message}</div>
-                    <div className="notif-meta">
-                      {isUnread && <span className="notif-unread-pill">New</span>}
-                      <span style={{ color: n.priority === 'Urgent' ? '#e74c3c' : n.priority === 'High' ? '#e67e22' : '#3498db', fontWeight: 600 }}>{n.priority}</span>
-                      <span className="notif-dot">·</span>
-                      <span>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
-                    </div>
-                  </div>
-                </div>
-                )
-              })}
-            </div>
+            <NotificationsRequestHub
+              notifications={requestNotifications}
+              readerEmail={user?.email}
+              markNotificationRead={markNotificationRead}
+              isManager={isManager}
+              requestsById={serviceRequestsById}
+            />
           </div>
         )}
 

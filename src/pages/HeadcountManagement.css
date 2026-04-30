@@ -52,12 +52,16 @@
 .headcount-indicator-card {
   background: #fff;
   border-radius: 12px;
-  padding: 16px;
+  padding: 16px 14px 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  position: relative;
 }
 
 .headcount-indicator-icon {
@@ -92,7 +96,7 @@
 
 .headcount-indicator-value {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   line-height: 1.2;
 }
@@ -104,8 +108,12 @@
 }
 
 .headcount-indicator-content {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .headcount-indicator-label {
@@ -296,8 +304,11 @@
   }
 }
 
-/* Edit button on indicator cards */
+/* Edit button on indicator cards (stacked layout) */
 .hm-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -364,7 +375,7 @@
 .hm-modal-header h3 {
   margin: 0;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 .hm-modal-close {
@@ -422,7 +433,7 @@
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -466,7 +477,7 @@
   margin-left: 8px;
   padding: 2px 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   vertical-align: middle;
   border-radius: 6px;
   background: var(--accent-light);

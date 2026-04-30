@@ -8,6 +8,9 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import WorldMap from '../components/WorldMap'
+import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import { PROJECT_MANAGEMENT_SCOPE_LABELS } from '../data/projectManagementScopeServices'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -65,6 +68,8 @@ export default function ServiceExecutiveSummary() {
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(selectedIndustry))
   const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors(selectedIndustry, { onlyVerified: true }))
+  const allRegisteredServiceProvidersForMap = useAccountRegistry((s) => s.getRegisteredServiceProviders())
+  const allRegisteredAuditorsForMap = useAccountRegistry((s) => s.getRegisteredAuditors(null, { onlyVerified: false }))
 
   const serviceProviderRows = useMemo(() => {
     const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
@@ -74,6 +79,9 @@ export default function ServiceExecutiveSummary() {
       serviceCategories: Array.isArray(provider.serviceCategories) ? provider.serviceCategories : [],
       email: provider.email || '',
       providerType: 'service_provider',
+      country: provider.country || '',
+      city: provider.city || '',
+      address: provider.address || '',
     }))
   }, [registeredServiceProviders])
   const auditorRows = useMemo(() => {
@@ -84,6 +92,9 @@ export default function ServiceExecutiveSummary() {
       serviceCategories: ['supplier-audit'],
       email: auditor.email || '',
       providerType: 'auditor',
+      country: auditor.country || '',
+      city: auditor.city || '',
+      address: auditor.address || '',
     }))
   }, [registeredAuditors])
   const providerRows = useMemo(() => {
@@ -94,13 +105,90 @@ export default function ServiceExecutiveSummary() {
     return providerRows.filter((provider) => (provider.serviceCategories || []).includes(selectedServiceCategory))
   }, [providerRows, selectedServiceCategory])
 
-  const serviceTypeCount = useMemo(() => {
-    const set = new Set()
-    filteredProviderRows.forEach((p) => (p.serviceCategories || []).forEach((id) => set.add(id)))
-    return set.size
-  }, [filteredProviderRows])
+  const registryMapAccounts = useMemo(() => {
+    const sps = Array.isArray(allRegisteredServiceProvidersForMap) ? allRegisteredServiceProvidersForMap : []
+    const aud = Array.isArray(allRegisteredAuditorsForMap) ? allRegisteredAuditorsForMap : []
+    const seen = new Set()
+    const out = []
+    for (const provider of sps) {
+      if (!provider?.id || seen.has(provider.id)) continue
+      seen.add(provider.id)
+      out.push({
+        id: provider.id,
+        company: provider.company || provider.contactName || provider.email || 'Service Provider',
+        country: provider.country || '',
+        city: provider.city || '',
+        address: provider.address || '',
+        email: provider.email || '',
+        rating: provider.rating,
+        providerType: 'service_provider',
+      })
+    }
+    for (const auditor of aud) {
+      if (!auditor?.id || seen.has(auditor.id)) continue
+      seen.add(auditor.id)
+      out.push({
+        id: auditor.id,
+        company: auditor.company || auditor.contactName || auditor.email || 'Auditor',
+        country: auditor.country || '',
+        city: auditor.city || '',
+        address: auditor.address || '',
+        email: auditor.email || '',
+        rating: auditor.rating,
+        providerType: 'auditor',
+      })
+    }
+    return out
+  }, [allRegisteredServiceProvidersForMap, allRegisteredAuditorsForMap])
+
+  const providerMapLocations = useMemo(
+    () =>
+      registryMapAccounts.map((p, idx) => {
+        const coords = getApproximateLngLatOrFallback({
+          country: p.country,
+          city: p.city,
+          address: p.address,
+          seed: p.id,
+        })
+        const name = canSeeNames
+          ? p.company
+          : `${p.providerType === 'auditor' ? 'Auditor' : 'Provider'} #${String(idx + 1).padStart(2, '0')}`
+        return {
+          id: p.id,
+          name,
+          coordinates: coords,
+          city: p.city,
+          country: p.country,
+          rating: Number(p.rating) > 0 ? Number(p.rating) : undefined,
+        }
+      }),
+    [registryMapAccounts, canSeeNames],
+  )
+
+  const mapPinCount = providerMapLocations.length
+
+  const avgQualityPct = useMemo(() => {
+    const ratings = registryMapAccounts.map((a) => Number(a.rating)).filter((v) => Number.isFinite(v) && v > 0)
+    if (!ratings.length) return 72
+    return Math.round((ratings.reduce((x, y) => x + y, 0) / ratings.length / 5) * 100)
+  }, [registryMapAccounts])
+
+  const contactReadinessPct = useMemo(() => {
+    if (!registryMapAccounts.length) return 0
+    const n = registryMapAccounts.filter((a) => String(a.email || '').trim()).length
+    return Math.round((n / registryMapAccounts.length) * 100)
+  }, [registryMapAccounts])
+
+  const filterMatchPct = useMemo(() => {
+    const m = Math.max(1, mapPinCount)
+    return Math.min(100, Math.round((filteredProviderRows.length / m) * 100))
+  }, [filteredProviderRows.length, mapPinCount])
 
   const industryLabel = INDUSTRIES.find((x) => x.id === selectedIndustry)?.label || selectedIndustry
+  const selectedServiceCategoryLabel =
+    selectedServiceCategory === 'all'
+      ? 'All service categories'
+      : (SERVICE_CATEGORY_LABELS[selectedServiceCategory] || selectedServiceCategory)
   const selectedProviders = filteredProviderRows.filter((p) => selectedProviderIds.has(p.id))
   const isAuditMode = selectedServiceCategory === 'supplier-audit'
   const selectedEntityLabel = isAuditMode ? 'Auditor' : 'Provider'
@@ -134,7 +222,7 @@ export default function ServiceExecutiveSummary() {
   }
 
   const getServiceLabelsForCategory = (serviceCategoryId) => {
-    if (serviceCategoryId === 'project-management') return ['Project Management — Standard']
+    if (serviceCategoryId === 'project-management') return [...PROJECT_MANAGEMENT_SCOPE_LABELS]
     if (serviceCategoryId === 'quality-services') return ['Buy Off', 'Shipment Acceptance']
     if (serviceCategoryId === 'supplier-audit') return ['Supplier Audit']
     return ['Supplier Source', 'Audit']
@@ -187,39 +275,129 @@ export default function ServiceExecutiveSummary() {
 
   return (
     <AppLayout>
-      <div className="exec-summary-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div className="exec-summary-header">
-          <a className="exec-summary-back" href="#" onClick={(e) => { e.preventDefault(); navigate(-1) }}>
+      <div className="app-page executive-summary-page">
+        <div className="app-page-card">
+          <a className="app-page-back-link" href="#" onClick={(e) => { e.preventDefault(); navigate(-1) }}>
             ← Back
           </a>
-          <h1 className="exec-summary-title" style={{ marginBottom: 6 }}>
-            Service Provider Executive Summary
-          </h1>
-          <p style={{ margin: 0, color: '#666', fontSize: 14 }}>
-            Find registered service providers and send targeted service requests by industry.
-          </p>
-          <div style={{ marginTop: 10 }}>
+          <div className="exec-header">
+            <div className="exec-header-left">
+              <div className="exec-logo-container">
+                <img
+                  src={`${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`}
+                  alt="STREFEX"
+                  className="exec-logo-img exec-logo-img--executive"
+                />
+              </div>
+              <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
+              <p className="app-page-subtitle">
+                {selectedServiceCategoryLabel} — {industryLabel} — Service provider metrics & targeted requests
+              </p>
+              <p className="exec-map-disclaimer" style={{ marginTop: 8 }}>
+                Map shows every registered service provider and auditor (all industries). Table and cards below follow
+                your industry and service filters.
+              </p>
+              <div style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="exec-btn-secondary"
+                  onClick={() => navigate(`/auditor-hub/executive-summary?industry=${selectedIndustry}`)}
+                >
+                  Auditor Executive Summary
+                </button>
+              </div>
+            </div>
             <button
               type="button"
-              className="exec-btn-secondary"
-              onClick={() => navigate(`/auditor-hub/executive-summary?industry=${selectedIndustry}`)}
+              className="exec-rfq-btn"
+              disabled={!canSendRequests || selectedProviderIds.size === 0}
+              title={selectedProviderIds.size === 0 ? 'Select one or more providers in the table below' : undefined}
+              onClick={openRequestModal}
             >
-              Open Auditor Executive Summary
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Create service request
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <div className="app-page-card exec-stat-card">
-            <div className="exec-stat-info">
-              <span className="exec-stat-value">{filteredProviderRows.length}</span>
-              <span className="exec-stat-label">{isAuditMode ? 'Matched Auditors' : 'Matched Providers'}</span>
+        <div className="exec-main-indicators">
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">PROVIDER QUALITY INDEX</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill fit" style={{ width: `${avgQualityPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{avgQualityPct}%</span>
+          </div>
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">CONTACT READINESS</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill capacity" style={{ width: `${contactReadinessPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{contactReadinessPct}%</span>
+          </div>
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">FILTER MATCH (VS REGISTRY)</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill risk" style={{ width: `${filterMatchPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{filterMatchPct}%</span>
+          </div>
+        </div>
+
+        <div className="exec-content-row">
+          <div className="app-page-card exec-map-card">
+            <h3 className="exec-section-title">Provider &amp; auditor locations</h3>
+            <p className="exec-map-disclaimer">
+              Pins use country/city when known; otherwise a non-precise fallback position so every registered account appears. Map is fixed; zoom is disabled.
+            </p>
+            <div className="exec-map-container">
+              <WorldMap variant="executive" locations={providerMapLocations} />
+            </div>
+            <div className="exec-map-legend">
+              <span className="legend-item">
+                <span className="legend-dot champagne" /> Registered account location (approx.)
+              </span>
             </div>
           </div>
-          <div className="app-page-card exec-stat-card">
-            <div className="exec-stat-info">
-              <span className="exec-stat-value">{serviceTypeCount}</span>
-              <span className="exec-stat-label">Service Types In Selection</span>
+
+          <div className="exec-rfq-stats">
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon suppliers">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{mapPinCount}</span>
+                <span className="exec-stat-label">On registry map</span>
+              </div>
+            </div>
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon active">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" strokeWidth="2" />
+                  <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{filteredProviderRows.length}</span>
+                <span className="exec-stat-label">Matches current filters</span>
+              </div>
+            </div>
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon responses">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{selectedProviderIds.size}</span>
+                <span className="exec-stat-label">Selected for request</span>
+              </div>
             </div>
           </div>
         </div>
@@ -280,40 +458,50 @@ export default function ServiceExecutiveSummary() {
           canSeeNames={canSeeNames}
           providers={filteredProviderRows}
           title={isAuditMode ? `Verified Auditors for ${industryLabel}` : `Service Providers for ${industryLabel}`}
-          subtitle={isAuditMode
-            ? 'Select verified auditor companies by industry and send Supplier Audit RFQs.'
-            : 'Request project management, buy-off and related supplier services from registered providers in this industry.'}
-          onRequestService={canSendRequests ? (serviceId, label) => {
-            const p = new URLSearchParams({
-              context: 'service',
-              serviceCategory: serviceId,
-              serviceCategoryLabel: label,
-              industry: selectedIndustry,
-              industryLabel,
-              requestSource: 'executive-summary',
-            })
-            navigate(`/services?${p.toString()}`)
-          } : undefined}
-          onRequestProvider={canSendRequests ? (provider, requestMeta) => {
-            const targetedServiceId = selectedServiceCategory !== 'all'
-              ? selectedServiceCategory
-              : (requestMeta?.serviceCategoryId || 'supplier-services')
-            const targetedServiceLabel = selectedServiceCategory !== 'all'
-              ? (SERVICE_CATEGORY_LABELS[selectedServiceCategory] || selectedServiceCategory)
-              : (requestMeta?.serviceCategoryLabel || 'Supplier Services')
-            const p = new URLSearchParams({
-              context: 'service',
-              serviceCategory: targetedServiceId,
-              serviceCategoryLabel: targetedServiceLabel,
-              industry: selectedIndustry,
-              industryLabel,
-              preferredProviderId: String(provider?.id || ''),
-              preferredProviderName: String(provider?.company || ''),
-              preferredProviderEmail: String(provider?.email || ''),
-              requestSource: 'executive-summary',
-            })
-            navigate(`/services?${p.toString()}`)
-          } : undefined}
+          subtitle={
+            isAuditMode
+              ? 'Select verified auditor companies by industry and send Supplier Audit RFQs.'
+              : 'Request project management, buy-off and related supplier services from registered providers in this industry.'
+          }
+          onRequestService={
+            canSendRequests
+              ? (serviceId, label) => {
+                  const p = new URLSearchParams({
+                    context: 'service',
+                    serviceCategory: serviceId,
+                    serviceCategoryLabel: label,
+                    industry: selectedIndustry,
+                    industryLabel,
+                    requestSource: 'executive-summary',
+                  })
+                  navigate(`/services?${p.toString()}`)
+                }
+              : undefined
+          }
+          onRequestProvider={
+            canSendRequests
+              ? (provider, requestMeta) => {
+                  const targetedServiceId =
+                    selectedServiceCategory !== 'all' ? selectedServiceCategory : requestMeta?.serviceCategoryId || 'supplier-services'
+                  const targetedServiceLabel =
+                    selectedServiceCategory !== 'all'
+                      ? SERVICE_CATEGORY_LABELS[selectedServiceCategory] || selectedServiceCategory
+                      : requestMeta?.serviceCategoryLabel || 'Supplier Services'
+                  const p = new URLSearchParams({
+                    context: 'service',
+                    serviceCategory: targetedServiceId,
+                    serviceCategoryLabel: targetedServiceLabel,
+                    industry: selectedIndustry,
+                    industryLabel,
+                    preferredProviderId: String(provider?.id || ''),
+                    preferredProviderName: String(provider?.company || ''),
+                    preferredProviderEmail: String(provider?.email || ''),
+                    requestSource: 'executive-summary',
+                  })
+                  navigate(`/services?${p.toString()}`)
+                }
+              : undefined
+          }
         />
 
         <div className="app-page-card" style={{ marginTop: 16 }}>
@@ -323,7 +511,8 @@ export default function ServiceExecutiveSummary() {
             </h3>
             {canSendRequests && selectedProviderIds.size > 0 && (
               <button type="button" className="exec-multi-rfq-btn" onClick={openRequestModal}>
-                Send {isAuditMode ? 'Supplier Audit RFQ' : 'Service Request'} to {selectedProviderIds.size} {selectedEntityLabel}{selectedProviderIds.size > 1 ? 's' : ''}
+                Send {isAuditMode ? 'Supplier Audit RFQ' : 'Service Request'} to {selectedProviderIds.size} {selectedEntityLabel}
+                {selectedProviderIds.size > 1 ? 's' : ''}
               </button>
             )}
           </div>
@@ -334,9 +523,12 @@ export default function ServiceExecutiveSummary() {
                   <th className="exec-th-check">
                     <ToggleCheckButton
                       compact
-                      checked={filteredProviderRows.length > 0 && selectedProviderIds.size === filteredProviderRows.length}
+                      checked={
+                        filteredProviderRows.length > 0 && selectedProviderIds.size === filteredProviderRows.length
+                      }
                       onChange={() => {
-                        if (selectedProviderIds.size === filteredProviderRows.length) setSelectedProviderIds(new Set())
+                        if (selectedProviderIds.size === filteredProviderRows.length)
+                          setSelectedProviderIds(new Set())
                         else setSelectedProviderIds(new Set(filteredProviderRows.map((p) => p.id)))
                       }}
                       disabled={!canSendRequests}
@@ -363,27 +555,33 @@ export default function ServiceExecutiveSummary() {
                         aria-label="Select provider"
                       />
                     </td>
-                    <td>{canSeeNames ? provider.company : `${isAuditMode ? 'Auditor' : 'Service Provider'} #${String(idx + 1).padStart(2, '0')}`}</td>
+                    <td>
+                      {canSeeNames
+                        ? provider.company
+                        : `${isAuditMode ? 'Auditor' : 'Service Provider'} #${String(idx + 1).padStart(2, '0')}`}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {(provider.serviceCategories.length > 0 ? provider.serviceCategories : ['supplier-services']).map((serviceId) => (
-                          <span
-                            key={`${provider.id}-${serviceId}`}
-                            style={{
-                              fontSize: 11,
-                              padding: '3px 8px',
-                              borderRadius: 12,
-                              background: '#f1f5f9',
-                              color: '#475569',
-                              border: '1px solid #e2e8f0',
-                            }}
-                          >
-                            {SERVICE_CATEGORY_LABELS[serviceId] || serviceId}
-                          </span>
-                        ))}
+                        {(provider.serviceCategories.length > 0 ? provider.serviceCategories : ['supplier-services']).map(
+                          (serviceId) => (
+                            <span
+                              key={`${provider.id}-${serviceId}`}
+                              style={{
+                                fontSize: 11,
+                                padding: '3px 8px',
+                                borderRadius: 12,
+                                background: '#f1f5f9',
+                                color: '#475569',
+                                border: '1px solid #e2e8f0',
+                              }}
+                            >
+                              {SERVICE_CATEGORY_LABELS[serviceId] || serviceId}
+                            </span>
+                          ),
+                        )}
                       </div>
                     </td>
-                    <td>{canSeeNames ? (provider.email || '—') : 'Hidden for requester'}</td>
+                    <td>{canSeeNames ? provider.email || '—' : 'Hidden for requester'}</td>
                     <td>
                       {canSendRequests ? (
                         <button
@@ -393,9 +591,10 @@ export default function ServiceExecutiveSummary() {
                             setSelectedProviderIds(new Set([provider.id]))
                             setRequestForm((prev) => ({
                               ...prev,
-                              serviceCategoryId: selectedServiceCategory !== 'all'
-                                ? selectedServiceCategory
-                                : (provider?.serviceCategories?.[0] || 'supplier-services'),
+                              serviceCategoryId:
+                                selectedServiceCategory !== 'all'
+                                  ? selectedServiceCategory
+                                  : provider?.serviceCategories?.[0] || 'supplier-services',
                               title: prev.title || `Service Request — ${industryLabel}`,
                             }))
                             setShowRequestModal(true)
@@ -416,11 +615,10 @@ export default function ServiceExecutiveSummary() {
 
         {isSubmitted && (
           <div className="app-page-card" style={{ marginTop: 16, border: '1px solid #c8e6c9', background: '#f1f8e9' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#2e7d32' }}>
-              Service request submitted successfully.
-            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#2e7d32' }}>Service request submitted successfully.</div>
             <div style={{ fontSize: 13, color: '#4e6b4e', marginTop: 4 }}>
-              Your targeted request was sent to selected {isAuditMode ? 'auditors' : 'providers'} from the executive summary.
+              Your targeted request was sent to selected {isAuditMode ? 'auditors' : 'providers'} from the executive
+              summary.
             </div>
           </div>
         )}
@@ -430,7 +628,12 @@ export default function ServiceExecutiveSummary() {
             <div className="exec-modal" onClick={(e) => e.stopPropagation()}>
               <div className="exec-modal-header">
                 <h3>{isAuditMode ? 'Create Supplier Audit RFQ' : 'Create Service Request'}</h3>
-                <button type="button" className="exec-btn-secondary" onClick={() => setShowRequestModal(false)} disabled={isSubmitting}>
+                <button
+                  type="button"
+                  className="exec-btn-secondary"
+                  onClick={() => setShowRequestModal(false)}
+                  disabled={isSubmitting}
+                >
                   Close
                 </button>
               </div>
@@ -452,7 +655,9 @@ export default function ServiceExecutiveSummary() {
                       onChange={(e) => setRequestForm({ ...requestForm, serviceCategoryId: e.target.value })}
                     >
                       {Object.entries(SERVICE_CATEGORY_LABELS).map(([id, label]) => (
-                        <option key={id} value={id}>{label}</option>
+                        <option key={id} value={id}>
+                          {label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -486,20 +691,31 @@ export default function ServiceExecutiveSummary() {
                   />
                 </div>
                 <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
-                  This request will be sent to <strong>{selectedProviders.length}</strong> selected {selectedEntityLabel.toLowerCase()}{selectedProviders.length !== 1 ? 's' : ''}.
+                  This request will be sent to <strong>{selectedProviders.length}</strong> selected{' '}
+                  {selectedEntityLabel.toLowerCase()}
+                  {selectedProviders.length !== 1 ? 's' : ''}.
                 </div>
               </div>
               <div className="exec-modal-footer">
-                <button type="button" className="exec-btn-secondary" onClick={() => setShowRequestModal(false)} disabled={isSubmitting}>
+                <button
+                  type="button"
+                  className="exec-btn-secondary"
+                  onClick={() => setShowRequestModal(false)}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="exec-btn-primary"
                   onClick={handleCreateServiceRequest}
-                  disabled={isSubmitting || !requestForm.title.trim() || selectedProviders.length === 0}
+                  disabled={
+                    isSubmitting || !requestForm.title.trim() || selectedProviders.length === 0
+                  }
                 >
-                  {isSubmitting ? 'Sending...' : `Send to ${selectedProviders.length} ${selectedEntityLabel}${selectedProviders.length !== 1 ? 's' : ''}`}
+                  {isSubmitting
+                    ? 'Sending...'
+                    : `Send to ${selectedProviders.length} ${selectedEntityLabel}${selectedProviders.length !== 1 ? 's' : ''}`}
                 </button>
               </div>
             </div>

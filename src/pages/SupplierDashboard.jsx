@@ -195,7 +195,7 @@ export default function SupplierDashboard() {
   if (membershipsLoading) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <div className="app-page-card">
             <h2 className="app-page-title">Supplier Dashboard</h2>
             <p className="app-page-subtitle">Loading your workspace…</p>
@@ -208,7 +208,7 @@ export default function SupplierDashboard() {
   if (!supplierId) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
             ← Partners
           </button>
@@ -276,7 +276,7 @@ export default function SupplierDashboard() {
   if (snapshotLoading && !snapshot) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
             ← Partners
           </button>
@@ -292,7 +292,7 @@ export default function SupplierDashboard() {
   if (supplierId && !snapshotLoading && !snapshot && error) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
             ← Partners
           </button>
@@ -324,7 +324,7 @@ export default function SupplierDashboard() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
           ← Partners
         </button>
@@ -359,7 +359,7 @@ export default function SupplierDashboard() {
 
         {memberships.length > 1 && (
           <div className="app-page-card">
-            <label style={{ display: 'block', fontWeight: 700, marginBottom: 8 }}>Switch claimed supplier</label>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>Switch claimed supplier</label>
             <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ width: '100%' }}>
               {memberships.map((m) => (
                 <option key={m.id || `${m.supplier_id}-${m.user_id}`} value={m.supplier_id}>
@@ -416,7 +416,7 @@ export default function SupplierDashboard() {
                 <div key={p.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                     <div>
-                      <div style={{ fontWeight: 700 }}>{p.product_name}</div>
+                      <div style={{ fontWeight: 600 }}>{p.product_name}</div>
                       <div style={{ fontSize: 13, color: '#475467' }}>
                         {p.category || 'No category'} · {p.material || 'No material'} · {p.manufacturing_process || 'No process'}
                       </div>
@@ -452,7 +452,7 @@ export default function SupplierDashboard() {
             <div style={{ display: 'grid', gap: 10 }}>
               {certs.map((c) => (
                 <div key={c.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{c.certification_name}</div>
+                  <div style={{ fontWeight: 600 }}>{c.certification_name}</div>
                   <div style={{ fontSize: 13, color: '#475467' }}>{c.issuing_body || 'No issuing body'} · valid until {c.valid_until || '—'}</div>
                   <div style={{ marginTop: 6 }}><strong>Status:</strong> {c.status}</div>
                 </div>

@@ -101,7 +101,7 @@
 
 .formula-value {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .formula-value.world-class { color: #2ecc71; }
@@ -226,7 +226,7 @@
 
 .eq-oee {
   font-size: 36px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   text-align: center;
   margin-bottom: 16px;
 }
@@ -333,7 +333,7 @@
 .metric-badge.poor { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
 
 .metric-badge.oee {
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 /* Summary Row */
@@ -354,7 +354,7 @@
 
 .metrics-sum-value {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   color: #333;
 }
 
@@ -393,7 +393,7 @@
 
 .dt-cat-value {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .dt-category-card.breakdown .dt-cat-value { color: #e74c3c; }
@@ -518,8 +518,9 @@
 
 .kpi-value {
   font-size: 36px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   margin-bottom: 8px;
+  text-align: center;
 }
 
 .kpi-value.good { color: #27ae60; }
@@ -663,7 +664,7 @@
 
 .preview-value {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .metrics-modal-actions {

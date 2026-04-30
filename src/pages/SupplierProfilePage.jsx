@@ -92,7 +92,7 @@ export default function SupplierProfilePage() {
 
   return (
     <AppLayout>
-      <div className="app-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate(-1)}>
           ← Back
         </button>
@@ -164,7 +164,7 @@ export default function SupplierProfilePage() {
             <div style={{ display: 'grid', gap: 10 }}>
               {products.map((p) => (
                 <div key={p.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{p.product_name}</div>
+                  <div style={{ fontWeight: 600 }}>{p.product_name}</div>
                   <div style={{ fontSize: 13, color: '#475467' }}>
                     {p.category || 'No category'} · {p.material || 'No material'} · {p.manufacturing_process || 'No process'}
                   </div>
@@ -183,7 +183,7 @@ export default function SupplierProfilePage() {
             <div style={{ display: 'grid', gap: 10 }}>
               {certs.map((c) => (
                 <div key={c.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{c.certification_name}</div>
+                  <div style={{ fontWeight: 600 }}>{c.certification_name}</div>
                   <div style={{ fontSize: 13, color: '#475467' }}>
                     {c.issuing_body || 'No issuing body'} · valid until {c.valid_until || '—'}
                   </div>

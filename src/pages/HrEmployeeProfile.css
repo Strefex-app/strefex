@@ -27,7 +27,7 @@
 .hr-emp-prof-name {
   margin: 0 0 4px 0;
   font-size: 26px;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
 }
 
 .hr-emp-prof-num {
@@ -98,7 +98,7 @@
   border: 1px solid #c0392b;
   background: #fff;
   color: #c0392b;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   cursor: pointer;
 }
 

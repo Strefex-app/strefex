@@ -32,6 +32,7 @@ const QUICK_ACTIONS = [
       { id: 'svc-project', label: 'Project Management', path: '/services?context=service&serviceCategory=project-management&serviceCategoryLabel=Project+Management', color: '#000888' },
       { id: 'svc-supplier', label: 'Supplier Services', path: '/services?context=service&serviceCategory=supplier-services&serviceCategoryLabel=Supplier+Services', color: '#e65100' },
       { id: 'svc-quality', label: 'Quality & Compliance', path: '/services?context=service&serviceCategory=quality-services&serviceCategoryLabel=Quality+%26+Compliance', color: '#2e7d32' },
+      { id: 'svc-requests', label: 'My service requests', path: '/service-requests', color: '#546e7a' },
     ],
   },
   { id: 'audit', tKey: 'home.audit', path: '/audit-request', icon: 'monitor' },
@@ -39,7 +40,7 @@ const QUICK_ACTIONS = [
   { id: 'vendors', label: 'Vendor Master', path: '/vendors', icon: 'vendors' },
 ]
 
-const getQuickActionIcon = (iconName) => <Icon name={iconName} size={20} />
+const getQuickActionIcon = (iconName) => <Icon name={iconName} size={18} />
 
 export default function Home() {
   const navigate = useNavigate()
@@ -165,7 +166,7 @@ export default function Home() {
                   <Icon name="management" size={18} />
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{d.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{d.label}</div>
                   <div style={{ fontSize: 12, color: '#666', marginTop: 1 }}>{d.desc}</div>
                 </div>
                 <Icon name="chevron-right" size={14} color={d.color} />
@@ -207,7 +208,7 @@ export default function Home() {
                       <Icon name="management" size={22} />
                     </span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{d.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e' }}>{d.label}</div>
                       <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{d.desc}</div>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: d.color, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -239,7 +240,7 @@ export default function Home() {
                         <Icon name="management" size={18} />
                       </span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{d.label}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{d.label}</div>
                         <div style={{ fontSize: 12, color: '#666', marginTop: 1 }}>{d.desc}</div>
                       </div>
                       <Icon name="chevron-right" size={14} color={d.color} />
@@ -279,7 +280,7 @@ export default function Home() {
                   <Icon name="package" size={26} />
                 </span>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>Product &amp; Component</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a2e', marginBottom: 4 }}>Product &amp; Component</div>
                   <div style={{ fontSize: 13, color: '#666', lineHeight: 1.5 }}>Browse products and components across industries</div>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#2e7d32', display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto' }}>
@@ -308,7 +309,7 @@ export default function Home() {
                   <Icon name="wrench" size={26} />
                 </span>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>Equipment</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a2e', marginBottom: 4 }}>Equipment</div>
                   <div style={{ fontSize: 13, color: '#666', lineHeight: 1.5 }}>Browse equipment categories and suppliers across industries</div>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#000888', display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto' }}>
@@ -337,7 +338,7 @@ export default function Home() {
                   <Icon name="refresh" size={26} />
                 </span>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>Service</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a2e', marginBottom: 4 }}>Service</div>
                   <div style={{ fontSize: 13, color: '#666', lineHeight: 1.5 }}>Project management, supplier services, quality &amp; compliance</div>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#e65100', display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto' }}>
@@ -347,7 +348,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="home-card">
+          <div className="home-card home-card--quick-actions">
             <h2 className="home-card-title">+ {t('home.quickActions')}</h2>
             <p className="home-card-subtitle">{t('home.quickActionsDesc')}</p>
             <div className="home-quick-actions-list">
@@ -357,7 +358,7 @@ export default function Home() {
                   if (action.expandable) {
                     const isOpen = expandedAction === action.id
                     return (
-                      <div key={action.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div key={action.id} className="home-quick-action-group">
                         <button
                           type="button"
                           className="home-quick-action-item stx-click-feedback"
@@ -368,21 +369,16 @@ export default function Home() {
                             <span className="home-quick-action-icon">{getQuickActionIcon(action.icon)}</span>
                             {action.tKey ? t(action.tKey) : action.label}
                           </span>
-                          <Icon name="chevron-down" size={16} style={{ transition: 'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+                          <Icon name="chevron-down" size={14} style={{ transition: 'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
                         </button>
                         {isOpen && (
-                          <div style={{
-                            display: 'flex', flexDirection: 'column', gap: 4,
-                            paddingLeft: 20, marginTop: 4, marginBottom: 4,
-                            borderLeft: '2px solid #e2e8f0',
-                          }}>
+                          <div className="home-quick-action-nested">
                             {action.children.map((child) => (
                               <button
                                 key={child.id}
                                 type="button"
-                                className="home-quick-action-item"
+                                className="home-quick-action-item home-quick-action-sublink"
                                 onClick={() => navigate(child.path)}
-                                style={{ fontSize: 13, padding: '8px 14px' }}
                               >
                                 <span style={{
                                   width: 8, height: 8, borderRadius: '50%',

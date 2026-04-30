@@ -12,8 +12,8 @@
   --forge-green: #6dbf8c;
   --forge-red: #e87878;
   --forge-amber: #e0a85c;
-  --forge-serif: 'Cormorant Garamond', Georgia, serif;
-  --forge-sans: 'Montserrat', 'Helvetica Neue', sans-serif;
+  --forge-serif: var(--font-sans);
+  --forge-sans: var(--font-sans);
   --forge-radius: 10px;
   font-family: var(--forge-sans);
   color: var(--forge-ivory);

@@ -7,6 +7,8 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { tenantKey } from '../utils/tenantStorage'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import WorldMap from '../components/WorldMap'
+import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -53,11 +55,11 @@ export default function AuditorExecutiveSummary() {
     }
   })()
 
-  // Requesters see anonymized auditor identities; only superadmin can unmask.
   const canSeeNames = isSuperAdmin && !isPreviewSession
   const canSendRequests = isSuperAdmin || accountType === 'buyer' || accountType === 'seller'
 
   const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors(selectedIndustry, { onlyVerified: true }))
+  const allRegisteredAuditorsForMap = useAccountRegistry((s) => s.getRegisteredAuditors(null, { onlyVerified: false }))
 
   const auditorRows = useMemo(() => {
     const all = Array.isArray(registeredAuditors) ? registeredAuditors : []
@@ -66,8 +68,72 @@ export default function AuditorExecutiveSummary() {
       company: auditor.company || auditor.contactName || auditor.email || 'Auditor Company',
       email: auditor.email || '',
       status: auditor.status || 'active',
+      country: auditor.country || '',
+      city: auditor.city || '',
+      address: auditor.address || '',
     }))
   }, [registeredAuditors])
+
+  const registryMapAccounts = useMemo(() => {
+    const aud = Array.isArray(allRegisteredAuditorsForMap) ? allRegisteredAuditorsForMap : []
+    const seen = new Set()
+    const out = []
+    for (const auditor of aud) {
+      if (!auditor?.id || seen.has(auditor.id)) continue
+      seen.add(auditor.id)
+      out.push({
+        id: auditor.id,
+        company: auditor.company || auditor.contactName || auditor.email || 'Auditor',
+        country: auditor.country || '',
+        city: auditor.city || '',
+        address: auditor.address || '',
+        email: auditor.email || '',
+        rating: auditor.rating,
+      })
+    }
+    return out
+  }, [allRegisteredAuditorsForMap])
+
+  const auditorMapLocations = useMemo(
+    () =>
+      registryMapAccounts.map((a, idx) => {
+        const coords = getApproximateLngLatOrFallback({
+          country: a.country,
+          city: a.city,
+          address: a.address,
+          seed: a.id,
+        })
+        const name = canSeeNames ? a.company : `Auditor #${String(idx + 1).padStart(2, '0')}`
+        return {
+          id: a.id,
+          name,
+          coordinates: coords,
+          city: a.city,
+          country: a.country,
+          rating: Number(a.rating) > 0 ? Number(a.rating) : undefined,
+        }
+      }),
+    [registryMapAccounts, canSeeNames],
+  )
+
+  const mapPinCount = auditorMapLocations.length
+
+  const avgQualityPct = useMemo(() => {
+    const ratings = registryMapAccounts.map((a) => Number(a.rating)).filter((v) => Number.isFinite(v) && v > 0)
+    if (!ratings.length) return 72
+    return Math.round((ratings.reduce((x, y) => x + y, 0) / ratings.length / 5) * 100)
+  }, [registryMapAccounts])
+
+  const contactReadinessPct = useMemo(() => {
+    if (!registryMapAccounts.length) return 0
+    const n = registryMapAccounts.filter((a) => String(a.email || '').trim()).length
+    return Math.round((n / registryMapAccounts.length) * 100)
+  }, [registryMapAccounts])
+
+  const filterMatchPct = useMemo(() => {
+    const m = Math.max(1, mapPinCount)
+    return Math.min(100, Math.round((auditorRows.length / m) * 100))
+  }, [auditorRows.length, mapPinCount])
 
   const industryLabel = INDUSTRIES.find((x) => x.id === selectedIndustry)?.label || selectedIndustry
   const selectedAuditors = auditorRows.filter((a) => selectedAuditorIds.has(a.id))
@@ -140,30 +206,130 @@ export default function AuditorExecutiveSummary() {
 
   return (
     <AppLayout>
-      <div className="exec-summary-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div className="exec-summary-header">
-          <a className="exec-summary-back" href="#" onClick={(e) => { e.preventDefault(); navigate(-1) }}>
+      <div className="app-page executive-summary-page">
+        <div className="app-page-card">
+          <a className="app-page-back-link" href="#" onClick={(e) => { e.preventDefault(); navigate(-1) }}>
             ← Back
           </a>
-          <h1 className="exec-summary-title" style={{ marginBottom: 6 }}>
-            Auditor Executive Summary
-          </h1>
-          <p style={{ margin: 0, color: '#666', fontSize: 14 }}>
-            Select industry, see verified auditor companies, and send Supplier Audit RFQs.
-          </p>
+          <div className="exec-header">
+            <div className="exec-header-left">
+              <div className="exec-logo-container">
+                <img
+                  src={`${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`}
+                  alt="STREFEX"
+                  className="exec-logo-img exec-logo-img--executive"
+                />
+              </div>
+              <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
+              <p className="app-page-subtitle">
+                Supplier Audit — {industryLabel} — Auditor metrics & targeted RFQs
+              </p>
+              <p className="exec-map-disclaimer" style={{ marginTop: 8 }}>
+                Map shows every registered auditor (all industries). The table lists verified auditors for the selected
+                industry only.
+              </p>
+              <div style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="exec-btn-secondary"
+                  onClick={() => navigate('/service-hub/executive-summary')}
+                >
+                  Service Provider Executive Summary
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="exec-rfq-btn"
+              disabled={!canSendRequests || selectedAuditorIds.size === 0}
+              title={selectedAuditorIds.size === 0 ? 'Select one or more auditors in the table below' : undefined}
+              onClick={openRequestModal}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Create Supplier Audit RFQ
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <div className="app-page-card exec-stat-card">
-            <div className="exec-stat-info">
-              <span className="exec-stat-value">{auditorRows.length}</span>
-              <span className="exec-stat-label">Verified Auditors</span>
+        <div className="exec-main-indicators">
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">AUDITOR QUALITY INDEX</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill fit" style={{ width: `${avgQualityPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{avgQualityPct}%</span>
+          </div>
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">CONTACT READINESS</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill capacity" style={{ width: `${contactReadinessPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{contactReadinessPct}%</span>
+          </div>
+          <div className="exec-indicator-card">
+            <span className="exec-indicator-label">FILTER MATCH (VS REGISTRY)</span>
+            <div className="exec-indicator-bar">
+              <div className="exec-indicator-fill risk" style={{ width: `${filterMatchPct}%` }} />
+            </div>
+            <span className="exec-indicator-value">{filterMatchPct}%</span>
+          </div>
+        </div>
+
+        <div className="exec-content-row">
+          <div className="app-page-card exec-map-card">
+            <h3 className="exec-section-title">Auditor locations</h3>
+            <p className="exec-map-disclaimer">
+              Pins use country/city when known; otherwise a non-precise fallback position so every registered auditor
+              appears. Map is fixed; zoom is disabled.
+            </p>
+            <div className="exec-map-container">
+              <WorldMap variant="executive" locations={auditorMapLocations} />
+            </div>
+            <div className="exec-map-legend">
+              <span className="legend-item">
+                <span className="legend-dot champagne" /> Registered auditor location (approx.)
+              </span>
             </div>
           </div>
-          <div className="app-page-card exec-stat-card">
-            <div className="exec-stat-info">
-              <span className="exec-stat-value">{selectedAuditorIds.size}</span>
-              <span className="exec-stat-label">Selected Auditors</span>
+
+          <div className="exec-rfq-stats">
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon suppliers">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{mapPinCount}</span>
+                <span className="exec-stat-label">On registry map</span>
+              </div>
+            </div>
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon active">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" strokeWidth="2" />
+                  <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{auditorRows.length}</span>
+                <span className="exec-stat-label">Verified in industry</span>
+              </div>
+            </div>
+            <div className="app-page-card exec-stat-card">
+              <div className="exec-stat-icon responses">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="exec-stat-info">
+                <span className="exec-stat-value">{selectedAuditorIds.size}</span>
+                <span className="exec-stat-label">Selected for RFQ</span>
+              </div>
             </div>
           </div>
         </div>
@@ -250,7 +416,7 @@ export default function AuditorExecutiveSummary() {
                         Supplier Audit
                       </span>
                     </td>
-                    <td>{canSeeNames ? (auditor.email || '—') : 'Hidden for requester'}</td>
+                    <td>{canSeeNames ? auditor.email || '—' : 'Hidden for requester'}</td>
                     <td>
                       {canSendRequests ? (
                         <button
@@ -287,7 +453,7 @@ export default function AuditorExecutiveSummary() {
 
         {isSubmitted && (
           <div className="app-page-card" style={{ marginTop: 16, border: '1px solid #c8e6c9', background: '#f1f8e9' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#2e7d32' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#2e7d32' }}>
               Supplier Audit RFQ submitted successfully.
             </div>
             <div style={{ fontSize: 13, color: '#4e6b4e', marginTop: 4 }}>

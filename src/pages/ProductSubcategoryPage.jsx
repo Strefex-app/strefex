@@ -80,7 +80,7 @@ export default function ProductSubcategoryPage() {
   if (!category) {
     return (
       <AppLayout>
-        <div className="app-page" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div className="app-page">
           <a
             className="app-page-back-link"
             href="#"
@@ -89,7 +89,7 @@ export default function ProductSubcategoryPage() {
             ← Back
           </a>
           <div className="app-page-card" style={{ textAlign: 'center', padding: 40 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>Category not found</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>Category not found</h2>
             <p style={{ color: '#888' }}>The manufacturing category "{categoryId}" was not found.</p>
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function ProductSubcategoryPage() {
                       }}>
                         {/* ── Header with industry badge ── */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>
+                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1a1a2e' }}>
                             {sub.name}
                           </h3>
                           <span style={{
@@ -258,7 +258,7 @@ export default function ProductSubcategoryPage() {
                           <span style={{
                             width: 36, height: 36, borderRadius: 8, background: '#f1f5f9',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#94a3b8', fontSize: 14, fontWeight: 700,
+                            color: '#94a3b8', fontSize: 14, fontWeight: 600,
                           }}>0</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>No suppliers registered yet</div>

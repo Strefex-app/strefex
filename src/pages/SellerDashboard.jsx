@@ -109,7 +109,7 @@ export default function SellerDashboard() {
           {isSuperAdmin && (
             <span style={{
               padding: '5px 14px', borderRadius: 20, background: 'rgba(198,40,40,.08)',
-              color: '#c62828', fontSize: 12, fontWeight: 700, alignSelf: 'flex-start',
+              color: '#c62828', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start',
             }}>
               SUPERADMIN VIEW
             </span>
@@ -250,6 +250,11 @@ export default function SellerDashboard() {
                       >
                         <div className="sd-rfq-left">
                           <span className="sd-rfq-title">{rfq.title}</span>
+                          {(rfq.buyerSplitRef || rfq.buyerRefDisplay) && (
+                            <span className="sd-rfq-buyer-ref" style={{ fontSize: 13, fontWeight: 600, color: '#000888', display: 'block', marginBottom: 2 }}>
+                              Ref: {rfq.buyerSplitRef || rfq.buyerRefDisplay}
+                            </span>
+                          )}
                           <span className="sd-rfq-buyer">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
                             {rfq.buyerCompany}

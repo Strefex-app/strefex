@@ -72,7 +72,9 @@ export default function RfqComparison() {
             ← Back
           </a>
           <div>
-            <h1 className="rc-title">RFQ Comparison</h1>
+            <h1 className="rc-title">
+              RFQ Comparison{rfq.buyerRefDisplay ? ` (${rfq.buyerRefDisplay})` : ''}
+            </h1>
             <p className="rc-subtitle">{rfq.title}</p>
           </div>
         </div>
@@ -80,6 +82,7 @@ export default function RfqComparison() {
         {/* ── RFQ Summary ─────────────────────────────────── */}
         <div className="rc-summary-card">
           <div className="rc-summary-grid">
+            {rfq.buyerRefDisplay && <div><strong>Buyer ref:</strong> {rfq.buyerRefDisplay}</div>}
             <div><strong>Industry:</strong> {rfq.industryId}</div>
             <div><strong>Category:</strong> {rfq.categoryId}</div>
             <div><strong>Sent:</strong> {rfq.sentAt || '–'}</div>

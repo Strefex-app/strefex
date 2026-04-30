@@ -478,7 +478,7 @@ export default function AccountDirectoryPage() {
                 background: 'rgba(198,40,40,.08)',
                 color: '#c62828',
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 600,
                 alignSelf: 'flex-start',
               }}
             >
