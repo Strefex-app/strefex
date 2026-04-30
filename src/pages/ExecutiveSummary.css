@@ -125,6 +125,237 @@
   color: var(--color-primary);
 }
 
+.exec-page-subtitle-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+}
+
+.exec-indicator-label-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+}
+
+/* Hover-only help (?) — no click/toggle */
+.exec-tooltip {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-self: flex-start;
+  vertical-align: top;
+}
+
+.exec-tooltip-marker {
+  cursor: help;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  color: var(--color-muted);
+  font-size: var(--text-caption);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  margin: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.exec-tooltip:hover .exec-tooltip-marker {
+  color: var(--color-primary);
+  border-color: var(--color-secondary);
+}
+
+.exec-tooltip--page .exec-tooltip-marker {
+  margin-top: 2px;
+}
+
+.exec-tooltip-panel {
+  position: absolute;
+  z-index: 50;
+  top: 100%;
+  right: 0;
+  /* Transparent bridge so hover is not dropped between “?” and the card */
+  padding-top: 12px;
+  margin-top: -8px;
+  width: max-content;
+  max-width: min(400px, calc(100vw - 40px));
+  box-sizing: border-box;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.14s ease, visibility 0.14s ease;
+  pointer-events: none;
+}
+
+.exec-tooltip:hover .exec-tooltip-panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.exec-tooltip--indicator .exec-tooltip-panel {
+  max-width: min(300px, calc(100vw - 48px));
+}
+
+.exec-tooltip-inner {
+  display: block;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
+.exec-tooltip-inner strong {
+  color: var(--color-primary);
+  font-weight: var(--font-semibold);
+}
+
+.exec-tooltip-inner p {
+  margin: 0 0 8px;
+}
+
+.exec-tooltip-inner p:last-child {
+  margin-bottom: 0;
+}
+
+.exec-imm-intel {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-light);
+}
+
+.exec-imm-intel-heading {
+  margin-bottom: 12px;
+}
+
+.exec-imm-intel-title {
+  margin: 0 0 6px;
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  line-height: var(--leading-snug);
+}
+
+.exec-imm-intel-note {
+  margin: 0;
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-muted);
+}
+
+.exec-imm-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+}
+
+.exec-imm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.exec-imm-table tbody tr:nth-child(even) {
+  background: var(--bg-surface);
+}
+
+.exec-imm-table th[scope='row'] {
+  text-align: left;
+  font-size: var(--text-caption);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  padding: 10px 14px;
+  vertical-align: top;
+  white-space: nowrap;
+  width: 1%;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.exec-imm-table td {
+  padding: 10px 14px;
+  vertical-align: top;
+  line-height: var(--leading-normal);
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.exec-imm-table tbody tr:last-child th,
+.exec-imm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.exec-imm-text {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.exec-imm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.exec-imm-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  line-height: 1.35;
+}
+
+.exec-imm-chip--green {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.exec-imm-chip--blue {
+  background: rgba(33, 150, 243, 0.15);
+  color: #1565c0;
+}
+
+.exec-imm-chip--amber {
+  background: rgba(255, 152, 0, 0.15);
+  color: #e65100;
+}
+
+.exec-imm-chip--gray {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.exec-imm-chip--red {
+  background: rgba(244, 67, 54, 0.12);
+  color: #c62828;
+}
+
+.exec-matched-suppliers-note {
+  margin: 0 0 8px;
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-muted);
+}
+.exec-matched-suppliers-note strong {
+  font-weight: var(--font-semibold);
+  color: var(--color-secondary);
+}
+
 /* ── Shared layout tokens (Executive Summary suite) ─────────────────────────
    Map viewport height is fixed (--exec-map-static-height); it does not expand with the row.
    The map card still stretches to the KPI column height; slack sits above the map
@@ -445,6 +676,140 @@
   background: rgba(46, 204, 113, 0.05);
 }
 
+/* Supplier comparison (IMM-style: criteria × supplier columns) */
+.exec-supplier-comparison {
+  margin-top: 24px;
+}
+
+.exec-cmp-intro {
+  margin: 0 0 14px;
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-muted);
+}
+
+.exec-cmp-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.exec-cmp-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.exec-cmp-table thead th {
+  text-align: left;
+  vertical-align: bottom;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-card);
+  font-size: var(--text-caption);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.exec-cmp-criterion-col {
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--bg-card);
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.exec-cmp-supplier-col {
+  min-width: 140px;
+}
+
+.exec-cmp-brand {
+  font-size: var(--text-body);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: var(--leading-tight);
+}
+
+.exec-cmp-hq {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-muted);
+}
+
+.exec-cmp-table tbody th[scope='row'] {
+  text-align: left;
+  padding: 9px 14px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg-card);
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.exec-cmp-table td {
+  padding: 9px 14px;
+  vertical-align: middle;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--border-light);
+  line-height: var(--leading-normal);
+}
+
+.exec-cmp-table tbody tr:nth-child(even) td,
+.exec-cmp-table tbody tr:nth-child(even) th[scope='row'] {
+  background: var(--bg-surface);
+}
+
+.exec-cmp-table tbody tr:hover td,
+.exec-cmp-table tbody tr:hover th[scope='row'] {
+  background: rgba(25, 42, 86, 0.03);
+}
+
+.exec-cmp-table tbody tr:last-child td,
+.exec-cmp-table tbody tr:last-child th[scope='row'] {
+  border-bottom: none;
+}
+
+.exec-cmp-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.exec-cmp-metric-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.exec-cmp-metric-inline .exec-metric-bar-track {
+  flex: 1;
+  min-width: 56px;
+  max-width: 160px;
+}
+
+.exec-cmp-metric-num {
+  font-size: 12px;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .exec-th-check, .exec-td-check {
   width: 36px;
   text-align: center;
@@ -506,29 +871,44 @@
   font-size: 14px;
 }
 
-.risk-cell, .fit-cell, .capacity-cell {
-  position: relative;
+.risk-cell,
+.fit-cell,
+.capacity-cell {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 80px;
+  min-width: 92px;
 }
 
-.risk-bar, .fit-bar, .capacity-bar {
-  height: 6px;
-  border-radius: 3px;
+.exec-metric-cell .exec-metric-bar-track {
   flex: 1;
-  transition: width .3s;
+  min-width: 52px;
 }
 
-.risk-bar { background: #f44336; }
-.fit-bar { background: #4CAF50; }
-.capacity-bar { background: #FF9800; }
+.exec-metric-bar-track {
+  display: block;
+  height: 6px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
 
-.risk-value, .fit-value, .capacity-value {
+.exec-metric-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  min-width: 0;
+  transition: width 0.25s ease;
+}
+
+.risk-value,
+.fit-value,
+.capacity-value {
   font-size: 12px;
   font-weight: var(--font-semibold);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .time-cell { font-size: 13px; white-space: nowrap; }

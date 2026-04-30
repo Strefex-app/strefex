@@ -18,10 +18,24 @@ import { useAuthStore } from '../store/authStore'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import { getInjectionMachineIntelRows, toneClass } from '../data/immInjectionMachineProfiles'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
+
+/** Horizontal % bar: fill width is percentage of track (avoid flex-grow ignoring width). */
+function ExecMetricBar({ pct, fillColor }) {
+  const w = Math.min(100, Math.max(0, Number(pct) || 0))
+  return (
+    <span className="exec-metric-bar-track">
+      <span
+        className="exec-metric-bar-fill"
+        style={{ width: `${w}%`, backgroundColor: fillColor }}
+      />
+    </span>
+  )
+}
 
 const ExecutiveSummary = () => {
   const navigate = useNavigate()
@@ -61,7 +75,7 @@ const ExecutiveSummary = () => {
   const [newRfq, setNewRfq] = useState({
     title: '',
     categoryId: categoryId || '',
-    requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0 },
+    requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0, maxRisk: 50 },
     attachments: [],
   })
   const [attachments, setAttachments] = useState([])
@@ -228,6 +242,11 @@ const ExecutiveSummary = () => {
   }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, canSeeNames])
 
   const metrics = useMemo(() => getIndustryMetrics(industryId, categoryId), [industryId, categoryId])
+
+  const immIntelRows = useMemo(
+    () => getInjectionMachineIntelRows(selectedSupplier),
+    [selectedSupplier]
+  )
   const serviceProviderRows = useMemo(() => {
     const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
     return all.map((provider) => ({
@@ -250,6 +269,11 @@ const ExecutiveSummary = () => {
       requirements: newRfq.requirements,
     })
   }, [newRfq.categoryId, newRfq.requirements, industryId, suppliers])
+
+  const comparedSuppliers = useMemo(
+    () => suppliers.filter((s) => selectedForRfq.has(s.id)),
+    [suppliers, selectedForRfq]
+  )
   
   /* ── Anonymized display name for non-premium buyers ────── */
   const getDisplayName = (supplier, index) => {
@@ -314,7 +338,7 @@ const ExecutiveSummary = () => {
     setNewRfq({
       title: '',
       categoryId: '',
-      requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0 },
+      requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0, maxRisk: 50 },
       attachments: [],
     })
     setAttachments([])
@@ -355,8 +379,40 @@ const ExecutiveSummary = () => {
                 <img src={`${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`} alt="STREFEX" className="exec-logo-img exec-logo-img--executive" />
               </div>
               <p className="exec-subtitle">EXECUTIVE SUMMARY</p>
-              <p className="app-page-subtitle">
-                {industryLabel}{categoryLabel ? ` — ${categoryLabel}` : ''} — Supplier Metrics & RFQ Analysis
+              <p className="app-page-subtitle exec-page-subtitle-row">
+                <span>
+                  {industryLabel}{categoryLabel ? ` — ${categoryLabel}` : ''} — Supplier Metrics &amp; RFQ Analysis
+                </span>
+                <span className="exec-tooltip exec-tooltip--page">
+                  <span className="exec-tooltip-marker" aria-hidden="true">
+                    ?
+                  </span>
+                  <span className="exec-tooltip-panel" role="tooltip">
+                    <span className="exec-tooltip-inner">
+                      <p>
+                        The three headline bars are <strong>averages from the STREFEX supplier directory</strong>{' '}
+                        scoped to this industry
+                        {categoryLabel ? (
+                          <>
+                            {' '}
+                            and <strong>{categoryLabel}</strong>
+                          </>
+                        ) : null}
+                        , counting only listings with a <strong>non-zero star rating</strong>. Rows in the table may
+                        also show <strong>registered</strong> accounts; directory and registered sellers each
+                        expose Fit, Risk, and Capacity on their profiles (often alongside certifications, geography,
+                        ratings, lead time, delivery, and price signals).
+                      </p>
+                      <p>
+                        When you <strong>Create RFQ</strong>, suggested suppliers are <strong>ranked by a match
+                        score</strong>: it starts from each supplier&apos;s fit level, then adds points when your RFQ
+                        constraints are met (within max lead time, at or below the price-index ceiling, at or above
+                        minimum rating, within max risk)—capped at 100%. Selected suppliers in the modal show that
+                        score; the summary table stays in browsing order unless you evaluate via RFQ ranking.
+                      </p>
+                    </span>
+                  </span>
+                </span>
               </p>
             </div>
             <button 
@@ -375,7 +431,20 @@ const ExecutiveSummary = () => {
         {/* Main Indicators - Fit, Risk, Capacity */}
         <div className="exec-main-indicators">
           <div className="exec-indicator-card">
-            <span className="exec-indicator-label">SUPPLIER FIT LEVEL</span>
+            <span className="exec-indicator-label exec-indicator-label-row">
+              SUPPLIER FIT LEVEL
+              <span className="exec-tooltip exec-tooltip--indicator">
+                <span className="exec-tooltip-marker" aria-hidden="true">
+                  ?
+                </span>
+                <span className="exec-tooltip-panel" role="tooltip">
+                  <span className="exec-tooltip-inner">
+                    How closely a supplier aligns with this industry/category and expected capabilities. It is a
+                    composite profile score (not a live audit); use it with certifications and qualitative due diligence.
+                  </span>
+                </span>
+              </span>
+            </span>
             <div className="exec-indicator-bar">
               <div 
                 className="exec-indicator-fill fit"
@@ -385,7 +454,21 @@ const ExecutiveSummary = () => {
             <span className="exec-indicator-value">{metrics.avgFit}%</span>
           </div>
           <div className="exec-indicator-card">
-            <span className="exec-indicator-label">RISK LEVEL</span>
+            <span className="exec-indicator-label exec-indicator-label-row">
+              RISK LEVEL
+              <span className="exec-tooltip exec-tooltip--indicator">
+                <span className="exec-tooltip-marker" aria-hidden="true">
+                  ?
+                </span>
+                <span className="exec-tooltip-panel" role="tooltip">
+                  <span className="exec-tooltip-inner">
+                    A relative indicator of assessed supply volatility or exposure (higher % = higher displayed risk
+                    band). Derived from seeded directory data or supplier profile inputs—pair with your own
+                    continuity and compliance checks.
+                  </span>
+                </span>
+              </span>
+            </span>
             <div className="exec-indicator-bar">
               <div 
                 className="exec-indicator-fill risk"
@@ -395,7 +478,20 @@ const ExecutiveSummary = () => {
             <span className="exec-indicator-value">{metrics.avgRisk}%</span>
           </div>
           <div className="exec-indicator-card">
-            <span className="exec-indicator-label">CAPACITY LEVEL</span>
+            <span className="exec-indicator-label exec-indicator-label-row">
+              CAPACITY LEVEL
+              <span className="exec-tooltip exec-tooltip--indicator">
+                <span className="exec-tooltip-marker" aria-hidden="true">
+                  ?
+                </span>
+                <span className="exec-tooltip-panel" role="tooltip">
+                  <span className="exec-tooltip-inner">
+                    An estimate of throughput &amp; headroom versus typical demand signals in profile data (scale,
+                    timelines, utilization hints). Confirm against concrete capacity and capex plans before awards.
+                  </span>
+                </span>
+              </span>
+            </span>
             <div className="exec-indicator-bar">
               <div 
                 className="exec-indicator-fill capacity"
@@ -609,32 +705,20 @@ const ExecutiveSummary = () => {
                       </span>
                     </td>
                     <td>
-                      <span className="risk-cell">
-                        <span 
-                          className="risk-bar"
-                          style={{ 
-                            width: `${supplier.riskLevel}%`,
-                            backgroundColor: getRiskColor(supplier.riskLevel)
-                          }}
-                        />
+                      <span className="risk-cell exec-metric-cell">
+                        <ExecMetricBar pct={supplier.riskLevel} fillColor={getRiskColor(supplier.riskLevel)} />
                         <span className="risk-value">{supplier.riskLevel}%</span>
                       </span>
                     </td>
                     <td>
-                      <span className="fit-cell">
-                        <span 
-                          className="fit-bar"
-                          style={{ width: `${supplier.fitLevel}%` }}
-                        />
+                      <span className="fit-cell exec-metric-cell">
+                        <ExecMetricBar pct={supplier.fitLevel} fillColor="#4CAF50" />
                         <span className="fit-value">{supplier.fitLevel}%</span>
                       </span>
                     </td>
                     <td>
-                      <span className="capacity-cell">
-                        <span 
-                          className="capacity-bar"
-                          style={{ width: `${supplier.capacityLevel}%` }}
-                        />
+                      <span className="capacity-cell exec-metric-cell">
+                        <ExecMetricBar pct={supplier.capacityLevel} fillColor="#FF9800" />
                         <span className="capacity-value">{supplier.capacityLevel}%</span>
                       </span>
                     </td>
@@ -670,6 +754,149 @@ const ExecutiveSummary = () => {
             </table>
           </div>
         </div>
+
+        {comparedSuppliers.length >= 2 && (
+          <div className="app-page-card exec-supplier-comparison">
+            <h3 className="exec-section-title">
+              Supplier comparison ({comparedSuppliers.length})
+            </h3>
+            <p className="exec-cmp-intro">
+              Selected via checkboxes — same layout as IMM criterion comparison: criteria in rows,
+              suppliers in columns.
+            </p>
+            <div className="exec-cmp-wrap">
+              <table className="exec-cmp-table">
+                <thead>
+                  <tr>
+                    <th className="exec-cmp-criterion-col">Criterion</th>
+                    {comparedSuppliers.map((s) => (
+                      <th key={s.id} className="exec-cmp-supplier-col">
+                        <div className="exec-cmp-brand">
+                          {getDisplayName(s, suppliers.indexOf(s))}
+                        </div>
+                        <div className="exec-cmp-hq">
+                          {s.city}, {s.country}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Location</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span className="exec-cmp-mono">{s.country}</span> · {s.city}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Founded</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>{canSeeNames && s.established != null ? s.established : '—'}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Employees</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        {canSeeNames && s.employees != null ? `~${Number(s.employees).toLocaleString()}` : '—'}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Rating</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span style={{ color: getRatingColor(s.rating), fontWeight: 600 }}>
+                          {s.rating} ★
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Risk level</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span className="exec-cmp-metric-inline">
+                          <ExecMetricBar pct={s.riskLevel} fillColor={getRiskColor(s.riskLevel)} />
+                          <span className="exec-cmp-metric-num">{s.riskLevel}%</span>
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Fit level</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span className="exec-cmp-metric-inline">
+                          <ExecMetricBar pct={s.fitLevel} fillColor="#4CAF50" />
+                          <span className="exec-cmp-metric-num">{s.fitLevel}%</span>
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Capacity</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span className="exec-cmp-metric-inline">
+                          <ExecMetricBar pct={s.capacityLevel} fillColor="#FF9800" />
+                          <span className="exec-cmp-metric-num">{s.capacityLevel}%</span>
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Lead time</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>{s.leadTimeDays} days</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Delivery</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>{s.deliveryTimeDays} days</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Price index</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        <span
+                          className="exec-cmp-mono"
+                          style={{
+                            color:
+                              s.priceIndex <= 100 ? '#4CAF50' : s.priceIndex <= 110 ? '#FF9800' : '#f44336',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {s.priceIndex}
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Certifications</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        {canSeeNames ? s.certifications?.join(' · ') || '—' : '—'}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Industries</th>
+                    {comparedSuppliers.map((s) => (
+                      <td key={s.id}>
+                        {s.industries?.map((i) => INDUSTRY_LABELS[i] || i).join(', ') || '—'}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Selected Supplier Details */}
         {selectedSupplier && (
@@ -729,6 +956,43 @@ const ExecutiveSummary = () => {
                 <span className="detail-value">{selectedSupplier.categories?.join(', ')}</span>
               </div>
             </div>
+
+            {immIntelRows?.length ? (
+              <div className="exec-imm-intel">
+                <div className="exec-imm-intel-heading">
+                  <h4 className="exec-imm-intel-title">Injection molding supplier profile</h4>
+                  <p className="exec-imm-intel-note">
+                    Criterion snapshot aligned with IMM comparison dashboards (equipment mix, positioning, pricing
+                    tiers). Values are illustrative; confirm with the supplier before purchase.
+                  </p>
+                </div>
+                <div className="exec-imm-table-wrap">
+                  <table className="exec-imm-table">
+                    <tbody>
+                      {immIntelRows.map((row) => (
+                        <tr key={row.label}>
+                          <th scope="row">{row.label}</th>
+                          <td>
+                            {row.chips?.length ? (
+                              <span className="exec-imm-chips">
+                                {row.chips.map((chip) => (
+                                  <span key={chip.text} className={toneClass(chip.tone)}>
+                                    {chip.text}
+                                  </span>
+                                ))}
+                              </span>
+                            ) : (
+                              <span className="exec-imm-text">{row.text}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
             <div className="exec-detail-metrics">
               <div className="metric-item">
                 <div className="metric-gauge">
@@ -866,6 +1130,25 @@ const ExecutiveSummary = () => {
                       })}
                     />
                   </div>
+                  <div className="exec-form-group">
+                    <label>Max supplier risk (%)</label>
+                    <input 
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newRfq.requirements.maxRisk ?? ''}
+                      onChange={e => setNewRfq({
+                        ...newRfq,
+                        requirements: {
+                          ...newRfq.requirements,
+                          maxRisk:
+                            e.target.value === ''
+                              ? undefined
+                              : Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)),
+                        },
+                      })}
+                    />
+                  </div>
                 </div>
                 
                 {/* File Attachments */}
@@ -917,6 +1200,13 @@ const ExecutiveSummary = () => {
                       : `Matched Suppliers (${matchedSuppliers.length})`
                     }
                   </label>
+                  {selectedForRfq.size === 0 && (
+                    <p className="exec-matched-suppliers-note">
+                      Listed in <strong>match score</strong> order: each row starts from fit level, then adds
+                      points when your RFQ limits on lead time, price index, minimum rating, and max risk are
+                      satisfied (capped at 100%).
+                    </p>
+                  )}
                   <div className="exec-matched-suppliers">
                     {(selectedForRfq.size > 0
                       ? suppliers.filter(s => selectedForRfq.has(s.id))
