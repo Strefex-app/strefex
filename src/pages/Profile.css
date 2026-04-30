@@ -642,6 +642,13 @@
   overflow-y: auto;
 }
 
+.prof-modal-overlay--scan {
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+
 .prof-modal {
   background: var(--bg-card);
   border-radius: 14px;
@@ -656,6 +663,10 @@
 
 .prof-modal-lg {
   max-width: 680px;
+}
+
+.prof-modal--scan {
+  max-height: min(calc(100vh - 48px), calc(100dvh - 48px));
 }
 
 @keyframes profModalIn {
@@ -750,6 +761,33 @@
 .prof-scan-area p {
   font-size: 14px;
   margin: 12px 0 20px;
+}
+
+.prof-scan-mobile-hint {
+  display: none;
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin: -8px 0 16px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.prof-scan-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.prof-scan-pick-row .prof-btn-primary,
+.prof-scan-pick-row .prof-btn-outline {
+  flex: 1 1 auto;
+  min-width: 140px;
+  min-height: 44px;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .prof-scan-features {
@@ -1255,6 +1293,48 @@
 
   .prof-scan-field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .prof-scan-mobile-hint {
+    display: block;
+  }
+
+  .prof-scan-pick-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .prof-scan-pick-row .prof-btn-primary,
+  .prof-scan-pick-row .prof-btn-outline {
+    width: 100%;
+    min-width: unset;
+    flex: none;
+    min-height: 48px;
+  }
+
+  .prof-scan-img {
+    max-height: min(280px, 42dvh);
+  }
+
+  .prof-modal-overlay--scan {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .prof-modal--scan {
+    max-height: min(calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)), calc(100vh - 48px));
+  }
+
+  .prof-modal--scan .prof-modal-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .prof-modal--scan .prof-modal-footer button {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
   }
 
   .prof-locked-content {

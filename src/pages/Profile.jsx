@@ -21,9 +21,124 @@ import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
 import './Profile.css'
 
+const MAX_OCR_IMAGE_SIDE_DESKTOP = 2400
+const MAX_OCR_IMAGE_SIDE_MOBILE = 1760
+const OCR_JPEG_QUALITY = 0.88
+
+function getMaxOcrImageSide() {
+  if (typeof window === 'undefined') return MAX_OCR_IMAGE_SIDE_DESKTOP
+  try {
+    return window.matchMedia('(max-width: 768px)').matches
+      ? MAX_OCR_IMAGE_SIDE_MOBILE
+      : MAX_OCR_IMAGE_SIDE_DESKTOP
+  } catch {
+    return MAX_OCR_IMAGE_SIDE_DESKTOP
+  }
+}
+
+async function canvasToJpegBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', quality)
+  })
+}
+
+async function resizeBitmapToJpeg(bitmap, maxSide, quality) {
+  const iw = bitmap.width
+  const ih = bitmap.height
+  if (iw < 8 || ih < 8) return null
+  const scale = Math.min(1, maxSide / Math.max(iw, ih))
+  const w = Math.max(1, Math.round(iw * scale))
+  const h = Math.max(1, Math.round(ih * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, w, h)
+  ctx.drawImage(bitmap, 0, 0, w, h)
+  return canvasToJpegBlob(canvas, quality)
+}
+
+/** Fallback when createImageBitmap is missing or fails (common on some mobile WebKit paths). */
+async function normalizeImageViaHtmlImage(blob, maxSide, quality) {
+  const url = URL.createObjectURL(blob)
+  try {
+    const img = new Image()
+    img.decoding = 'async'
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('Image decode failed'))
+      img.src = url
+    })
+    const iw = img.naturalWidth
+    const ih = img.naturalHeight
+    if (iw < 8 || ih < 8) return blob
+    const scale = Math.min(1, maxSide / Math.max(iw, ih))
+    const w = Math.max(1, Math.round(iw * scale))
+    const h = Math.max(1, Math.round(ih * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return blob
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    ctx.drawImage(img, 0, 0, w, h)
+    return await canvasToJpegBlob(canvas, quality)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function isHeicLike(file) {
+  if (!file || typeof file !== 'object') return false
+  const t = (file.type || '').toLowerCase()
+  const n = (file.name || '').toLowerCase()
+  return t.includes('heic') || t.includes('heif') || n.endsWith('.heic') || n.endsWith('.heif')
+}
+
+/** Downscale and convert to JPEG with EXIF orientation where supported; mobile-safe fallbacks. */
+async function normalizeImageForOcr(blob) {
+  if (!(blob instanceof Blob)) return blob
+
+  const maxSide = getMaxOcrImageSide()
+
+  const tryBitmap = async (opts) => {
+    try {
+      if (opts) return await createImageBitmap(blob, opts)
+      return await createImageBitmap(blob)
+    } catch {
+      return null
+    }
+  }
+
+  let bitmap =
+    (await tryBitmap({ imageOrientation: 'from-image' })) ||
+    (await tryBitmap())
+
+  if (bitmap) {
+    try {
+      const out = await resizeBitmapToJpeg(bitmap, maxSide, OCR_JPEG_QUALITY)
+      return out || blob
+    } finally {
+      bitmap.close?.()
+    }
+  }
+
+  try {
+    return await normalizeImageViaHtmlImage(blob, maxSide, OCR_JPEG_QUALITY)
+  } catch {
+    return blob
+  }
+}
+
 /* ── Business-card OCR parser ───────────────────────────────── */
 const parseBusinessCard = (rawText) => {
-  const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean)
+  const lines = rawText
+    .split(/\r\n|\r|\n/)
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
   const result = { name: '', company: '', title: '', email: '', phone: '', address: '', website: '', industry: '', type: 'Supplier', notes: '' }
 
   // Email
@@ -402,12 +517,14 @@ const Profile = () => {
   const [scanPreview, setScanPreview] = useState(null) // image data URL
   const [scanResult, setScanResult] = useState(null) // parsed fields
   const [scanRawText, setScanRawText] = useState('')
+  const [scanErrorMessage, setScanErrorMessage] = useState('')
   const [editContactId, setEditContactId] = useState(null)
   const [contactForm, setContactForm] = useState({
     name: '', company: '', title: '', email: '', phone: '',
     address: '', website: '', industry: '', type: 'Supplier', notes: '',
   })
   const scanFileRef = useRef(null)
+  const scanCameraRef = useRef(null)
   const companyProfileFileRef = useRef(null)
 
   useEffect(() => {
@@ -666,26 +783,55 @@ const Profile = () => {
     setScanPreview(null)
     setScanResult(null)
     setScanRawText('')
+    setScanErrorMessage('')
   }, [])
 
   const handleScanFile = useCallback(async (e) => {
-    if (!e.target.files?.length) return
-    const file = e.target.files[0]
-    e.target.value = ''
+    const input = e.target
+    if (!input.files?.length) return
+    let file = input.files[0]
+    // iOS: allow picking the same file again; clear after this tick
+    requestAnimationFrame(() => {
+      try {
+        input.value = ''
+      } catch {
+        /* ignore */
+      }
+    })
 
-    // Show image preview
-    const reader = new FileReader()
-    reader.onload = (ev) => setScanPreview(ev.target.result)
-    reader.readAsDataURL(file)
+    const previewFromBlob = (blob) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => setScanPreview(ev.target.result)
+      reader.readAsDataURL(blob)
+    }
 
+    previewFromBlob(file)
+
+    setScanErrorMessage('')
     setScanStatus('loading')
     setScanProgress(5)
     setScanResult(null)
     setScanRawText('')
 
     try {
+      let working = file
+
+      if (isHeicLike(working)) {
+        setScanProgress(8)
+        const heic2any = (await import('heic2any')).default
+        const converted = await heic2any({
+          blob: working,
+          toType: 'image/jpeg',
+          quality: 0.92,
+        })
+        working = Array.isArray(converted) ? converted[0] : converted
+        previewFromBlob(working)
+      }
+
+      working = await normalizeImageForOcr(working)
+
       const Tesseract = (await import('tesseract.js')).default
-      const { data } = await Tesseract.recognize(file, 'eng', {
+      const { data } = await Tesseract.recognize(working, 'eng+rus', {
         logger: (m) => {
           if (m.status === 'recognizing text') {
             setScanStatus('recognizing')
@@ -697,11 +843,23 @@ const Profile = () => {
         },
       })
 
+      const raw = (data?.text || '').trim()
+      setScanRawText(data?.text || '')
+
+      if (!raw) {
+        setScanResult(null)
+        setScanProgress(0)
+        setScanStatus('error')
+        setScanErrorMessage(
+          'No text was detected. Use good lighting, hold the camera steady, photograph the card flat, or try importing from gallery as JPEG.',
+        )
+        return
+      }
+
       setScanStatus('parsing')
       setScanProgress(95)
-      setScanRawText(data.text)
 
-      const parsed = parseBusinessCard(data.text)
+      const parsed = parseBusinessCard(data.text || '')
       setScanResult(parsed)
       setScanProgress(100)
       setScanStatus('done')
@@ -709,6 +867,9 @@ const Profile = () => {
       console.error('OCR error:', err)
       setScanStatus('error')
       setScanProgress(0)
+      setScanErrorMessage(
+        'Could not read this image for OCR. Try a JPG/PNG from gallery, steady hands and even lighting when using the camera, or set iPhone camera to Most Compatible format (avoid HEIC-only capture if problems persist).',
+      )
     }
   }, [])
 
@@ -1547,8 +1708,11 @@ const Profile = () => {
 
         {/* ── Scan Business Card Modal ─────────────────────────── */}
         {showScanModal && (
-          <div className="prof-modal-overlay" onClick={scanStatus === 'recognizing' || scanStatus === 'loading' ? undefined : handleCloseScan}>
-            <div className="prof-modal prof-modal-lg" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="prof-modal-overlay prof-modal-overlay--scan"
+            onClick={scanStatus === 'recognizing' || scanStatus === 'loading' ? undefined : handleCloseScan}
+          >
+            <div className="prof-modal prof-modal-lg prof-modal--scan" onClick={(ev) => ev.stopPropagation()}>
               <h3 className="prof-modal-title">Scan Business Card</h3>
               <div className="prof-modal-body">
 
@@ -1557,10 +1721,18 @@ const Profile = () => {
                   <div className="prof-scan-body">
                     <div className="prof-scan-area">
                       <Icon name="scan" size={48} />
-                      <p>Upload a photo of a business card to automatically extract contact information.</p>
-                      <button className="prof-btn-primary" onClick={() => scanFileRef.current?.click()}>
-                        <Icon name="upload" size={16} /> Upload Card Image
-                      </button>
+                      <p>Upload or photograph a business card to extract contact details.</p>
+                      <p className="prof-scan-mobile-hint">
+                        On your phone: use <strong>Take photo</strong> for the rear camera, hold steady, and fill the frame with the card.
+                      </p>
+                      <div className="prof-scan-pick-row">
+                        <button type="button" className="prof-btn-primary" onClick={() => scanFileRef.current?.click()}>
+                          <Icon name="upload" size={16} /> Upload image
+                        </button>
+                        <button type="button" className="prof-btn-outline" onClick={() => scanCameraRef.current?.click()}>
+                          Take photo
+                        </button>
+                      </div>
                     </div>
                     <div className="prof-scan-features">
                       <div className="prof-scan-feature"><span className="prof-scan-check">✓</span> Auto-detect name, company, title</div>
@@ -1629,21 +1801,40 @@ const Profile = () => {
                     {/* Error state */}
                     {scanStatus === 'error' && (
                       <div className="prof-scan-error">
-                        <p>Failed to recognize text. Please try a clearer image.</p>
-                        <button className="prof-btn-primary" onClick={() => { resetScan(); scanFileRef.current?.click() }}>
-                          Try Again
-                        </button>
+                        <p>{scanErrorMessage || 'Failed to recognize text. Please try a clearer image.'}</p>
+                        <div className="prof-scan-pick-row">
+                          <button type="button" className="prof-btn-primary" onClick={() => { resetScan(); scanFileRef.current?.click() }}>
+                            Try upload
+                          </button>
+                          <button type="button" className="prof-btn-outline" onClick={() => { resetScan(); scanCameraRef.current?.click() }}>
+                            Try camera
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                <input type="file" ref={scanFileRef} accept="image/*" style={{ display: 'none' }} onChange={handleScanFile} />
+                <input
+                  type="file"
+                  ref={scanFileRef}
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleScanFile}
+                />
+                <input
+                  type="file"
+                  ref={scanCameraRef}
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={handleScanFile}
+                />
               </div>
               <div className="prof-modal-footer">
                 {scanStatus === 'done' && (
                   <>
-                    <button className="prof-btn-secondary" onClick={() => { resetScan(); scanFileRef.current?.click() }}>
+                    <button type="button" className="prof-btn-secondary" onClick={() => { resetScan(); scanFileRef.current?.click() }}>
                       Scan Another
                     </button>
                     <button className="prof-btn-primary" onClick={handleAcceptScan}>
