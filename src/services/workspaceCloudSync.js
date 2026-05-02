@@ -184,6 +184,22 @@ export async function pullWorkspaceSnapshots() {
   }
 }
 
+/**
+ * Pull latest workspace snapshots immediately (ignores throttle). Use when entering
+ * a screen that must reflect cloud state (e.g. Profile contacts) without waiting for
+ * visibilitychange / pageshow.
+ */
+export async function pullWorkspaceSnapshotsForced() {
+  if (typeof window === 'undefined') return
+  if (!isSupabaseConfigured) return
+
+  const companyId = await getCompanyId()
+  if (!companyId || bootstrappedCompanyId !== companyId) return
+
+  lastWorkspacePullAt = 0
+  await pullWorkspaceSnapshots()
+}
+
 let lifecycleSyncAttached = false
 
 /** Coalesces concurrent flush calls (visibility hidden + pagehide + route change). */

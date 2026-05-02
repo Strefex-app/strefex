@@ -1,4 +1,9 @@
 /** Equipment suppliers: open source and database. Replace with your DB later. */
+import { SUPPLIER_DATABASE_CORE } from './supplierDatabase'
+import { buildSupplychainEquipmentAugment } from './supplychainImportedSuppliers'
+
+const SUPPLYCHAIN_EQ_EXTRA = buildSupplychainEquipmentAugment(SUPPLIER_DATABASE_CORE)
+
 export const SUPPLIERS_BY_EQUIPMENT = {
   'auto-inj-hydraulic': [
     { id: 'eq1', name: 'Engel (open)', source: 'open', country: 'AT', rating: 4.6 },
@@ -41,5 +46,7 @@ export const SUPPLIERS_BY_EQUIPMENT = {
 }
 
 export function getSuppliersForEquipment(equipmentId) {
-  return SUPPLIERS_BY_EQUIPMENT[equipmentId] || SUPPLIERS_BY_EQUIPMENT.default
+  const base = SUPPLIERS_BY_EQUIPMENT[equipmentId] || SUPPLIERS_BY_EQUIPMENT.default
+  const extra = SUPPLYCHAIN_EQ_EXTRA[equipmentId] || []
+  return [...base, ...extra]
 }

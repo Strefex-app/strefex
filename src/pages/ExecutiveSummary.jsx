@@ -681,17 +681,19 @@ const ExecutiveSummary = () => {
                         aria-label={`Select ${getDisplayName(supplier, idx)} for RFQ`}
                       />
                     </td>
-                    <td className="supplier-name">
-                      <span className="supplier-name-text">
-                        {getDisplayName(supplier, idx)}
-                        {canSeeNames && supplier.source === 'registered' && <span className="exec-reg-badge">Registered</span>}
-                        {!canSeeNames && <span className="exec-anon-badge">Anonymous</span>}
-                      </span>
-                      {canSeeNames && (
-                        <span className="supplier-certs">
-                          {supplier.certifications?.slice(0, 2).join(', ')}
+                    <td className="exec-td-supplier">
+                      <div className="supplier-name">
+                        <span className="supplier-name-text">
+                          {getDisplayName(supplier, idx)}
+                          {canSeeNames && supplier.source === 'registered' && <span className="exec-reg-badge">Registered</span>}
+                          {!canSeeNames && <span className="exec-anon-badge">Anonymous</span>}
                         </span>
-                      )}
+                        {canSeeNames && (
+                          <span className="supplier-certs">
+                            {supplier.certifications?.slice(0, 2).join(', ')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       <span className="location-cell">

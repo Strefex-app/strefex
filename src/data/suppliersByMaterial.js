@@ -1,4 +1,9 @@
 /** Sample supplier lists: open source and database placeholder. Replace with your DB later. */
+import { SUPPLIER_DATABASE_CORE } from './supplierDatabase'
+import { buildSupplychainMaterialAugment } from './supplychainImportedSuppliers'
+
+const SUPPLYCHAIN_MAT_EXTRA = buildSupplychainMaterialAugment(SUPPLIER_DATABASE_CORE)
+
 export const SUPPLIERS_BY_MATERIAL = {
   abs: [
     { id: 's1', name: 'Plastics Europe (open data)', source: 'open', country: 'EU', rating: 4.5 },
@@ -39,5 +44,7 @@ export const SUPPLIERS_BY_MATERIAL = {
 }
 
 export function getSuppliersForMaterial(materialId) {
-  return SUPPLIERS_BY_MATERIAL[materialId] || SUPPLIERS_BY_MATERIAL.default
+  const base = SUPPLIERS_BY_MATERIAL[materialId] || SUPPLIERS_BY_MATERIAL.default
+  const extra = SUPPLYCHAIN_MAT_EXTRA[materialId] || []
+  return [...base, ...extra]
 }

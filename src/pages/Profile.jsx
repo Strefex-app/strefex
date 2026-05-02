@@ -1,14 +1,19 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
+import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
 import { getPlanById, getEffectiveLimits } from '../services/stripeService'
 import { isSupabaseConfigured } from '../config/supabase'
 import { profilesService, companiesService, companyProfileAttachmentsService } from '../services/supabaseService'
 import { useTranslation } from '../i18n/useTranslation'
-import { tenantKey } from '../utils/tenantStorage'
-import { PROFILE_CONTACTS_SYNC_EVENT, notifyProfileContactsDirty } from '../services/workspaceCloudSync'
+import { tenantKey, getTenantId } from '../utils/tenantStorage'
+import {
+  PROFILE_CONTACTS_SYNC_EVENT,
+  notifyProfileContactsDirty,
+  pullWorkspaceSnapshotsForced,
+} from '../services/workspaceCloudSync'
 import { removeStoragePathsBestEffort } from '../utils/storageCleanup'
 import {
   PROFILE_ATTACHMENT_SLOT,
@@ -17,7 +22,6 @@ import {
   isSellerLikeAccountType,
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
-import AppLayout from '../components/AppLayout'
 import '../styles/app-page.css'
 import './Profile.css'
 
@@ -131,6 +135,132 @@ async function normalizeImageForOcr(blob) {
   } catch {
     return blob
   }
+}
+
+/** Rotate JPEG/Blob clockwise in 90° steps (helps when EXIF/OSD misses portrait vs landscape framing). */
+async function rotateBlobQuarterTurnsCw(blob, quarterTurns) {
+  const q = ((((quarterTurns | 0) % 4) + 4) % 4)
+  if (!(blob instanceof Blob) || q === 0) return blob
+  let bitmap
+  try {
+    bitmap = await createImageBitmap(blob).catch(() => null)
+    if (!bitmap) return blob
+    const w = bitmap.width
+    const h = bitmap.height
+    if (w < 2 || h < 2) return blob
+    const nw = q % 2 === 1 ? h : w
+    const nh = q % 2 === 1 ? w : h
+    const canvas = document.createElement('canvas')
+    canvas.width = nw
+    canvas.height = nh
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return blob
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, nw, nh)
+    ctx.translate(nw / 2, nh / 2)
+    ctx.rotate((q * Math.PI) / 2)
+    ctx.drawImage(bitmap, -w / 2, -h / 2)
+    return await canvasToJpegBlob(canvas, OCR_JPEG_QUALITY)
+  } catch {
+    return blob
+  } finally {
+    bitmap?.close?.()
+  }
+}
+
+/**
+ * Rough quality score — lets us compare OCR runs across rotations without another model.
+ */
+function scoreOcrForBusinessCard(data) {
+  const text = (data?.text || '').trim()
+  const conf =
+    typeof data?.confidence === 'number' && !Number.isNaN(data.confidence) ? data.confidence : 0
+  let bonus = Math.min(text.length * 0.22, 22)
+  if (/[a-z0-9._%+\-]+@[a-z0-9\-]+\.[a-z]{2,}/i.test(text)) bonus += 45
+  const digits = text.replace(/\D/g, '').length
+  if (digits >= 10 && /\d/.test(text)) bonus += 32
+  if (/(?:https?:\/\/|www\.)\s*\S+|\.(?:com|io|net|org|ru|de|eu|biz|info)\b/i.test(text)) bonus += 16
+  return conf + bonus
+}
+
+const OCR_WEAK_ORIENTATION_SCORE = 52
+
+/**
+ * OCR with orientation handling: OSD + optional ±90°/180° retries when recognition looks weak.
+ */
+async function recognizeBusinessCardAdaptive(blob, ocrOpts, attachLogger) {
+  const Tesseract = (await import('tesseract.js')).default
+
+  const recognizeOnce = async (inputBlob, langs, rotateRadians) => {
+    return Tesseract.recognize(inputBlob, langs, {
+      ...ocrOpts,
+      ...(typeof rotateRadians === 'number' && Math.abs(rotateRadians) >= 0.005
+        ? { rotateRadians }
+        : {}),
+      ...attachLogger,
+    }).then((r) => r.data)
+  }
+
+  const recognizeBestLangs = async (inputBlob, rotateRadians) => {
+    try {
+      return await recognizeOnce(inputBlob, 'eng+rus', rotateRadians)
+    } catch {
+      return await recognizeOnce(inputBlob, 'eng', rotateRadians)
+    }
+  }
+
+  /** Page rotation from Tesseract OSD; rotateRadians undo that — sign matches tesseract.js SetImage conventions. */
+  let osdRadians = null
+  try {
+    const det = await Tesseract.detect(blob, { ...ocrOpts, ...attachLogger })
+    const d = det?.data
+    const deg = d?.orientation_degrees
+    const oconf = d?.orientation_confidence
+    if (
+      typeof deg === 'number' &&
+      (deg === 0 || deg === 90 || deg === 180 || deg === 270) &&
+      typeof oconf === 'number' &&
+      oconf >= 3
+    ) {
+      osdRadians = -(deg * Math.PI) / 180
+    }
+  } catch {
+    /* OSD is optional (network / unsupported); fall back to quarter turns */
+  }
+
+  let best = await recognizeBestLangs(blob, 0)
+  let bestScore = scoreOcrForBusinessCard(best)
+  let textLen = (best?.text || '').trim().length
+
+  if (osdRadians != null && Math.abs(osdRadians) >= 0.005) {
+    const alt = await recognizeBestLangs(blob, osdRadians)
+    const s = scoreOcrForBusinessCard(alt)
+    if (s > bestScore) {
+      best = alt
+      bestScore = s
+      textLen = (best?.text || '').trim().length
+    }
+  }
+
+  if (bestScore >= OCR_WEAK_ORIENTATION_SCORE && textLen >= 10) {
+    return best
+  }
+
+  for (let q = 1; q <= 3; q += 1) {
+    const turned = await rotateBlobQuarterTurnsCw(blob, q)
+    if (turned === blob) continue
+    const alt = await recognizeBestLangs(turned, 0)
+    const altLen = (alt?.text || '').trim().length
+    const s = scoreOcrForBusinessCard(alt)
+    if (s > bestScore || (altLen > textLen * 1.4 && textLen < 80)) {
+      best = alt
+      bestScore = s
+      textLen = altLen
+      if (bestScore >= OCR_WEAK_ORIENTATION_SCORE) break
+    }
+  }
+
+  return best
 }
 
 /* ── Business-card OCR parser ───────────────────────────────── */
@@ -487,6 +617,40 @@ const Profile = () => {
     return () => window.removeEventListener(PROFILE_CONTACTS_SYNC_EVENT, onSync)
   }, [])
 
+  // Tenant id resolves after auth rehydrate; first paint may read the wrong scoped key or miss bootstrap events.
+  // Re-load from localStorage and (when configured) pull cloud snapshots immediately on Profile mount / tenant change.
+  useEffect(() => {
+    if (!canSeeContacts) return
+
+    const readContactsFromLs = () => {
+      try {
+        const tid = getTenantId()
+        if (tid === 'guest') return
+        const raw = localStorage.getItem(tenantKey(CONTACTS_KEY))
+        const parsed = raw ? JSON.parse(raw) : []
+        if (!Array.isArray(parsed)) return
+        setContacts((prev) => (JSON.stringify(prev) !== JSON.stringify(parsed) ? parsed : prev))
+      } catch {
+        /* ignore */
+      }
+    }
+
+    readContactsFromLs()
+
+    if (!isSupabaseConfigured) return undefined
+
+    let cancelled = false
+    pullWorkspaceSnapshotsForced()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) readContactsFromLs()
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canSeeContacts, tenant?.id, tenant?.slug, user?.email])
+
   const contactsSyncSkipFirst = useRef(true)
   useEffect(() => {
     if (contactsSyncSkipFirst.current) {
@@ -830,18 +994,26 @@ const Profile = () => {
 
       working = await normalizeImageForOcr(working)
 
-      const Tesseract = (await import('tesseract.js')).default
-      const { data } = await Tesseract.recognize(working, 'eng+rus', {
+      /* Load OCR paths only when scanning — static import broke Profile chunk load when worker/WASM URLs fail in some builds. */
+      const { getTesseractBundledOptions } = await import('../lib/tesseractOcrOptions')
+      const ocrBaseOptions = getTesseractBundledOptions()
+      const ocrProgress = {
         logger: (m) => {
           if (m.status === 'recognizing text') {
             setScanStatus('recognizing')
             setScanProgress(Math.round(10 + m.progress * 80))
-          } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract' || m.status === 'loading language traineddata') {
+          } else if (
+            m.status === 'loading tesseract core' ||
+            m.status === 'initializing tesseract' ||
+            m.status === 'loading language traineddata'
+          ) {
             setScanStatus('loading')
             setScanProgress(Math.max(5, Math.round(m.progress * 10)))
           }
         },
-      })
+      }
+
+      const data = await recognizeBusinessCardAdaptive(working, ocrBaseOptions, ocrProgress)
 
       const raw = (data?.text || '').trim()
       setScanRawText(data?.text || '')
@@ -894,7 +1066,9 @@ const Profile = () => {
 
   /* ── Derived display values ─────────────────────────────── */
   const acctLabel = accountType === 'buyer' ? 'Buyer' : accountType === 'service_provider' ? 'Service Provider' : 'Seller'
-  const roleLabel = isSuperAdmin ? 'Super Admin' : role.charAt(0).toUpperCase() + role.slice(1)
+  const roleLabel = isSuperAdmin
+    ? 'Super Admin'
+    : String(role || 'user').replace(/^./, (c) => c.toUpperCase())
   const domain = user?.email ? user.email.split('@')[1] : '—'
   const statusLabel = status === 'trialing'
     ? `Trial (ends ${trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : '—'})`

@@ -16,12 +16,19 @@ export default function IndustryGuard({ industry, requiredTier = 'free', childre
   const userLevel = levels[sub?.tier] ?? -1
   const requiredLevel = levels[requiredTier] ?? 999
 
-  if (loading) return null
-
   // Superadmin has full cross-industry access regardless of subscription tier.
   if (role === 'superadmin') {
     return children
   }
+
+  // "free" tier pages (e.g. executive summary from industry hubs) must not require
+  // an active row in `subscriptions` for that industry; missing sub used to yield
+  // userLevel -1 and redirect everyone to /plans.
+  if (requiredTier === 'free') {
+    return children
+  }
+
+  if (loading) return null
 
   if (!targetIndustry || userLevel >= requiredLevel) {
     return children

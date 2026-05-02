@@ -810,9 +810,19 @@
   flex-shrink: 0;
 }
 
-.exec-th-check, .exec-td-check {
-  width: 36px;
+.exec-th-check,
+.exec-td-check {
+  width: 40px;
+  min-width: 40px;
+  max-width: 48px;
   text-align: center;
+  vertical-align: middle;
+  /* Keep row rules continuous across the checkbox column (flex on <td> elsewhere breaks collapse) */
+  border-bottom: 1px solid var(--border-light);
+}
+
+.exec-table thead .exec-th-check {
+  border-bottom: 2px solid var(--border-light);
 }
 
 .exec-th-check .stx-check-btn--compact,
@@ -820,10 +830,17 @@
   margin: 0 auto;
 }
 
-.supplier-name {
+.exec-td-supplier {
+  vertical-align: middle;
+}
+
+/* Flex layout must live inside the cell, not on <td>, or table borders/row height break. */
+.exec-table .supplier-name {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .supplier-name-text {

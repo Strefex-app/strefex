@@ -3,6 +3,8 @@
  * This serves as the source of truth for supplier mapping and RFQ matching.
  */
 
+import { buildSupplychainIntelSuppliers } from './supplychainImportedSuppliers'
+
 // Country coordinates for mapping
 export const COUNTRY_COORDINATES = {
   AT: { name: 'Austria', coordinates: [14.5501, 47.5162] },
@@ -40,10 +42,13 @@ export const COUNTRY_COORDINATES = {
   AU: { name: 'Australia', coordinates: [133.7751, -25.2744] },
   NO: { name: 'Norway', coordinates: [8.4689, 60.472] },
   DK: { name: 'Denmark', coordinates: [9.5018, 56.2639] },
+  BE: { name: 'Belgium', coordinates: [4.4699, 50.5039] },
+  IE: { name: 'Ireland', coordinates: [-8.2439, 53.4129] },
+  CA: { name: 'Canada', coordinates: [-106.3468, 56.1304] },
 }
 
-// Comprehensive supplier database with all metrics
-export const SUPPLIER_DATABASE = [
+/** Core seeded rows — extended below with Automotive Supply Chain intelligence JSON. */
+export const SUPPLIER_DATABASE_CORE = [
   // Automotive Industry Suppliers
   {
     id: 'sup-001',
@@ -693,6 +698,11 @@ export const SUPPLIER_DATABASE = [
     established: 1927,
     employees: 600,
   },
+]
+
+export const SUPPLIER_DATABASE = [
+  ...SUPPLIER_DATABASE_CORE,
+  ...buildSupplychainIntelSuppliers(SUPPLIER_DATABASE_CORE, COUNTRY_COORDINATES),
 ]
 
 /* ── Registry integration ─────────────────────────────────
