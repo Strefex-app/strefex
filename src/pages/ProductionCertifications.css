@@ -319,7 +319,7 @@
 
 .upload-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 8, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
 }
 
 /* Audit Notes */
@@ -362,7 +362,7 @@
 }
 
 .document-item:hover {
-  background: #f0f2f5;
+  background: var(--bg-surface);
 }
 
 .doc-icon {
@@ -592,7 +592,7 @@
 
 .btn-cancel {
   padding: 10px 20px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border: none;
   border-radius: 8px;
   font-size: 14px;

@@ -160,7 +160,7 @@ const daysUntil = (iso) => {
 }
 
 const planColor = (planId) => {
-  const colors = { start: '#95a5a6', basic: '#3498db', standard: '#f39c12', premium: '#8e44ad', enterprise: '#000888' }
+  const colors = { start: '#95a5a6', basic: '#3498db', standard: '#f39c12', premium: '#8e44ad', enterprise: '#00d4ff' }
   return colors[planId] || '#999'
 }
 
@@ -210,7 +210,7 @@ function MiniBarChart({ items, maxVal }) {
         <div key={i} className="sad-bar-row">
           <span className="sad-bar-label">{item.label}</span>
           <div className="sad-bar-track">
-            <div className="sad-bar-fill" style={{ width: `${(item.value / mx) * 100}%`, background: item.color || '#000888' }} />
+            <div className="sad-bar-fill" style={{ width: `${(item.value / mx) * 100}%`, background: item.color || '#00d4ff' }} />
           </div>
           <span className="sad-bar-val">{item.value}</span>
         </div>
@@ -570,7 +570,7 @@ export default function SuperAdminDashboard() {
     const topEquipment = Object.entries(equipCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([label, value]) => ({ label, value, color: '#000888' }))
+      .map(([label, value]) => ({ label, value, color: '#00d4ff' }))
 
     const monthlyRevenue = rows.reduce((sum, a) => {
       const plan = PLANS.find((p) => p.id === a.plan)
@@ -590,7 +590,7 @@ export default function SuperAdminDashboard() {
         return t >= from && t < to
       }).length
       const d = new Date(to)
-      regTimeline.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), value: count, color: '#000888' })
+      regTimeline.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), value: count, color: '#00d4ff' })
     }
 
     const totalUsers = rows.reduce((s, a) => s + (a.users || 0), 0)
@@ -1589,7 +1589,7 @@ export default function SuperAdminDashboard() {
                       placeholder="Assign to email..."
                       value={srAssignEmail}
                       onChange={(e) => setSrAssignEmail(e.target.value)}
-                      style={{ flex: 1, minWidth: 180, padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
+                      style={{ flex: 1, minWidth: 180, padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 13 }}
                     />
                     <button
                       type="button"
@@ -1607,7 +1607,7 @@ export default function SuperAdminDashboard() {
                     <select
                       value={srNewStatus}
                       onChange={(e) => setSrNewStatus(e.target.value)}
-                      style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
+                      style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 13 }}
                     >
                       <option value="">Change Status</option>
                       <option value="on_hold">On Hold</option>
@@ -1659,7 +1659,7 @@ export default function SuperAdminDashboard() {
     { id: 'auditor_external', label: 'Auditor (External)', color: '#8e44ad', desc: 'Read-only cross-company access for external auditing, compliance reviews, and certification bodies.' },
     { id: 'admin', label: 'Admin', color: '#e67e22', desc: 'Manages team accounts, approves registrations, handles service requests, manages billing.' },
     { id: 'auditor_internal', label: 'Auditor (Internal)', color: '#9b59b6', desc: 'Read-only access to all company data for internal auditing and compliance checks.' },
-    { id: 'manager', label: 'Manager', color: '#000888', desc: 'Manages service requests, handles assigned tasks, oversees users within their scope.' },
+    { id: 'manager', label: 'Manager', color: '#00d4ff', desc: 'Manages service requests, handles assigned tasks, oversees users within their scope.' },
     { id: 'user', label: 'User', color: '#2e7d32', desc: 'Standard platform user with plan-based access to features.' },
   ]
 
@@ -1820,7 +1820,7 @@ export default function SuperAdminDashboard() {
                       <select
                         value={u.role}
                         onChange={(e) => handleChangeRole(u.email, e.target.value)}
-                        style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}
                       >
                         <option value="user">User</option>
                         <option value="manager">Manager</option>
@@ -1957,7 +1957,7 @@ export default function SuperAdminDashboard() {
                 <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#888', marginTop: 6 }}>
                   <span>Sent: <strong style={{ color: '#333' }}>{c.totalSent}</strong></span>
                   <span>Responses: <strong style={{ color: '#2e7d32' }}>{c.totalResponses}</strong></span>
-                  <span>Suppliers: <strong style={{ color: '#000888' }}>{c.totalSuppliers}</strong></span>
+                  <span>Suppliers: <strong style={{ color: '#00d4ff' }}>{c.totalSuppliers}</strong></span>
                 </div>
               </div>
             ))}
@@ -1980,7 +1980,7 @@ export default function SuperAdminDashboard() {
                     .map((rfq) => {
                       const respCount = (rfq.sellerResponses || []).length
                       const isSelected = selectedRfqDetail?.id === rfq.id
-                      const sc = { draft: '#888', sent: '#000888', active: '#e65100', completed: '#2e7d32' }
+                      const sc = { draft: '#888', sent: '#00d4ff', active: '#e65100', completed: '#2e7d32' }
                       return (
                         <button
                           key={rfq.id}
@@ -1989,8 +1989,8 @@ export default function SuperAdminDashboard() {
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '10px 14px', borderRadius: 10,
-                            border: isSelected ? '2px solid #000888' : '1px solid #e8eaed',
-                            background: isSelected ? 'rgba(0,8,136,.03)' : '#fff',
+                            border: isSelected ? '2px solid #00d4ff' : '1px solid #e8eaed',
+                            background: isSelected ? 'rgba(0, 212, 255,.03)' : 'var(--bg-card)',
                             cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all .15s',
                           }}
                         >
@@ -2063,7 +2063,7 @@ export default function SuperAdminDashboard() {
                                   <td>
                                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                       {(r.certifications || []).map((c, i) => (
-                                        <span key={i} className="sad-badge" style={{ background: 'rgba(0,8,136,.06)', color: '#000888', fontSize: 10, padding: '1px 6px' }}>{c}</span>
+                                        <span key={i} className="sad-badge" style={{ background: 'rgba(0, 212, 255,.06)', color: '#00d4ff', fontSize: 10, padding: '1px 6px' }}>{c}</span>
                                       ))}
                                     </div>
                                   </td>
@@ -2105,7 +2105,7 @@ export default function SuperAdminDashboard() {
             <div className="sad-kpi-label">Responded</div>
           </div>
           <div className="sad-kpi-card">
-            <div className="sad-kpi-val" style={{ color: '#000888' }}>{rfqAnalytics.awardedSeller}</div>
+            <div className="sad-kpi-val" style={{ color: '#00d4ff' }}>{rfqAnalytics.awardedSeller}</div>
             <div className="sad-kpi-label">Awarded</div>
           </div>
         </div>
@@ -2127,7 +2127,7 @@ export default function SuperAdminDashboard() {
               </thead>
               <tbody>
                 {allReceivedRfqs.map((r) => {
-                  const sc = { pending: '#e65100', responded: '#2e7d32', awarded: '#000888', declined: '#c62828' }
+                  const sc = { pending: '#e65100', responded: '#2e7d32', awarded: '#00d4ff', declined: '#c62828' }
                   return (
                     <tr key={r.id}>
                       <td style={{ fontWeight: 600 }}>{r.title}</td>
@@ -2173,7 +2173,7 @@ export default function SuperAdminDashboard() {
           <div className="sad-kpi-label">Expired</div>
         </div>
         <div className="sad-kpi-card">
-          <div className="sad-kpi-val" style={{ color: '#000888' }}>{new Set(activeGrants.map((g) => g.accountId)).size}</div>
+          <div className="sad-kpi-val" style={{ color: '#00d4ff' }}>{new Set(activeGrants.map((g) => g.accountId)).size}</div>
           <div className="sad-kpi-label">Companies with Grants</div>
         </div>
         <div className="sad-kpi-card">
@@ -2608,7 +2608,7 @@ export default function SuperAdminDashboard() {
       )}
 
       {/* Info */}
-      <div className="sad-section" style={{ background: 'rgba(0,8,136,.04)', borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
+      <div className="sad-section" style={{ background: 'rgba(0, 212, 255,.04)', borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
         <p style={{ margin: 0, fontSize: 14, color: '#444', lineHeight: 1.6 }}>
           <strong>Default buyer trial:</strong> New <strong>buyer</strong> accounts receive a free{' '}
           <strong>{BUYER_TRIAL_DAYS}-day trial</strong> of the Basic plan. As superadmin you can extend trials or apply
@@ -2724,7 +2724,7 @@ export default function SuperAdminDashboard() {
               <tbody>
                 {Object.entries(PROMO_CODES).map(([code, cfg]) => (
                   <tr key={code}>
-                    <td><code style={{ background: 'rgba(0,8,136,.06)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{code}</code></td>
+                    <td><code style={{ background: 'rgba(0, 212, 255,.06)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{code}</code></td>
                     <td><span style={{ color: planColor(cfg.planId), fontWeight: 600, textTransform: 'capitalize' }}>{cfg.planId}</span></td>
                     <td>{cfg.trialDays} days</td>
                     <td>{cfg.description}</td>
@@ -2769,7 +2769,7 @@ export default function SuperAdminDashboard() {
                         </span>
                       )}
                       {g.type === 'promo_code' && (
-                        <span style={{ background: 'rgba(0,8,136,.08)', color: '#000888', padding: '2px 8px', borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
+                        <span style={{ background: 'rgba(0, 212, 255,.08)', color: '#00d4ff', padding: '2px 8px', borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
                           Promo: {g.promoCode}
                         </span>
                       )}

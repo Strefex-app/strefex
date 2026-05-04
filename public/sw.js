@@ -27,18 +27,18 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <meta name="theme-color" content="#000888"/>
+  <meta name="theme-color" content="#13151a"/>
   <title>STREFEX — Offline</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Quattrocento Sans',Candara,Calibri,'Segoe UI',Roboto,Arial,sans-serif;
-         background:#000222;color:#fff;display:flex;align-items:center;
+         background:#0d0e10;color:#e8eaf2;display:flex;align-items:center;
          justify-content:center;min-height:100vh;text-align:center;padding:2rem}
     .wrap{max-width:420px}
     .icon{width:80px;height:80px;margin:0 auto 1.5rem;opacity:.7}
     h1{font-size:1.5rem;margin-bottom:.75rem;font-weight:600}
     p{font-size:.95rem;line-height:1.6;color:rgba(255,255,255,.7);margin-bottom:1.5rem}
-    button{background:#000888;color:#fff;border:none;padding:.75rem 2rem;
+    button{background:#00d4ff;color:#0d0e10;border:none;padding:.75rem 2rem;
            border-radius:8px;font-size:.95rem;cursor:pointer;transition:opacity .2s}
     button:hover{opacity:.85}
   </style>

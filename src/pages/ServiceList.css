@@ -25,7 +25,7 @@
   appearance: none;
   border: 1px solid #d0d7e2;
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--bg-card);
   color: #334155;
   font-size: 13px;
   font-weight: 600;
@@ -40,7 +40,7 @@
 }
 
 .svc-toggle-btn:hover {
-  border-color: #000888;
+  border-color: #00d4ff;
   background: #f8faff;
   color: #0f172a;
   transform: translateY(-1px);
@@ -48,10 +48,10 @@
 }
 
 .svc-toggle-btn.active {
-  border-color: #000888;
-  background: linear-gradient(135deg, #000888 0%, #1d4ed8 100%);
-  color: #ffffff;
-  box-shadow: 0 8px 16px rgba(0, 8, 136, 0.28);
+  border-color: #00d4ff;
+  background: linear-gradient(135deg, #00d4ff 0%, #0891b2 100%);
+  color: var(--btn-primary-text);
+  box-shadow: 0 8px 16px rgba(0, 212, 255, 0.28);
 }
 
 .svc-toggle-btn.svc-toggle-btn--package {
@@ -88,7 +88,7 @@
   appearance: none;
   border: 1px solid #d0d7e2;
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-card);
   color: #334155;
   font-size: 13px;
   font-weight: 600;
@@ -102,17 +102,17 @@
 }
 
 .svc-industry-btn:hover {
-  border-color: #000888;
+  border-color: #00d4ff;
   background: #f8faff;
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(2, 6, 23, 0.08);
 }
 
 .svc-industry-btn.active {
-  border-color: #000888;
-  background: linear-gradient(135deg, #000888 0%, #1d4ed8 100%);
-  color: #fff;
-  box-shadow: 0 8px 16px rgba(0, 8, 136, 0.28);
+  border-color: #00d4ff;
+  background: linear-gradient(135deg, #00d4ff 0%, #0891b2 100%);
+  color: var(--btn-primary-text);
+  box-shadow: 0 8px 16px rgba(0, 212, 255, 0.28);
 }
 
 .svc-industry-btn.locked {
@@ -131,7 +131,7 @@
   padding: 9px 16px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
-  background: #fff;
+  background: var(--bg-card);
   color: #334155;
   font-size: 13px;
   font-weight: 600;
@@ -139,19 +139,19 @@
 }
 
 .svc-attach-btn:hover {
-  background: #f8fafc;
+  background: var(--bg-surface);
 }
 
 .svc-provider-summary-card {
-  border: 1px solid #dbeafe;
-  background: linear-gradient(135deg, #f8fbff 0%, #f1f8ff 100%);
+  border: 1px solid var(--accent-light);
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), var(--bg-surface));
 }
 
 .svc-provider-summary-title {
   margin: 0 0 10px;
   font-size: 15px;
   font-weight: var(--font-semibold);
-  color: #1d4ed8;
+  color: var(--accent);
 }
 
 .svc-provider-summary-grid {
@@ -162,9 +162,9 @@
 
 .svc-provider-summary-item {
   padding: 10px 12px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--accent-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .svc-provider-summary-label {
@@ -178,7 +178,7 @@
 
 .svc-provider-summary-value {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--color-primary);
   font-weight: 600;
 }
 

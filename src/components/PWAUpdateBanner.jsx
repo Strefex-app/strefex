@@ -13,7 +13,7 @@ export default function PWAUpdateBanner() {
   return (
     <div style={{
       position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-      zIndex: 99999, background: '#000888', color: '#fff', borderRadius: 12,
+      zIndex: 99999, background: '#00d4ff', color: '#0d0e10', borderRadius: 12,
       padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 14,
       boxShadow: '0 8px 32px rgba(0,0,0,.25)', fontSize: 14, maxWidth: 420,
     }}>
@@ -21,7 +21,7 @@ export default function PWAUpdateBanner() {
       <button
         onClick={skipWaitingAndReload}
         style={{
-          background: '#fff', color: '#000888', border: 'none', borderRadius: 8,
+          background: 'var(--bg-card)', color: '#00d4ff', border: 'none', borderRadius: 8,
           padding: '6px 16px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
         }}
       >
@@ -30,7 +30,7 @@ export default function PWAUpdateBanner() {
       <button
         onClick={() => setShow(false)}
         style={{
-          background: 'transparent', border: 'none', color: 'rgba(255,255,255,.6)',
+          background: 'transparent', border: 'none', color: 'rgba(13,14,16,.55)',
           cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px',
         }}
         aria-label="Dismiss"

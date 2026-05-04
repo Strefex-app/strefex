@@ -6,38 +6,38 @@
 .resources-page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 8px 0;
 }
 
 .resources-page-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--color-secondary);
   margin: 0 0 24px 0;
 }
 
 .resources-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .resources-placeholder {
   font-size: 14px;
-  color: #666;
+  color: var(--color-secondary);
   margin: 0 0 16px 0;
 }
 
 .resources-link-btn {
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  background: #f8f9fa;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-primary);
   cursor: pointer;
 }
 

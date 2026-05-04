@@ -9,7 +9,7 @@ import './Icon.css'
  * Usage:
  *   <Icon name="home" />
  *   <Icon name="home" size={20} />
- *   <Icon name="home" size={28} color="#000888" onClick={fn} />
+ *   <Icon name="home" size={28} color="#00d4ff" onClick={fn} />
  */
 
 const sw = '2'

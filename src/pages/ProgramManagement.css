@@ -89,7 +89,7 @@
 .pgm-btn-secondary {
   padding: 8px 16px;
   background: var(--bg-card);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -139,7 +139,7 @@
 
 .pgm-filter-bar select {
   padding: 6px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 13px;
   min-width: 120px;
@@ -158,7 +158,7 @@
   width: 260px;
   min-width: 260px;
   background: var(--bg-card);
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--border-color);
   padding: 16px 0;
   overflow-y: auto;
 }
@@ -230,7 +230,7 @@
 .pgm-table-wrap {
   background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   overflow: auto;
 }
 
@@ -311,7 +311,7 @@
 .pgm-btn-today {
   padding: 6px 14px;
   background: var(--bg-card);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 13px;
   color: #475569;
@@ -331,7 +331,7 @@
 .pgm-timeline-area {
   background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   overflow: auto;
 }
 
@@ -344,8 +344,8 @@
 .pgm-task-details-col {
   min-width: 320px;
   max-width: 320px;
-  border-right: 1px solid #e2e8f0;
-  background: #fafbfc;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-surface);
 }
 
 .pgm-task-details-header {
@@ -470,7 +470,7 @@
   font-weight: 600;
   color: var(--color-muted);
   text-align: center;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--border-color);
 }
 
 .pgm-calendar-rows {
@@ -593,7 +593,7 @@
 .pgm-form-group select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   box-sizing: border-box;
@@ -619,7 +619,7 @@
   gap: 12px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-color);
 }
 
 .pgm-modal-actions button {
@@ -632,7 +632,7 @@
   background: var(--bg-card);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   z-index: 2000;
   min-width: 160px;
   padding: 4px;

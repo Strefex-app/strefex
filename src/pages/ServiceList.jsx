@@ -230,14 +230,14 @@ const ServiceList = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               <div style={{
                 flex: '1 1 200px', padding: '10px 14px', borderRadius: 8,
-                background: '#fff', border: '1px solid #ffe0b2',
+                background: 'var(--bg-card)', border: '1px solid #ffe0b2',
               }}>
                 <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Service Category</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{qServiceCategoryLabel}</div>
               </div>
               <div style={{
                 flex: '1 1 200px', padding: '10px 14px', borderRadius: 8,
-                background: '#fff', border: '1px solid #ffe0b2',
+                background: 'var(--bg-card)', border: '1px solid #ffe0b2',
               }}>
                 <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pre-selected Services</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{preselected.length} service{preselected.length !== 1 ? 's' : ''}</div>

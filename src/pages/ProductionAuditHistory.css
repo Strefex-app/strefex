@@ -186,7 +186,7 @@
 }
 
 .timeline-audit-item:hover .timeline-content {
-  background: #f0f2f5;
+  background: var(--bg-surface);
 }
 
 .timeline-audit-item.selected .timeline-content {

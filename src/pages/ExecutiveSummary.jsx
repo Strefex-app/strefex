@@ -415,16 +415,29 @@ const ExecutiveSummary = () => {
                 </span>
               </p>
             </div>
-            <button 
-              type="button" 
-              className="exec-rfq-btn"
-              onClick={() => setShowRfqModal(true)}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Create RFQ
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <button
+                type="button"
+                className="exec-rfq-btn exec-rfq-btn--outline"
+                onClick={() =>
+                  navigate(
+                    `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
+                  )
+                }
+              >
+                RFQ Intelligence
+              </button>
+              <button
+                type="button"
+                className="exec-rfq-btn"
+                onClick={() => setShowRfqModal(true)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Create RFQ
+              </button>
+            </div>
           </div>
         </div>
 
@@ -628,14 +641,27 @@ const ExecutiveSummary = () => {
         <div className="app-page-card">
           <div className="exec-table-header-row">
             <h3 className="exec-section-title">Registered Sellers &amp; Suppliers ({suppliers.length})</h3>
-            {selectedForRfq.size > 0 && (
-              <button type="button" className="exec-multi-rfq-btn" onClick={handleSendMultiRfq}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Send RFQ to {selectedForRfq.size} Seller{selectedForRfq.size > 1 ? 's' : ''}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                className="exec-multi-rfq-btn exec-multi-rfq-btn--outline"
+                onClick={() =>
+                  navigate(
+                    `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
+                  )
+                }
+              >
+                RFQ Intelligence
               </button>
-            )}
+              {selectedForRfq.size > 0 && (
+                <button type="button" className="exec-multi-rfq-btn" onClick={handleSendMultiRfq}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Send RFQ to {selectedForRfq.size} Seller{selectedForRfq.size > 1 ? 's' : ''}
+                </button>
+              )}
+            </div>
           </div>
           <div className="exec-table-wrapper">
             <table className="exec-table">

@@ -1,0 +1,334 @@
+/* RFQ Intelligence — layout typography & densities (palette matches platform `:root`). */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+/* Typography + layout density for RFQ. Surfaces & text inherit --rfqi-* / platform tokens from <html>. */
+html .rfqi-scope {
+  --rfqi-head: 'Barlow Condensed', system-ui, sans-serif;
+  --rfqi-body: 'Barlow', system-ui, sans-serif;
+  --rfqi-radius: 10px;
+  font-family: var(--rfqi-body);
+  color: var(--rfqi-text);
+  font-size: 13px;
+  background-color: var(--rfqi-bg);
+  border-radius: 0;
+}
+
+html .rfqi-scope strong {
+  color: var(--rfqi-text);
+  font-weight: 600;
+}
+
+html .rfqi-scope .rfqi-hdr {
+  background: var(--rfqi-s1);
+  border: 1px solid var(--rfqi-border);
+  border-radius: var(--rfqi-radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+html .rfqi-scope .rfqi-brand {
+  font-family: var(--rfqi-head);
+  letter-spacing: 0.06em;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rfqi-text);
+}
+
+html .rfqi-scope .rfqi-brand-dot {
+  color: var(--accent);
+}
+
+html .rfqi-scope .rfqi-tab {
+  font-family: var(--rfqi-head);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--rfqi-muted);
+  border-radius: 6px;
+}
+
+html .rfqi-scope .rfqi-tab:hover {
+  color: var(--rfqi-text);
+  background: var(--rfqi-s2);
+}
+
+html .rfqi-scope .rfqi-tab--active {
+  color: var(--accent);
+  background: var(--accent-light);
+  border-color: var(--input-focus);
+}
+
+html .rfqi-scope .rfqi-steps {
+  background: var(--rfqi-s1);
+  border-color: var(--rfqi-border);
+  border-radius: var(--rfqi-radius);
+}
+
+html .rfqi-scope .rfqi-step {
+  background: transparent;
+  border-right-color: var(--rfqi-border);
+  color: var(--rfqi-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html .rfqi-scope .rfqi-step--active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+html .rfqi-scope .app-page-title,
+html .rfqi-scope h3.app-page-title,
+html .rfqi-scope h4.app-page-title {
+  font-family: var(--rfqi-head);
+  color: var(--rfqi-text) !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+html .rfqi-scope .rfqi-summary-panel,
+html .rfqi-scope .app-page-card {
+  background: var(--rfqi-s1) !important;
+  border: 1px solid var(--rfqi-border) !important;
+  border-radius: var(--rfqi-radius) !important;
+  color: var(--rfqi-text) !important;
+  box-shadow: none !important;
+}
+
+html .rfqi-scope .rfqi-muted,
+html .rfqi-scope .app-page-subtitle {
+  color: var(--rfqi-muted) !important;
+}
+
+html .rfqi-scope .rfqi-summary-row {
+  border-bottom-color: var(--rfqi-border);
+}
+
+html .rfqi-scope .rfqi-quote-block {
+  border-bottom-color: var(--rfqi-border);
+}
+
+html .rfqi-scope .rfqi-process-card {
+  background: var(--rfqi-s2);
+  border-color: var(--rfqi-border);
+  color: var(--rfqi-text);
+  border-radius: 8px;
+  font-family: var(--rfqi-head);
+}
+
+html .rfqi-scope .rfqi-process-card:hover {
+  border-color: var(--rfqi-border2);
+  background: var(--rfqi-s3);
+}
+
+html .rfqi-scope .rfqi-process-card--on {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+html .rfqi-scope .rfqi-mat-row {
+  background: var(--rfqi-s2);
+  border-color: var(--rfqi-border);
+  border-radius: 7px;
+}
+
+html .rfqi-scope .rfqi-mat-row:hover {
+  border-color: var(--rfqi-border2);
+}
+
+html .rfqi-scope .rfqi-mat-row--on {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+html .rfqi-scope .rfqi-label {
+  color: var(--rfqi-muted);
+}
+
+html .rfqi-scope .rfqi-inp,
+html .rfqi-scope select.rfqi-inp {
+  background: var(--rfqi-s2);
+  border-color: var(--rfqi-border2);
+  color: var(--rfqi-text);
+  border-radius: 7px;
+  font-family: var(--rfqi-body);
+}
+
+html .rfqi-scope .rfqi-inp::placeholder {
+  color: var(--rfqi-dim);
+}
+
+html .rfqi-scope .rfqi-inp:focus,
+html .rfqi-scope select.rfqi-inp:focus {
+  outline: none;
+  border-color: var(--input-focus);
+}
+
+html .rfqi-scope select.rfqi-inp option {
+  background: var(--rfqi-s2);
+  color: var(--rfqi-text);
+}
+
+html .rfqi-scope .rfqi-chip {
+  background: var(--rfqi-s2);
+  border-color: var(--rfqi-border);
+  color: var(--rfqi-muted);
+  font-family: var(--rfqi-head);
+  font-weight: 600;
+}
+
+html .rfqi-scope .rfqi-chip:hover {
+  background: var(--rfqi-s2);
+  color: var(--rfqi-text);
+}
+
+html .rfqi-scope .rfqi-chip--on {
+  background: var(--accent-light);
+  border-color: var(--input-focus);
+  color: var(--accent);
+}
+
+html .rfqi-scope .rfqi-cost-bar-track {
+  background: var(--rfqi-s3);
+  border-radius: 2px;
+}
+
+html .rfqi-scope .rfqi-cost-bar span:first-child {
+  font-family: var(--rfqi-head);
+  font-size: 11px;
+  color: var(--rfqi-text);
+}
+
+html .rfqi-scope .rfqi-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+html .rfqi-scope .rfqi-btn-row .app-page-action {
+  width: auto !important;
+  flex: 0 1 auto;
+  min-height: 42px;
+  padding: 10px 18px !important;
+  margin-bottom: 0 !important;
+  border-radius: 7px;
+  font-family: var(--rfqi-head) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  background: var(--rfqi-s2) !important;
+  color: var(--rfqi-text) !important;
+  border: 1px solid var(--rfqi-border2) !important;
+  box-shadow: none !important;
+}
+
+html .rfqi-scope .rfqi-btn-row .app-page-action:hover {
+  background: var(--rfqi-s3) !important;
+  border-color: var(--rfqi-text) !important;
+}
+
+html .rfqi-scope .app-page-btn-primary {
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
+  border: none !important;
+  border-radius: 7px !important;
+  font-family: var(--rfqi-head) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+html .rfqi-scope .app-page-btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover) !important;
+  transform: translateY(-1px);
+}
+
+html .rfqi-scope .app-page-btn-primary:disabled {
+  opacity: 0.45;
+  transform: none !important;
+}
+
+html .rfqi-scope .rfqi-inbox-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--rfqi-border);
+  background: var(--rfqi-s2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+html .rfqi-scope .rfqi-inbox-row:hover {
+  border-color: var(--rfqi-border2);
+  background: var(--rfqi-s3);
+}
+
+html .rfqi-scope .rfqi-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+html .rfqi-scope a.app-page-back-link {
+  color: var(--rfqi-muted) !important;
+}
+
+html .rfqi-scope a.app-page-back-link:hover {
+  color: var(--accent) !important;
+}
+
+html .rfqi-scope table.rfqi-volume-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+html .rfqi-scope table.rfqi-volume-table th,
+html .rfqi-scope table.rfqi-volume-table td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--rfqi-border);
+}
+
+html .rfqi-scope table.rfqi-volume-table th {
+  font-family: var(--rfqi-head);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rfqi-muted);
+  text-align: left;
+}
+
+html .rfqi-scope .rfqi-price-cell {
+  text-align: right;
+  font-family: var(--rfqi-head);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/*
+ * Typography.css uses #root h1–h4 with IDs — ensure RFQ headings/body beat legacy root styles.
+ */
+html #root .rfqi-scope.app-page {
+  color: var(--rfqi-text);
+  background-color: var(--rfqi-bg);
+  font-family: var(--rfqi-body);
+}
+
+html #root .rfqi-scope .app-page-title,
+html #root .rfqi-scope h3,
+html #root .rfqi-scope h4 {
+  font-family: var(--rfqi-head);
+  font-weight: 600;
+  color: var(--rfqi-text) !important;
+}

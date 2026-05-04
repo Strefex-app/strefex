@@ -19,7 +19,7 @@
 }
 
 .hr-mod-back:hover {
-  color: var(--color-primary, #000888);
+  color: var(--accent);
 }
 
 .hr-mod-title {
@@ -61,8 +61,8 @@
 
 .hr-mod-tab--active {
   background: var(--accent-light, #e8eeff);
-  border-color: var(--color-primary, #000888);
-  color: var(--color-primary, #000888);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .hr-mod-body {
@@ -70,7 +70,7 @@
 }
 
 .hr-mod-panel {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   border: 1px solid var(--border-light, #e8e8e8);
   border-radius: 12px;
   padding: 16px;
@@ -111,22 +111,22 @@
   padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #ccc);
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .hr-mod-btn--primary {
-  background: var(--btn-primary-bg, #000888);
-  color: var(--btn-primary-text, #fff);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text, var(--bg-card));
   border-color: transparent;
 }
 
 .hr-mod-btn--danger {
-  color: #c0392b;
-  border-color: #f5c6cb;
-  background: #fff5f5;
+  color: var(--danger-text);
+  border-color: rgba(192, 57, 43, 0.35);
+  background: var(--surface-danger-soft);
 }
 
 .hr-mod-field {
@@ -149,7 +149,7 @@
   border-radius: 8px;
   border: 1px solid var(--input-border, #ccc);
   font-size: 13px;
-  background: var(--bg-input, #fff);
+  background: var(--bg-input, var(--bg-card));
 }
 
 /* Toggle buttons (ToggleCheckButton) for HR options */
@@ -230,7 +230,7 @@
   border-radius: 8px;
   border: 1px solid var(--input-border, #ccc);
   font-size: 13px;
-  background: var(--bg-input, #fff);
+  background: var(--bg-input, var(--bg-card));
 }
 
 .hr-mod-pipeline-archived-tag {
@@ -585,7 +585,7 @@
 
 .hr-mod-stat strong {
   font-size: 22px;
-  color: var(--color-primary, #000888);
+  color: var(--accent);
 }
 
 /* Modal (shared with HR hiring) — mobile: stays in viewport, safe areas, scroll inside */
@@ -605,7 +605,7 @@
 }
 
 .hm-modal {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   border-radius: 14px;
   width: 100%;
   max-width: 480px;
@@ -775,7 +775,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #ccc);
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   cursor: pointer;
   font-weight: 600;
 }
@@ -783,8 +783,8 @@
   padding: 8px 18px;
   border-radius: 8px;
   border: none;
-  background: var(--btn-primary-bg, #000888);
-  color: var(--btn-primary-text, #fff);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text, var(--bg-card));
   font-weight: var(--font-semibold);
   cursor: pointer;
 }

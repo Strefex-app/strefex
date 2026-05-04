@@ -14,7 +14,7 @@ const PM_SCOPE_LABELS_LOWER = new Set(PROJECT_MANAGEMENT_SCOPE_LABELS.map((l) =>
 /* ── Status badge helper ──────────────────────────────────── */
 const STATUS_MAP = {
   new:         { label: 'New',         color: '#e65100', bg: 'rgba(230,81,0,.08)' },
-  assigned:    { label: 'Assigned',    color: '#000888', bg: 'rgba(0,8,136,.08)' },
+  assigned:    { label: 'Assigned',    color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
   on_hold:     { label: 'On Hold',     color: '#616161', bg: 'rgba(97,97,97,.08)' },
   in_progress: { label: 'In Progress', color: '#1565c0', bg: 'rgba(21,101,192,.08)' },
   completed:   { label: 'Completed',   color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
@@ -367,7 +367,7 @@ export default function ServiceProviderDashboard() {
                                 <select
                                   value={feedbackStatusByReq[req.id] || ''}
                                   onChange={(e) => setFeedbackStatusByReq((prev) => ({ ...prev, [req.id]: e.target.value }))}
-                                  style={{ minWidth: 160, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+                                  style={{ minWidth: 160, padding: '8px 10px', border: '1px solid var(--border-color)', borderRadius: 8 }}
                                 >
                                   <option value="">Update status...</option>
                                   <option value="on_hold">On Hold</option>
@@ -397,7 +397,7 @@ export default function ServiceProviderDashboard() {
                                   value={feedbackNoteByReq[req.id] || ''}
                                   onChange={(e) => setFeedbackNoteByReq((prev) => ({ ...prev, [req.id]: e.target.value }))}
                                   placeholder="Add note for requester..."
-                                  style={{ flex: 1, minWidth: 220, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+                                  style={{ flex: 1, minWidth: 220, padding: '8px 10px', border: '1px solid var(--border-color)', borderRadius: 8 }}
                                 />
                                 <button
                                   type="button"

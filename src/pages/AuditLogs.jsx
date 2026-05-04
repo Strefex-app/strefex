@@ -48,7 +48,7 @@ export default function AuditLogs() {
             <button className="aud-back" onClick={() => navigate(-1)}>← Back</button>
             <h1 className="aud-title">System Audit Logs</h1>
             <p className="aud-subtitle">{isSuperAdmin ? 'Platform-wide' : companyName} activity tracking — who did what, when, and where</p>
-            {!isSuperAdmin && <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'rgba(0,8,136,.08)', color: '#000888' }}>Company: {companyName} — data isolated per organization</span>}
+            {!isSuperAdmin && <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'rgba(0, 212, 255,.08)', color: '#00d4ff' }}>Company: {companyName} — data isolated per organization</span>}
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export default function AuditLogs() {
         {/* Module breakdown */}
         <div className="aud-module-bar">
           {MODULES.filter((m) => stats.byModule[m] > 0).map((m) => (
-            <div key={m} className="aud-mod-chip" onClick={() => setModuleFilter(moduleFilter === m ? 'all' : m)} style={moduleFilter === m ? { background: 'rgba(0,8,136,.08)', borderColor: '#000888', color: '#000888' } : {}}>
+            <div key={m} className="aud-mod-chip" onClick={() => setModuleFilter(moduleFilter === m ? 'all' : m)} style={moduleFilter === m ? { background: 'rgba(0, 212, 255,.08)', borderColor: '#00d4ff', color: '#00d4ff' } : {}}>
               <span className="aud-mod-name">{m}</span>
               <span className="aud-mod-count">{stats.byModule[m]}</span>
             </div>

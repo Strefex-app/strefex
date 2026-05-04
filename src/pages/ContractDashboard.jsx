@@ -121,7 +121,7 @@ export default function ContractDashboard() {
         {/* New Contract Form */}
         {showNewForm && (
           <div className="ctr-card">
-            <h4 style={{ color: '#000888', margin: '0 0 12px' }}>Add New Contract</h4>
+            <h4 style={{ color: '#00d4ff', margin: '0 0 12px' }}>Add New Contract</h4>
             <div className="ctr-form-grid">
               <div className="ctr-field"><label>Title *</label><input value={newContract.title} onChange={(e) => setNewContract({ ...newContract, title: e.target.value })} /></div>
               <div className="ctr-field"><label>Type</label>

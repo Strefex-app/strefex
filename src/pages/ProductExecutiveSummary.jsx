@@ -225,7 +225,7 @@ export default function ProductExecutiveSummary() {
                 <button type="button" onClick={() => navigate(addSupplierUrl())} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '10px 20px', borderRadius: 8,
-                  border: `1px solid ${category.color}`, background: '#fff',
+                  border: `1px solid ${category.color}`, background: 'var(--bg-card)',
                   color: category.color, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -234,7 +234,7 @@ export default function ProductExecutiveSummary() {
                 <button type="button" onClick={() => navigate(`/auditor-hub/executive-summary?industry=${industryId}`)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '10px 20px', borderRadius: 8,
-                  border: '1px solid #e2e8f0', background: '#fff',
+                  border: '1px solid var(--border-color)', background: 'var(--bg-card)',
                   color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer',
                 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -311,7 +311,7 @@ export default function ProductExecutiveSummary() {
                   </button>
                   <button type="button" onClick={() => navigate(addSupplierUrl())} style={{
                     padding: '9px 20px', borderRadius: 8,
-                    border: `1px solid ${category.color}`, background: '#fff',
+                    border: `1px solid ${category.color}`, background: 'var(--bg-card)',
                     color: category.color, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   }}>
                     Add Supplier
@@ -327,15 +327,15 @@ export default function ProductExecutiveSummary() {
           <div className="app-page-widgets-dash" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' }}>
             <div className="app-page-card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Price Index</h3>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Relative pricing for {processLabel} in {industryLabel} compared to global average.</div>
+              <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>Relative pricing for {processLabel} in {industryLabel} compared to global average.</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 32, fontWeight: 600, color: '#1a1a2e' }}>100</span>
-                <span style={{ fontSize: 14, color: '#888' }}>/ 100 baseline</span>
+                <span style={{ fontSize: 32, fontWeight: 600, color: 'var(--color-primary)' }}>100</span>
+                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>/ 100 baseline</span>
               </div>
-              <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: '#e2e8f0' }}>
+              <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'var(--bg-surface)' }}>
                 <div style={{ height: '100%', width: '50%', borderRadius: 3, background: category.color }} />
               </div>
-              <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Data will update as suppliers register and submit pricing</div>
+              <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>Data will update as suppliers register and submit pricing</div>
             </div>
 
             <div className="app-page-card" style={{ padding: 20 }}>
@@ -380,7 +380,7 @@ export default function ProductExecutiveSummary() {
                 {['ISO 9001', 'ISO 14001', 'IATF 16949', 'ISO 13485', 'AS9100'].map((cert) => (
                   <span key={cert} style={{
                     fontSize: 12, padding: '5px 12px', borderRadius: 6,
-                    background: '#f1f5f9', color: '#475569', fontWeight: 500, border: '1px solid #e2e8f0',
+                    background: '#f1f5f9', color: '#475569', fontWeight: 500, border: '1px solid var(--border-color)',
                   }}>
                     {cert}
                   </span>
@@ -418,7 +418,7 @@ export default function ProductExecutiveSummary() {
                   { label: 'Material Availability', level: 'Stable', color: '#1565c0' },
                   { label: 'Price Volatility', level: 'Moderate', color: '#f9a825' },
                 ].map((risk) => (
-                  <div key={risk.label} style={{ padding: '12px 16px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div key={risk.label} style={{ padding: '12px 16px', borderRadius: 10, background: '#f8fafc', border: '1px solid var(--border-color)' }}>
                     <div style={{ fontSize: 12, color: '#888', fontWeight: 600, marginBottom: 6 }}>{risk.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: risk.color }}>{risk.level}</div>
                   </div>

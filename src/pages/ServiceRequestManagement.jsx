@@ -9,13 +9,13 @@ import '../styles/app-page.css'
 import './ServiceRequestManagement.css'
 
 const STATUS_COLORS = {
-  new: { bg: '#e3f2fd', color: '#1565c0', label: 'New' },
-  assigned: { bg: '#fff3e0', color: '#e65100', label: 'Assigned' },
-  on_hold: { bg: '#f5f5f5', color: '#616161', label: 'On Hold' },
-  in_progress: { bg: '#f3e5f5', color: '#7b1fa2', label: 'In Progress' },
-  completed: { bg: '#e8f5e9', color: '#2e7d32', label: 'Completed' },
-  cancelled: { bg: '#fce4ec', color: '#c62828', label: 'Cancelled' },
-  recalled: { bg: '#fff8e1', color: '#ff8f00', label: 'Recalled' },
+  new: { bg: 'var(--accent-light)', color: 'var(--link-color)', label: 'New' },
+  assigned: { bg: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)', label: 'Assigned' },
+  on_hold: { bg: 'var(--bg-surface)', color: 'var(--color-muted)', label: 'On Hold' },
+  in_progress: { bg: 'var(--accent-light)', color: '#7b1fa2', label: 'In Progress' },
+  completed: { bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)', label: 'Completed' },
+  cancelled: { bg: 'var(--danger-light)', color: 'var(--danger-text)', label: 'Cancelled' },
+  recalled: { bg: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)', label: 'Recalled' },
 }
 
 const PRIORITY_COLORS = {

@@ -73,7 +73,7 @@
 .app-page .rating-text {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin-left: 4px;
 }
 

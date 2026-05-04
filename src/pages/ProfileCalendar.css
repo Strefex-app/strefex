@@ -101,12 +101,12 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   font-size: 13px;
   font-weight: 500;
-  color: #555;
+  color: var(--color-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -120,7 +120,7 @@
 .excal-view-toggle {
   display: flex;
   gap: 4px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border-radius: 10px;
   padding: 4px;
 }
@@ -134,21 +134,21 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--color-secondary);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .view-btn.active {
-  background: #fff;
-  color: #333;
+  background: var(--bg-card);
+  color: var(--color-primary);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Reminders Panel */
 .reminders-panel {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -166,7 +166,7 @@
 .reminders-header h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -174,7 +174,7 @@
   background: none;
   border: none;
   font-size: 13px;
-  color: #000888;
+  color: #00d4ff;
   cursor: pointer;
   font-weight: 500;
 }
@@ -185,7 +185,7 @@
 
 .no-reminders {
   font-size: 13px;
-  color: #888;
+  color: var(--color-muted);
   margin: 0;
 }
 

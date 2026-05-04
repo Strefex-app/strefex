@@ -12,8 +12,10 @@ import './ProjectManagement.css'
 /* ═══════════════════════════════════════════════════════
  *  CONSTANTS
  * ═══════════════════════════════════════════════════════ */
-const DAY_W = 32                // pixels per day column
+const DAY_W = 32                // pixels per day column (must match --gc-day-w in task grid CSS)
 const ROW_H = 34                // pixels per task row
+/** Default visible task rows in the Gantt body when the project has fewer tasks (no viewport fill). */
+const DEFAULT_GANTT_VISIBLE_ROWS = 10
 const HANDLE_W = 6              // drag handle width (px)
 const PROJECT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 const STATUS_COLORS = { complete: '#27ae60', 'in-progress': '#2563eb', 'not-started': '#94a3b8' }
@@ -52,6 +54,142 @@ function ragDotClass(rag) {
   return 'gc-rag gc-rag--green'
 }
 
+/* ── PDF export — shared STREFEX chrome (matches Gantt export) ─────────── */
+const PM_PDF_HEADER_H = 18
+const PM_PDF_SUBTITLE_H = 7
+const PM_PDF_FOOTER_H = 8
+
+async function loadStrefexLogoForPdf() {
+  try {
+    const logoImg = new Image()
+    logoImg.crossOrigin = 'anonymous'
+    logoImg.src = `${import.meta.env.BASE_URL}assets/strefex-logo-reference.png`
+    await new Promise((res, rej) => {
+      logoImg.onload = res
+      logoImg.onerror = rej
+      setTimeout(rej, 3000)
+    })
+    const lc = document.createElement('canvas')
+    lc.width = logoImg.width
+    lc.height = logoImg.height
+    const ctx = lc.getContext('2d')
+    ctx.drawImage(logoImg, 0, 0)
+    const imgData = ctx.getImageData(0, 0, lc.width, lc.height)
+    const px = imgData.data
+    for (let i = 0; i < px.length; i += 4) {
+      const brightness = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114
+      if (brightness < 60) {
+        px[i + 3] = 0
+      } else {
+        px[i] = 255
+        px[i + 1] = 255
+        px[i + 2] = 255
+        px[i + 3] = Math.round((brightness / 255) * 255)
+      }
+    }
+    ctx.putImageData(imgData, 0, 0)
+    return {
+      dataUrl: lc.toDataURL('image/png'),
+      imgW: lc.width,
+      imgH: lc.height,
+    }
+  } catch {
+    return null
+  }
+}
+
+function paintPmPdfHeaderGradient(pdf, w, headerH) {
+  pdf.setFillColor(0, 2, 34)
+  pdf.rect(0, 0, w * 0.5, headerH, 'F')
+  pdf.setFillColor(0, 8, 136)
+  pdf.rect(w * 0.5, 0, w * 0.5, headerH, 'F')
+  for (let i = 0; i < 20; i++) {
+    const g = Math.round(2 + (8 - 2) * (i / 20))
+    const b = Math.round(34 + (136 - 34) * (i / 20))
+    pdf.setFillColor(0, g, b)
+    pdf.rect((w / 20) * i, 0, w / 20 + 0.5, headerH, 'F')
+  }
+}
+
+/** @returns header height (mm) */
+function drawPmPdfHeader(pdf, w, titleCenter, logo, dateStr) {
+  const headerH = PM_PDF_HEADER_H
+  paintPmPdfHeaderGradient(pdf, w, headerH)
+
+  if (logo?.dataUrl) {
+    const logoHmm = 10
+    const logoWmm = (logo.imgW / logo.imgH) * logoHmm
+    pdf.addImage(logo.dataUrl, 'PNG', 8, (headerH - logoHmm) / 2, logoWmm, logoHmm)
+  } else {
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(14)
+    pdf.setTextColor(255, 255, 255)
+    pdf.text('STREFEX', 10, headerH / 2 + 2)
+  }
+
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(13)
+  pdf.setTextColor(255, 255, 255)
+  pdf.text(titleCenter, w / 2, headerH / 2 + 2, { align: 'center' })
+
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(9)
+  pdf.setTextColor(180, 190, 220)
+  const d = dateStr ?? new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  pdf.text(d, w - 10, headerH / 2 + 2, { align: 'right' })
+
+  return headerH
+}
+
+function drawPmPdfSubtitleBar(pdf, w, yStart, statsText) {
+  const subH = PM_PDF_SUBTITLE_H
+  pdf.setFillColor(244, 246, 249)
+  pdf.rect(0, yStart, w, subH, 'F')
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(7)
+  pdf.setTextColor(100, 100, 120)
+  if (statsText) {
+    pdf.text(statsText, 10, yStart + subH / 2 + 1)
+  }
+  return subH
+}
+
+function addPmPdfCanvasFit(pdf, canvas, w, pageH, contentTopMm) {
+  const contentAvailH = pageH - contentTopMm - 14
+  const contentAvailW = w - 16
+  const imgRatio = canvas.height / canvas.width
+  let imgW = contentAvailW
+  let imgH = imgW * imgRatio
+  if (imgH > contentAvailH) {
+    imgH = contentAvailH
+    imgW = imgH / imgRatio
+  }
+  const imgX = 8 + (contentAvailW - imgW) / 2
+  pdf.setDrawColor(220, 225, 235)
+  pdf.setLineWidth(0.3)
+  pdf.roundedRect(imgX - 1, contentTopMm - 1, imgW + 2, imgH + 2, 1, 1, 'S')
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, contentTopMm, imgW, imgH)
+}
+
+function drawPmPdfFooter(pdf, w, pageH, pageLabel, printedByName) {
+  const footerH = PM_PDF_FOOTER_H
+  const footerY = pageH - footerH
+  for (let i = 0; i < 20; i++) {
+    const g = Math.round(8 + (2 - 8) * (i / 20))
+    const b = Math.round(136 + (34 - 136) * (i / 20))
+    pdf.setFillColor(0, g, b)
+    pdf.rect((w / 20) * i, footerY, w / 20 + 0.5, footerH, 'F')
+  }
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(7)
+  pdf.setTextColor(180, 190, 220)
+  pdf.text(`Printed by: ${printedByName || 'Unknown'}`, 10, footerY + footerH / 2 + 1)
+  pdf.setTextColor(140, 150, 180)
+  pdf.text('STREFEX Platform — Confidential', w / 2, footerY + footerH / 2 + 1, { align: 'center' })
+  pdf.setTextColor(180, 190, 220)
+  pdf.text(pageLabel, w - 10, footerY + footerH / 2 + 1, { align: 'right' })
+}
+
 /* ═══════════════════════════════════════════════════════
  *  MAIN COMPONENT
  * ═══════════════════════════════════════════════════════ */
@@ -62,6 +200,8 @@ const ProjectManagement = () => {
   const taskListRef = useRef(null)
   const timelineRef = useRef(null)
   const dragRef = useRef(null)
+  const portfolioExportRef = useRef(null)
+  const tableExportRef = useRef(null)
   const storeProjects = useProjectStore((s) => s.projects)
   const _addProject = useProjectStore((s) => s.addProject)
   const updateProject = useProjectStore((s) => s.updateProject)
@@ -113,7 +253,7 @@ const ProjectManagement = () => {
   const [showFalconRisks, setShowFalconRisks] = useState(false)
   const [showFalconTags, setShowFalconTags] = useState(false)
   const [tagInput, setTagInput] = useState('')
-  const [portfolioReportFeedback, setPortfolioReportFeedback] = useState('')
+  const [pmExportFeedback, setPmExportFeedback] = useState('')
   const [revisionNote, setRevisionNote] = useState('')
   const [newResourceName, setNewResourceName] = useState('')
   const [contextMenu, setContextMenu] = useState(null)
@@ -294,58 +434,6 @@ const ProjectManagement = () => {
     }
   }, [projects, getProjectStats])
 
-  const copyPortfolioReport = useCallback(() => {
-    const s = portfolioExecutiveSummary
-    const lines = []
-    lines.push('STREFEX — Portfolio executive summary')
-    lines.push(`Generated: ${s.reportDate}`)
-    lines.push('')
-    lines.push(s.narrative)
-    lines.push('')
-    lines.push('— RAG —')
-    lines.push(`On track (green): ${s.ragGreen} · Watch (amber): ${s.ragAmber} · At risk (red): ${s.ragRed}`)
-    if (s.atRiskNames.length) lines.push(`At-risk projects: ${s.atRiskNames.join('; ')}`)
-    lines.push('')
-    lines.push('— Delivery —')
-    lines.push(`Tasks: ${s.totalTasks} total, ${s.completedTasks} complete, portfolio progress ${s.weightedAvgProgress}% (weighted).`)
-    lines.push('')
-    lines.push('— Finance —')
-    lines.push(`${s.primaryCurrency} budget ${s.totalBudget.toLocaleString()} · spent ${s.totalSpent.toLocaleString()} · remaining ${s.budgetRemaining.toLocaleString()}`)
-    lines.push('')
-    lines.push('— Risks —')
-    lines.push(`Open: ${s.openRisksAll} · Escalated: ${s.escalatedRisksAll}`)
-    s.riskHotList.forEach((r) => {
-      lines.push(`  • [${r.project}] ${r.title} (${r.severity}${r.escalated ? ', escalated' : ''})`)
-    })
-    lines.push('')
-    lines.push('— KPIs —')
-    lines.push(`${s.kpiOnTrack} / ${s.kpiTotal} at ≥85% of target`)
-    lines.push('')
-    lines.push('— Project register —')
-    portfolioRows.forEach((row) => {
-      const p = row.project
-      const st = row.stats
-      lines.push(`${p.name} | RAG ${row.rag} | tasks ${st?.totalTasks ?? 0} | progress ${st?.avgProgress ?? 0}% | ${p.currency} spent ${(st?.totalCost ?? 0).toLocaleString()} | open risks ${st?.openRisks ?? 0}`)
-    })
-    const text = lines.join('\n')
-    const clip = navigator.clipboard?.writeText
-    if (typeof clip !== 'function') {
-      setPortfolioReportFeedback('Clipboard not available in this context.')
-      setTimeout(() => setPortfolioReportFeedback(''), 5000)
-      return
-    }
-    void clip(text).then(
-      () => {
-        setPortfolioReportFeedback('Report copied to clipboard.')
-        setTimeout(() => setPortfolioReportFeedback(''), 4000)
-      },
-      () => {
-        setPortfolioReportFeedback('Could not copy — try again or copy sections manually.')
-        setTimeout(() => setPortfolioReportFeedback(''), 5000)
-      },
-    )
-  }, [portfolioExecutiveSummary, portfolioRows])
-
   /* ── Date range for timeline ─────────────────────── */
   const dateRange = useMemo(() => {
     let min = null, max = null
@@ -395,6 +483,13 @@ const ProjectManagement = () => {
     })
     return months
   }, [days])
+
+  const taskGridBodyPx = allTasksFlat.length * ROW_H
+  /** Task list + calendar share the same row count: minimum DEFAULT_GANTT_VISIBLE_ROWS empty slots; grows with each added task past that. */
+  const displayedTaskRowCount = Math.max(allTasksFlat.length, DEFAULT_GANTT_VISIBLE_ROWS)
+  const paddedEmptyTaskRows = Math.max(0, DEFAULT_GANTT_VISIBLE_ROWS - allTasksFlat.length)
+  const ganttTmBodyHeightPx = displayedTaskRowCount * ROW_H
+  const ganttRowLineCount = Math.max(1, displayedTaskRowCount)
 
   /* ── Scroll sync ─────────────────────────────────── */
   const syncScroll = useCallback((src) => {
@@ -576,189 +671,6 @@ const ProjectManagement = () => {
     setContextMenu({ x: e.clientX, y: e.clientY, task, projectId: projectId ?? selectedProjectId })
   }
 
-  /* ── PDF Export — platform-styled, logo image, full project fit-to-screen ─── */
-  const handleExportPDF = async () => {
-    if (!ganttRef.current) return
-    try {
-      /* Always reset fit for clean capture */
-      const wasFitted = !!fitState
-      if (wasFitted) setFitState(null)
-      await new Promise((r) => setTimeout(r, 150))
-
-      /* ── Temporarily expand all elements to full content size ── */
-      const el = ganttRef.current
-      const timeline = timelineRef.current
-      const tasklist = taskListRef.current
-      const fitWrap = fitWrapRef.current
-
-      /* Save original styles */
-      const saved = []
-      const expand = (node, styles) => {
-        if (!node) return
-        const orig = {}
-        Object.keys(styles).forEach((k) => { orig[k] = node.style[k]; node.style[k] = styles[k] })
-        saved.push({ node, orig })
-      }
-
-      /* Expand: remove all overflow clipping, set explicit full dimensions */
-      const fullTimelineW = timeline ? timeline.scrollWidth : timelineWidth
-      const fullTimelineH = timeline ? timeline.scrollHeight : allTasksFlat.length * ROW_H + 60
-      const taskListW = tasklist ? tasklist.offsetWidth : 420
-      const fullW = taskListW + 28 + fullTimelineW
-      const fullH = Math.max(fullTimelineH, tasklist ? tasklist.scrollHeight : fullTimelineH)
-
-      expand(fitWrap, { overflow: 'visible', width: fullW + 'px', height: fullH + 'px', maxHeight: 'none' })
-      expand(el, { overflow: 'visible', width: fullW + 'px', height: fullH + 'px', maxHeight: 'none', flex: 'none' })
-      expand(timeline, { overflow: 'visible', width: fullTimelineW + 'px', height: fullTimelineH + 'px', maxHeight: 'none', flex: 'none' })
-      expand(tasklist, { overflow: 'visible', height: fullH + 'px', maxHeight: 'none' })
-
-      await new Promise((r) => setTimeout(r, 100)) // let layout settle
-
-      /* Capture the fully expanded content */
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(el, {
-        scale: 2, useCORS: true,
-        width: el.scrollWidth || fullW,
-        height: el.scrollHeight || fullH,
-        windowWidth: el.scrollWidth || fullW,
-        windowHeight: el.scrollHeight || fullH,
-        scrollX: 0, scrollY: 0,
-        x: 0, y: 0,
-      })
-
-      /* Restore all original styles */
-      saved.forEach(({ node, orig }) => {
-        Object.keys(orig).forEach((k) => { node.style[k] = orig[k] })
-      })
-
-      const { default: jsPDF } = await import('jspdf')
-      const pdf = new jsPDF('l', 'mm', 'a4')
-      const w = pdf.internal.pageSize.getWidth()
-      const pageH = pdf.internal.pageSize.getHeight()
-
-      /* ═══ HEADER — Platform-styled dark banner ═══ */
-      const headerH = 18
-      /* Dark gradient band (matches platform: #000222 → #000888) */
-      pdf.setFillColor(0, 2, 34)
-      pdf.rect(0, 0, w * 0.5, headerH, 'F')
-      pdf.setFillColor(0, 8, 136)
-      pdf.rect(w * 0.5, 0, w * 0.5, headerH, 'F')
-      /* Overlay gradient effect with semi-transparent steps */
-      for (let i = 0; i < 20; i++) {
-        const r = Math.round(0 + (0 - 0) * (i / 20))
-        const g = Math.round(2 + (8 - 2) * (i / 20))
-        const b = Math.round(34 + (136 - 34) * (i / 20))
-        pdf.setFillColor(r, g, b)
-        pdf.rect((w / 20) * i, 0, w / 20 + 0.5, headerH, 'F')
-      }
-
-      /* Logo image — strip black background, keep white text */
-      try {
-        const logoImg = new Image()
-        logoImg.crossOrigin = 'anonymous'
-        logoImg.src = '/assets/strefex-logo-reference.png'
-        await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; setTimeout(rej, 3000) })
-        const lc = document.createElement('canvas')
-        lc.width = logoImg.width; lc.height = logoImg.height
-        const ctx = lc.getContext('2d')
-        ctx.drawImage(logoImg, 0, 0)
-        const imgData = ctx.getImageData(0, 0, lc.width, lc.height)
-        const px = imgData.data
-        for (let i = 0; i < px.length; i += 4) {
-          const brightness = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114
-          if (brightness < 60) { px[i + 3] = 0 }
-          else { px[i] = 255; px[i + 1] = 255; px[i + 2] = 255; px[i + 3] = Math.round(brightness / 255 * 255) }
-        }
-        ctx.putImageData(imgData, 0, 0)
-        const logoData = lc.toDataURL('image/png')
-        const logoH = 10
-        const logoW = (logoImg.width / logoImg.height) * logoH
-        pdf.addImage(logoData, 'PNG', 8, (headerH - logoH) / 2, logoW, logoH)
-      } catch {
-        /* Fallback: text logo if image unavailable */
-        pdf.setFont('helvetica', 'bold')
-        pdf.setFontSize(14)
-        pdf.setTextColor(255, 255, 255)
-        pdf.text('STREFEX', 10, headerH / 2 + 2)
-      }
-
-      /* Project name — centered on banner (white) */
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(13)
-      pdf.setTextColor(255, 255, 255)
-      pdf.text(selectedProject?.name || 'Project Timeline', w / 2, headerH / 2 + 2, { align: 'center' })
-
-      /* Date of print — right side on banner (light) */
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(9)
-      pdf.setTextColor(180, 190, 220)
-      pdf.text(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), w - 10, headerH / 2 + 2, { align: 'right' })
-
-      /* ═══ SUBTITLE BAR — stats row ═══ */
-      const subY = headerH
-      const subH = 7
-      pdf.setFillColor(244, 246, 249)
-      pdf.rect(0, subY, w, subH, 'F')
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(7)
-      pdf.setTextColor(100, 100, 120)
-      if (stats && selectedProject) {
-        const statsText = `Tasks: ${stats.totalTasks}  |  Done: ${stats.completedTasks}  |  Progress: ${stats.avgProgress}%  |  Budget: ${selectedProject.currency} ${stats.budget.toLocaleString()}  |  Spent: ${selectedProject.currency} ${stats.totalCost.toLocaleString()}`
-        pdf.text(statsText, 10, subY + subH / 2 + 1)
-      }
-
-      /* ═══ GANTT IMAGE — full project scaled to fit page ═══ */
-      const contentTop = subY + subH + 2
-      const contentAvailH = pageH - contentTop - 14 // reserve footer space
-      const contentAvailW = w - 16
-      const imgRatio = canvas.height / canvas.width
-      let imgW = contentAvailW
-      let imgH = imgW * imgRatio
-      if (imgH > contentAvailH) {
-        imgH = contentAvailH
-        imgW = imgH / imgRatio
-      }
-      const imgX = 8 + (contentAvailW - imgW) / 2 // center horizontally
-      /* Light border around chart */
-      pdf.setDrawColor(220, 225, 235)
-      pdf.setLineWidth(0.3)
-      pdf.roundedRect(imgX - 1, contentTop - 1, imgW + 2, imgH + 2, 1, 1, 'S')
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, contentTop, imgW, imgH)
-
-      /* ═══ FOOTER — Platform-styled dark footer bar ═══ */
-      const footerH = 8
-      const footerY = pageH - footerH
-      /* Dark footer band */
-      for (let i = 0; i < 20; i++) {
-        const r = Math.round(0 + (0 - 0) * (i / 20))
-        const g = Math.round(8 + (2 - 8) * (i / 20))
-        const b = Math.round(136 + (34 - 136) * (i / 20))
-        pdf.setFillColor(r, g, b)
-        pdf.rect((w / 20) * i, footerY, w / 20 + 0.5, footerH, 'F')
-      }
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(7)
-
-      /* Left: Who printed */
-      const userName = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
-      pdf.setTextColor(180, 190, 220)
-      pdf.text(`Printed by: ${userName}`, 10, footerY + footerH / 2 + 1)
-
-      /* Center: confidential */
-      pdf.setTextColor(140, 150, 180)
-      pdf.text('STREFEX Platform — Confidential', w / 2, footerY + footerH / 2 + 1, { align: 'center' })
-
-      /* Right: page */
-      pdf.setTextColor(180, 190, 220)
-      pdf.text('Page 1 of 1', w - 10, footerY + footerH / 2 + 1, { align: 'right' })
-
-      pdf.save(`${selectedProject?.name || 'project'}-gantt.pdf`)
-
-      /* Restore fit if was active */
-      if (wasFitted) setTimeout(() => handleFitToggle(), 200)
-    } catch (err) { console.error('PDF export:', err) }
-  }
-
   /* ── Fit-to-Screen toggle — shrink everything to one window ─── */
   const handleFitToggle = useCallback(() => {
     if (fitState) {
@@ -785,6 +697,196 @@ const ProjectManagement = () => {
     const sy = availH / fullH
     setFitState({ scale: Math.min(sx, sy, 1), contentW: fullW, contentH: fullH })
   }, [fitState])
+
+  const handleExportPDF = useCallback(async () => {
+    setPmExportFeedback('')
+    const printedBy = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
+    const html2canvas = (await import('html2canvas')).default
+    const { default: jsPDF } = await import('jspdf')
+
+    const finishGanttFit = (wasFitted) => {
+      if (wasFitted) setTimeout(() => handleFitToggle(), 200)
+    }
+
+    try {
+      if (view === 'portfolio') {
+        const el = portfolioExportRef.current
+        if (!el) {
+          setPmExportFeedback('Nothing to export.')
+          setTimeout(() => setPmExportFeedback(''), 4000)
+          return
+        }
+        const hidden = []
+        el.querySelectorAll('.pm-pdf-exclude').forEach((n) => {
+          hidden.push({ n, v: n.style.visibility })
+          n.style.visibility = 'hidden'
+        })
+        const det = el.querySelector('details.pm-portfolio-narrative-details')
+        const wasOpen = det ? det.open : false
+        if (det) det.open = true
+        await new Promise((r) => setTimeout(r, 80))
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+          scrollX: 0,
+          scrollY: 0,
+          x: 0,
+          y: 0,
+        })
+        hidden.forEach(({ n, v }) => {
+          n.style.visibility = v
+        })
+        if (det && !wasOpen) det.open = false
+
+        const logo = await loadStrefexLogoForPdf()
+        const pdf = new jsPDF('l', 'mm', 'a4')
+        const w = pdf.internal.pageSize.getWidth()
+        const pageH = pdf.internal.pageSize.getHeight()
+        const s = portfolioExecutiveSummary
+        const headerH = drawPmPdfHeader(pdf, w, 'Portfolio executive summary', logo)
+        const subH = drawPmPdfSubtitleBar(
+          pdf,
+          w,
+          headerH,
+          `Roll-up as of ${s.reportDate} · ${s.projectCount} project${s.projectCount === 1 ? '' : 's'} · On track ${s.ragGreen} · Watch ${s.ragAmber} · At risk ${s.ragRed}`,
+        )
+        const contentTop = headerH + subH + 2
+        addPmPdfCanvasFit(pdf, canvas, w, pageH, contentTop)
+        drawPmPdfFooter(pdf, w, pageH, 'Page 1 of 1', printedBy)
+        pdf.save('portfolio-executive-summary.pdf')
+        setPmExportFeedback('PDF saved.')
+        setTimeout(() => setPmExportFeedback(''), 4000)
+        return
+      }
+
+      if (view === 'table') {
+        const el = tableExportRef.current
+        if (!el) {
+          setPmExportFeedback('Nothing to export.')
+          setTimeout(() => setPmExportFeedback(''), 4000)
+          return
+        }
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+          scrollX: 0,
+          scrollY: 0,
+        })
+        const logo = await loadStrefexLogoForPdf()
+        const pdf = new jsPDF('l', 'mm', 'a4')
+        const w = pdf.internal.pageSize.getWidth()
+        const pageH = pdf.internal.pageSize.getHeight()
+        const title = selectedProject?.name ? `Task register — ${selectedProject.name}` : 'Task register'
+        const headerH = drawPmPdfHeader(pdf, w, title, logo)
+        let subText = ''
+        if (stats && selectedProject) {
+          subText = `Tasks: ${stats.totalTasks}  |  Done: ${stats.completedTasks}  |  Progress: ${stats.avgProgress}%  |  Budget: ${selectedProject.currency} ${stats.budget.toLocaleString()}  |  Spent: ${selectedProject.currency} ${stats.totalCost.toLocaleString()}`
+        }
+        const subH = drawPmPdfSubtitleBar(pdf, w, headerH, subText)
+        const contentTop = headerH + subH + 2
+        addPmPdfCanvasFit(pdf, canvas, w, pageH, contentTop)
+        drawPmPdfFooter(pdf, w, pageH, 'Page 1 of 1', printedBy)
+        const safe = (selectedProject?.name || 'project').replace(/[/\\?%*:|"<>]/g, '-')
+        pdf.save(`${safe}-tasks.pdf`)
+        setPmExportFeedback('PDF saved.')
+        setTimeout(() => setPmExportFeedback(''), 4000)
+        return
+      }
+
+      if (!ganttRef.current) {
+        setPmExportFeedback('Nothing to export.')
+        setTimeout(() => setPmExportFeedback(''), 4000)
+        return
+      }
+      const wasFitted = !!fitState
+      if (wasFitted) setFitState(null)
+      await new Promise((r) => setTimeout(r, 150))
+
+      const el = ganttRef.current
+      const timeline = timelineRef.current
+      const tasklist = taskListRef.current
+      const fitWrap = fitWrapRef.current
+
+      const saved = []
+      const expand = (node, styles) => {
+        if (!node) return
+        const orig = {}
+        Object.keys(styles).forEach((k) => { orig[k] = node.style[k]; node.style[k] = styles[k] })
+        saved.push({ node, orig })
+      }
+
+      const fullTimelineW = timeline ? timeline.scrollWidth : timelineWidth
+      const fullTimelineH = timeline ? timeline.scrollHeight : allTasksFlat.length * ROW_H + 60
+      const taskListW = tasklist ? tasklist.offsetWidth : 420
+      const fullW = taskListW + 28 + fullTimelineW
+      const fullH = Math.max(fullTimelineH, tasklist ? tasklist.scrollHeight : fullTimelineH)
+
+      expand(fitWrap, { overflow: 'visible', width: `${fullW}px`, height: `${fullH}px`, maxHeight: 'none' })
+      expand(el, { overflow: 'visible', width: `${fullW}px`, height: `${fullH}px`, maxHeight: 'none', flex: 'none' })
+      expand(timeline, { overflow: 'visible', width: `${fullTimelineW}px`, height: `${fullTimelineH}px`, maxHeight: 'none', flex: 'none' })
+      expand(tasklist, { overflow: 'visible', height: `${fullH}px`, maxHeight: 'none' })
+
+      await new Promise((r) => setTimeout(r, 100))
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        width: el.scrollWidth || fullW,
+        height: el.scrollHeight || fullH,
+        windowWidth: el.scrollWidth || fullW,
+        windowHeight: el.scrollHeight || fullH,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+      })
+
+      saved.forEach(({ node, orig }) => {
+        Object.keys(orig).forEach((k) => { node.style[k] = orig[k] })
+      })
+
+      const logo = await loadStrefexLogoForPdf()
+      const pdf = new jsPDF('l', 'mm', 'a4')
+      const w = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const headerH = drawPmPdfHeader(pdf, w, selectedProject?.name || 'Project Timeline', logo)
+      let subText = ''
+      if (stats && selectedProject) {
+        subText = `Tasks: ${stats.totalTasks}  |  Done: ${stats.completedTasks}  |  Progress: ${stats.avgProgress}%  |  Budget: ${selectedProject.currency} ${stats.budget.toLocaleString()}  |  Spent: ${selectedProject.currency} ${stats.totalCost.toLocaleString()}`
+      }
+      const subH = drawPmPdfSubtitleBar(pdf, w, headerH, subText)
+      const contentTop = headerH + subH + 2
+      addPmPdfCanvasFit(pdf, canvas, w, pageH, contentTop)
+      drawPmPdfFooter(pdf, w, pageH, 'Page 1 of 1', printedBy)
+      const safe = (selectedProject?.name || 'project').replace(/[/\\?%*:|"<>]/g, '-')
+      pdf.save(`${safe}-gantt.pdf`)
+      setPmExportFeedback('PDF saved.')
+      setTimeout(() => setPmExportFeedback(''), 4000)
+      finishGanttFit(wasFitted)
+    } catch (err) {
+      console.error('PDF export:', err)
+      setPmExportFeedback('Could not create PDF.')
+      setTimeout(() => setPmExportFeedback(''), 5000)
+    }
+  }, [
+    view,
+    fitState,
+    portfolioExecutiveSummary,
+    stats,
+    selectedProject,
+    currentUser,
+    timelineWidth,
+    allTasksFlat,
+    handleFitToggle,
+  ])
 
   const togglePhase = (id) => setExpandedPhases((p) => ({ ...p, [id]: !p[id] }))
   const handleCloseContextMenu = () => setContextMenu(null)
@@ -914,7 +1016,7 @@ const ProjectManagement = () => {
                     </button>
                     <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={handleExportPDF}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
-                      PDF
+                      Save PDF
                     </button>
                     <button type="button" className={`app-page-btn-outline app-page-btn-sm gc-toolbar-btn ${fitState ? 'gc-toolbar-btn--active' : ''}`} onClick={handleFitToggle} title={fitState ? 'Reset zoom to normal' : 'Fit entire project in one screen'}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -952,6 +1054,12 @@ const ProjectManagement = () => {
           </div>
         )}
 
+        {pmExportFeedback ? (
+          <div className="gc-pm-export-feedback app-page-alert app-page-alert--success" role="status">
+            {pmExportFeedback}
+          </div>
+        ) : null}
+
         {/* ── Project KPI strip — Gantt/Table only (Portfolio has its own pulse) ─ */}
         {stats && selectedProject && view !== 'portfolio' && (
           <div className="gc-stats-shell">
@@ -973,8 +1081,9 @@ const ProjectManagement = () => {
           </div>
         )}
 
-        {/* ── Body ─────────────────────────────────────── */}
+        {/* ── Body — workbench = workspaces + chart in one widget ─ */}
         <div className="gc-body">
+          <div className="gc-pm-workbench">
           {/* Sidebar */}
           <aside className={`gc-sidebar ${sidebarOpen ? '' : 'gc-sidebar-collapsed'}`}>
             <button className="gc-sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
@@ -1025,7 +1134,7 @@ const ProjectManagement = () => {
           {/* Main Area */}
           <main className={`gc-main${view === 'portfolio' ? ' gc-main--portfolio' : ''}`}>
             {view === 'portfolio' && (
-              <div className="pm-portfolio-shell app-page">
+              <div ref={portfolioExportRef} className="pm-portfolio-shell app-page">
                 <div className="app-page-card pm-portfolio-report">
                   <div className="pm-portfolio-report-header">
                     <div className="pm-portfolio-report-intro">
@@ -1036,17 +1145,12 @@ const ProjectManagement = () => {
                         {portfolioExecutiveSummary.projectCount} project{portfolioExecutiveSummary.projectCount === 1 ? '' : 's'}
                       </p>
                     </div>
-                    <div className="pm-portfolio-report-actions">
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => copyPortfolioReport()}>
-                        Copy report
+                    <div className="pm-portfolio-report-actions pm-pdf-exclude">
+                      <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={handleExportPDF}>
+                        Save PDF
                       </button>
                     </div>
                   </div>
-                  {portfolioReportFeedback ? (
-                    <p className="app-page-alert app-page-alert--success pm-portfolio-feedback">
-                      {portfolioReportFeedback}
-                    </p>
-                  ) : null}
 
                   <details className="pm-portfolio-narrative-details">
                     <summary className="pm-portfolio-narrative-summary">
@@ -1239,7 +1343,7 @@ const ProjectManagement = () => {
             )}
 
             {view === 'table' && (
-              <div className="gc-table-wrap">
+              <div ref={tableExportRef} className="gc-table-wrap">
                 <table className="gc-table">
                   <thead><tr><th>#</th><th>Task</th><th>Duration</th><th>Start</th><th>End</th><th>Assignee</th><th>Status</th><th>Progress</th><th>Predecessors</th></tr></thead>
                   <tbody>
@@ -1285,36 +1389,57 @@ const ProjectManagement = () => {
 
                 {/* Task list (left panel) */}
                 {taskListOpen && (
-                  <div className="gc-tasklist" ref={taskListRef} onScroll={() => syncScroll('tasks')}>
-                    <div className="gc-tl-header">
-                      <span className="gc-tl-h-num">#</span>
-                      <span className="gc-tl-h-name">Task Name</span>
-                      <span className="gc-tl-h-dur">Dur.</span>
-                      <span className="gc-tl-h-date">Start</span>
-                      <span className="gc-tl-h-date">Finish</span>
-                      <span className="gc-tl-h-pred">Pred.</span>
-                    </div>
-                    <div className="gc-tl-body">
-                      {allTasksFlat.map((t, i) => (
-                        <div
-                          key={t.id}
-                          className={`gc-tl-row ${t._isPhase ? 'gc-tl-phase' : ''} ${t._isChild ? 'gc-tl-child' : ''}`}
-                          style={{ height: ROW_H }}
-                          onDoubleClick={() => handleEditTaskOpen(t)}
-                          onContextMenu={(e) => handleContextMenu(e, t)}
-                        >
-                          <span className="gc-tl-num">{i + 1}</span>
-                          <span className="gc-tl-name">
-                            {t._isPhase && <button className="gc-expand-btn" onClick={() => togglePhase(t.id)}>{expandedPhases[t.id] ? '▼' : '▶'}</button>}
-                            {t._isChild && <span className="gc-indent" />}
-                            {t.name}
-                          </span>
-                          <span className="gc-tl-dur">{calcDuration(t.startDate, t.endDate)}d</span>
-                          <span className="gc-tl-date">{fmtShortDate(t.startDate)}</span>
-                          <span className="gc-tl-date">{fmtShortDate(t.endDate)}</span>
-                          <span className="gc-tl-pred">{getPredLabel(t)}</span>
+                  <div className="gc-tasklist">
+                    <div className="gc-tl-scroll" ref={taskListRef} onScroll={() => syncScroll('tasks')}>
+                      <div className="gc-tl-header">
+                        <span className="gc-tl-h-num">#</span>
+                        <span className="gc-tl-h-name">Task Name</span>
+                        <span className="gc-tl-h-dur">Dur.</span>
+                        <span className="gc-tl-h-date">Start</span>
+                        <span className="gc-tl-h-date">Finish</span>
+                        <span className="gc-tl-h-pred">Pred.</span>
+                      </div>
+                      <div className="gc-tl-body-wrap">
+                        <div className="gc-tl-rows">
+                          {allTasksFlat.map((t, i) => (
+                            <div
+                              key={t.id}
+                              className={`gc-tl-row ${t._isPhase ? 'gc-tl-phase' : ''} ${t._isChild ? 'gc-tl-child' : ''}`}
+                              style={{ height: ROW_H }}
+                              onDoubleClick={() => handleEditTaskOpen(t)}
+                              onContextMenu={(e) => handleContextMenu(e, t)}
+                            >
+                              <span className="gc-tl-num">{i + 1}</span>
+                              <span className="gc-tl-name">
+                                {t._isPhase && <button className="gc-expand-btn" onClick={() => togglePhase(t.id)}>{expandedPhases[t.id] ? '▼' : '▶'}</button>}
+                                {t._isChild && <span className="gc-indent" />}
+                                {t.name}
+                              </span>
+                              <span className="gc-tl-dur">{calcDuration(t.startDate, t.endDate)}d</span>
+                              <span className="gc-tl-date">{fmtShortDate(t.startDate)}</span>
+                              <span className="gc-tl-date">{fmtShortDate(t.endDate)}</span>
+                              <span className="gc-tl-pred">{getPredLabel(t)}</span>
+                            </div>
+                          ))}
+                          {paddedEmptyTaskRows > 0
+                            ? Array.from({ length: paddedEmptyTaskRows }, (_, i) => (
+                                <div
+                                  key={`tl-empty-${i}`}
+                                  className="gc-tl-row gc-tl-row--placeholder"
+                                  style={{ height: ROW_H }}
+                                  aria-hidden
+                                >
+                                  <span className="gc-tl-num" />
+                                  <span className="gc-tl-name" />
+                                  <span className="gc-tl-dur" />
+                                  <span className="gc-tl-date" />
+                                  <span className="gc-tl-date" />
+                                  <span className="gc-tl-pred" />
+                                </div>
+                              ))
+                            : null}
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1336,14 +1461,14 @@ const ProjectManagement = () => {
                     })}
                   </div>
                   {/* Bars area */}
-                  <div className="gc-tm-body" style={{ width: timelineWidth, height: allTasksFlat.length * ROW_H }}>
+                  <div className="gc-tm-body" style={{ width: timelineWidth, height: ganttTmBodyHeightPx }}>
                     {/* Grid lines */}
                     {days.map((d, i) => {
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6
                       return <div key={i} className={`gc-tm-gridline ${isWeekend ? 'gc-tm-gl-weekend' : ''}`} style={{ left: i * DAY_W, width: DAY_W, height: '100%' }} />
                     })}
-                    {/* Row separators */}
-                    {allTasksFlat.map((_, i) => (
+                    {/* Row separators (match task list; extend through padded area) */}
+                    {Array.from({ length: ganttRowLineCount }, (_, i) => (
                       <div key={i} className="gc-tm-rowline" style={{ top: (i + 1) * ROW_H }} />
                     ))}
                     {/* Today line */}
@@ -1353,7 +1478,7 @@ const ProjectManagement = () => {
                       </div>
                     )}
                     {/* Dependency arrows (SVG) */}
-                    <svg className="gc-arrows-svg" width={timelineWidth} height={allTasksFlat.length * ROW_H} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                    <svg className="gc-arrows-svg" width={timelineWidth} height={taskGridBodyPx} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
                       <defs>
                         <marker id="arrowFS" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e74c3c" /></marker>
                         <marker id="arrowSS" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f39c12" /></marker>
@@ -1382,6 +1507,7 @@ const ProjectManagement = () => {
               </div>
             )}
           </main>
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════

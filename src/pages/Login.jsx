@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
 import authService from '../services/authService'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
@@ -35,12 +34,7 @@ const Login = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const theme = useSettingsStore((s) => s.theme)
   const { t } = useTranslation()
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
 
   useEffect(() => {
     if (isAuthenticated) navigate('/main-menu', { replace: true })
@@ -233,7 +227,7 @@ const Login = () => {
 
           <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#666' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: '#000888', fontWeight: 500, textDecoration: 'none' }}>
+            <Link to="/register" style={{ color: '#00d4ff', fontWeight: 500, textDecoration: 'none' }}>
               Sign Up
             </Link>
           </div>

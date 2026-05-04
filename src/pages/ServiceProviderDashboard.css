@@ -132,9 +132,9 @@
   font-weight: var(--font-semibold);
   padding: 3px 8px;
   border-radius: 12px;
-  background: rgba(0, 8, 136, .08);
-  color: #000888;
-  border: 1px solid rgba(0, 8, 136, .22);
+  background: rgba(0, 212, 255, .08);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, .22);
 }
 .spd-targeted-badge {
   font-size: 10px;

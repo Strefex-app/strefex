@@ -39,13 +39,13 @@
 }
 
 .supplier-source-badge.open {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
 }
 
 .supplier-source-badge.database {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
 }
 
 .supplier-details {
@@ -53,7 +53,7 @@
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--color-secondary);
 }
 
 .supplier-country {
@@ -78,5 +78,5 @@
 .rating-num {
   margin-left: 6px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
 }

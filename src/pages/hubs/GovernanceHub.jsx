@@ -32,7 +32,7 @@ export default function GovernanceHub() {
           <div className="hub-landing__grid">
             {isAdmin && (
               <Link to="/admin/approvals" className="hub-landing__card stx-click-feedback">
-                <span className="hub-landing__card-icon" style={{ background: 'rgba(76,175,80,.12)', color: '#2e7d32' }}>
+                <span className="hub-landing__card-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                   <Icon name="check-square" size={22} />
                 </span>
                 <h3 className="hub-landing__card-title">Supplier approvals</h3>
@@ -44,7 +44,7 @@ export default function GovernanceHub() {
             {isSuperAdmin && (
               <>
                 <Link to="/admin/supplier-governance" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(25,42,86,.1)', color: '#192a56' }}>
+                  <span className="hub-landing__card-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                     <Icon name="shield" size={22} />
                   </span>
                   <h3 className="hub-landing__card-title">Supplier governance</h3>
@@ -53,7 +53,7 @@ export default function GovernanceHub() {
                   </p>
                 </Link>
                 <Link to="/admin/data-ingestion" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
+                  <span className="hub-landing__card-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent-text)' }}>
                     <Icon name="clipboard" size={22} />
                   </span>
                   <h3 className="hub-landing__card-title">Data pipeline import</h3>
@@ -62,7 +62,7 @@ export default function GovernanceHub() {
                   </p>
                 </Link>
                 <Link to="/admin-dashboard" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(142,68,173,.12)', color: '#8e44ad' }}>
+                  <span className="hub-landing__card-icon" style={{ background: 'rgba(176, 96, 255, 0.14)', color: 'var(--rfqi-purple, #b060ff)' }}>
                     <Icon name="admin-dashboard" size={22} />
                   </span>
                   <h3 className="hub-landing__card-title">Super Admin dashboard</h3>
@@ -71,7 +71,7 @@ export default function GovernanceHub() {
                   </p>
                 </Link>
                 <Link to="/developer" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(100,100,100,.12)', color: '#555' }}>
+                  <span className="hub-landing__card-icon" style={{ background: 'var(--bg-surface-hover)', color: 'var(--color-muted)' }}>
                     <Icon name="developer" size={22} />
                   </span>
                   <h3 className="hub-landing__card-title">Developer tools</h3>

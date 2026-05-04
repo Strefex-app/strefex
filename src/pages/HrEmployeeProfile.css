@@ -15,7 +15,7 @@
 }
 
 .hr-emp-prof-back:hover {
-  color: var(--color-primary, #000888);
+  color: var(--accent);
 }
 
 .hr-emp-prof-head {
@@ -34,7 +34,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-primary, #000888);
+  color: var(--accent);
 }
 
 .hr-emp-prof-meta {
@@ -82,8 +82,8 @@
 .hr-emp-prof-danger {
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #f5c6cb;
-  background: #fff8f8;
+  border: 1px solid rgba(192, 57, 43, 0.35);
+  background: var(--surface-danger-soft);
 }
 
 .hr-emp-prof-hint {
@@ -96,7 +96,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid #c0392b;
-  background: #fff;
+  background: var(--bg-card);
   color: #c0392b;
   font-weight: var(--font-semibold);
   cursor: pointer;

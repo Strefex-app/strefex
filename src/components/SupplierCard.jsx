@@ -10,8 +10,8 @@ export default function SupplierCard({ supplier, onSelect, onShortlist }) {
   return (
     <div
       style={{
-        border: boosted ? '1px solid #86efac' : '1px solid #e4e7ec',
-        background: boosted ? '#f0fdf4' : '#fff',
+        border: boosted ? '1px solid #86efac' : '1px solid var(--border-color)',
+        background: boosted ? '#f0fdf4' : 'var(--bg-card)',
         borderRadius: 10,
         padding: 12,
         display: 'grid',

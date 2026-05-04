@@ -6,7 +6,7 @@
 .tags-label {
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
@@ -22,8 +22,8 @@
 .industry-tag {
   font-size: 13px;
   padding: 6px 12px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border-radius: 8px;
-  color: #333;
+  color: var(--color-primary);
   font-weight: 500;
 }

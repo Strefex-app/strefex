@@ -1,5 +1,6 @@
 import useEnterpriseStore from '../store/enterpriseStore'
 import EnterpriseCostPage from './EnterpriseCostPage'
+import RfqIntelEnterpriseCapexBridge from '../components/RfqIntelEnterpriseCapexBridge'
 
 const EnterpriseCapex = () => {
   const { capex, addCapex, updateCapex, deleteCapex } = useEnterpriseStore()
@@ -52,6 +53,7 @@ const EnterpriseCapex = () => {
       calculateTotal={calculateTotal}
       addFormFields={formFields}
       color="#34495e"
+      beforeTableContent={<RfqIntelEnterpriseCapexBridge accentColor="#34495e" />}
     />
   )
 }

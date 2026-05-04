@@ -1,7 +1,12 @@
 import { create } from 'zustand'
+import { normalizeTheme, syncDomTheme } from '../theme/syncDomTheme'
 
 const getStoredTheme = () => {
-  try { return localStorage.getItem('strefex-theme') || 'light' } catch { return 'light' }
+  try {
+    return normalizeTheme(localStorage.getItem('strefex-theme') || 'light')
+  } catch {
+    return 'light'
+  }
 }
 const getStoredLang = () => {
   try { return localStorage.getItem('strefex-lang') || 'en' } catch { return 'en' }
@@ -12,16 +17,17 @@ export const useSettingsStore = create((set) => ({
   language: getStoredLang(),
 
   setTheme: (theme) => {
-    try { localStorage.setItem('strefex-theme', theme) } catch {}
-    document.documentElement.setAttribute('data-theme', theme)
-    set({ theme })
+    const t = normalizeTheme(theme)
+    try { localStorage.setItem('strefex-theme', t) } catch {}
+    syncDomTheme(t)
+    set({ theme: t })
   },
 
   toggleTheme: () => {
     set((state) => {
-      const next = state.theme === 'light' ? 'dark' : 'light'
+      const next = normalizeTheme(state.theme === 'light' ? 'dark' : 'light')
       try { localStorage.setItem('strefex-theme', next) } catch {}
-      document.documentElement.setAttribute('data-theme', next)
+      syncDomTheme(next)
       return { theme: next }
     })
   },

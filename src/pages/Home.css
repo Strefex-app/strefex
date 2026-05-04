@@ -45,7 +45,7 @@
 [data-theme="light"] .home-indicator-icon.blue,
 :root:not([data-theme="dark"]) .home-indicator-icon.blue {
   background: rgba(25, 42, 86, 0.12);
-  color: #192A56;
+  color: var(--color-primary);
 }
 
 .home-indicator-icon.green {

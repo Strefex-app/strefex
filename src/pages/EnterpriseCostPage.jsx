@@ -16,6 +16,8 @@ const EnterpriseCostPage = ({
   calculateTotal,
   addFormFields,
   color = '#3498db',
+  /** Optional strip above the costs table (e.g. RFQ Intelligence ↔ CAPEX). */
+  beforeTableContent,
 }) => {
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
@@ -122,6 +124,8 @@ const EnterpriseCostPage = ({
             <span className="summary-stat-value highlight" style={{ color }}>{formatCurrency(total)}</span>
           </div>
         </div>
+
+        {beforeTableContent}
 
         {/* Costs Table */}
         <div className="cost-page-card">

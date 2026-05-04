@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Elements } from '@stripe/react-stripe-js'
 import { useAuthStore } from '../store/authStore'
-import { useSettingsStore } from '../store/settingsStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useTranslation } from '../i18n/useTranslation'
 import { getStripe, isStripeConfigured } from '../config/stripe'
@@ -56,7 +55,6 @@ function RegisterForm() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isDomainIndustryRegistered = useAccountRegistry((s) => s.isDomainIndustryRegistered)
   const registerAccount = useAccountRegistry((s) => s.registerAccount)
-  const theme = useSettingsStore((s) => s.theme)
   const { t } = useTranslation()
 
   const primaryAccountType = accountTypes[0] || 'seller'
@@ -69,10 +67,6 @@ function RegisterForm() {
     if (type === 'buyer') return plansForType.find((p) => p.id === 'basic')?.id || plansForType[0]?.id || 'basic'
     return plansForType.find((p) => p.id === 'start')?.id || plansForType[0]?.id || 'start'
   }
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
 
   useEffect(() => {
     if (isAuthenticated) navigate('/main-menu', { replace: true })
@@ -573,7 +567,7 @@ function RegisterForm() {
               </div>
 
               {isPaidPlan && (
-                <div className="reg-free-note" style={{ borderColor: '#f0c040', background: '#fffbeb' }}>
+                <div className="reg-free-note" style={{ borderColor: 'var(--callout-warn-border)', background: 'var(--callout-warn-bg)', color: 'var(--callout-warn-text)' }}>
                   Paid tier selected. After account creation you will be redirected to Stripe Checkout.
                   Access activates only after webhook confirmation. Each industry registration is billed separately.
                 </div>
@@ -623,7 +617,7 @@ function RegisterForm() {
               <p style={{ fontSize: '0.95rem', color: '#666', lineHeight: 1.6, marginBottom: '0.5rem' }}>
                 We've sent a confirmation link to
               </p>
-              <p style={{ fontSize: '1rem', fontWeight: 600, color: '#000888', marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: '#00d4ff', marginBottom: '1.5rem' }}>
                 {email}
               </p>
               <p style={{ fontSize: '0.85rem', color: '#888', lineHeight: 1.6, marginBottom: '2rem' }}>
@@ -645,7 +639,7 @@ function RegisterForm() {
 
           <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#666' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#000888', fontWeight: 500, textDecoration: 'none' }}>
+            <Link to="/login" style={{ color: '#00d4ff', fontWeight: 500, textDecoration: 'none' }}>
               Sign In
             </Link>
           </div>

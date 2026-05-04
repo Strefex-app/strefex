@@ -1,3 +1,5 @@
+import '../styles/hub-two-col-grid.css'
+
 export const SERVICE_CATEGORY_LABELS = {
   'project-management': 'Project Management',
   'supplier-services': 'Supplier Services',
@@ -42,7 +44,7 @@ export default function ServiceProviderAvailabilityCard({
           No service providers registered yet for this industry.
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="hub-two-col-grid">
           {providers.map((provider, idx) => (
             <div
               key={provider.id || `${provider.company}-${idx}`}
@@ -50,10 +52,10 @@ export default function ServiceProviderAvailabilityCard({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
                 padding: '10px 12px',
-                background: '#fff',
+                background: 'var(--bg-card)',
               }}
             >
               <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>
@@ -88,7 +90,7 @@ export default function ServiceProviderAvailabilityCard({
                       borderRadius: 12,
                       background: '#f1f5f9',
                       color: '#475569',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid var(--border-color)',
                     }}
                   >
                     {SERVICE_CATEGORY_LABELS[serviceId] || serviceId}

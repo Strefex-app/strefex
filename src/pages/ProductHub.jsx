@@ -9,6 +9,7 @@ import authService from '../services/authService'
 import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './Home.css'
+import '../styles/hub-two-col-grid.css'
 
 const INDUSTRIES = [
   { id: 'automotive', tKey: 'industry.automotive', path: '/industry/automotive', descKey: 'industry.description' },
@@ -118,7 +119,7 @@ export default function ProductHub() {
         {isServiceProvider ? (
           <div className="app-page-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
             <p style={{ color: '#888', fontSize: 15 }}>Service Provider accounts do not have access to Product & Component pages. Please use the Service section instead.</p>
-            <button onClick={() => navigate('/service-hub')} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, background: '#000888', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/service-hub')} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, background: '#00d4ff', color: '#0d0e10', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
               Go to Services
             </button>
           </div>
@@ -130,7 +131,7 @@ export default function ProductHub() {
                 : `Registered in ${selectedIndustries.length} ${selectedIndustries.length === 1 ? 'industry' : 'industries'}. To access another industry, create a separate account registration.`}
             </p>
 
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div className="hub-two-col-grid">
               {INDUSTRIES.map((item) => {
                 const chosen = isSelected(item.id)
 
@@ -143,7 +144,7 @@ export default function ProductHub() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 16,
                         padding: '16px 20px', borderRadius: 12,
-                        background: chosen ? 'rgba(46,125,50,.04)' : '#fff',
+                        background: chosen ? 'rgba(46,125,50,.04)' : 'var(--bg-card)',
                         border: chosen ? '2px solid #2e7d32' : '1px solid #e2e8f0',
                         cursor: 'pointer', textAlign: 'left', width: '100%',
                         transition: 'all .15s',
@@ -177,7 +178,7 @@ export default function ProductHub() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 16,
                       padding: '16px 20px', borderRadius: 12,
-                      background: '#fff', border: '1px solid #e2e8f0',
+                      background: 'var(--bg-card)', border: '1px solid var(--border-color)',
                       cursor: 'pointer', textAlign: 'left', width: '100%',
                       opacity: 1, transition: 'all .15s',
                     }}
@@ -223,7 +224,7 @@ export default function ProductHub() {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setShowPicker(false)}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
                 >
                   Cancel
                 </button>

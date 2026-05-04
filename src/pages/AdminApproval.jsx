@@ -163,7 +163,7 @@ const AdminApproval = () => {
                 onClick={() => setSelectedStatus('approved')}
                 style={{
                   backgroundColor: selectedStatus === 'approved' ? '#2ecc71' : 'transparent',
-                  color: selectedStatus === 'approved' ? '#fff' : '#2ecc71',
+                  color: selectedStatus === 'approved' ? '#0d0e10' : '#2ecc71',
                   borderColor: '#2ecc71',
                 }}
               >
@@ -175,7 +175,7 @@ const AdminApproval = () => {
                 onClick={() => setSelectedStatus('under-review')}
                 style={{
                   backgroundColor: selectedStatus === 'under-review' ? '#f39c12' : 'transparent',
-                  color: selectedStatus === 'under-review' ? '#fff' : '#f39c12',
+                  color: selectedStatus === 'under-review' ? '#0d0e10' : '#f39c12',
                   borderColor: '#f39c12',
                 }}
               >
@@ -187,7 +187,7 @@ const AdminApproval = () => {
                 onClick={() => setSelectedStatus('blocked')}
                 style={{
                   backgroundColor: selectedStatus === 'blocked' ? '#e74c3c' : 'transparent',
-                  color: selectedStatus === 'blocked' ? '#fff' : '#e74c3c',
+                  color: selectedStatus === 'blocked' ? '#0d0e10' : '#e74c3c',
                   borderColor: '#e74c3c',
                 }}
               >

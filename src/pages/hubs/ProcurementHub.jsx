@@ -35,7 +35,7 @@ export default function ProcurementHub() {
               </p>
             </Link>
             <Link to="/dashboard/buyer/account-directory" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(0,8,136,.1)', color: '#000888' }}>
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(0, 212, 255,.1)', color: '#00d4ff' }}>
                 <Icon name="document" size={22} />
               </span>
               <h3 className="hub-landing__card-title">Account directory</h3>

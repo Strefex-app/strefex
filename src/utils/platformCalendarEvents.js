@@ -96,7 +96,7 @@ export function collectPlatformCalendarEvents({
           title: t.name || 'Task',
           detail: pname,
           meta: t.status === 'complete' ? 'Done' : 'Deadline',
-          color: '#000888',
+          color: '#00d4ff',
         })
       } else if (start) {
         push(start, {

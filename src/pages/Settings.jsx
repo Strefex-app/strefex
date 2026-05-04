@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
@@ -8,11 +7,6 @@ import './Settings.css'
 export default function Settings() {
   const { theme, toggleTheme, language, setLanguage } = useSettingsStore()
   const { t } = useTranslation()
-
-  /* Apply theme on mount */
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
 
   return (
     <AppLayout>

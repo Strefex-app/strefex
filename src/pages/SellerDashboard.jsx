@@ -10,7 +10,7 @@ import './SellerDashboard.css'
 const STATUS_MAP = {
   pending:   { label: 'Pending',   color: '#e65100', bg: 'rgba(230,81,0,.08)' },
   responded: { label: 'Responded', color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
-  awarded:   { label: 'Awarded',   color: '#000888', bg: 'rgba(0,8,136,.08)' },
+  awarded:   { label: 'Awarded',   color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
   declined:  { label: 'Declined',  color: '#c62828', bg: 'rgba(198,40,40,.08)' },
 }
 
@@ -251,7 +251,7 @@ export default function SellerDashboard() {
                         <div className="sd-rfq-left">
                           <span className="sd-rfq-title">{rfq.title}</span>
                           {(rfq.buyerSplitRef || rfq.buyerRefDisplay) && (
-                            <span className="sd-rfq-buyer-ref" style={{ fontSize: 13, fontWeight: 600, color: '#000888', display: 'block', marginBottom: 2 }}>
+                            <span className="sd-rfq-buyer-ref" style={{ fontSize: 13, fontWeight: 600, color: '#00d4ff', display: 'block', marginBottom: 2 }}>
                               Ref: {rfq.buyerSplitRef || rfq.buyerRefDisplay}
                             </span>
                           )}

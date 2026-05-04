@@ -35,6 +35,8 @@ const translations = {
   'nav.developer': { en: 'Developer', zh: '开发者', es: 'Desarrollador', fr: 'Développeur', de: 'Entwickler', ru: 'Разработчик' },
   'nav.plans': { en: 'Plans', zh: '计划', es: 'Planes', fr: 'Plans', de: 'Pläne', ru: 'Планы' },
   'nav.logout': { en: 'Logout', zh: '退出登录', es: 'Cerrar Sesión', fr: 'Déconnexion', de: 'Abmelden', ru: 'Выйти' },
+  'nav.switchToLight': { en: 'Switch to light mode', zh: '切换到浅色模式', es: 'Modo claro', fr: 'Mode clair', de: 'Heller Modus', ru: 'Светлая тема' },
+  'nav.switchToDark': { en: 'Switch to dark mode', zh: '切换到深色模式', es: 'Modo oscuro', fr: 'Mode sombre', de: 'Dunkler Modus', ru: 'Тёмная тема' },
 
   /* ── Common / Shared ───────────────────────────────────────── */
   'common.backToHome': { en: 'Back to Home', zh: '返回首页', es: 'Volver al Inicio', fr: 'Retour à l\'Accueil', de: 'Zurück zur Startseite', ru: 'На главную' },

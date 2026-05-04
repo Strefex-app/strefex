@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { tenantKey } from '../utils/tenantStorage'
+import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import '../styles/app-page.css'
 import './Notifications.css'
 
@@ -22,21 +23,21 @@ const INDUSTRY_COLORS = {
 }
 
 const TASK_STATUS_LABELS = {
-  unassigned: { label: 'Unassigned', color: '#e74c3c', bg: '#fce4ec' },
-  assigned: { label: 'Assigned', color: '#e65100', bg: '#fff3e0' },
-  in_progress: { label: 'In Progress', color: '#7b1fa2', bg: '#f3e5f5' },
-  completed: { label: 'Completed', color: '#2e7d32', bg: '#e8f5e9' },
+  unassigned: { label: 'Unassigned', color: 'var(--danger-text)', bg: 'var(--danger-light)' },
+  assigned: { label: 'Assigned', color: 'var(--badge-warning-text)', bg: 'var(--badge-warning-bg)' },
+  in_progress: { label: 'In Progress', color: '#7b1fa2', bg: 'var(--accent-light)' },
+  completed: { label: 'Completed', color: 'var(--badge-success-text)', bg: 'var(--badge-success-bg)' },
 }
 
 /** Human-readable labels for multi-level plan approval statuses. */
 const PLAN_STATUS_MAP = {
-  requested:                 { label: 'Awaiting Company Admin',  color: '#e65100', bg: '#fff3e0' },
-  company_approved:          { label: 'Approved — Awaiting Payment', color: '#1565c0', bg: '#e3f2fd' },
-  pending_platform_approval: { label: 'Paid — Awaiting STREFEX',  color: '#6a1b9a', bg: '#f3e5f5' },
-  pending_approval:          { label: 'Paid — Awaiting STREFEX',  color: '#6a1b9a', bg: '#f3e5f5' },
-  paid:                      { label: 'Active',                   color: '#2e7d32', bg: '#e8f5e9' },
-  rejected_by_company:       { label: 'Rejected by Company Admin', color: '#c62828', bg: '#fce4ec' },
-  rejected_by_platform:      { label: 'Rejected by STREFEX',     color: '#c62828', bg: '#fce4ec' },
+  requested:                 { label: 'Awaiting Company Admin',  color: 'var(--badge-warning-text)', bg: 'var(--badge-warning-bg)' },
+  company_approved:          { label: 'Approved — Awaiting Payment', color: 'var(--link-color)', bg: 'var(--accent-light)' },
+  pending_platform_approval: { label: 'Paid — Awaiting STREFEX',  color: '#b39ddb', bg: 'var(--accent-light)' },
+  pending_approval:          { label: 'Paid — Awaiting STREFEX',  color: '#b39ddb', bg: 'var(--accent-light)' },
+  paid:                      { label: 'Active',                   color: 'var(--badge-success-text)', bg: 'var(--badge-success-bg)' },
+  rejected_by_company:       { label: 'Rejected by Company Admin', color: 'var(--danger-text)', bg: 'var(--danger-light)' },
+  rejected_by_platform:      { label: 'Rejected by STREFEX',     color: 'var(--danger-text)', bg: 'var(--danger-light)' },
 }
 
 export default function Notifications() {
@@ -139,6 +140,15 @@ export default function Notifications() {
     }
     return allTransactions.filter((tx) => tx.userEmail === user?.email).slice(0, 5)
   }, [allTransactions, isSuperAdmin, isCompanyAdmin, myDomain, user?.email])
+
+  /* ── RFQ Intelligence — incoming board feed ── */
+  const qiIncoming = useRfqIntelligenceStore((s) => s.getIncomingList())
+  const qiReadIncomingIds = useRfqIntelligenceStore((s) => s.readIncomingIds)
+  const markQiIncomingRead = useRfqIntelligenceStore((s) => s.markIncomingRead)
+  const qiUnreadCount = useMemo(
+    () => qiIncoming.filter((r) => !qiReadIncomingIds.includes(r.id)).length,
+    [qiIncoming, qiReadIncomingIds],
+  )
 
   /* ── Get STREFEX team members for task assignment (superuser only) ── */
   const accounts = useAccountRegistry((s) => s.accounts)
@@ -305,7 +315,15 @@ export default function Notifications() {
   const hasServiceNotifs = requestNotifications.length > 0
   const hasUserRequest = !!userPendingRequest
   const hasTransactions = recentTransactions.length > 0
-  const hasAnyContent = hasExhibitionContent || hasCompanyAdminContent || hasSuperuserContent || hasServiceNotifs || hasUserRequest || hasTransactions
+  const hasRfqIntelIncoming = qiIncoming.length > 0
+  const hasAnyContent =
+    hasExhibitionContent ||
+    hasCompanyAdminContent ||
+    hasSuperuserContent ||
+    hasServiceNotifs ||
+    hasUserRequest ||
+    hasTransactions ||
+    hasRfqIntelIncoming
 
   /* ── Reject form helper ── */
   const renderRejectForm = (txId, onConfirm) => (
@@ -347,6 +365,69 @@ export default function Notifications() {
               : 'Exhibition reminders, upgrade requests, and account activity.'}
           </p>
         </div>
+
+        {qiIncoming.length > 0 && (
+          <div className="app-page-card">
+            <h3 className="notif-section-title">
+              Incoming RFQs · RFQ Intelligence
+              {qiUnreadCount > 0 && (
+                <span className="notif-badge" style={{ background: 'var(--accent-light)', color: 'var(--link-color)' }}>
+                  {qiUnreadCount} new
+                </span>
+              )}
+            </h3>
+            <p className="notif-section-sub">
+              Manufacturing RFQs pulled into your workspace. Open RFQ Intelligence to estimate quotes and push tooling to Enterprise CAPEX.
+            </p>
+            <div className="notif-task-list">
+              {qiIncoming.slice(0, 12).map((r) => (
+                <div
+                  key={r.id}
+                  className="notif-scheduled-item"
+                  style={{ cursor: 'pointer', marginBottom: 8 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    markQiIncomingRead(r.id)
+                    navigate(
+                      `/rfq-intelligence?tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`,
+                    )
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      markQiIncomingRead(r.id)
+                      navigate(
+                        `/rfq-intelligence?tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`,
+                      )
+                    }
+                  }}
+                >
+                  <div className="scheduled-color" style={{ background: r.color }} />
+                  <div className="scheduled-info">
+                    <div className="scheduled-name">{r.part}</div>
+                    <div className="scheduled-meta">
+                      {r.id} · {r.company} · {r.process} · {r.material}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <strong>{r.value}</strong>
+                    {!qiReadIncomingIds.includes(r.id) && (
+                      <span style={{ fontSize: 11, color: '#0277bd', fontWeight: 600 }}>New</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="notif-task-btn notif-task-btn-success"
+              style={{ marginTop: 8 }}
+              onClick={() => navigate('/rfq-intelligence?tab=incoming')}
+            >
+              Open inbox
+            </button>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════
          *  1. EXHIBITION REMINDERS (unchanged, everyone)
@@ -416,7 +497,7 @@ export default function Notifications() {
           <div className="app-page-card">
             <h3 className="notif-section-title">
               Team Upgrade Requests
-              <span className="notif-badge" style={{ background: '#fff3e0', color: '#e65100' }}>{companyPendingRequests.length} pending</span>
+              <span className="notif-badge" style={{ background: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)' }}>{companyPendingRequests.length} pending</span>
             </h3>
             <p className="notif-section-sub">
               Users in your company have requested plan upgrades. Approve and complete payment to proceed.
@@ -425,7 +506,7 @@ export default function Notifications() {
               {companyPendingRequests.map((tx) => (
                 <div key={tx.id} className="notif-task-card notif-task-unassigned" style={{ borderLeftColor: '#e65100' }}>
                   <div className="notif-task-header">
-                    <span className="notif-task-badge" style={{ background: '#fff3e0', color: '#e65100' }}>Upgrade Request</span>
+                    <span className="notif-task-badge" style={{ background: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)' }}>Upgrade Request</span>
                     <span className="notif-task-amount">${(tx.amount || 0).toLocaleString()}/mo</span>
                   </div>
                   <div className="notif-task-service">{tx.service}</div>
@@ -469,7 +550,7 @@ export default function Notifications() {
           <div className="app-page-card">
             <h3 className="notif-section-title">
               Awaiting STREFEX Approval
-              <span className="notif-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>{companyPendingPlatform.length}</span>
+              <span className="notif-badge" style={{ background: 'var(--accent-light)', color: 'var(--link-color)' }}>{companyPendingPlatform.length}</span>
             </h3>
             <p className="notif-section-sub">
               Payment has been submitted. These subscriptions are awaiting final approval from STREFEX.
@@ -478,7 +559,7 @@ export default function Notifications() {
               {companyPendingPlatform.map((tx) => (
                 <div key={tx.id} className="notif-task-card" style={{ borderLeftColor: '#1565c0' }}>
                   <div className="notif-task-header">
-                    <span className="notif-task-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>Awaiting STREFEX</span>
+                    <span className="notif-task-badge" style={{ background: 'var(--accent-light)', color: 'var(--link-color)' }}>Awaiting STREFEX</span>
                     <span className="notif-task-amount">${(tx.amount || 0).toLocaleString()}</span>
                   </div>
                   <div className="notif-task-service">{tx.service}</div>
@@ -504,7 +585,7 @@ export default function Notifications() {
           <div className="app-page-card">
             <h3 className="notif-section-title">
               Platform Subscription Approvals
-              <span className="notif-badge" style={{ background: '#f3e5f5', color: '#6a1b9a' }}>{platformPendingApprovals.length} pending</span>
+              <span className="notif-badge" style={{ background: 'var(--accent-light)', color: '#b39ddb' }}>{platformPendingApprovals.length} pending</span>
             </h3>
             <p className="notif-section-sub">
               Companies have paid for plan upgrades. Review and approve to activate subscriptions.
@@ -513,7 +594,7 @@ export default function Notifications() {
               {platformPendingApprovals.map((tx) => (
                 <div key={tx.id} className="notif-task-card notif-task-unassigned" style={{ borderLeftColor: '#6a1b9a' }}>
                   <div className="notif-task-header">
-                    <span className="notif-task-badge" style={{ background: '#f3e5f5', color: '#6a1b9a' }}>Pending Approval</span>
+                    <span className="notif-task-badge" style={{ background: 'var(--accent-light)', color: '#b39ddb' }}>Pending Approval</span>
                     <span className="notif-task-amount">${(tx.amount || 0).toLocaleString()}</span>
                   </div>
                   <div className="notif-task-service">{tx.service}</div>
@@ -642,7 +723,7 @@ export default function Notifications() {
           <div className="app-page-card">
             <h3 className="notif-section-title">
               Service Tasks — In Progress
-              <span className="notif-badge" style={{ background: '#e65100' }}>{assignedTasks.length} active</span>
+              <span className="notif-badge" style={{ background: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)' }}>{assignedTasks.length} active</span>
             </h3>
             <div className="notif-task-list">
               {assignedTasks.map((tx) => {

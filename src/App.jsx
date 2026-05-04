@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useServiceRequestStore } from './store/serviceRequestStore'
@@ -15,6 +15,8 @@ import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
 import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
+import { useSettingsStore } from './store/settingsStore'
+import { syncDomTheme } from './theme/syncDomTheme'
 
 /* ── Code-split pages (see routes/lazyPages.js) ──────────── */
 import {
@@ -120,6 +122,7 @@ import {
   BuyerDashboard,
   ServiceProviderDashboard,
   RfqComparison,
+  RfqIntelligencePage,
   VendorManagement,
   VendorDetail,
   SupplierProfilePage,
@@ -161,7 +164,7 @@ function RouteLoadingFallback() {
           width: 36,
           height: 36,
           border: '3px solid #e0e0e0',
-          borderTopColor: '#000888',
+          borderTopColor: '#00d4ff',
           borderRadius: '50%',
           animation: 'routeLazySpin 0.75s linear infinite',
         }}
@@ -231,7 +234,12 @@ function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const startRequestRefresh = useServiceRequestStore((s) => s.startRefreshSequence)
   const stopRequestRefresh = useServiceRequestStore((s) => s.stopRefreshSequence)
+  const theme = useSettingsStore((s) => s.theme)
   const [sessionChecked, setSessionChecked] = useState(false)
+
+  useLayoutEffect(() => {
+    syncDomTheme(theme)
+  }, [theme])
 
   useEffect(() => {
     // Guard against missing Supabase config in production to avoid
@@ -269,16 +277,16 @@ function App() {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', background: '#fafbfc',
+        minHeight: '100vh', background: 'var(--bg-primary)',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: 40, height: 40, border: '3px solid #e0e0e0',
-            borderTopColor: '#000888', borderRadius: '50%',
+            width: 40, height: 40, border: '3px solid var(--border-light)',
+            borderTopColor: 'var(--btn-primary-bg)', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          <p style={{ color: '#888', fontSize: 14, margin: 0 }}>Loading…</p>
+          <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0 }}>Loading…</p>
         </div>
       </div>
     )
@@ -321,6 +329,7 @@ function App() {
           <Route path="/dashboard/supplier" element={<P><SupplierWorkspace /></P>} />
           <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
+          <Route path="/rfq-intelligence" element={<P><RfqIntelligencePage /></P>} />
 
           {/* ── Vendor Management ────────────────────────── */}
           <Route path="/vendors" element={<P><VendorManagement /></P>} />

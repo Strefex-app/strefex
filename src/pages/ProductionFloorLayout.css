@@ -91,7 +91,7 @@
 
 .add-equipment-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 8, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
 }
 
 /* Status Bar */
@@ -206,7 +206,7 @@
 }
 
 .equipment-item.selected {
-  filter: drop-shadow(0 0 8px rgba(0, 8, 136, 0.5));
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
 }
 
 /* Equipment Detail Panel */

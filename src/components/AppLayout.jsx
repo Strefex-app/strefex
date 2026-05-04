@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { useSettingsStore } from '../store/settingsStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useTranslation } from '../i18n/useTranslation'
+import { LANGUAGES } from '../i18n/translations'
+import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
 import './AppLayout.css'
@@ -49,8 +50,11 @@ export default function AppLayout({ children }) {
   const role = useAuthStore((state) => state.role)
   const hasRole = useAuthStore((state) => state.hasRole)
   const user = useAuthStore((state) => state.user)
-  const theme = useSettingsStore((s) => s.theme)
   const { t } = useTranslation()
+  const theme = useSettingsStore((s) => s.theme)
+  const toggleTheme = useSettingsStore((s) => s.toggleTheme)
+  const language = useSettingsStore((s) => s.language)
+  const setLanguage = useSettingsStore((s) => s.setLanguage)
 
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const currentPlanId = useSubscriptionStore((s) => s.planId)
@@ -61,11 +65,6 @@ export default function AppLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [previewTimeLeft, setPreviewTimeLeft] = useState(null) // seconds remaining
   const unreadNotificationCount = requestNotifSummary?.unreadCount || 0
-
-  /* Keep data-theme in sync on every render */
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
 
   /* Close mobile drawer on navigation */
   useEffect(() => {
@@ -212,20 +211,61 @@ export default function AppLayout({ children }) {
             })}
         </nav>
         <div className="sidebar-footer">
-          <div className="sidebar-profile" onClick={() => navigate('/profile')}>
-            <div className="sidebar-avatar">{initials}</div>
-            <div className="sidebar-profile-info">
-              <span className="sidebar-profile-name">{user?.name || 'User'}</span>
-              <span className="sidebar-profile-role">
-                {roleLabel}
-                <span
-                  className="sidebar-plan-badge"
-                  onClick={(e) => { e.stopPropagation(); navigate('/plans') }}
-                  title="Click to manage subscription"
+          <div className="sidebar-footer-user-row">
+            <div className="sidebar-profile sidebar-profile--avatar-only" onClick={() => navigate('/profile')}>
+              <div className="sidebar-avatar-wrap" tabIndex={0}>
+                <div className="sidebar-avatar">{initials}</div>
+                <div className="sidebar-profile-tooltip" role="tooltip">
+                  <div className="sidebar-profile-tooltip-name">{displayName}</div>
+                  <div className="sidebar-profile-tooltip-meta">{roleLabel}</div>
+                  <div className="sidebar-profile-tooltip-plan">
+                    <button
+                      type="button"
+                      className="sidebar-profile-tooltip-plan-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate('/plans')
+                      }}
+                    >
+                      {accountType === 'buyer' ? 'Buyer' : accountType === 'service_provider' ? 'Service Provider' : accountType === 'auditor' ? 'Auditor' : 'Seller'}
+                      {' · '}
+                      {currentPlanId === 'start' ? 'Free' : currentPlanId.charAt(0).toUpperCase() + currentPlanId.slice(1)}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              className="sidebar-footer-quick"
+              onClick={(e) => e.stopPropagation()}
+              role="group"
+              aria-label={t('settings.appearance')}
+            >
+              <button
+                type="button"
+                className={`sidebar-pill-toggle ${theme === 'dark' ? 'on' : ''}`}
+                onClick={() => toggleTheme()}
+                aria-label={theme === 'dark' ? t('nav.switchToLight') : t('nav.switchToDark')}
+                aria-pressed={theme === 'dark'}
+              >
+                <span className="sidebar-pill-toggle-knob" />
+              </button>
+              <div className="sidebar-lang-pill">
+                <label className="sidebar-visually-hidden" htmlFor="sidebar-lang-select">{t('settings.language')}</label>
+                <select
+                  id="sidebar-lang-select"
+                  className="sidebar-lang-select-inner"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  aria-label={t('settings.language')}
                 >
-                  {accountType === 'buyer' ? 'B' : accountType === 'service_provider' ? 'SP' : accountType === 'auditor' ? 'A' : 'S'} · {currentPlanId === 'start' ? 'Free' : currentPlanId.charAt(0).toUpperCase() + currentPlanId.slice(1)}
-                </span>
-              </span>
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.code.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
           <button type="button" className="sidebar-logout" onClick={handleLogout}>

@@ -77,7 +77,7 @@ export default function EmptyState({
           onClick={action}
           style={{
             padding: '8px 20px', border: 'none', borderRadius: 6,
-            background: 'linear-gradient(135deg, #000222, #000888)', color: '#fff',
+            background: 'linear-gradient(135deg, #13151a, #00d4ff)', color: '#fff',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}
         >

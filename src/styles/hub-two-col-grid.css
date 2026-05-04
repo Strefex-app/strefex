@@ -1,0 +1,45 @@
+/* Two-column grids for hub pickers & category lists — single column ≤640px */
+.hub-two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.hub-two-col-grid--gap-16 {
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .hub-two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Override flex stacks from IndustryHub.css */
+.industry-hub-pages-list.hub-two-col-grid {
+  display: grid;
+  flex-direction: unset;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .industry-hub-pages-list.hub-two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Equipment / product subcategory rows using app-page-list */
+.app-page-list.hub-two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .app-page-list.hub-two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}

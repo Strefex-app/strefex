@@ -96,8 +96,8 @@ export default function StripePricingTable({ customerEmail, clientReferenceId })
               marginLeft: 10,
               padding: '4px 10px',
               borderRadius: 6,
-              border: '1px solid #d0d0d0',
-              background: '#fff',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-card)',
               cursor: 'pointer',
             }}
           >
@@ -115,8 +115,8 @@ export default function StripePricingTable({ customerEmail, clientReferenceId })
               marginLeft: 10,
               padding: '4px 10px',
               borderRadius: 6,
-              border: '1px solid #d0d0d0',
-              background: '#fff',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-card)',
               cursor: 'pointer',
             }}
           >

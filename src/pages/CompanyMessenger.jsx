@@ -292,7 +292,7 @@ export default function CompanyMessenger() {
   }, [activeChat, groups])
 
   const roleColor = (r) =>
-    r === 'admin' ? '#e74c3c' : r === 'manager' ? '#000888' : '#2e7d32'
+    r === 'admin' ? '#e74c3c' : r === 'manager' ? '#00d4ff' : '#2e7d32'
 
   return (
     <AppLayout>

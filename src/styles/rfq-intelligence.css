@@ -1,0 +1,288 @@
+/* RFQ Intelligence — daylight: neutral layout on top of app tokens (no neon). */
+.rfqi-scope {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rfqi-hdr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.rfqi-brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+}
+
+.rfqi-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rfqi-tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-card, var(--bg-card));
+  color: var(--color-secondary, var(--color-secondary));
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.rfqi-tab--active {
+  border-color: var(--input-focus);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.rfqi-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .rfqi-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rfqi-steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-light, var(--border-color));
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rfqi-step {
+  flex: 1;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  border-right: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-card, var(--bg-card));
+  font-size: 10px;
+  color: var(--color-muted, #64748b);
+}
+
+.rfqi-step:last-child {
+  border-right: none;
+}
+
+.rfqi-step--active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.rfqi-process-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.rfqi-process-card {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  cursor: pointer;
+  text-align: center;
+  background: var(--bg-surface, #f8fafc);
+  font-size: 11px;
+}
+
+.rfqi-process-card--on {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.rfqi-mat-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rfqi-mat-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 56px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.rfqi-mat-row--on {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.rfqi-muted {
+  color: var(--color-muted, #64748b);
+  font-size: 11px;
+}
+
+.rfqi-summary-panel {
+  position: sticky;
+  top: 88px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-card, var(--bg-card));
+}
+
+.rfqi-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light, var(--border-color));
+}
+
+.rfqi-summary-row:last-child {
+  border-bottom: none;
+}
+
+.rfqi-cost-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.rfqi-cost-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-surface, #f1f5f9);
+  overflow: hidden;
+}
+
+.rfqi-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.rfqi-form-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 700px) {
+  .rfqi-form-grid,
+  .rfqi-form-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rfqi-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted, #64748b);
+  margin-bottom: 4px;
+}
+
+.rfqi-inp {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, var(--border-color));
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.rfqi-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.rfqi-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rfqi-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-surface, #f8fafc);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.rfqi-chip--on {
+  border-color: var(--input-focus);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.rfqi-inbox-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-surface, #f8fafc);
+  cursor: pointer;
+}
+
+.rfqi-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rfqi-quote-block {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light, var(--border-color));
+}
+
+.rfqi-quote-block:last-child {
+  border-bottom: none;
+}
+
+table.rfqi-volume-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+table.rfqi-volume-table th,
+table.rfqi-volume-table td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--border-light, var(--border-color));
+}
+
+.rfqi-price-cell {
+  text-align: right;
+  font-weight: 700;
+  color: var(--accent);
+}

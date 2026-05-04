@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
+import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
 import { getPlanById, getEffectiveLimits } from '../services/stripeService'
 import { isSupabaseConfigured } from '../config/supabase'
@@ -464,7 +465,7 @@ const STANDARD_FORMS = {
 
 /* ── Default document templates ─────────────────────────────── */
 const DEFAULT_TEMPLATES = [
-  { id: 'rfq', name: 'Request for Quotation (RFQ)', icon: 'doc', color: '#000888' },
+  { id: 'rfq', name: 'Request for Quotation (RFQ)', icon: 'doc', color: '#00d4ff' },
   { id: 'quotation', name: 'Quotation / Invoice', icon: 'invoice', color: '#16a085' },
   { id: 'pr', name: 'Purchasing Request', icon: 'cart', color: '#e67e22' },
   { id: 'po', name: 'Purchasing Order', icon: 'order', color: '#8e44ad' },
@@ -518,6 +519,11 @@ const Icon = ({ name, size = 20, stroke = 'currentColor' }) => {
 const DOCS_KEY = 'strefex-profile-docs'
 const CONTACTS_KEY = 'strefex-profile-contacts'
 
+function formatEurQuote(n) {
+  if (typeof n !== 'number' || Number.isNaN(n)) return '—'
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+}
+
 function normalizeCompanyProfileAttachments(raw) {
   if (!Array.isArray(raw)) return []
   return raw
@@ -563,6 +569,9 @@ const Profile = () => {
   const plan = getPlanById(planId)
   const limits = getEffectiveLimits(planId, accountType)
   const isAtLeastStandard = useTier(TIERS.STANDARD)
+
+  const rfqQuotes = useRfqIntelligenceStore((s) => s.quotes)
+  const rfqQuotesPreview = useMemo(() => rfqQuotes.slice(0, 8), [rfqQuotes])
 
   // Docs & contacts are visible from Standard+ plan (or superadmin)
   const canSeeDocs = isAtLeastStandard || isSuperAdmin
@@ -1273,6 +1282,11 @@ const Profile = () => {
                   Add Supplier
                   <span className="prof-action-arrow">›</span>
                 </button>
+                <button className="prof-action-btn" onClick={() => navigate('/rfq-intelligence?tab=new')}>
+                  <span className="prof-action-icon" style={{ background: '#ede7f6', color: '#5e35b1' }}><Icon name="doc" /></span>
+                  RFQ Intelligence
+                  <span className="prof-action-arrow">›</span>
+                </button>
                 <button className="prof-action-btn prof-action-primary" onClick={() => navigate('/request-service')}>
                   <span className="prof-action-icon"><Icon name="service" /></span>
                   {tr('profile.requestService')}
@@ -1364,6 +1378,51 @@ const Profile = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── RFQ Intelligence — quotes from costing wizard ───── */}
+        <div className="prof-card">
+          <div className="prof-company-header">
+            <div>
+              <h3 className="prof-card-title">RFQ Intelligence · Quotes</h3>
+              <p className="prof-card-subtitle">
+                Saved manufacturing estimates from the wizard. Calculator outputs and tooling tie through to Enterprise Management → CAPEX.
+              </p>
+            </div>
+            <div className="prof-company-actions">
+              <button type="button" className="prof-btn-primary" onClick={() => navigate('/rfq-intelligence?tab=new')}>
+                New RFQ
+              </button>
+              <button type="button" className="prof-btn-outline" onClick={() => navigate('/rfq-intelligence?tab=quotes')}>
+                All quotes
+              </button>
+            </div>
+          </div>
+          {rfqQuotesPreview.length === 0 ? (
+            <p className="prof-card-subtitle" style={{ marginTop: 4, marginBottom: 0 }}>
+              No saved quotes yet. Open RFQ Intelligence from equipment flows or notifications to build an estimate.
+            </p>
+          ) : (
+            <div className="prof-info-grid" style={{ marginTop: 12 }}>
+              {rfqQuotesPreview.map((q) => (
+                <div key={q.id} className="prof-info-item full" style={{ paddingBottom: 10, borderBottom: '1px solid #eceff1' }}>
+                  <span className="prof-info-label">{q.quoteNo || q.id}</span>
+                  <span className="prof-info-value" style={{ display: 'block', fontWeight: 600 }}>
+                    {q.partName} · {q.customer}
+                  </span>
+                  <span className="prof-info-value" style={{ display: 'block', fontSize: 13, color: '#546e7a', marginTop: 4 }}>
+                    {[q.process, q.material].filter(Boolean).join(' · ')}
+                  </span>
+                  <span className="prof-info-value" style={{ display: 'block', fontSize: 13, marginTop: 6 }}>
+                    Subtotal {formatEurQuote(q.subtotalEUR)} · Tooling {formatEurQuote(q.toolingEUR)}
+                    {q.savedAt && (
+                      <span style={{ color: '#90a4ae', marginLeft: 8 }}>{new Date(q.savedAt).toLocaleString()}</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Documentation Widget (Standard+ only) ──────────── */}
@@ -1927,7 +1986,7 @@ const Profile = () => {
                           <div className="prof-scan-progress-ring">
                             <svg viewBox="0 0 52 52" width="52" height="52">
                               <circle cx="26" cy="26" r="23" fill="none" stroke="#e0e0e0" strokeWidth="4" />
-                              <circle cx="26" cy="26" r="23" fill="none" stroke="#000888" strokeWidth="4"
+                              <circle cx="26" cy="26" r="23" fill="none" stroke="#00d4ff" strokeWidth="4"
                                 strokeDasharray={`${Math.round(144.5 * scanProgress / 100)} 144.5`}
                                 strokeLinecap="round" transform="rotate(-90 26 26)" style={{ transition: 'stroke-dasharray 0.3s' }} />
                             </svg>

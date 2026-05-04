@@ -2,14 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Apply saved theme before first paint so [data-theme="dark"] rules (including code-split CSS) apply immediately -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('strefex-theme') === 'dark' ? 'dark' : 'light'
+          document.documentElement.setAttribute('data-theme', theme)
+          document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+          var tm = document.querySelector('meta[name="theme-color"]')
+          if (tm) tm.setAttribute('content', theme === 'dark' ? '#0d0e10' : '#192a56')
+          var cs = document.querySelector('meta[name="color-scheme"]')
+          if (cs) cs.setAttribute('content', theme === 'dark' ? 'dark light' : 'light dark')
+        } catch (e) {}
+      })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
 
     <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
 
     <!-- Theme / brand colour -->
-    <meta name="theme-color" content="#000888" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#13151a" />
+    <meta name="color-scheme" content="dark light" />
 
     <!-- Primary meta -->
     <title>STREFEX Platform</title>
@@ -38,7 +52,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- ─── Windows / Edge ────────────────────────────────── -->
-    <meta name="msapplication-TileColor" content="#000888" />
+    <meta name="msapplication-TileColor" content="#13151a" />
     <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
     <meta name="msapplication-config" content="none" />
 

@@ -7,17 +7,17 @@
 }
 
 .headcount-header {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   margin-bottom: 16px;
 }
 
 .headcount-back-link {
   display: inline-block;
-  color: #666;
+  color: var(--color-secondary);
   text-decoration: none;
   font-size: 14px;
   margin-bottom: 12px;
@@ -25,19 +25,19 @@
 }
 
 .headcount-back-link:hover {
-  color: #000888;
+  color: #00d4ff;
 }
 
 .headcount-title {
   font-size: 24px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-primary);
   margin: 0 0 8px 0;
 }
 
 .headcount-subtitle {
   font-size: 15px;
-  color: #666;
+  color: var(--color-secondary);
   margin: 0;
 }
 
@@ -50,11 +50,11 @@
 }
 
 .headcount-indicator-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 16px 14px 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   align-items: center;

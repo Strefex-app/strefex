@@ -1,0 +1,335 @@
+/**
+ * RFQ Intelligence shell — applied after all route CSS so legacy hex cannot
+ * leave white cards on the platform. Prefix `html …` beats single-class rules.
+ */
+
+html .app-layout {
+  background-color: var(--bg-primary);
+}
+
+html .app-main {
+  background-color: var(--bg-primary);
+}
+
+html .app-sidebar {
+  background: var(--nav-bg);
+}
+
+html .home-card,
+html .home-indicator-card,
+html .production-card,
+html .production-indicator-card,
+html .production-header,
+html .cert-status-card,
+html .cost-mgmt-header,
+html .cost-mgmt-card,
+html .cost-mgmt-indicator-card,
+html .enterprise-header,
+html .enterprise-card,
+html .enterprise-indicator-card,
+html .industry-hub-header,
+html .industry-hub-card,
+html .industry-hub-indicator-card,
+html .prof-card,
+html .prof-header-card,
+html .app-page-card,
+html .smp-header,
+html .smp-content,
+html .sysmgmt-header,
+html .sysmgmt-card,
+html .payment-card,
+html .payment-header {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--color-primary);
+}
+
+html .home-card-title,
+html .home-indicator-value,
+html .production-title,
+html .production-card-title,
+html .indicator-value,
+html .cost-mgmt-title,
+html .enterprise-title,
+html .industry-hub-title,
+html .app-page-title,
+html .smp-title,
+html .smp-section-title,
+html .sysmgmt-title,
+html .sysmgmt-card-name,
+html .prof-card-title,
+html .prof-name,
+html .page-item-name,
+html .smp-step-title,
+html .smp-kpi-value,
+html .smp-req-domain,
+html .smp-box-title,
+html h1,
+html h2,
+html h3 {
+  color: var(--color-primary);
+}
+
+html .home-card-subtitle,
+html .home-indicator-label,
+html .home-industry-desc,
+html .production-subtitle,
+html .production-card-subtitle,
+html .indicator-label,
+html .cost-mgmt-subtitle,
+html .enterprise-subtitle,
+html .industry-hub-subtitle,
+html .app-page-subtitle,
+html .app-page-body,
+html .smp-subtitle,
+html .smp-text,
+html .smp-kpi-label,
+html .sysmgmt-subtitle,
+html .sysmgmt-card-desc,
+html .prof-card-subtitle,
+html .prof-role,
+html .page-item-desc,
+html .smp-list li {
+  color: var(--color-secondary);
+}
+
+html .home-industry-name,
+html .home-quick-action-item,
+html .production-action-item,
+html .cost-mgmt-action-item,
+html .enterprise-action-item,
+html .prof-action-btn {
+  color: var(--color-primary);
+}
+
+html .home-industry-item,
+html .home-quick-action-item,
+html .production-page-item,
+html .production-action-item,
+html .smp-step-card,
+html .smp-kpi,
+html .recent-audit-item,
+html .app-page-list-item,
+html .prof-action-btn {
+  background: var(--bg-surface);
+}
+
+html .home-industry-item:hover,
+html .home-quick-action-item:hover,
+html .production-page-item:hover,
+html .production-action-item:hover,
+html .prof-action-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+html .home-quick-action-icon,
+html .action-icon {
+  background: var(--bg-surface);
+  color: var(--color-icon);
+}
+
+html .smp-table th {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-color);
+}
+
+html .smp-table td {
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-light);
+}
+
+html .smp-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+html .buyer-dir-table thead th {
+  background: var(--bg-surface);
+  color: var(--color-muted);
+  border-bottom-color: var(--border-color);
+}
+
+html .buyer-dir-table tbody td {
+  color: var(--color-secondary);
+  border-bottom-color: var(--border-light);
+}
+
+html .buyer-dir-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+html .buyer-dir-filters {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+html input,
+html select,
+html textarea {
+  background: var(--bg-input);
+  color: var(--color-primary);
+  border-color: var(--input-border);
+}
+
+html input::placeholder,
+html textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+html input:focus,
+html select:focus,
+html textarea:focus {
+  border-color: var(--input-focus);
+}
+
+html .smp-tabs {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+html .smp-tab {
+  color: var(--color-muted);
+}
+
+html .smp-tab.active {
+  color: var(--link-color);
+  border-bottom-color: var(--link-color);
+}
+
+html .smp-req-block {
+  border-left-color: var(--border-color);
+}
+
+html .smp-box {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+html .audit-modal,
+html .prof-modal {
+  background: var(--bg-card);
+  color: var(--color-primary);
+}
+
+html .audit-type-card {
+  border-color: var(--border-color);
+}
+
+html ::-webkit-scrollbar {
+  width: 8px;
+}
+
+html ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+html ::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-hover);
+  border-radius: 4px;
+}
+
+html a,
+html .production-back-link,
+html .cost-mgmt-back-link,
+html .enterprise-back-link,
+html .industry-hub-back-link,
+html .app-page-back-link,
+html .sysmgmt-back {
+  color: var(--link-color);
+}
+
+html .view-all-btn {
+  background: var(--bg-surface);
+  color: var(--color-secondary);
+}
+
+html .gc-table td {
+  border-bottom-color: var(--border-light);
+  color: var(--gc-text, var(--color-secondary));
+}
+
+/* ── Admin · Super Admin · Developer (lazy route chunks) ─────────────────────
+   Nested /admin/* and sad-* widgets rely on vars; html… wins over stray legacy. */
+
+html .sad-page {
+  background: transparent;
+  color: var(--color-secondary);
+}
+
+html .sad-header,
+html .sad-widget,
+html .sad-kpi,
+html .sad-kpi-card,
+html .sad-tabs,
+html .sad-table-wrap,
+html .sad-account-detail,
+html .sad-panel-detail,
+html .dd-header,
+html .dd-stat,
+html .dd-list,
+html .dd-detail {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--color-secondary);
+}
+
+html .sad-detail-grid {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+}
+
+html .sad-title,
+html .sad-widget-title,
+html .fg-label,
+html .fg-feature-name {
+  color: var(--color-primary);
+}
+
+html .submission-card,
+html .ahp-queue-card,
+html .timeline-item,
+html .industry-tag,
+html .sad-panel-item:not(.selected),
+html .sad-sec-ip-row {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+  color: var(--color-secondary);
+}
+
+html .empty-state,
+html .ahp-empty,
+html .sad-empty {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--color-muted);
+}
+
+html .hub-landing__card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+html .sad-table th,
+html .ahp-table th {
+  background: var(--bg-surface);
+  color: var(--color-muted);
+  border-color: var(--border-color);
+}
+
+html .sad-table td,
+html .ahp-table td {
+  color: var(--color-secondary);
+  border-color: var(--border-light);
+}
+
+html .sad-tab {
+  color: var(--color-secondary);
+}
+
+html .dd-ticket-row,
+html .dd-reply,
+html .dd-detail-info,
+html .dd-detail-message {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+}

@@ -1,5 +1,5 @@
 .platform-cal {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   border: 1px solid var(--border-light, #e8e8e8);
   border-radius: 12px;
   padding: 12px 14px 16px;
@@ -42,7 +42,7 @@
 
 .platform-cal__nav:hover {
   background: var(--accent-light, #e8eeff);
-  border-color: var(--color-primary, #000888);
+  border-color: var(--accent);
 }
 
 .platform-cal__grid {
@@ -94,12 +94,12 @@
 }
 
 .platform-cal__cell--today {
-  border-color: var(--color-primary, #000888);
-  background: rgba(0, 8, 136, 0.06);
+  border-color: var(--accent);
+  background: rgba(0, 212, 255, 0.06);
 }
 
 .platform-cal__cell--selected {
-  box-shadow: inset 0 0 0 2px var(--color-primary, #000888);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .platform-cal__daynum {

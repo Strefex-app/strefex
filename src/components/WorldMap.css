@@ -72,7 +72,7 @@
 
 .map-tooltip {
   position: fixed;
-  background: var(--bg-card, #ffffff);
+  background: var(--bg-card, var(--bg-card));
   color: var(--color-primary, #192a56);
   padding: 10px 14px;
   border-radius: 8px;

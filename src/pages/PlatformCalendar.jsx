@@ -6,7 +6,7 @@ import { usePlatformCalendarEvents } from '../hooks/usePlatformCalendarEvents'
 import './PlatformCalendar.css'
 
 const LEGEND = [
-  { type: 'task', label: 'Project task', color: '#000888' },
+  { type: 'task', label: 'Project task', color: '#00d4ff' },
   { type: 'rfq_deadline', label: 'RFQ deadline', color: '#2e7d32' },
   { type: 'rfq_incoming', label: 'RFQ to respond', color: '#c62828' },
   { type: 'service_request', label: 'Service request', color: '#e65100' },

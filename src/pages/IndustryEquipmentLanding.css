@@ -14,8 +14,8 @@
 }
 
 .industry-equipment-landing-container .page-title-section {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
   padding: 20px 24px;
   margin: -20px -20px 20px -20px;
 }
@@ -23,13 +23,13 @@
 .industry-equipment-landing-container .page-title {
   font-size: 28px;
   font-weight: var(--font-semibold);
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 8px 0;
 }
 
 .industry-equipment-landing-container .page-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--color-secondary);
   margin: 0;
   line-height: 1.4;
 }
@@ -41,7 +41,7 @@
 .section-label {
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: var(--color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 12px 0;

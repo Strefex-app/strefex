@@ -178,33 +178,33 @@ const ProductionQualityKPIs = () => {
         <div className="metrics-card">
           <h3>Quality Focus Areas</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '10px', borderLeft: '4px solid #27ae60' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 8px 0' }}>Prevention</h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: '#666' }}>
+            <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '10px', borderLeft: '4px solid #27ae60' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary)', margin: '0 0 8px 0' }}>Prevention</h4>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-secondary)' }}>
                 <li>Training programs</li>
                 <li>Preventive maintenance</li>
                 <li>Process control</li>
               </ul>
             </div>
-            <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '10px', borderLeft: '4px solid #3498db' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 8px 0' }}>Appraisal</h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: '#666' }}>
+            <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '10px', borderLeft: '4px solid #3498db' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary)', margin: '0 0 8px 0' }}>Appraisal</h4>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-secondary)' }}>
                 <li>Inspection activities</li>
                 <li>Testing procedures</li>
                 <li>Audit programs</li>
               </ul>
             </div>
-            <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '10px', borderLeft: '4px solid #e67e22' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 8px 0' }}>Internal Failure</h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: '#666' }}>
+            <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '10px', borderLeft: '4px solid #e67e22' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary)', margin: '0 0 8px 0' }}>Internal Failure</h4>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-secondary)' }}>
                 <li>Scrap costs</li>
                 <li>Rework costs</li>
                 <li>Downtime losses</li>
               </ul>
             </div>
-            <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '10px', borderLeft: '4px solid #e74c3c' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 8px 0' }}>External Failure</h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: '#666' }}>
+            <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '10px', borderLeft: '4px solid #e74c3c' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary)', margin: '0 0 8px 0' }}>External Failure</h4>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-secondary)' }}>
                 <li>Warranty claims</li>
                 <li>Customer returns</li>
                 <li>Complaints handling</li>

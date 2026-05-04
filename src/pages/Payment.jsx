@@ -410,7 +410,7 @@ export default function Payment() {
               {planObj?.price === 0 ? 'Free' : `$${planObj?.price}/month`}
             </div>
           </div>
-          <button className="pm-checkout-btn" onClick={() => navigate('/plans')} style={{ padding: '10px 20px', borderRadius: 8, background: '#000888', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+          <button className="pm-checkout-btn" onClick={() => navigate('/plans')} style={{ padding: '10px 20px', borderRadius: 8, background: '#00d4ff', color: '#0d0e10', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
             {currentPlan === 'start' ? 'Upgrade Plan' : 'Manage Subscription'}
           </button>
         </div>
@@ -476,7 +476,7 @@ export default function Payment() {
           <div className="payment-content">
             {!isCompanyAdmin ? (
               <div className="app-page-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff3e0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--badge-warning-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
                     <path d="M12 9v2m0 4h.01M5.07 19h13.86c1.1 0 1.8-1.17 1.25-2.12l-6.93-12a1.44 1.44 0 0 0-2.5 0l-6.93 12c-.55.95.15 2.12 1.25 2.12z" stroke="#e65100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -487,7 +487,7 @@ export default function Payment() {
                 </p>
                 <button
                   type="button"
-                  style={{ padding: '10px 24px', borderRadius: 8, background: '#000888', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+                  style={{ padding: '10px 24px', borderRadius: 8, background: '#00d4ff', color: '#0d0e10', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
                   onClick={() => navigate('/plans')}
                 >
                   Back to Plans
@@ -510,7 +510,7 @@ export default function Payment() {
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                   <button
                     type="button"
-                    style={{ padding: '10px 24px', borderRadius: 8, background: '#000888', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+                    style={{ padding: '10px 24px', borderRadius: 8, background: '#00d4ff', color: '#0d0e10', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
                     onClick={() => navigate('/main-menu')}
                   >
                     Back to Home
@@ -582,7 +582,7 @@ export default function Payment() {
                 </div>
 
                 {selectedMethod && (
-                  <div style={{ marginTop: 20, padding: 20, background: '#f8f9fa', borderRadius: 10 }}>
+                  <div style={{ marginTop: 20, padding: 20, background: 'var(--bg-surface)', borderRadius: 10 }}>
                     <div className="order-summary">
                       <h4>Order Summary</h4>
                       <div className="summary-row">

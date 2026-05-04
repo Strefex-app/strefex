@@ -80,10 +80,10 @@
 
 .view-btn {
   padding: 10px 18px;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--accent);
   border-radius: 8px;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -117,9 +117,9 @@
 }
 
 .quick-status-btn:hover:not(:disabled) {
-  border-color: var(--color-primary);
+  border-color: var(--accent);
   background: var(--accent-light);
-  color: var(--color-primary);
+  color: var(--accent-text);
 }
 
 .quick-status-btn.active {

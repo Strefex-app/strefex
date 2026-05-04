@@ -251,7 +251,7 @@ const CostBreakdown = () => {
                   className={`category-btn ${selectedCategory === cat.id ? 'active' : ''}`}
                   style={{ 
                     borderColor: selectedCategory === cat.id ? cat.color : 'transparent',
-                    background: selectedCategory === cat.id ? `${cat.color}15` : '#f8f9fa'
+                    background: selectedCategory === cat.id ? `${cat.color}15` : 'var(--bg-surface)'
                   }}
                   onClick={() => setSelectedCategory(cat.id)}
                 >

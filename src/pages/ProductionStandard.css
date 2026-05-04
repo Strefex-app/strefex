@@ -103,12 +103,12 @@
 }
 
 .cert-details strong {
-  color: #333;
+  color: var(--color-primary);
 }
 
 .std-add-btn {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #000022 0%, #000888 100%);
+  background: linear-gradient(135deg, #0d0e10 0%, #00d4ff 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -120,7 +120,7 @@
 
 .std-add-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 8, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
 }
 
 /* Tabs */
@@ -147,12 +147,12 @@
 }
 
 .std-tab:hover {
-  background: #f0f2f5;
+  background: var(--bg-surface);
 }
 
 .std-tab.active {
-  background: #000888;
-  color: #fff;
+  background: #00d4ff;
+  color: var(--btn-primary-text);
 }
 
 /* Content Area */
@@ -178,7 +178,7 @@
 .std-card h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 16px 0;
 }
 
@@ -206,7 +206,7 @@
   transform: translate(-50%, -50%);
   font-size: 32px;
   font-weight: var(--font-semibold);
-  color: #333;
+  color: var(--color-primary);
 }
 
 .score-label {
@@ -229,13 +229,13 @@
 
 .info-label {
   font-size: 12px;
-  color: #888;
+  color: var(--color-muted);
 }
 
 .info-value {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
 }
 
 .info-value.highlight {
@@ -255,8 +255,8 @@
   gap: 10px;
   padding: 8px 0;
   font-size: 13px;
-  color: #555;
-  border-bottom: 1px solid #f5f5f5;
+  color: var(--color-secondary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .req-list li:last-child {
@@ -289,7 +289,7 @@
 
 .clause-name {
   font-size: 13px;
-  color: #555;
+  color: var(--color-secondary);
 }
 
 .clause-score {
@@ -338,12 +338,12 @@
 
 .std-table th {
   font-weight: 600;
-  color: #555;
-  background: #f8f9fa;
+  color: var(--color-secondary);
+  background: var(--bg-surface);
 }
 
 .std-table tbody tr:hover {
-  background: #fafbfc;
+  background: var(--bg-surface);
 }
 
 .mini-progress {
@@ -388,7 +388,7 @@
 
 .std-btn-sm {
   padding: 6px 12px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border: none;
   border-radius: 6px;
   font-size: 12px;
@@ -436,7 +436,7 @@
 .std-sum-value {
   font-size: 32px;
   font-weight: var(--font-semibold);
-  color: #333;
+  color: var(--color-primary);
 }
 
 .std-sum-value.green { color: #27ae60; }
@@ -504,14 +504,14 @@
 
 .timeline-date {
   font-size: 12px;
-  color: #888;
+  color: var(--color-muted);
   margin-bottom: 4px;
 }
 
 .timeline-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin-bottom: 4px;
 }
 
@@ -529,7 +529,7 @@
 
 .tool-card {
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   border-radius: 10px;
 }
 
@@ -543,7 +543,7 @@
 .tool-name {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
 }
 
 .tool-status {
@@ -585,7 +585,7 @@
 .maturity-value {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   min-width: 32px;
 }
 
@@ -598,7 +598,7 @@
 
 .core-tool-item {
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   border-radius: 12px;
 }
 
@@ -628,7 +628,7 @@
 .ct-info h4 {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 4px 0;
 }
 
@@ -651,7 +651,7 @@
 
 .ct-label {
   font-size: 12px;
-  color: #888;
+  color: var(--color-muted);
 }
 
 .ct-phases {
@@ -702,7 +702,7 @@
 .legend-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
 }
 
 .legend-items {
@@ -715,7 +715,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #555;
+  color: var(--color-secondary);
 }
 
 .rating-badge {
@@ -744,7 +744,7 @@
 
 .vda-audit-card {
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   border-radius: 12px;
 }
 
@@ -758,13 +758,13 @@
 .vda-audit-info h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 4px 0;
 }
 
 .vda-audit-info p {
   font-size: 12px;
-  color: #888;
+  color: var(--color-muted);
   margin: 0;
 }
 
@@ -810,7 +810,7 @@
 
 .el-name {
   font-size: 12px;
-  color: #555;
+  color: var(--color-secondary);
   min-width: 24px;
 }
 
@@ -831,7 +831,7 @@
 .el-score {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   min-width: 32px;
   text-align: right;
 }
@@ -846,7 +846,7 @@
 
 .findings-count {
   font-size: 12px;
-  color: #888;
+  color: var(--color-muted);
 }
 
 .vda-status {
@@ -907,7 +907,7 @@
   background: none;
   border: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-muted);
   cursor: pointer;
 }
 
@@ -930,7 +930,7 @@
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--color-secondary);
   margin-bottom: 6px;
 }
 
@@ -939,7 +939,7 @@
 .form-group select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -956,7 +956,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   border-radius: 8px;
 }
 
@@ -969,7 +969,7 @@
 .element-input span {
   flex: 1;
   font-size: 13px;
-  color: #555;
+  color: var(--color-secondary);
 }
 
 .element-input input {
@@ -988,7 +988,7 @@
 
 .btn-cancel {
   padding: 10px 20px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -997,7 +997,7 @@
 
 .btn-submit {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #000022 0%, #000888 100%);
+  background: linear-gradient(135deg, #0d0e10 0%, #00d4ff 100%);
   color: #fff;
   border: none;
   border-radius: 8px;

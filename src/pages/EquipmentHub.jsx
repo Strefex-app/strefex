@@ -9,6 +9,7 @@ import authService from '../services/authService'
 import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './Home.css'
+import '../styles/hub-two-col-grid.css'
 
 const INDUSTRIES = [
   { id: 'automotive', tKey: 'industry.automotive', path: '/industry/automotive', descKey: 'industry.description' },
@@ -96,7 +97,7 @@ export default function EquipmentHub() {
 
         <div className="app-page-card">
           <h2 className="app-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,8,136,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000888' }}>
+            <span style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0, 212, 255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00d4ff' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -111,7 +112,7 @@ export default function EquipmentHub() {
         {isServiceProvider ? (
           <div className="app-page-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
             <p style={{ color: '#888', fontSize: 15 }}>Service Provider accounts do not have access to the Equipment page. Please use the Service section instead.</p>
-            <button onClick={() => navigate('/service-hub')} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, background: '#000888', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/service-hub')} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, background: '#00d4ff', color: '#0d0e10', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
               Go to Services
             </button>
           </div>
@@ -123,7 +124,7 @@ export default function EquipmentHub() {
                 : `Registered in ${selectedIndustries.length} ${selectedIndustries.length === 1 ? 'industry' : 'industries'}. To access another industry, create a separate account registration.`}
             </p>
 
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div className="hub-two-col-grid">
               {INDUSTRIES.map((item) => {
                 const chosen = isSelected(item.id)
 
@@ -136,17 +137,17 @@ export default function EquipmentHub() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 16,
                         padding: '16px 20px', borderRadius: 12,
-                        background: chosen ? 'rgba(0,8,136,.04)' : '#fff',
-                        border: chosen ? '2px solid #000888' : '1px solid #e2e8f0',
+                        background: chosen ? 'rgba(0, 212, 255,.04)' : 'var(--bg-card)',
+                        border: chosen ? '2px solid #00d4ff' : '1px solid #e2e8f0',
                         cursor: 'pointer', textAlign: 'left', width: '100%',
                         transition: 'all .15s',
                       }}
                     >
                       <span style={{
                         width: 48, height: 48, borderRadius: 12,
-                        background: chosen ? 'rgba(0,8,136,.1)' : '#f8fafc',
+                        background: chosen ? 'rgba(0, 212, 255,.1)' : '#f8fafc',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: chosen ? '#000888' : '#64748b', flexShrink: 0,
+                        color: chosen ? '#00d4ff' : '#64748b', flexShrink: 0,
                       }}>
                         {INDUSTRY_ICONS[item.id] || INDUSTRY_ICONS.machinery}
                       </span>
@@ -157,7 +158,7 @@ export default function EquipmentHub() {
                         </div>
                         <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Browse equipment categories and suppliers</div>
                       </div>
-                      <span style={{ color: '#000888', fontSize: 20, fontWeight: 300 }}>→</span>
+                      <span style={{ color: '#00d4ff', fontSize: 20, fontWeight: 300 }}>→</span>
                     </button>
                   )
                 }
@@ -170,7 +171,7 @@ export default function EquipmentHub() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 16,
                       padding: '16px 20px', borderRadius: 12,
-                      background: '#fff', border: '1px solid #e2e8f0',
+                      background: 'var(--bg-card)', border: '1px solid var(--border-color)',
                       cursor: 'pointer', textAlign: 'left', width: '100%',
                       opacity: 1, transition: 'all .15s',
                     }}
@@ -190,7 +191,7 @@ export default function EquipmentHub() {
                         Register this industry through a separate account onboarding
                       </div>
                     </div>
-                    <span style={{ color: '#000888', fontSize: 20, fontWeight: 300 }}>+</span>
+                    <span style={{ color: '#00d4ff', fontSize: 20, fontWeight: 300 }}>+</span>
                   </button>
                 )
               })}
@@ -213,7 +214,7 @@ export default function EquipmentHub() {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setShowPicker(false)}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
                 >
                   Cancel
                 </button>
@@ -223,7 +224,7 @@ export default function EquipmentHub() {
                     await authService.logout().catch(() => {})
                     navigate('/register')
                   }}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#000888', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00d4ff', color: '#0d0e10', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                 >
                   Sign Out & Register
                 </button>

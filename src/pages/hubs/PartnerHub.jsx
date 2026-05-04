@@ -57,7 +57,7 @@ export default function PartnerHub() {
           <h2 className="hub-landing__section-label">Supplier (seller)</h2>
           <div className="hub-landing__grid">
             <Link to="/dashboard/supplier" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(0,8,136,.1)', color: '#000888' }}>
+              <span className="hub-landing__card-icon" style={{ background: 'rgba(0, 212, 255,.1)', color: '#00d4ff' }}>
                 <Icon name="document" size={22} />
               </span>
               <h3 className="hub-landing__card-title">Supplier workspace</h3>

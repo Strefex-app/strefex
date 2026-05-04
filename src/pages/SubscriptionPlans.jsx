@@ -205,7 +205,7 @@ export default function SubscriptionPlans() {
   const isTrialExpired = subStatus === 'trial_expired'
 
   const planAccent = (id) => {
-    const colors = { start: '#95a5a6', basic: '#3498db', standard: '#f39c12', premium: '#8e44ad', enterprise: '#000888' }
+    const colors = { start: '#95a5a6', basic: '#3498db', standard: '#f39c12', premium: '#8e44ad', enterprise: '#00d4ff' }
     return colors[id] || '#999'
   }
 

@@ -224,11 +224,11 @@
 
 /* KPI row */
 .vd-eval-kpis { display: flex; gap: 6px; padding: 10px 0 0; border-top: 1px solid rgba(0,0,0,.05); margin-top: 12px; flex-wrap: wrap; }
-.vd-eval-kpi { display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 8px; font-size: 11px; color: #666; background: rgba(0,0,0,.02); white-space: nowrap; }
+.vd-eval-kpi { display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 8px; font-size: 11px; color: var(--color-secondary); background: rgba(0,0,0,.02); white-space: nowrap; }
 .vd-eval-kpi-n { font-weight: var(--font-semibold); font-size: 14px; color: var(--vd-text, #1a1a2e); }
 
 /* Slider description */
-.vd-eval-slider-desc { font-size: 10px; color: #999; margin: -2px 0 2px; }
+.vd-eval-slider-desc { font-size: 10px; color: var(--color-muted); margin: -2px 0 2px; }
 
 /* Complaint form */
 .vd-cmp-select { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; width: 100%; background: var(--vd-card, var(--bg-card)); color: var(--vd-text, var(--color-primary)); }

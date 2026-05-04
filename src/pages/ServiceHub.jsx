@@ -9,6 +9,7 @@ import { getEffectiveLimits } from '../services/stripeService'
 import '../styles/app-page.css'
 import './Home.css'
 import './IndustryHub.css'
+import '../styles/hub-two-col-grid.css'
 import { PROJECT_MANAGEMENT_SCOPE_LABELS } from '../data/projectManagementScopeServices'
 
 const SERVICE_CATEGORIES = [
@@ -16,8 +17,8 @@ const SERVICE_CATEGORIES = [
     id: 'project-management',
     label: 'Project Management',
     description: '2D/3D Design, Engineering, full project lifecycle management',
-    color: '#000888',
-    bg: 'rgba(0,8,136,.06)',
+    color: '#00d4ff',
+    bg: 'rgba(0, 212, 255,.06)',
     items: PROJECT_MANAGEMENT_SCOPE_LABELS,
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -151,7 +152,7 @@ export default function ServiceHub() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div className="hub-two-col-grid hub-two-col-grid--gap-16">
           {SERVICE_CATEGORIES.map((cat) => {
             const chosen = isServiceSelected(cat.id)
             const slotsLeft = maxServiceCategories - selectedServices.length
@@ -164,8 +165,8 @@ export default function ServiceHub() {
                 style={{
                   padding: '20px 22px',
                   borderRadius: 14,
-                  border: '1.5px solid #e2e8f0',
-                  background: '#fff',
+                  border: '1.5px solid var(--border-color)',
+                  background: 'var(--bg-card)',
                 }}>
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                   <span style={{
@@ -217,7 +218,7 @@ export default function ServiceHub() {
                           onClick={() => canPick ? selectService(cat.id, maxServiceCategories) : navigate('/plans')}
                           style={{
                             padding: '8px 20px', borderRadius: 8, border: 'none',
-                            background: canPick ? cat.color : '#e2e8f0',
+                            background: canPick ? cat.color : 'var(--bg-surface)',
                             color: canPick ? '#fff' : '#888',
                             fontWeight: 600, fontSize: 13, cursor: 'pointer',
                           }}

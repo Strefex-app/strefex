@@ -380,7 +380,7 @@ const ProductionFloorLayout = () => {
                         width={eq.width + 6}
                         height={eq.height + 6}
                         fill="none"
-                        stroke="#000888"
+                        stroke="#00d4ff"
                         strokeWidth="2"
                         strokeDasharray="4"
                         rx="4"

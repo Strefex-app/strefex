@@ -266,7 +266,7 @@
 .hrdoc-doc-name {
   display: block;
   font-weight: 500;
-  color: #333;
+  color: var(--color-primary);
   margin-bottom: 4px;
 }
 
@@ -287,11 +287,11 @@
 }
 
 .hrdoc-employee {
-  color: #666;
+  color: var(--color-secondary);
 }
 
 .hrdoc-date {
-  color: #666;
+  color: var(--color-secondary);
   font-size: 13px;
 }
 
@@ -631,7 +631,7 @@
 }
 
 [data-theme="dark"] .hrdoc-tab.active .hrdoc-tab-count {
-  background: #fff;
+  background: var(--bg-card);
   color: #27272a;
 }
 
@@ -652,7 +652,7 @@
 }
 
 [data-theme="dark"] .hrdoc-upload-btn {
-  background: #fff;
+  background: var(--bg-card);
   color: #27272a;
 }
 
@@ -788,7 +788,7 @@
 }
 
 [data-theme="dark"] .hrdoc-btn.primary {
-  background: #fff;
+  background: var(--bg-card);
   color: #27272a;
 }
 

@@ -1,7 +1,7 @@
 .home-calendar-section {
   margin-bottom: 18px;
   padding: 14px 16px;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--bg-card));
   border: 1px solid var(--border-light, #e8e8e8);
   border-radius: 12px;
   box-sizing: border-box;
@@ -32,7 +32,7 @@
 .home-calendar-section__link {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-primary, #000888);
+  color: var(--accent);
   text-decoration: none;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .home-calendar-section__hide:hover {
-  border-color: var(--color-primary, #000888);
+  border-color: var(--accent);
   color: var(--color-primary, #1a1a2e);
 }
 
@@ -132,7 +132,7 @@
   background: none;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary, #000888);
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -148,7 +148,7 @@
   border-radius: 8px;
   border: 1px dashed var(--border-color, #ccc);
   background: var(--bg-surface, #f9f9fb);
-  color: var(--color-primary, #000888);
+  color: var(--accent);
   cursor: pointer;
   width: 100%;
   max-width: 320px;

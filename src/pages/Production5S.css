@@ -60,7 +60,7 @@
 
 .fs-add-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 8, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
 }
 
 /* 5S Pillars */
@@ -109,7 +109,7 @@
 .fs-sum-value {
   font-size: 32px;
   font-weight: var(--font-semibold);
-  color: #333;
+  color: var(--color-primary);
 }
 
 .fs-sum-value.green { color: #27ae60; }
@@ -133,7 +133,7 @@
 .fs-card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-primary);
   margin: 0 0 20px 0;
 }
 
@@ -157,12 +157,12 @@
 
 .fs-table th {
   font-weight: 600;
-  color: #555;
-  background: #f8f9fa;
+  color: var(--color-secondary);
+  background: var(--bg-surface);
 }
 
 .fs-table tbody tr:hover {
-  background: #fafbfc;
+  background: var(--bg-surface);
 }
 
 .score-badge {
@@ -214,7 +214,7 @@
 
 .fs-action-btn {
   padding: 6px 12px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border: none;
   border-radius: 6px;
   font-size: 12px;
@@ -267,7 +267,7 @@
   background: none;
   border: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-muted);
   cursor: pointer;
   line-height: 1;
 }
@@ -291,7 +291,7 @@
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--color-secondary);
   margin-bottom: 6px;
 }
 
@@ -299,7 +299,7 @@
 .fs-form-group textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -317,7 +317,7 @@
   gap: 12px;
   margin-bottom: 20px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--bg-surface);
   border-radius: 10px;
 }
 
@@ -336,7 +336,7 @@
   width: 50px;
   padding: 8px;
   text-align: center;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 16px;
   font-weight: 600;
@@ -345,7 +345,7 @@
 .score-hint {
   display: block;
   font-size: 11px;
-  color: #888;
+  color: var(--color-muted);
   margin-top: 4px;
 }
 
@@ -360,7 +360,7 @@
 
 .fs-btn-cancel {
   padding: 10px 20px;
-  background: #f0f2f5;
+  background: var(--bg-surface);
   border: none;
   border-radius: 8px;
   font-size: 14px;

@@ -410,7 +410,7 @@ export default function AuditorExecutiveSummary() {
                           borderRadius: 12,
                           background: '#f1f5f9',
                           color: '#475569',
-                          border: '1px solid #e2e8f0',
+                          border: '1px solid var(--border-color)',
                         }}
                       >
                         Supplier Audit

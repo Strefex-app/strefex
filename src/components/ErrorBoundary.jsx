@@ -35,15 +35,15 @@ export default class ErrorBoundary extends Component {
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
             <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <h2 style={{ margin: '0 0 8px', color: '#333', fontSize: 20 }}>Something went wrong</h2>
-          <p style={{ margin: '0 0 20px', color: '#666', fontSize: 14, maxWidth: 400 }}>
+          <h2 style={{ margin: '0 0 8px', color: 'var(--color-primary)', fontSize: 20 }}>Something went wrong</h2>
+          <p style={{ margin: '0 0 20px', color: 'var(--color-secondary)', fontSize: 14, maxWidth: 400 }}>
             An unexpected error occurred. Please try again or contact support if the problem persists.
           </p>
           <button
             onClick={this.handleRetry}
             style={{
               padding: '10px 24px', border: 'none', borderRadius: 8,
-              background: 'linear-gradient(135deg, #000222, #000888)', color: '#fff',
+              background: 'linear-gradient(135deg, #13151a, #00d4ff)', color: '#fff',
               fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}
           >
@@ -51,7 +51,7 @@ export default class ErrorBoundary extends Component {
           </button>
           {process.env.NODE_ENV === 'development' && this.state.error && (
             <pre style={{
-              marginTop: 24, padding: 16, background: '#f8f9fa', borderRadius: 8,
+              marginTop: 24, padding: 16, background: 'var(--bg-surface)', borderRadius: 8,
               fontSize: 12, color: '#c0392b', maxWidth: '100%', overflow: 'auto', textAlign: 'left',
             }}>
               {this.state.error.toString()}

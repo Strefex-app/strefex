@@ -231,7 +231,7 @@ export default function ProcurementDashboard() {
 
         {showNewPR && (
           <div className="proc-card">
-            <h4 style={{ margin: '0 0 12px', color: '#000888' }}>New Purchase Requisition</h4>
+            <h4 style={{ margin: '0 0 12px', color: '#00d4ff' }}>New Purchase Requisition</h4>
             <div className="proc-form-grid">
               <div className="proc-field"><label>Title *</label><input value={newPR.title} onChange={(e) => setNewPR({ ...newPR, title: e.target.value })} placeholder="Brief description..." /></div>
               <div className="proc-field"><label>Category</label>

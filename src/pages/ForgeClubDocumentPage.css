@@ -18,7 +18,7 @@
   padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-light, #e8e8ef);
-  background: var(--bg-surface, #fff);
+  background: var(--bg-surface, var(--bg-card));
   font-size: 13px;
   font-weight: 600;
   color: var(--color-primary, #1a1a2e);
@@ -35,8 +35,8 @@
 }
 
 .forge-club-doc-tool--active {
-  border-color: var(--color-primary, #000888);
-  background: rgba(0, 8, 136, 0.06);
+  border-color: var(--accent);
+  background: rgba(0, 212, 255, 0.06);
 }
 
 .forge-club-doc-tool--primary {

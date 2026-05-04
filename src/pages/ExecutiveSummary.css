@@ -74,6 +74,16 @@
   background: var(--btn-primary-hover);
 }
 
+.exec-rfq-btn--outline {
+  background: transparent;
+  color: var(--btn-primary-bg);
+  border: 2px solid var(--btn-primary-bg);
+}
+
+.exec-rfq-btn--outline:hover {
+  background: rgba(25, 42, 86, 0.06);
+}
+
 /* Main Indicators (Fit / Risk / Capacity bars) */
 .exec-main-indicators {
   display: grid;
@@ -524,7 +534,7 @@
   flex-shrink: 0;
 }
 
-.exec-stat-icon.sent { background: rgba(25, 42, 86, 0.1); color: #192A56; }
+.exec-stat-icon.sent { background: rgba(25, 42, 86, 0.1); color: var(--color-primary); }
 .exec-stat-icon.active { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
 .exec-stat-icon.responses { background: rgba(41, 128, 185, 0.1); color: #2980b9; }
 .exec-stat-icon.suppliers { background: rgba(155, 89, 182, 0.1); color: #8e44ad; }
@@ -627,6 +637,16 @@
 
 .exec-multi-rfq-btn:hover {
   background: var(--btn-primary-hover);
+}
+
+.exec-multi-rfq-btn--outline {
+  background: transparent;
+  border: 1px solid var(--btn-primary-bg);
+  color: var(--btn-primary-bg);
+}
+
+.exec-multi-rfq-btn--outline:hover {
+  background: rgba(25, 42, 86, 0.06);
 }
 
 .exec-table-wrapper {

@@ -10,7 +10,7 @@ import './BuyerDashboard.css'
 /* ── Status badge helper ──────────────────────────────────── */
 const STATUS_MAP = {
   draft:     { label: 'Draft',     color: '#888',    bg: 'rgba(136,136,136,.08)' },
-  sent:      { label: 'Sent',      color: '#000888', bg: 'rgba(0,8,136,.08)' },
+  sent:      { label: 'Sent',      color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
   active:    { label: 'Active',    color: '#e65100', bg: 'rgba(230,81,0,.08)' },
   completed: { label: 'Completed', color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
 }

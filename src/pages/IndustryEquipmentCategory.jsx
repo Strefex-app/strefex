@@ -3,6 +3,7 @@ import AppLayout from '../components/AppLayout'
 import { getEquipmentForIndustryCategory } from '../data/equipmentByIndustryCategory'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import '../styles/app-page.css'
+import '../styles/hub-two-col-grid.css'
 
 const INDUSTRY_LABELS = {
   automotive: 'Automotive',
@@ -35,7 +36,7 @@ const IndustryEquipmentCategory = () => {
         <div className="app-page-card">
           <h2 className="app-page-title">Equipment</h2>
           <p className="app-page-subtitle">Select equipment to view suppliers.</p>
-          <div className="app-page-list">
+          <div className="app-page-list hub-two-col-grid">
             {equipment.length === 0 ? (
               <div className="app-page-list-empty">
                 No equipment in this category yet. Connect your database to load more.

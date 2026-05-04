@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { getEffectiveLimits } from '../services/stripeService'
 import './IndustryHub.css'
+import '../styles/hub-two-col-grid.css'
 
 const INDUSTRY_LABELS = {
   automotive: 'Automotive Industry',
@@ -242,7 +243,7 @@ const IndustryEquipmentLanding = () => {
                 ? 'Choose your equipment category to browse sellers.'
                 : `${selectedCats.length} of ${maxCategories} ${maxCategories === 1 ? 'category' : 'categories'} selected.`}
             </p>
-            <div className="industry-hub-pages-list">
+            <div className="industry-hub-pages-list hub-two-col-grid">
               {categories.length === 0 ? (
                 <div className="industry-hub-empty">
                   No equipment categories for this industry yet. Connect your database to load more.
@@ -267,7 +268,7 @@ const IndustryEquipmentLanding = () => {
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setShowCatPicker(false)}
-                    style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
+                    style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
                   >
                     Cancel
                   </button>
@@ -277,7 +278,7 @@ const IndustryEquipmentLanding = () => {
                       navigate(`${basePath}/${showCatPicker}/executive-summary`)
                       setShowCatPicker(false)
                     }}
-                    style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#000888', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                    style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00d4ff', color: '#0d0e10', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                   >
                     Confirm
                   </button>

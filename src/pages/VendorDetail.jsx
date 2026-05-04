@@ -633,7 +633,7 @@ export default function VendorDetail() {
         {/* ═══ New Evaluation Form — 8 criteria ═══ */}
         {showEvalForm && (
           <div className="vd-card">
-            <h5 style={{ margin: '0 0 12px', color: '#000888' }}>Submit New Evaluation</h5>
+            <h5 style={{ margin: '0 0 12px', color: '#00d4ff' }}>Submit New Evaluation</h5>
             <div className="vd-eval-form-grid">
               {EVAL_CRITERIA.map((c) => (
                 <div key={c.key} className="vd-eval-slider">
@@ -890,7 +890,7 @@ export default function VendorDetail() {
     <div className="vd-card">
       <div className="vd-card-header">
         <h4>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000888" strokeWidth="2" style={{ marginRight: 6, verticalAlign: -2 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2" style={{ marginRight: 6, verticalAlign: -2 }}>
             <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
           </svg>
           Change Log & Audit Trail
@@ -980,7 +980,7 @@ export default function VendorDetail() {
           <div className="vd-modal-overlay" onClick={() => setChangeReasonModal(null)}>
             <div className="vd-modal-reason" onClick={(e) => e.stopPropagation()}>
               <h4>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000888" strokeWidth="2" style={{ marginRight: 6, verticalAlign: -2 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2" style={{ marginRight: 6, verticalAlign: -2 }}>
                   <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
                 Save Changes — {changeReasonModal.section}

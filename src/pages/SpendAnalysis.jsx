@@ -11,7 +11,7 @@ import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const fmtCurrency = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v || 0)
 
-const COLORS = ['#000888', '#2980b9', '#27ae60', '#e67e22', '#8e44ad', '#e74c3c', '#1abc9c', '#f39c12', '#34495e', '#d35400']
+const COLORS = ['#00d4ff', '#2980b9', '#27ae60', '#e67e22', '#8e44ad', '#e74c3c', '#1abc9c', '#f39c12', '#34495e', '#d35400']
 
 export default function SpendAnalysis() {
   const navigate = useNavigate()

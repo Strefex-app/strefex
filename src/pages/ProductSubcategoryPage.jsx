@@ -6,6 +6,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
 import '../styles/app-page.css'
 import './IndustryHub.css'
+import '../styles/hub-two-col-grid.css'
 
 const INDUSTRY_LABELS = {
   automotive: 'Automotive',
@@ -196,7 +197,7 @@ export default function ProductSubcategoryPage() {
               Select a {category.name.toLowerCase()} manufacturing process for the <strong>{industryLabel}</strong> industry to view suppliers, executive summary and request quotes.
             </p>
 
-            <div className="industry-hub-pages-list">
+            <div className="industry-hub-pages-list hub-two-col-grid">
               {subcategories.map((sub) => {
                 const isExpanded = expandedSub === sub.id
                 return (
@@ -251,8 +252,8 @@ export default function ProductSubcategoryPage() {
 
                         {/* ── Supplier list placeholder ── */}
                         <div style={{
-                          padding: '12px 14px', borderRadius: 10, background: '#fff',
-                          border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '12px 14px', borderRadius: 10, background: 'var(--bg-card)',
+                          border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12,
                           marginBottom: 14,
                         }}>
                           <span style={{
@@ -297,7 +298,7 @@ export default function ProductSubcategoryPage() {
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 6,
                               padding: '7px 14px', borderRadius: 8,
-                              border: `1px solid ${category.color}`, background: '#fff',
+                              border: `1px solid ${category.color}`, background: 'var(--bg-card)',
                               color: category.color, fontWeight: 600, fontSize: 12, cursor: 'pointer',
                             }}
                           >
@@ -312,7 +313,7 @@ export default function ProductSubcategoryPage() {
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 6,
                               padding: '7px 14px', borderRadius: 8,
-                              border: '1px solid #e2e8f0', background: '#fff',
+                              border: '1px solid var(--border-color)', background: 'var(--bg-card)',
                               color: '#475569', fontWeight: 600, fontSize: 12, cursor: 'pointer',
                             }}
                           >

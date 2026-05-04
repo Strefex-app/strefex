@@ -149,7 +149,7 @@ export default function VendorManagement() {
           <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#e67e22' }}>{stats.pending}</div><div className="vm-kpi-label">Pending</div></div>
           <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#e74c3c' }}>{stats.blocked}</div><div className="vm-kpi-label">Blocked</div></div>
           <div className="vm-kpi"><div className="vm-kpi-val">{stats.totalConnections}</div><div className="vm-kpi-label">Connections</div></div>
-          <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#000888' }}>${stats.totalSpend.toLocaleString()}</div><div className="vm-kpi-label">Total Spend</div></div>
+          <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#00d4ff' }}>${stats.totalSpend.toLocaleString()}</div><div className="vm-kpi-label">Total Spend</div></div>
           <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#f5a623' }}>{stats.avgScore}</div><div className="vm-kpi-label">Avg Score</div></div>
         </div>
 

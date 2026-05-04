@@ -3,10 +3,10 @@
    ======================================== */
 .prof-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; }
 .prof-dir-box {
-  margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #f4f7fb; border: 1px solid #e2e8f0; font-size: 13px;
+  margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--bg-surface); border: 1px solid var(--border-color); font-size: 13px;
 }
 .prof-dir-title { margin: 0 0 6px; }
-.prof-dir-hint { margin: 0; color: #555; line-height: 1.45; }
+.prof-dir-hint { margin: 0; color: var(--color-secondary); line-height: 1.45; }
 .prof-attach-slot {
   font-size: 11px; max-width: 200px; padding: 4px 6px; border-radius: 6px; border: 1px solid #ccc;
 }
@@ -1037,7 +1037,7 @@
 }
 
 .prof-plan-start { background: var(--bg-surface-hover); color: var(--color-muted); }
-.prof-plan-basic { background: rgba(25, 42, 86, 0.1); color: #192A56; }
+.prof-plan-basic { background: rgba(25, 42, 86, 0.1); color: var(--color-primary); }
 .prof-plan-standard { background: var(--accent-light); color: var(--accent-text); }
 .prof-plan-premium { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
 

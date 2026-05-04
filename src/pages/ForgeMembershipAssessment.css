@@ -1161,7 +1161,7 @@
     display: flex !important;
   }
   .forge-msel {
-    background: #fff;
+    background: var(--bg-card);
     color: #1b2a4a;
   }
 }

@@ -67,6 +67,12 @@
   transform: translateY(-1px);
 }
 
+.cost-page-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Summary Card */
 .cost-page-summary {
   background: var(--bg-card);
@@ -113,6 +119,104 @@
 .cost-table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* RFQ Intelligence strip (CAPEX bridge) — same column as summary + table */
+.cost-page-rfq-integration {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.cost-page-rfq-integration-head {
+  border-left: 4px solid;
+  padding-left: 14px;
+  margin-bottom: 14px;
+}
+
+.cost-page-rfq-integration-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--color-primary);
+}
+
+.cost-page-rfq-integration-sub {
+  font-size: 13px;
+  color: var(--color-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.cost-page-rfq-integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cost-page-rfq-stat {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+
+.cost-page-rfq-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 6px;
+}
+
+.cost-page-rfq-stat-value {
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.45;
+}
+
+.cost-page-rfq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cost-page-rfq-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--color-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.cost-page-rfq-btn-secondary:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--color-primary);
+}
+
+@media (max-width: 600px) {
+  .cost-page-rfq-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cost-page-rfq-actions .cost-page-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cost-page-rfq-actions .cost-page-rfq-btn-secondary {
+    width: 100%;
+  }
 }
 
 .cost-table {
@@ -388,6 +492,21 @@
 [data-theme="dark"] .cost-page-card {
   background: var(--bg-card);
   border-color: var(--border-color);
+}
+
+[data-theme="dark"] .cost-page-rfq-stat {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .cost-page-rfq-btn-secondary {
+  border-color: var(--border-color);
+  color: var(--color-secondary);
+}
+
+[data-theme="dark"] .cost-page-rfq-btn-secondary:hover {
+  background: var(--bg-surface-hover);
+  color: var(--color-primary);
 }
 
 [data-theme="dark"] .cost-page-add-btn {

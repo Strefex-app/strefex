@@ -102,12 +102,12 @@ export default function ProductIndustryLanding() {
               style={{
                 display: 'flex', flexDirection: 'column', gap: 12,
                 padding: '20px 22px', borderRadius: 14,
-                background: '#fff', border: '1.5px solid #e2e8f0',
+                background: 'var(--bg-card)', border: '1.5px solid var(--border-color)',
                 cursor: 'pointer', textAlign: 'left', width: '100%',
                 transition: 'all .15s',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.boxShadow = `0 2px 12px ${cat.color}18` }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none' }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <span style={{
@@ -183,7 +183,7 @@ export default function ProductIndustryLanding() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '7px 12px', borderRadius: 8,
-                    border: `1px solid ${cat.color}`, background: '#fff',
+                    border: `1px solid ${cat.color}`, background: 'var(--bg-card)',
                     color: cat.color, fontWeight: 600, fontSize: 12, cursor: 'pointer',
                   }}
                 >
