@@ -91,6 +91,8 @@ const rehydrateAllTenantStores = () => {
         vendorMod,
         auditMod,
         templateMod,
+        companyRecognitionMod,
+        myCalendarMod,
       ] = await Promise.all([
         import('./projectStore'),
         import('./productionStore'),
@@ -102,6 +104,8 @@ const rehydrateAllTenantStores = () => {
         import('./vendorStore'),
         import('./auditStore'),
         import('./templateStore'),
+        import('./companyRecognitionStore'),
+        import('./myCalendarStore'),
       ])
 
       const persistStores = [
@@ -115,6 +119,8 @@ const rehydrateAllTenantStores = () => {
         vendorMod.default,
         auditMod.default,
         templateMod.useTemplateStore,
+        companyRecognitionMod.useCompanyRecognitionStore,
+        myCalendarMod.useMyCalendarStore,
       ]
       persistStores.forEach((store) => {
         try { store?.persist?.rehydrate?.() } catch { /* silent */ }

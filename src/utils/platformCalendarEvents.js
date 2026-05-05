@@ -280,6 +280,55 @@ export function collectPlatformCalendarEvents({
   return events
 }
 
+/** Entries from `myCalendarStore` → platform calendar markers */
+export function personalEntryToCalendarEvent(entry) {
+  if (!entry || !entry.id) return null
+  const kind = entry.kind === 'reminder' || entry.kind === 'meeting' ? entry.kind : 'event'
+  const colors = { event: '#1565c0', reminder: '#ef6c00', meeting: '#5d4037' }
+  const metaBits = []
+  if (kind === 'reminder') metaBits.push('Reminder')
+  else if (kind === 'meeting') metaBits.push('Meeting')
+  else metaBits.push('Event')
+  if (entry.timeLabel) metaBits.push(entry.timeLabel)
+  const d = normalizeDateStr(entry.date)
+  if (!d) return null
+  return {
+    id: entry.id,
+    type: `personal_${kind}`,
+    title: entry.title || 'Untitled',
+    detail: entry.detail || '',
+    meta: metaBits.join(' · '),
+    color: colors[kind],
+    personal: true,
+    date: d,
+  }
+}
+
+export function filterPersonalEntriesForMonth(entries, year, monthIndex0) {
+  return (entries || []).filter((e) => {
+    const d = normalizeDateStr(e.date)
+    if (!d) return false
+    const [yStr, moStr] = d.split('-')
+    const y = Number(yStr)
+    const mo = Number(moStr) - 1
+    return y === year && mo === monthIndex0
+  })
+}
+
+/** Append typed personal items after aggregated platform feeds */
+export function appendPersonalCalendarEvents(baseEvents, personalEntriesForMonth) {
+  const out = [...(baseEvents || [])]
+  ;(personalEntriesForMonth || []).forEach((e) => {
+    const ev = personalEntryToCalendarEvent(e)
+    if (ev) out.push(ev)
+  })
+  return out
+}
+
+export function isPersonalCalendarEvent(ev) {
+  return Boolean(ev?.personal || (ev?.type && String(ev.type).startsWith('personal_')))
+}
+
 /** Group events by YYYY-MM-DD (each event must have `.date`) */
 export function groupEventsByDate(events) {
   /** @type {Record<string, PlatformCalendarEvent[]>} */

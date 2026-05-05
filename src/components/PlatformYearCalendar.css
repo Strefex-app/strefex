@@ -1,0 +1,228 @@
+.platform-cal-year {
+  background: var(--bg-card, var(--bg-card));
+  border: 1px solid var(--border-light, #e8e8e8);
+  border-radius: 10px;
+  padding: 8px 10px 10px;
+  box-sizing: border-box;
+}
+
+.platform-cal-year__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.platform-cal-year__hint {
+  margin: 0 0 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-secondary, #666);
+}
+
+.platform-cal-year__nav {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #ddd);
+  background: var(--bg-surface, #f5f5f7);
+  color: var(--color-primary, #1a1a2e);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.platform-cal-year__nav:hover {
+  background: var(--accent-light, #e8eeff);
+  border-color: var(--accent);
+}
+
+.platform-cal-year__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--font-semibold);
+  color: var(--color-primary, #1a1a2e);
+  flex: 1;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.platform-cal-year__grid-12 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 8px;
+}
+
+@media (max-width: 1100px) {
+  .platform-cal-year__grid-12 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .platform-cal-year__grid-12 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .platform-cal-year__grid-12 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.platform-cal-year__mini {
+  min-width: 0;
+  border: 1px solid var(--border-light, #ececec);
+  border-radius: 6px;
+  padding: 3px 3px 4px;
+  background: var(--bg-surface, #fafafa);
+}
+
+.platform-cal-year__mini-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-secondary, #555);
+  text-align: center;
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+
+/* Same seven columns as day rows — letters line up vertically with days */
+.platform-cal-year__week-letters {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 2px;
+}
+
+.platform-cal-year__week-letter {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-secondary, #888);
+  text-align: center;
+  line-height: 1;
+  padding: 0 1px;
+}
+
+.platform-cal-year__weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.platform-cal-year__week-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.platform-cal-year__cell {
+  min-width: 0;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+/* Ghost matches live cell geometry */
+.platform-cal-year__cell--ghost {
+  visibility: hidden;
+  min-height: var(--year-day-h, 20px);
+  height: var(--year-day-h, 20px);
+  margin: 0;
+  padding: 1px;
+  pointer-events: none;
+}
+
+.platform-cal-year__cell--day {
+  min-height: var(--year-day-h, 20px);
+  height: var(--year-day-h, 20px);
+  margin: 0;
+  padding: 1px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-primary, #1a1a2e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  vertical-align: top;
+}
+
+.platform-cal-year__cell--day:focus-visible {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.platform-cal-year__cell--day:hover:not(:disabled) .platform-cal-year__cell-face {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+/* Fills the grid cell; highlight cannot drift vs column */
+.platform-cal-year__cell-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 1px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.platform-cal-year__cell--today .platform-cal-year__cell-face {
+  border-color: rgba(37, 99, 235, 0.5);
+  background: rgba(0, 212, 255, 0.09);
+}
+
+.platform-cal-year__cell--selected .platform-cal-year__cell-face {
+  border-color: var(--accent, #2563eb);
+  box-shadow: inset 0 0 0 1px var(--accent, #2563eb);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.platform-cal-year__cell--today.platform-cal-year__cell--selected .platform-cal-year__cell-face {
+  box-shadow: inset 0 0 0 2px var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+}
+
+.platform-cal-year__cell-num {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.platform-cal-year__dots {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1px;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  line-height: 0;
+  margin-top: 1px;
+}
+
+.platform-cal-year__dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

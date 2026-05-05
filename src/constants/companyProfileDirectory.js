@@ -5,6 +5,9 @@
 
 export const PROFILE_ATTACHMENT_SLOT = {
   COMPANY_PRESENTATION: 'company_presentation',
+  /** Platform recognition — one optional PDF or PowerPoint each. */
+  COMPANY_PROFILE_DOC: 'company_profile_doc',
+  PRODUCT_PORTFOLIO_DOC: 'product_portfolio_doc',
   PRODUCTION_PHOTO: 'production_photo',
   PRODUCTION_VIDEO: 'production_video',
   OTHER: 'other',
@@ -12,10 +15,20 @@ export const PROFILE_ATTACHMENT_SLOT = {
 
 export const PROFILE_ATTACHMENT_SLOT_LABELS = {
   [PROFILE_ATTACHMENT_SLOT.COMPANY_PRESENTATION]: 'Company presentation (required for full profile)',
+  [PROFILE_ATTACHMENT_SLOT.COMPANY_PROFILE_DOC]: 'Company profile (PDF or PowerPoint, optional)',
+  [PROFILE_ATTACHMENT_SLOT.PRODUCT_PORTFOLIO_DOC]: 'Product portfolio (PDF or PowerPoint, optional)',
   [PROFILE_ATTACHMENT_SLOT.PRODUCTION_PHOTO]: 'Production / facility photo',
   [PROFILE_ATTACHMENT_SLOT.PRODUCTION_VIDEO]: 'Real production video',
   [PROFILE_ATTACHMENT_SLOT.OTHER]: 'Other document',
 }
+
+/** Legacy slot IDs — still honoured when scoring recognition if files were uploaded before consolidation. */
+export const LEGACY_PLATFORM_RECOGNITION_SLOTS = Object.freeze({
+  COMPANY_PROFILE_PDF: 'company_profile_pdf',
+  COMPANY_PROFILE_PPT: 'company_profile_ppt',
+  PRODUCT_PORTFOLIO_PDF: 'product_portfolio_pdf',
+  PRODUCT_PORTFOLIO_PPT: 'product_portfolio_ppt',
+})
 
 /** Keys stored under companies.metadata.profile_directory.mandatory */
 export const MANDATORY_PROFILE_KEYS = {

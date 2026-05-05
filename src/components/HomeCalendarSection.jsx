@@ -78,6 +78,13 @@ export default function HomeCalendarSection() {
       <div className="home-calendar-section__bar">
         <h2 className="home-calendar-section__title">This month</h2>
         <div className="home-calendar-section__actions">
+          <button
+            type="button"
+            className="home-calendar-section__hide"
+            onClick={() => navigate('/calendar', { state: { focusDate: selectedDate } })}
+          >
+            Add entry
+          </button>
           <Link to="/calendar" className="home-calendar-section__link">
             Full calendar
           </Link>

@@ -23,6 +23,7 @@ import {
   isSellerLikeAccountType,
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
+import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import '../styles/app-page.css'
 import './Profile.css'
 
@@ -1379,6 +1380,13 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        <PlatformRecognitionSection
+          tenant={tenant}
+          user={user}
+          isAdmin={isAdmin}
+          setTenant={setTenant}
+        />
 
         {/* ── RFQ Intelligence — quotes from costing wizard ───── */}
         <div className="prof-card">

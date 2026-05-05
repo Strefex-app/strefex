@@ -21,6 +21,7 @@ function padDateKey(y, m0, day) {
  * @param {(d: string) => void} props.onSelectDate
  * @param {() => void} props.onPrevMonth
  * @param {() => void} props.onNextMonth
+ * @param {(d: string) => void} [props.onDoubleClickDate]
  * @param {boolean} [props.compact]
  */
 export default function PlatformMonthCalendar({
@@ -31,6 +32,7 @@ export default function PlatformMonthCalendar({
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  onDoubleClickDate,
   compact = false,
 }) {
   const { gridWeeks, todayKey } = useMemo(() => {
@@ -89,7 +91,11 @@ export default function PlatformMonthCalendar({
                   type="button"
                   role="gridcell"
                   className={`platform-cal__cell platform-cal__cell--day ${isToday ? 'platform-cal__cell--today' : ''} ${isSelected ? 'platform-cal__cell--selected' : ''}`}
-                  onClick={() => onSelectDate(key)}
+                  onClick={(e) => {
+                    if (e.detail === 2) return
+                    onSelectDate(key)
+                  }}
+                  onDoubleClick={() => onDoubleClickDate?.(key)}
                 >
                   <span className="platform-cal__daynum">{day}</span>
                   {list.length > 0 && (
