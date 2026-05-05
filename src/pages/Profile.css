@@ -267,6 +267,13 @@
   background: var(--accent-light);
 }
 
+/* ── Documentation + product scan (wrapped for valid JSX / layout) ─ */
+.prof-docs-scan-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 /* ── Documentation Widget ────────────────────── */
 .prof-docs-card {
   margin-bottom: 20px;

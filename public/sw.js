@@ -2,14 +2,16 @@
  * STREFEX Platform — Service Worker
  *
  * Caching strategies:
- *   - App shell (HTML)            → Network-first, fallback to cache
- *   - Static assets (JS/CSS/imgs) → Cache-first, background refresh
- *   - API calls                   → Network-only (no stale data)
+ *   - App shell (HTML)             → Network-first, fallback to cache
+ *   - JS/CSS (app bundles)         → Network-first when online (fresh UI after deploy)
+ *   - Other static (images, fonts) → Stale-while-revalidate
+ *   - API calls                    → Network-only (no stale data)
  *   - CDN / fonts                 → Cache-first, long TTL
  *   - Offline fallback            → Custom offline page from cache
  */
 
-const CACHE_VERSION = 'strefex-v2'
+/** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
+const CACHE_VERSION = 'strefex-v3'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 
@@ -94,6 +96,11 @@ function isStaticAsset(url) {
   return /\.(js|css|woff2?|ttf|eot|png|jpe?g|gif|svg|webp|ico|webmanifest)(\?.*)?$/i.test(url.pathname)
 }
 
+/** Hashed app chunks — prefer network so users do not run an old bundle after deploy. */
+function isAppScriptOrStyle(url) {
+  return /\.(js|css)(\?.*)?$/i.test(url.pathname)
+}
+
 function isApiCall(url) {
   return url.pathname.startsWith('/api/') ||
          url.hostname.includes('supabase.co') ||
@@ -134,7 +141,13 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets (hashed JS/CSS, images) — stale-while-revalidate
+  // JS/CSS — network-first when online (avoid stale-while-revalidate showing old UI until a later reload)
+  if (isStaticAsset(url) && isAppScriptOrStyle(url)) {
+    event.respondWith(networkFirstStatic(request, RUNTIME_CACHE))
+    return
+  }
+
+  // Other static assets (images, fonts paths, etc.) — stale-while-revalidate
   if (isStaticAsset(url)) {
     event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE))
     return
@@ -176,6 +189,22 @@ async function cacheFirst(request, cacheName) {
     }
     return response
   } catch {
+    return new Response('', { status: 408 })
+  }
+}
+
+/* ─── Strategy: Network-first for JS/CSS (fresh app code) ──── */
+async function networkFirstStatic(request, cacheName) {
+  const cache = await caches.open(cacheName)
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    const cached = await cache.match(request)
+    if (cached) return cached
     return new Response('', { status: 408 })
   }
 }

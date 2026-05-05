@@ -227,9 +227,10 @@ export default function PlatformCalendar() {
         <header className="platform-calendar-page__head">
           <h1 className="platform-calendar-page__title">Calendar</h1>
           <p className="platform-calendar-page__sub">
-            Year-at-a-glance: deadlines, tasks, RFQs, service requests, HR, trade fairs, contracts, NDAs, and personal items.
-            Click any day to add an event, reminder, or meeting in a pop-up. Today &amp; upcoming sits beside the year grid so both cards share one row and align on the bottom edge; legend and shortcuts follow below.
-            Expo months use your industry filters from <Link to="/settings">settings</Link> when set.
+            <strong>What it shows:</strong> one calendar year of platform items (tasks, RFQs, HR, trade fairs, contracts, NDAs, and similar) plus your own events, reminders, and meetings.
+            {' '}
+            <strong>How to use:</strong> click a day to add or edit an entry; use ‹ › to change year; colored dots are explained in the legend under the grid; the right column lists today through year-end (scroll the list if needed). Trade fairs follow industries you set in{' '}
+            <Link to="/settings">settings</Link>.
           </p>
         </header>
 
