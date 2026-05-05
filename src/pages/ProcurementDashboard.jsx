@@ -7,6 +7,7 @@ import useAuditStore from '../store/auditStore'
 import { filterByCompanyRole, canApprove as guardCanApprove } from '../utils/companyGuard'
 import './ProcurementDashboard.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
+import { useTranslation } from '../i18n/useTranslation'
 
 const STATUS_META = {
   draft:            { label: 'Draft',           color: '#95a5a6', bg: 'rgba(149,165,166,.1)' },
@@ -29,6 +30,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'sho
 const fmtCurrency = (v, c = 'USD') => new Intl.NumberFormat('en-US', { style: 'currency', currency: c, minimumFractionDigits: 0 }).format(v || 0)
 
 export default function ProcurementDashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const userName = user?.name || user?.email || 'User'
@@ -266,15 +268,19 @@ export default function ProcurementDashboard() {
         )}
 
         <div className="proc-tabs">
-          {TABS.map((t) => <button key={t.id} className={`proc-tab ${tab === t.id ? 'active' : ''}`} onClick={() => { setTab(t.id); setStatusFilter('all') }}>{t.label}</button>)}
+          {TABS.map((tb) => <button key={tb.id} className={`proc-tab ${tab === tb.id ? 'active' : ''}`} onClick={() => { setTab(tb.id); setStatusFilter('all') }}>{tb.label}</button>)}
         </div>
 
         {tab !== 'overview' && (
           <div className="proc-filters">
-            <input className="proc-search" placeholder="Search by ID, title, or vendor..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="proc-search" placeholder={t('procurementFilter.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="proc-status-filters">
               {['all', 'draft', 'pending_manager', 'pending_admin', 'pending_finance', 'approved', 'rejected', 'completed'].map((s) => (
-                <button key={s} className={`proc-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>{s === 'all' ? 'All' : (STATUS_META[s]?.label || s)}</button>
+                <button key={s} type="button" className={`proc-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
+                  {s === 'all'
+                    ? t('filtersCommon.all')
+                    : t(`procurementFilter.status.${s}`, STATUS_META[s]?.label || s)}
+                </button>
               ))}
             </div>
           </div>

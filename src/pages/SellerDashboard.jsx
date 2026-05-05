@@ -4,21 +4,22 @@ import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import AppLayout from '../components/AppLayout'
+import { useTranslation } from '../i18n/useTranslation'
 import './SellerDashboard.css'
 
 /* ── Status badge helper ──────────────────────────────────── */
-const STATUS_MAP = {
-  pending:   { label: 'Pending',   color: '#e65100', bg: 'rgba(230,81,0,.08)' },
-  responded: { label: 'Responded', color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
-  awarded:   { label: 'Awarded',   color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
-  declined:  { label: 'Declined',  color: '#c62828', bg: 'rgba(198,40,40,.08)' },
-}
-
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.pending
+function StatusBadge({ status, t }) {
+  const label = t(`sellerDashboard.status.${status}`, status)
+  const colors = {
+    pending: { color: '#e65100', bg: 'rgba(230,81,0,.08)' },
+    responded: { color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
+    awarded: { color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
+    declined: { color: '#c62828', bg: 'rgba(198,40,40,.08)' },
+  }
+  const s = colors[status] || colors.pending
   return (
     <span className="sd-badge" style={{ color: s.color, background: s.bg }}>
-      {s.label}
+      {label}
     </span>
   )
 }
@@ -31,6 +32,7 @@ function daysUntil(dateStr) {
 }
 
 export default function SellerDashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const role = useAuthStore((s) => s.role)
@@ -99,11 +101,13 @@ export default function SellerDashboard() {
       <div className="sd-page">
         <div className="sd-header">
           <div>
-            <h1 className="sd-title">Seller Dashboard</h1>
+            <h1 className="sd-title">{t('sellerDashboard.title')}</h1>
             <p className="sd-subtitle">
               {isSuperAdmin
-                ? 'Superadmin view — showing all seller data across the platform.'
-                : `Welcome back${user?.fullName ? `, ${user.fullName}` : ''}. Here is your business overview.`}
+                ? t('sellerDashboard.subtitleSuperadmin')
+                : user?.fullName
+                  ? t('sellerDashboard.welcomeWithName').replace('{name}', user.fullName)
+                  : t('sellerDashboard.welcomeNoName')}
             </p>
           </div>
           {isSuperAdmin && (
@@ -111,7 +115,7 @@ export default function SellerDashboard() {
               padding: '5px 14px', borderRadius: 20, background: 'rgba(198,40,40,.08)',
               color: '#c62828', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start',
             }}>
-              SUPERADMIN VIEW
+              {t('sellerDashboard.superadminView')}
             </span>
           )}
         </div>
@@ -124,7 +128,7 @@ export default function SellerDashboard() {
             </div>
             <div className="sd-kpi-body">
               <span className="sd-kpi-value">{totalProjects}</span>
-              <span className="sd-kpi-label">Total Projects</span>
+              <span className="sd-kpi-label">{t('sellerDashboard.kpiTotalProjects')}</span>
             </div>
           </div>
           <div className="sd-kpi-card">
@@ -133,7 +137,7 @@ export default function SellerDashboard() {
             </div>
             <div className="sd-kpi-body">
               <span className="sd-kpi-value">{overallProgress}%</span>
-              <span className="sd-kpi-label">Avg. Completion</span>
+              <span className="sd-kpi-label">{t('sellerDashboard.kpiAvgCompletion')}</span>
             </div>
           </div>
           <div className="sd-kpi-card">
@@ -142,7 +146,7 @@ export default function SellerDashboard() {
             </div>
             <div className="sd-kpi-body">
               <span className="sd-kpi-value">{receivedStats.total}</span>
-              <span className="sd-kpi-label">RFQs Received</span>
+              <span className="sd-kpi-label">{t('sellerDashboard.kpiRfqsReceived')}</span>
             </div>
           </div>
           <div className="sd-kpi-card">
@@ -151,7 +155,7 @@ export default function SellerDashboard() {
             </div>
             <div className="sd-kpi-body">
               <span className="sd-kpi-value">{receivedStats.pending}</span>
-              <span className="sd-kpi-label">Active — Need Response</span>
+              <span className="sd-kpi-label">{t('sellerDashboard.kpiNeedResponse')}</span>
             </div>
           </div>
           <div className="sd-kpi-card">
@@ -160,7 +164,7 @@ export default function SellerDashboard() {
             </div>
             <div className="sd-kpi-body">
               <span className="sd-kpi-value">{receivedStats.awarded}</span>
-              <span className="sd-kpi-label">Awarded</span>
+              <span className="sd-kpi-label">{t('sellerDashboard.kpiAwarded')}</span>
             </div>
           </div>
         </div>
@@ -170,18 +174,21 @@ export default function SellerDashboard() {
           {/* ── Left: Projects Overview ───────────────────── */}
           <div className="sd-card">
             <div className="sd-card-header">
-              <h2 className="sd-card-title">Projects Overview</h2>
+              <h2 className="sd-card-title">{t('sellerDashboard.projectsOverview')}</h2>
               <button type="button" className="sd-link-btn" onClick={() => navigate('/project-management')}>
-                View All →
+                {t('sellerDashboard.viewAll')}
               </button>
             </div>
 
             {projects.length === 0 ? (
-              <div className="sd-empty">No projects yet.</div>
+              <div className="sd-empty">{t('sellerDashboard.noProjects')}</div>
             ) : (
               <div className="sd-project-list">
                 {projects.map((p) => {
                   const stats = getProjectStats(p.id)
+                  const meta = t('sellerDashboard.tasksCompleteMeta')
+                    .replace('{done}', String(stats?.completedTasks ?? 0))
+                    .replace('{total}', String(stats?.totalTasks ?? 0))
                   return (
                     <button
                       key={p.id}
@@ -192,7 +199,7 @@ export default function SellerDashboard() {
                       <div className="sd-project-info">
                         <span className="sd-project-name">{p.name}</span>
                         <span className="sd-project-meta">
-                          {stats?.completedTasks ?? 0}/{stats?.totalTasks ?? 0} tasks complete
+                          {meta}
                         </span>
                       </div>
                       <div className="sd-progress-bar-wrap">
@@ -214,13 +221,13 @@ export default function SellerDashboard() {
           {/* ── Right: RFQs Received ─────────────────────── */}
           <div className="sd-card sd-card-wide">
             <div className="sd-card-header">
-              <h2 className="sd-card-title">RFQs Received from Buyers</h2>
+              <h2 className="sd-card-title">{t('sellerDashboard.rfqsReceivedTitle')}</h2>
               <div className="sd-rfq-tab-pills">
                 {[
-                  { id: 'all', label: 'All', count: receivedStats.total },
-                  { id: 'pending', label: 'Pending', count: receivedStats.pending },
-                  { id: 'responded', label: 'Responded', count: receivedStats.responded },
-                  { id: 'awarded', label: 'Awarded', count: receivedStats.awarded },
+                  { id: 'all', labelKey: 'sellerDashboard.tabAll', count: receivedStats.total },
+                  { id: 'pending', labelKey: 'sellerDashboard.tabPending', count: receivedStats.pending },
+                  { id: 'responded', labelKey: 'sellerDashboard.tabResponded', count: receivedStats.responded },
+                  { id: 'awarded', labelKey: 'sellerDashboard.tabAwarded', count: receivedStats.awarded },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -228,14 +235,14 @@ export default function SellerDashboard() {
                     className={`sd-tab-pill ${activeTab === tab.id ? 'active' : ''}`}
                     onClick={() => setActiveTab(tab.id)}
                   >
-                    {tab.label} <span className="sd-tab-count">{tab.count}</span>
+                    {t(tab.labelKey)} <span className="sd-tab-count">{tab.count}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {filteredRfqs.length === 0 ? (
-              <div className="sd-empty">No RFQs in this category.</div>
+              <div className="sd-empty">{t('sellerDashboard.noRfqsCategory')}</div>
             ) : (
               <div className="sd-rfq-list">
                 {filteredRfqs.map((rfq) => {
@@ -252,7 +259,7 @@ export default function SellerDashboard() {
                           <span className="sd-rfq-title">{rfq.title}</span>
                           {(rfq.buyerSplitRef || rfq.buyerRefDisplay) && (
                             <span className="sd-rfq-buyer-ref" style={{ fontSize: 13, fontWeight: 600, color: '#00d4ff', display: 'block', marginBottom: 2 }}>
-                              Ref: {rfq.buyerSplitRef || rfq.buyerRefDisplay}
+                              {t('sellerDashboard.ref')} {rfq.buyerSplitRef || rfq.buyerRefDisplay}
                             </span>
                           )}
                           <span className="sd-rfq-buyer">
@@ -261,14 +268,17 @@ export default function SellerDashboard() {
                           </span>
                         </div>
                         <div className="sd-rfq-right">
-                          <StatusBadge status={rfq.status} />
+                          <StatusBadge status={rfq.status} t={t} />
                           {days !== null && (
                             <span className={`sd-rfq-due ${days <= 3 ? 'urgent' : days <= 7 ? 'soon' : ''}`}>
-                              {days > 0 ? `${days}d left` : days === 0 ? 'Due today' : 'Overdue'}
+                              {days > 0 ? t('sellerDashboard.daysLeft').replace('{n}', String(days)) : days === 0 ? t('sellerDashboard.dueToday') : t('sellerDashboard.overdue')}
                             </span>
                           )}
                           <svg
-                            width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
                             style={{ transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}
                           >
                             <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -279,23 +289,29 @@ export default function SellerDashboard() {
                       {isExpanded && (
                         <div className="sd-rfq-detail">
                           <div className="sd-rfq-detail-grid">
-                            <div><strong>Industry:</strong> {rfq.industryId}</div>
-                            <div><strong>Category:</strong> {rfq.categoryId}</div>
-                            <div><strong>Received:</strong> {rfq.receivedAt}</div>
-                            <div><strong>Due:</strong> {rfq.dueDate}</div>
-                            {rfq.requirements?.quantity && <div><strong>Qty:</strong> {rfq.requirements.quantity}</div>}
-                            {rfq.requirements?.maxLeadTime && <div><strong>Max Lead:</strong> {rfq.requirements.maxLeadTime} days</div>}
-                            {rfq.requirements?.maxPrice && <div><strong>Max Budget:</strong> ${rfq.requirements.maxPrice}k</div>}
+                            <div><strong>{t('sellerDashboard.industry')}</strong> {rfq.industryId}</div>
+                            <div><strong>{t('sellerDashboard.category')}</strong> {rfq.categoryId}</div>
+                            <div><strong>{t('sellerDashboard.received')}</strong> {rfq.receivedAt}</div>
+                            <div><strong>{t('sellerDashboard.due')}</strong> {rfq.dueDate}</div>
+                            {rfq.requirements?.quantity && <div><strong>{t('sellerDashboard.qty')}</strong> {rfq.requirements.quantity}</div>}
+                            {rfq.requirements?.maxLeadTime && (
+                              <div>
+                                <strong>{t('sellerDashboard.maxLead')}</strong> {rfq.requirements.maxLeadTime} {t('sellerDashboard.daysSuffix')}
+                              </div>
+                            )}
+                            {rfq.requirements?.maxPrice && (
+                              <div><strong>{t('sellerDashboard.maxBudget')}</strong> ${rfq.requirements.maxPrice}k</div>
+                            )}
                           </div>
 
                           {rfq.status === 'responded' && rfq.myResponse && (
                             <div className="sd-my-response">
-                              <h4>Your Response</h4>
+                              <h4>{t('sellerDashboard.yourResponse')}</h4>
                               <div className="sd-rfq-detail-grid">
-                                <div><strong>Price:</strong> ${rfq.myResponse.price?.toLocaleString()}</div>
-                                <div><strong>Lead Time:</strong> {rfq.myResponse.leadTime} days</div>
-                                <div><strong>Warranty:</strong> {rfq.myResponse.warranty}</div>
-                                <div><strong>Responded:</strong> {rfq.myResponse.respondedAt}</div>
+                                <div><strong>{t('sellerDashboard.price')}</strong> ${rfq.myResponse.price?.toLocaleString()}</div>
+                                <div><strong>{t('sellerDashboard.leadTime')}</strong> {rfq.myResponse.leadTime} {t('sellerDashboard.daysSuffix')}</div>
+                                <div><strong>{t('sellerDashboard.warranty')}</strong> {rfq.myResponse.warranty}</div>
+                                <div><strong>{t('sellerDashboard.respondedAt')}</strong> {rfq.myResponse.respondedAt}</div>
                               </div>
                               {rfq.myResponse.notes && <p className="sd-response-notes">{rfq.myResponse.notes}</p>}
                             </div>
@@ -304,47 +320,47 @@ export default function SellerDashboard() {
                           {rfq.status === 'awarded' && rfq.myResponse && (
                             <div className="sd-awarded-banner">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              Congratulations! You have been awarded this RFQ.
+                              {t('sellerDashboard.awardedBanner')}
                             </div>
                           )}
 
                           {rfq.status === 'pending' && (
                             <div className="sd-response-form">
-                              <h4>Submit Your Response</h4>
+                              <h4>{t('sellerDashboard.submitResponse')}</h4>
                               <div className="sd-form-grid">
                                 <div className="sd-form-group">
-                                  <label>Price (USD)</label>
+                                  <label>{t('sellerDashboard.priceUsd')}</label>
                                   <input
                                     type="number"
                                     value={responseForm.price}
                                     onChange={(e) => setResponseForm(f => ({ ...f, price: e.target.value }))}
-                                    placeholder="e.g. 95000"
+                                    placeholder={t('sellerDashboard.placeholderPrice')}
                                   />
                                 </div>
                                 <div className="sd-form-group">
-                                  <label>Lead Time (days)</label>
+                                  <label>{t('sellerDashboard.leadTimeDays')}</label>
                                   <input
                                     type="number"
                                     value={responseForm.leadTime}
                                     onChange={(e) => setResponseForm(f => ({ ...f, leadTime: e.target.value }))}
-                                    placeholder="e.g. 60"
+                                    placeholder={t('sellerDashboard.placeholderLead')}
                                   />
                                 </div>
                                 <div className="sd-form-group">
-                                  <label>Warranty</label>
+                                  <label>{t('sellerDashboard.warrantyLabel')}</label>
                                   <input
                                     type="text"
                                     value={responseForm.warranty}
                                     onChange={(e) => setResponseForm(f => ({ ...f, warranty: e.target.value }))}
-                                    placeholder="e.g. 24 months"
+                                    placeholder={t('sellerDashboard.placeholderWarranty')}
                                   />
                                 </div>
                                 <div className="sd-form-group sd-form-full">
-                                  <label>Notes</label>
+                                  <label>{t('sellerDashboard.notes')}</label>
                                   <textarea
                                     value={responseForm.notes}
                                     onChange={(e) => setResponseForm(f => ({ ...f, notes: e.target.value }))}
-                                    placeholder="Additional information, capabilities, terms..."
+                                    placeholder={t('sellerDashboard.placeholderNotes')}
                                     rows={3}
                                   />
                                 </div>
@@ -356,14 +372,14 @@ export default function SellerDashboard() {
                                   onClick={() => handleSubmitResponse(rfq.id)}
                                   disabled={!responseForm.price || !responseForm.leadTime}
                                 >
-                                  Submit Response
+                                  {t('sellerDashboard.submitBtn')}
                                 </button>
                                 <button
                                   type="button"
                                   className="sd-btn sd-btn-danger"
                                   onClick={() => declineRfq(rfq.id)}
                                 >
-                                  Decline
+                                  {t('sellerDashboard.declineBtn')}
                                 </button>
                               </div>
                             </div>

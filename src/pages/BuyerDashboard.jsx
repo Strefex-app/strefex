@@ -5,26 +5,28 @@ import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import AppLayout from '../components/AppLayout'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
+import { useTranslation } from '../i18n/useTranslation'
 import './BuyerDashboard.css'
 
 /* ── Status badge helper ──────────────────────────────────── */
-const STATUS_MAP = {
-  draft:     { label: 'Draft',     color: '#888',    bg: 'rgba(136,136,136,.08)' },
-  sent:      { label: 'Sent',      color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
-  active:    { label: 'Active',    color: '#e65100', bg: 'rgba(230,81,0,.08)' },
-  completed: { label: 'Completed', color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
-}
-
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.draft
+function StatusBadge({ status, t }) {
+  const label = t(`buyerDashboard.status.${status}`, status)
+  const colors = {
+    draft: { color: '#888', bg: 'rgba(136,136,136,.08)' },
+    sent: { color: '#00d4ff', bg: 'rgba(0, 212, 255,.08)' },
+    active: { color: '#e65100', bg: 'rgba(230,81,0,.08)' },
+    completed: { color: '#2e7d32', bg: 'rgba(46,125,50,.08)' },
+  }
+  const s = colors[status] || colors.draft
   return (
     <span className="bd-badge" style={{ color: s.color, background: s.bg }}>
-      {s.label}
+      {label}
     </span>
   )
 }
 
 export default function BuyerDashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const role = useAuthStore((s) => s.role)
@@ -87,11 +89,13 @@ export default function BuyerDashboard() {
       <div className="bd-page">
         <div className="bd-header">
           <div>
-            <h1 className="bd-title">Buyer Dashboard</h1>
+            <h1 className="bd-title">{t('buyerDashboard.title')}</h1>
             <p className="bd-subtitle">
               {isSuperAdmin
-                ? 'Superadmin view — showing all buyer data across the platform.'
-                : `Welcome back${user?.fullName ? `, ${user.fullName}` : ''}. Track your sourcing activity.`}
+                ? t('buyerDashboard.subtitleSuperadmin')
+                : user?.fullName
+                  ? t('buyerDashboard.welcomeWithName').replace('{name}', user.fullName)
+                  : t('buyerDashboard.welcomeNoName')}
             </p>
           </div>
           {isSuperAdmin && (
@@ -99,7 +103,7 @@ export default function BuyerDashboard() {
               padding: '5px 14px', borderRadius: 20, background: 'rgba(198,40,40,.08)',
               color: '#c62828', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start',
             }}>
-              SUPERADMIN VIEW
+              {t('buyerDashboard.superadminView')}
             </span>
           )}
         </div>
@@ -112,7 +116,7 @@ export default function BuyerDashboard() {
             </div>
             <div className="bd-kpi-body">
               <span className="bd-kpi-value">{totalProjects}</span>
-              <span className="bd-kpi-label">Total Projects</span>
+              <span className="bd-kpi-label">{t('buyerDashboard.kpiTotalProjects')}</span>
             </div>
           </div>
           <div className="bd-kpi-card">
@@ -121,7 +125,7 @@ export default function BuyerDashboard() {
             </div>
             <div className="bd-kpi-body">
               <span className="bd-kpi-value">{overallProgress}%</span>
-              <span className="bd-kpi-label">Avg. Completion</span>
+              <span className="bd-kpi-label">{t('buyerDashboard.kpiAvgCompletion')}</span>
             </div>
           </div>
           <div className="bd-kpi-card">
@@ -130,7 +134,7 @@ export default function BuyerDashboard() {
             </div>
             <div className="bd-kpi-body">
               <span className="bd-kpi-value">{rfqStats.sent}</span>
-              <span className="bd-kpi-label">RFQs Sent</span>
+              <span className="bd-kpi-label">{t('buyerDashboard.kpiRfqsSent')}</span>
             </div>
           </div>
           <div className="bd-kpi-card">
@@ -139,7 +143,7 @@ export default function BuyerDashboard() {
             </div>
             <div className="bd-kpi-body">
               <span className="bd-kpi-value">{totalResponses}</span>
-              <span className="bd-kpi-label">Responses Received</span>
+              <span className="bd-kpi-label">{t('buyerDashboard.kpiResponsesReceived')}</span>
             </div>
           </div>
           <div className="bd-kpi-card">
@@ -148,7 +152,7 @@ export default function BuyerDashboard() {
             </div>
             <div className="bd-kpi-body">
               <span className="bd-kpi-value">{rfqStats.active}</span>
-              <span className="bd-kpi-label">Active RFQs</span>
+              <span className="bd-kpi-label">{t('buyerDashboard.kpiActiveRfqs')}</span>
             </div>
           </div>
         </div>
@@ -158,18 +162,23 @@ export default function BuyerDashboard() {
           {/* ── Left: Projects Overview ───────────────────── */}
           <div className="bd-card">
             <div className="bd-card-header">
-              <h2 className="bd-card-title">Projects &amp; Status</h2>
+              <h2 className="bd-card-title">{t('buyerDashboard.projectsCardTitle')}</h2>
               <button type="button" className="bd-link-btn" onClick={() => navigate('/project-management')}>
-                View All →
+                {t('buyerDashboard.viewAll')}
               </button>
             </div>
 
             {projects.length === 0 ? (
-              <div className="bd-empty">No projects yet.</div>
+              <div className="bd-empty">{t('buyerDashboard.noProjects')}</div>
             ) : (
               <div className="bd-project-list">
                 {projects.map((p) => {
                   const stats = getProjectStats(p.id)
+                  const budgetStr = `$${(p.budget || 0).toLocaleString()}`
+                  const meta = t('buyerDashboard.projectMeta')
+                    .replace('{done}', String(stats?.completedTasks ?? 0))
+                    .replace('{total}', String(stats?.totalTasks ?? 0))
+                    .replace('{budget}', budgetStr)
                   return (
                     <button
                       key={p.id}
@@ -180,7 +189,7 @@ export default function BuyerDashboard() {
                       <div className="bd-project-info">
                         <span className="bd-project-name">{p.name}</span>
                         <span className="bd-project-meta">
-                          {stats?.completedTasks ?? 0}/{stats?.totalTasks ?? 0} tasks &bull; Budget: ${(p.budget || 0).toLocaleString()}
+                          {meta}
                         </span>
                       </div>
                       <div className="bd-progress-bar-wrap">
@@ -199,13 +208,13 @@ export default function BuyerDashboard() {
           {/* ── Right: RFQs Sent ─────────────────────────── */}
           <div className="bd-card bd-card-wide">
             <div className="bd-card-header">
-              <h2 className="bd-card-title">My RFQs</h2>
+              <h2 className="bd-card-title">{t('buyerDashboard.myRfqs')}</h2>
               <div className="bd-rfq-tab-pills">
                 {[
-                  { id: 'all', label: 'All', count: rfqStats.total },
-                  { id: 'sent', label: 'Sent', count: rfqStats.sent },
-                  { id: 'active', label: 'Active', count: rfqStats.active },
-                  { id: 'draft', label: 'Draft', count: rfqStats.draft },
+                  { id: 'all', labelKey: 'buyerDashboard.tabAll', count: rfqStats.total },
+                  { id: 'sent', labelKey: 'buyerDashboard.tabSent', count: rfqStats.sent },
+                  { id: 'active', labelKey: 'buyerDashboard.tabActive', count: rfqStats.active },
+                  { id: 'draft', labelKey: 'buyerDashboard.tabDraft', count: rfqStats.draft },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -213,18 +222,19 @@ export default function BuyerDashboard() {
                     className={`bd-tab-pill ${activeTab === tab.id ? 'active' : ''}`}
                     onClick={() => setActiveTab(tab.id)}
                   >
-                    {tab.label} <span className="bd-tab-count">{tab.count}</span>
+                    {t(tab.labelKey)} <span className="bd-tab-count">{tab.count}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {filteredRfqs.length === 0 ? (
-              <div className="bd-empty">No RFQs in this category.</div>
+              <div className="bd-empty">{t('buyerDashboard.noRfqsCategory')}</div>
             ) : (
               <div className="bd-rfq-list">
                 {filteredRfqs.map((rfq) => {
                   const responseCount = rfq.sellerResponses?.length || rfq.responses || 0
+                  const sentTo = t('buyerDashboard.sentToSuppliers').replace('{n}', String(rfq.suppliers?.length || 0))
                   return (
                     <div key={rfq.id} className="bd-rfq-item">
                       <div className="bd-rfq-row">
@@ -232,14 +242,14 @@ export default function BuyerDashboard() {
                           <span className="bd-rfq-title">{rfq.title}</span>
                           <span className="bd-rfq-meta">
                             {rfq.buyerRefDisplay ? `${rfq.buyerRefDisplay} · ` : ''}
-                            {rfq.industryId} &bull; Sent to {rfq.suppliers?.length || 0} suppliers &bull; Due: {rfq.dueDate || '—'}
+                            {rfq.industryId} · {sentTo} · {t('buyerDashboard.due')} {rfq.dueDate || '—'}
                           </span>
                         </div>
                         <div className="bd-rfq-right">
-                          <StatusBadge status={rfq.status} />
+                          <StatusBadge status={rfq.status} t={t} />
                           <span className="bd-rfq-responses">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                            {responseCount} response{responseCount !== 1 ? 's' : ''}
+                            {responseCount} {responseCount === 1 ? t('buyerDashboard.response') : t('buyerDashboard.responses')}
                           </span>
                           {responseCount > 0 && (
                             <button
@@ -247,7 +257,7 @@ export default function BuyerDashboard() {
                               className="bd-compare-btn"
                               onClick={() => navigate(`/rfq-comparison/${rfq.id}`)}
                             >
-                              Compare Sellers
+                              {t('buyerDashboard.compareSellers')}
                             </button>
                           )}
                         </div>
@@ -262,21 +272,21 @@ export default function BuyerDashboard() {
 
         <div className="bd-card" style={{ marginTop: 16 }}>
           <div className="bd-card-header">
-            <h2 className="bd-card-title">RFQ Tracking Table</h2>
+            <h2 className="bd-card-title">{t('buyerDashboard.trackingTitle')}</h2>
           </div>
           {rfqTracking.length === 0 ? (
-            <div className="bd-empty">No RFQ tracking records yet.</div>
+            <div className="bd-empty">{t('buyerDashboard.noTracking')}</div>
           ) : (
             <div className="stx-fluid-table-wrap">
               <table className="bd-rfq-track-table stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>RFQ</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Invited</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Viewed</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Responded</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Closed</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>Deadline</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thRfq')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thInvited')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thViewed')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thResponded')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thClosed')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: 8 }}>{t('buyerDashboard.thDeadline')}</th>
                   </tr>
                 </thead>
                 <tbody>

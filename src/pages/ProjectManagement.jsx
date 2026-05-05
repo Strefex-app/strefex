@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { useProjectStore } from '../store/projectStore'
 import { useAuthStore } from '../store/authStore'
 import { useLimit } from '../services/featureFlags'
+import { useTranslation } from '../i18n/useTranslation'
 /* jspdf & html2canvas loaded dynamically only when exporting PDF */
 import '../styles/app-page.css'
 import './ProgramManagement.css'
@@ -194,6 +195,7 @@ function drawPmPdfFooter(pdf, w, pageH, pageLabel, printedByName) {
  *  MAIN COMPONENT
  * ═══════════════════════════════════════════════════════ */
 const ProjectManagement = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const ganttRef = useRef(null)
   const fitWrapRef = useRef(null)
@@ -1048,8 +1050,8 @@ const ProjectManagement = () => {
         {showFilter && (
           <div className="gc-filter-shell">
             <div className="gc-filter-row">
-              <label>Status <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">All</option><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="complete">Complete</option></select></label>
-              <label>Assignee <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">All</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+              <label>{t('pmFilter.statusLabel')} <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">{t('pmFilter.all')}</option><option value="not-started">{t('pmFilter.task.not-started')}</option><option value="in-progress">{t('pmFilter.task.in-progress')}</option><option value="complete">{t('pmFilter.task.complete')}</option></select></label>
+              <label>{t('pmFilter.assigneeLabel')} <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">{t('pmFilter.all')}</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
             </div>
           </div>
         )}

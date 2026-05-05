@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import SearchFiltersPanel from '../components/SearchFiltersPanel'
 import SupplierCard from '../components/SupplierCard'
@@ -9,6 +10,7 @@ import RFQBuilder from '../components/RFQBuilder'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
 
 export default function BuyerWorkspace() {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState({
     query: '',
     country: '',
@@ -43,7 +45,7 @@ export default function BuyerWorkspace() {
       const rec = await industrialIntelligenceService.getRecommendedSuppliers(filters, 6).catch(() => [])
       setRecommended(rec)
     } catch (err) {
-      setError(err?.message || 'Failed to load suppliers.')
+      setError(err?.message || t('buyerWorkspace.errLoadSuppliers'))
     } finally {
       setLoading(false)
     }
@@ -97,10 +99,10 @@ export default function BuyerWorkspace() {
     setError('')
     try {
       await industrialIntelligenceService.shortlistSupplier({ supplierId })
-      setFeedback('Supplier shortlisted.')
+      setFeedback(t('buyerWorkspace.feedbackShortlist'))
       await loadShortlists()
     } catch (err) {
-      setError(err?.message || 'Failed to shortlist supplier.')
+      setError(err?.message || t('buyerWorkspace.errShortlist'))
     }
   }
 
@@ -116,12 +118,12 @@ export default function BuyerWorkspace() {
     setError('')
     try {
       await industrialIntelligenceService.createRfq(payload)
-      setFeedback('RFQ created and invitations sent.')
+      setFeedback(t('buyerWorkspace.feedbackRfq'))
       void loadShortlists()
       void loadTracking()
       void loadNotifications()
     } catch (err) {
-      setError(err?.message || 'Failed to create RFQ.')
+      setError(err?.message || t('buyerWorkspace.errRfq'))
     }
   }
 
@@ -129,19 +131,19 @@ export default function BuyerWorkspace() {
     <AppLayout>
       <div className="app-page">
         <div className="app-page-card">
-          <h2 className="app-page-title">Buyer Workspace</h2>
-          <p className="app-page-subtitle">Search, shortlist, compare, and send RFQs at enterprise scale.</p>
+          <h2 className="app-page-title">{t('buyerWorkspace.title')}</h2>
+          <p className="app-page-subtitle">{t('buyerWorkspace.subtitle')}</p>
           {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
           {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
           <p style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
             <Link to="/hub/procurement" className="app-page-btn-outline">
-              Buyers
+              {t('buyerWorkspace.hubBuyers')}
             </Link>
             <Link to="/dashboard/buyer/account-directory" className="app-page-btn-primary">
-              Account directory
+              {t('buyerWorkspace.accountDirectory')}
             </Link>
             <span className="app-page-subtitle" style={{ margin: 0, display: 'inline-block', verticalAlign: 'middle' }}>
-              The Buyers hub lists all buyer-side tools; directory is your company’s contacts.
+              {t('buyerWorkspace.hubBlurb')}
             </span>
           </p>
         </div>
@@ -151,9 +153,9 @@ export default function BuyerWorkspace() {
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>Recommended Suppliers</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.recommended')}</h3>
           {recommended.length === 0 ? (
-            <p className="app-page-subtitle">No recommendations yet.</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.noRecommendations')}</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(290px,1fr))', gap: 10 }}>
               {recommended.map((supplier) => (
@@ -169,11 +171,11 @@ export default function BuyerWorkspace() {
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>Supplier Search Results</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.searchResults')}</h3>
           {loading ? (
-            <p className="app-page-subtitle">Loading suppliers...</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.loading')}</p>
           ) : suppliers.length === 0 ? (
-            <p className="app-page-subtitle">No suppliers matched your filters.</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.noMatch')}</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(290px,1fr))', gap: 10 }}>
               {suppliers.map((supplier) => (
@@ -189,30 +191,30 @@ export default function BuyerWorkspace() {
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>Supplier Comparison</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.comparison')}</h3>
           <SupplierComparisonTable rows={selectedForCompare} />
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>RFQ Builder</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.rfqBuilder')}</h3>
           <RFQBuilder shortlisted={shortlistedAsSuppliers} onSubmit={createRfq} />
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>RFQ Tracking</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.tracking')}</h3>
           {trackingRows.length === 0 ? (
-            <p className="app-page-subtitle">No RFQs created yet.</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.noRfqsYet')}</p>
           ) : (
             <div className="stx-fluid-table-wrap">
               <table className="stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>RFQ</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Deadline</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Invited</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Viewed</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Responded</th>
-                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Closed</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thRfq')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thDeadline')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thInvited')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thViewed')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thResponded')}</th>
+                    <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>{t('buyerWorkspace.thClosed')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -233,14 +235,14 @@ export default function BuyerWorkspace() {
         </div>
 
         <div className="app-page-card">
-          <h3 className="app-page-title" style={{ fontSize: 20 }}>In-App Notifications</h3>
+          <h3 className="app-page-title" style={{ fontSize: 20 }}>{t('buyerWorkspace.notifications')}</h3>
           {notifications.length === 0 ? (
-            <p className="app-page-subtitle">No notifications.</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.noNotifications')}</p>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {notifications.map((n) => (
                 <div key={n.id} style={{ border: '1px solid #e4e7ec', borderRadius: 8, padding: 10 }}>
-                  <div style={{ fontWeight: 600 }}>{n.title || n.type || 'Notification'}</div>
+                  <div style={{ fontWeight: 600 }}>{n.title || n.type || t('buyerWorkspace.notificationFallback')}</div>
                   <div style={{ color: '#475467', fontSize: 13 }}>{n.message || ''}</div>
                 </div>
               ))}

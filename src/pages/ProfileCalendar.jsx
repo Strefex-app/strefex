@@ -3,11 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import useExhibitionStore from '../store/exhibitionStore'
 import './ProfileCalendar.css'
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import { useTranslation } from '../i18n/useTranslation'
 
 const INDUSTRY_COLORS = {
   Automotive: '#e74c3c',
@@ -28,6 +24,7 @@ const toLocalDateStr = (date) => {
 
 const ProfileCalendar = () => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const contentRef = useRef(null)
   const {
     industries,
@@ -496,7 +493,7 @@ const ProfileCalendar = () => {
                     <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
                     <path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
-                  Calendar
+                  {t('exhibitionFilters.viewCalendar')}
                 </button>
                 <button
                   type="button"
@@ -506,7 +503,7 @@ const ProfileCalendar = () => {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
-                  List
+                  {t('exhibitionFilters.viewList')}
                 </button>
               </div>
             </div>
@@ -570,7 +567,7 @@ const ProfileCalendar = () => {
               onClick={() => updateFilter('industry', ind)}
             >
               {ind !== 'All' && <span className="chip-dot" style={{ background: INDUSTRY_COLORS[ind] }} />}
-              {ind}
+              {ind === 'All' ? t('exhibitionFilters.allIndustries') : ind}
               {ind !== 'All' && industryCounts[ind] ? ` (${industryCounts[ind]})` : ''}
             </button>
           ))}
@@ -585,30 +582,30 @@ const ProfileCalendar = () => {
             </svg>
             <input
               type="text"
-              placeholder="Search exhibitions, cities, equipment..."
+              placeholder={t('exhibitionFilters.searchPlaceholder')}
               value={filters.search}
               onChange={(e) => updateFilter('search', e.target.value)}
             />
           </div>
           <div className="filter-selects">
             <select value={filters.country} onChange={(e) => updateFilter('country', e.target.value)}>
-              {countries.map((c) => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
+              {countries.map((c) => <option key={c} value={c}>{c === 'All' ? t('exhibitionFilters.allCountries') : c}</option>)}
             </select>
             <select value={filters.tier} onChange={(e) => updateFilter('tier', e.target.value)}>
-              {tierLevels.map((t) => <option key={t} value={t}>{t === 'All' ? 'All Tier Levels' : t}</option>)}
+              {tierLevels.map((tier) => <option key={tier} value={tier}>{tier === 'All' ? t('exhibitionFilters.allTierLevels') : tier}</option>)}
             </select>
             <select value={filters.equipment} onChange={(e) => updateFilter('equipment', e.target.value)}>
-              {equipmentTags.map((eq) => <option key={eq} value={eq}>{eq === 'All' ? 'All Equipment' : eq}</option>)}
+              {equipmentTags.map((eq) => <option key={eq} value={eq}>{eq === 'All' ? t('exhibitionFilters.allEquipment') : eq}</option>)}
             </select>
             <select value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>
-              <option value="All">All Years</option>
+              <option value="All">{t('exhibitionFilters.allYears')}</option>
               <option value="2026">2026</option>
               <option value="2027">2027</option>
             </select>
             {viewMode === 'list' && (
               <select value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>
-                <option value="All">All Months</option>
-                {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                <option value="All">{t('exhibitionFilters.allMonths')}</option>
+                {[...Array(12)].map((_, i) => <option key={i} value={i}>{t(`exhibitionFilters.month.${i}`)}</option>)}
               </select>
             )}
           </div>
@@ -618,7 +615,7 @@ const ProfileCalendar = () => {
               className="filter-clear"
               onClick={() => setFilters({ industry: 'All', country: 'All', tier: 'All', equipment: 'All', search: '', month: 'All', year: 'All' })}
             >
-              Clear All Filters
+              {t('exhibitionFilters.clearAll')}
             </button>
           )}
         </div>

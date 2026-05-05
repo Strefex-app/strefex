@@ -1,7 +1,7 @@
 import AppLayout from '../components/AppLayout'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
-import { LANGUAGES } from '../i18n/translations'
+import { LANGUAGES } from '../i18n/languages'
 import './Settings.css'
 
 export default function Settings() {

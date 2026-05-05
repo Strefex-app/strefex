@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useTranslation } from '../i18n/useTranslation'
-import { LANGUAGES } from '../i18n/translations'
+import { LANGUAGES } from '../i18n/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
@@ -261,7 +261,7 @@ export default function AppLayout({ children }) {
                 >
                   {LANGUAGES.map((lang) => (
                     <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.code.toUpperCase()}
+                      {lang.flag} {lang.label}
                     </option>
                   ))}
                 </select>

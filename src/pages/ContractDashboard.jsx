@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore'
 import useContractStore from '../store/contractStore'
 import { filterByCompanyRole, canDelete, canEdit } from '../utils/companyGuard'
 import './ContractDashboard.css'
+import { useTranslation } from '../i18n/useTranslation'
 
 const TYPE_META = {
   supply: { label: 'Supply', icon: '📦', color: '#2980b9' },
@@ -146,17 +147,21 @@ export default function ContractDashboard() {
 
         {/* Tabs */}
         <div className="ctr-tabs">
-          {['overview', 'all', 'expiring', 'alerts'].map((t) => (
-            <button key={t} className={`ctr-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>{t === 'overview' ? 'Overview' : t === 'all' ? `All (${contracts.length})` : t === 'expiring' ? `Expiring (${stats.expiringSoon})` : `Alerts (${allAlerts.length})`}</button>
+          {['overview', 'all', 'expiring', 'alerts'].map((tabId) => (
+            <button key={tabId} className={`ctr-tab ${tab === tabId ? 'active' : ''}`} onClick={() => setTab(tabId)}>{tabId === 'overview' ? 'Overview' : tabId === 'all' ? `All (${contracts.length})` : tabId === 'expiring' ? `Expiring (${stats.expiringSoon})` : `Alerts (${allAlerts.length})`}</button>
           ))}
         </div>
 
         {tab !== 'alerts' && tab !== 'overview' && (
           <div className="ctr-filters">
-            <input className="ctr-search" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="ctr-search" placeholder={t('contractFilter.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="ctr-filter-group">
               {['all', 'active', 'expiring_soon', 'expired', 'terminated', 'renewed'].map((s) => (
-                <button key={s} className={`ctr-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>{s === 'all' ? 'All' : STATUS_META[s]?.label || s}</button>
+                <button key={s} type="button" className={`ctr-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
+                  {s === 'all'
+                    ? t('filtersCommon.all')
+                    : t(`contractFilter.status.${s}`, STATUS_META[s]?.label || s)}
+                </button>
               ))}
             </div>
           </div>

@@ -1,5 +1,13 @@
 import { create } from 'zustand'
+import { LANGUAGE_CODES } from '../i18n/languages'
 import { normalizeTheme, syncDomTheme } from '../theme/syncDomTheme'
+
+const ALLOWED_LANG = new Set(LANGUAGE_CODES)
+
+function normalizeLanguage(code) {
+  const c = String(code || 'en').trim().toLowerCase()
+  return ALLOWED_LANG.has(c) ? c : 'en'
+}
 
 const getStoredTheme = () => {
   try {
@@ -9,7 +17,11 @@ const getStoredTheme = () => {
   }
 }
 const getStoredLang = () => {
-  try { return localStorage.getItem('strefex-lang') || 'en' } catch { return 'en' }
+  try {
+    return normalizeLanguage(localStorage.getItem('strefex-lang') || 'en')
+  } catch {
+    return 'en'
+  }
 }
 
 export const useSettingsStore = create((set) => ({
@@ -33,7 +45,10 @@ export const useSettingsStore = create((set) => ({
   },
 
   setLanguage: (language) => {
-    try { localStorage.setItem('strefex-lang', language) } catch {}
-    set({ language })
+    const next = normalizeLanguage(language)
+    try {
+      localStorage.setItem('strefex-lang', next)
+    } catch {}
+    set({ language: next })
   },
 }))
