@@ -7,6 +7,9 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage, getTenantId } from '../utils/tenantStorage'
 import { auditProUid } from '../utils/auditProUid'
 
+/** Wired after `useAuditProStore` is created — persist calls this when localStorage hydration finishes. */
+const auditProAfterPersistRehydrate = { flush: () => {} }
+
 function responseTouchesCount(audit) {
   const r = audit?.responses || {}
   return Object.keys(r).filter((k) => {
@@ -69,8 +72,11 @@ function mergeAuditOnHydrate(local, server) {
   }
   const lc = responseTouchesCount(local)
   const sc = responseTouchesCount(server)
+  /* Do not prefer local only because lc > sc — stale desktop often has extra "touched" keys. */
   const preferLocalDraft =
-    lc > sc || (lc === sc && lc > 0 && localDraftNewerThanServer(local, server)) || (lc > 0 && sc === 0)
+    (lc > sc && localDraftNewerThanServer(local, server)) ||
+    (lc === sc && lc > 0 && localDraftNewerThanServer(local, server)) ||
+    (lc > 0 && sc === 0)
   if (preferLocalDraft) {
     const nextStatus =
       local.status === 'In Progress'
@@ -402,8 +408,17 @@ const useAuditProStore = create(
         reminders: s.reminders,
         seeded: s.seeded,
       }),
+      /** After disk rehydrate, merge management_* again so late LS load cannot win without timestamps. */
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) return
+        queueMicrotask(() => auditProAfterPersistRehydrate.flush())
+      },
     },
   ),
 )
+
+auditProAfterPersistRehydrate.flush = () => {
+  void useAuditProStore.getState().hydrateFromSupabase()
+}
 
 export default useAuditProStore
