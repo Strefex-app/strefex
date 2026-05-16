@@ -115,6 +115,79 @@ function trialPromoAccountTypeLabel(accountType) {
   return '—'
 }
 
+function accountHasDistinctCompanyName(acct) {
+  const c = String(acct?.company || '').trim()
+  if (!c) return false
+  const lower = c.toLowerCase()
+  return lower !== 'business account' && lower !== '—' && lower !== '-'
+}
+
+function platformWorkspaceDisplay(acct) {
+  const company = String(acct?.company || '').trim()
+  const named = accountHasDistinctCompanyName(acct)
+  const email = String(acct?.email || '').trim()
+  const contact = String(acct?.contactName || acct?.fullName || acct?.name || '').trim()
+  const reg = String(acct?.registrationCode || '').trim()
+
+  if (named) {
+    const bits = []
+    if (contact) bits.push(contact)
+    if (email) bits.push(email)
+    return { headline: company, subline: bits.join(' · ') }
+  }
+
+  if (contact && email && contact.toLowerCase() !== email.toLowerCase())
+    return { headline: contact, subline: [email, reg && `#${reg}`].filter(Boolean).join(' · ') }
+
+  if (email)
+    return { headline: email, subline: reg ? `#${reg}` : '' }
+
+  if (reg)
+    return { headline: `#${reg}`, subline: company && company.toLowerCase() !== 'business account' ? company : '' }
+
+  const fallback =
+    company && company.toLowerCase() !== 'business account' ? company : String(acct?.id || '').slice(0, 8) || 'Tenant'
+  return { headline: fallback, subline: '' }
+}
+
+function platformAccountSelectSortKey(acct) {
+  const d = platformWorkspaceDisplay(acct)
+  const email = String(acct?.email || '').trim()
+  return [d.headline, d.subline, email].filter(Boolean).join(' ')
+}
+
+function defaultFeatureGrantAccountTypeLabel(accountType) {
+  if (accountType === 'service_provider') return 'Service provider'
+  const t = String(accountType || 'seller').toLowerCase()
+  return t ? `${t.charAt(0).toUpperCase()}${t.slice(1)}` : 'Seller'
+}
+
+function platformAccountSelectOptionText(acct, formatAccountType) {
+  const d = platformWorkspaceDisplay(acct)
+  const formatter =
+    typeof formatAccountType === 'function' ? formatAccountType : defaultFeatureGrantAccountTypeLabel
+  const typeShort = formatter(acct?.accountType)
+  const planName = PLANS.find((p) => p.id === acct?.plan)?.name || acct?.plan || 'Plan'
+  const left = [d.headline, d.subline].filter(Boolean).join(' · ')
+  return `${left} — ${typeShort} · ${planName}`
+}
+
+function platformAccountOptionTitleAttr(acct) {
+  const d = platformWorkspaceDisplay(acct)
+  const parts = []
+  const legal = String(acct?.company || '').trim()
+  if (legal) parts.push(`Company field: ${legal}`)
+  parts.push(`Shown as: ${[d.headline, d.subline].filter(Boolean).join(' · ')}`)
+  const email = String(acct?.email || '').trim()
+  if (email) parts.push(`Email: ${email}`)
+  const reg = String(acct?.registrationCode || '').trim()
+  if (reg) parts.push(`Platform #: ${reg}`)
+  const cid = acct?.companyId || acct?.company_id
+  if (cid) parts.push(`Tenant company UUID: ${cid}`)
+  parts.push(`Profile row: ${acct?.id || '—'}`)
+  return parts.join('\n')
+}
+
 /* Grantable features — grouped by the plan tier that unlocks them */
 const GRANTABLE_FEATURES = [
   // Basic-tier features (grantable to Free accounts)
@@ -525,10 +598,13 @@ export default function SuperAdminDashboard() {
       ? new Date(now.getTime() + grantPeriod * 86400000).toISOString()
       : null // unlimited
 
+    const wg = platformWorkspaceDisplay(acct)
+    const grantListCompanyLabel = [wg.headline, wg.subline].filter(Boolean).join(' · ')
+
     const newGrants = grantFeatures.map((featureKey) => ({
       id: `grant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       accountId: acct.id,
-      company: acct.company,
+      company: grantListCompanyLabel,
       email: acct.email,
       accountType: acct.accountType,
       plan: acct.plan,
@@ -555,7 +631,7 @@ export default function SuperAdminDashboard() {
       })
     }
     setGrantFeatures([])
-    setGrantFeedback(`Granted ${newGrants.length} feature(s) to ${acct.company}`)
+    setGrantFeedback(`Granted ${newGrants.length} feature(s) to ${grantListCompanyLabel}`)
     setTimeout(() => setGrantFeedback(''), 4000)
   }, [grantCompany, grantFeatures, grantPeriod, normalizedAccounts, featureGrants])
 
@@ -727,7 +803,7 @@ export default function SuperAdminDashboard() {
       normalizedAccounts
         .filter((a) => a.status !== 'canceled')
         .sort((a, b) =>
-          String(a.company || a.email || '').localeCompare(String(b.company || b.email || ''), undefined, {
+          platformAccountSelectSortKey(a).localeCompare(platformAccountSelectSortKey(b), undefined, {
             sensitivity: 'base',
           }),
         ),
@@ -2306,33 +2382,48 @@ export default function SuperAdminDashboard() {
           <div className="fg-form-row">
             <label className="fg-label">
               <span className="fg-step">1</span>
-              Select Company
+              Company / workspace
             </label>
             <select
               className="fg-select"
               value={grantCompany}
               onChange={(e) => { setGrantCompany(e.target.value); setGrantFeatures([]) }}
             >
-              <option value="">— Choose a company —</option>
+              <option value="">— Choose company (name · contact · email · type · plan) —</option>
               {normalizedAccounts
                 .filter((a) => a.status !== 'canceled')
-                .sort((a, b) => a.company.localeCompare(b.company))
+                .sort((a, b) =>
+                  platformAccountSelectSortKey(a).localeCompare(platformAccountSelectSortKey(b), undefined, {
+                    sensitivity: 'base',
+                  }),
+                )
                 .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.company} — {a.accountType === 'service_provider' ? 'Service Provider' : a.accountType.charAt(0).toUpperCase() + a.accountType.slice(1)} — {(PLANS.find((p) => p.id === a.plan)?.name || a.plan)} plan
+                  <option key={a.id} value={a.id} title={platformAccountOptionTitleAttr(a)}>
+                    {platformAccountSelectOptionText(a)}
                   </option>
                 ))}
             </select>
           </div>
 
           {/* Selected company info */}
-          {selectedGrantAccount && (
+          {selectedGrantAccount && (() => {
+            const d = platformWorkspaceDisplay(selectedGrantAccount)
+            const typeLabel =
+              selectedGrantAccount.accountType === 'service_provider'
+                ? 'Service Provider'
+                : `${String(selectedGrantAccount.accountType || 'seller').charAt(0).toUpperCase()}${String(selectedGrantAccount.accountType || 'seller').slice(1)}`
+            return (
             <div className="fg-account-info">
               <div className="fg-account-detail">
-                <strong>{selectedGrantAccount.company}</strong>
-                <span className="fg-account-meta">
-                  {selectedGrantAccount.email} &middot;{' '}
-                  <span style={{ textTransform: 'capitalize' }}>{selectedGrantAccount.accountType === 'service_provider' ? 'Service Provider' : selectedGrantAccount.accountType}</span> &middot;{' '}
+                <strong className="stx-text-wrap">{d.headline}</strong>
+                {d.subline ? (
+                  <span className="fg-account-meta stx-text-wrap" style={{ display: 'block', marginTop: 4 }}>
+                    {d.subline}
+                  </span>
+                ) : null}
+                <span className="fg-account-meta stx-text-wrap" style={{ display: 'block', marginTop: 6 }}>
+                  <span style={{ textTransform: 'capitalize' }}>{typeLabel}</span>
+                  {' · '}
                   <span className="fg-plan-badge" style={{ background: planColor(selectedGrantAccount.plan), color: '#fff' }}>
                     {PLANS.find((p) => p.id === selectedGrantAccount.plan)?.name || selectedGrantAccount.plan}
                   </span>
@@ -2348,7 +2439,8 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-          )}
+            )
+          })()}
 
           {/* Step 2: Select features */}
           {selectedGrantAccount && (
@@ -2423,11 +2515,14 @@ export default function SuperAdminDashboard() {
           )}
 
           {/* Submit */}
-          {selectedGrantAccount && grantFeatures.length > 0 && (
+          {selectedGrantAccount && grantFeatures.length > 0 && (() => {
+            const dSum = platformWorkspaceDisplay(selectedGrantAccount)
+            const sumLabel = [dSum.headline, dSum.subline].filter(Boolean).join(' · ')
+            return (
             <div className="fg-form-row" style={{ borderTop: '1px solid #e5e8ec', paddingTop: 20, marginTop: 8 }}>
               <div className="fg-summary">
                 <strong>Summary:</strong> Granting <strong>{grantFeatures.length}</strong> feature(s) to{' '}
-                <strong>{selectedGrantAccount.company}</strong> for{' '}
+                <strong>{sumLabel}</strong> for{' '}
                 <strong>{grantPeriod === 0 ? 'unlimited time' : GRANT_PERIODS.find((p) => p.value === grantPeriod)?.label}</strong>
               </div>
               <button type="button" className="fg-submit-btn" onClick={handleGrantFeature}>
@@ -2435,7 +2530,8 @@ export default function SuperAdminDashboard() {
                 Grant Features
               </button>
             </div>
-          )}
+            )
+          })()}
         </div>
       </div>
 
@@ -2673,7 +2769,10 @@ export default function SuperAdminDashboard() {
     const updated = [...trialGrants, grant]
     setTrialGrants(updated)
     saveTrialGrants(updated)
-    setTrialFeedback(`Trial extended by ${trialExtendDays} days for ${acct.company || acct.email}`)
+    const wdTrial = platformWorkspaceDisplay(acct)
+    setTrialFeedback(
+      `Trial extended by ${trialExtendDays} days for ${[wdTrial.headline, wdTrial.subline].filter(Boolean).join(' · ')}`,
+    )
     setTimeout(() => setTrialFeedback(''), 4000)
   }
 
@@ -2711,7 +2810,10 @@ export default function SuperAdminDashboard() {
     setTrialGrants(updated)
     saveTrialGrants(updated)
     setTrialPromoCode('')
-    setTrialFeedback(`Promo "${normalized}" applied to ${acct.company || acct.email} — ${promo.description}`)
+    const wdPromo = platformWorkspaceDisplay(acct)
+    setTrialFeedback(
+      `Promo "${normalized}" applied to ${[wdPromo.headline, wdPromo.subline].filter(Boolean).join(' · ')} — ${promo.description}`,
+    )
     setTimeout(() => setTrialFeedback(''), 5000)
   }
 
@@ -2759,8 +2861,8 @@ export default function SuperAdminDashboard() {
               <select className="fg-select" value={trialTargetCompany} onChange={(e) => setTrialTargetCompany(e.target.value)}>
                 <option value="">— Select account —</option>
                 {trialPromoEligibleAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.company || a.email} — {trialPromoAccountTypeLabel(a.accountType)} — {a.email}
+                  <option key={a.id} value={a.id} title={platformAccountOptionTitleAttr(a)}>
+                    {platformAccountSelectOptionText(a, trialPromoAccountTypeLabel)}
                   </option>
                 ))}
               </select>
@@ -2797,8 +2899,8 @@ export default function SuperAdminDashboard() {
               <select className="fg-select" value={trialTargetCompany} onChange={(e) => setTrialTargetCompany(e.target.value)}>
                 <option value="">— Select account —</option>
                 {trialPromoEligibleAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.company || a.email} — {trialPromoAccountTypeLabel(a.accountType)} — {a.email}
+                  <option key={a.id} value={a.id} title={platformAccountOptionTitleAttr(a)}>
+                    {platformAccountSelectOptionText(a, trialPromoAccountTypeLabel)}
                   </option>
                 ))}
               </select>
