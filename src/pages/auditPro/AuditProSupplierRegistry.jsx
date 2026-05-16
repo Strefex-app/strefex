@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import useAuditProStore from '../../store/auditProStore'
 import useVendorStore from '../../store/vendorStore'
-import { useAccountRegistry } from '../../store/accountRegistry'
 import { useAuthStore } from '../../store/authStore'
-import { fetchPlatformDirectoryProfilesForSuperadmin } from '../../services/auditManagementDb'
+import {
+  fetchAccountDirectoryRowsAsAuditSuppliers,
+  fetchPlatformDirectoryProfilesForSuperadmin,
+  getActorCompanyId,
+} from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
 import { INDUSTRIES } from './auditProUi'
 import { Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
@@ -18,51 +21,47 @@ export default function AuditProSupplierRegistry() {
   const setSuppliers = useAuditProStore((s) => s.setSuppliers)
   const showToast = useAuditProStore((s) => s.showToast)
   const vendors = useVendorStore((s) => s.vendors)
-  const getRegisteredSellers = useAccountRegistry((s) => s.getRegisteredSellers)
-  const getRegisteredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
 
   const [show, setShow] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
   const [form, setForm] = useState({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
 
-  const mergeRegisteredSellersFromRegistry = () => {
-    const pool = [...getRegisteredSellers(), ...getRegisteredServiceProviders()]
-    const next = [...suppliers]
-    let added = 0
-    pool.forEach((a) => {
-      const email = normEmail(a.email)
-      const name = String(a.company || a.contactName || email || '').trim()
-      if (!email || !name) return
-      if (next.some((s) => normEmail(s.email) === email || s.name === name)) return
-      const industries = Array.isArray(a.industries) && a.industries.length ? a.industries[0] : ''
-      next.push({
-        id: `registry_supplier:${email}`,
-        name,
-        country: '',
-        industry: industries,
-        contact: a.contactName || '',
-        email,
-        address: '',
-        notes: 'Imported from platform account registry.',
-        registeredAt: (a.registeredAt || new Date().toISOString()).slice(0, 10),
-        accountRegistryUserId: a.id,
-        vendorMasterId: null,
-        source: 'account_registry',
+  const importDirectoryContacts = async () => {
+    setImportBusy(true)
+    try {
+      const cid = await getActorCompanyId()
+      if (!cid) {
+        showToast('Link a workspace with a Supabase company to import directory contacts.', 'error')
+        return
+      }
+      const fromDb = await fetchAccountDirectoryRowsAsAuditSuppliers(cid)
+      let added = 0
+      const next = [...suppliers]
+      ;(fromDb || []).forEach((row) => {
+        const email = normEmail(row.email)
+        const name = String(row.name || '').trim()
+        const dupEmail = email && next.some((s) => normEmail(s.email) === email)
+        const dupName = name && next.some((s) => s.name === name && (!email || normEmail(s.email) === email))
+        if ((!email && !name) || dupEmail || dupName) return
+        next.push(row)
+        added += 1
       })
-      added += 1
-    })
-    if (!added) {
-      showToast('No new seller accounts in registry (or already listed).', 'error')
-      return
+      if (!added) showToast('No new directory contacts to import (or already listed).', 'error')
+      else {
+        setSuppliers(next)
+        showToast(`Imported ${added} contact row(s) from your B2B directory (Supabase).`)
+      }
+    } catch {
+      showToast('Could not load directory entries.', 'error')
+    } finally {
+      setImportBusy(false)
     }
-    setSuppliers(next)
-    showToast(`Imported ${added} registered seller / service supplier(s).`)
   }
 
-  const importSuppliersFromSupabaseDirectory = async () => {
+  const importPlatformSuppliersSuperadmin = async () => {
     if (!isSuperAdmin()) {
-      showToast('Database directory import requires superadmin.', 'error')
+      showToast('Full platform supplier sync requires superadmin.', 'error')
       return
     }
     setImportBusy(true)
@@ -77,11 +76,10 @@ export default function AuditProSupplierRegistry() {
         next.push(row)
         added += 1
       })
-      if (!added) {
-        showToast('No new supplier companies returned from Supabase (or empty).', 'error')
-      } else {
+      if (!added) showToast('No new platform suppliers returned (or already listed).', 'error')
+      else {
         setSuppliers(next)
-        showToast(`Synced ${added} supplier row(s) from database.`)
+        showToast(`Synced ${added} supplier row(s) from Supabase (platform-wide).`)
       }
     } catch {
       showToast('Could not load supplier directory.', 'error')
@@ -105,8 +103,9 @@ export default function AuditProSupplierRegistry() {
         contact: String(v.general?.contactName || ''),
         email: String(v.general?.email || ''),
         address: [v.general?.street, v.general?.city].filter(Boolean).join(', ') || '',
-        notes: '',
+        notes: 'Procurement vendor master',
         registeredAt: new Date().toISOString().slice(0, 10),
+        source: 'vendor_master',
       })
       added += 1
     })
@@ -129,6 +128,7 @@ export default function AuditProSupplierRegistry() {
         id: auditProUid(),
         ...form,
         registeredAt: new Date().toISOString().slice(0, 10),
+        source: 'manual',
       },
     ])
     showToast('Supplier registered!')
@@ -139,17 +139,17 @@ export default function AuditProSupplierRegistry() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
-        <Btn onClick={mergeRegisteredSellersFromRegistry} variant="success">
-          Import registered sellers (platform registry)
+        <Btn onClick={importDirectoryContacts} variant="success" disabled={importBusy}>
+          {importBusy ? 'Loading…' : 'Import B2B directory (Supabase)'}
+        </Btn>
+        <Btn onClick={importVendorMaster} variant="secondary">
+          Import vendor master (your ERP records)
         </Btn>
         {isSuperAdmin() ? (
-          <Btn onClick={importSuppliersFromSupabaseDirectory} variant="secondary" disabled={importBusy}>
-            {importBusy ? 'Loading…' : 'Superadmin: sync suppliers from Supabase'}
+          <Btn onClick={importPlatformSuppliersSuperadmin} variant="secondary" disabled={importBusy}>
+            Superadmin: import platform sellers
           </Btn>
         ) : null}
-        <Btn onClick={importVendorMaster} variant="secondary">
-          Import from Vendor Master
-        </Btn>
         <Btn onClick={() => setShow((v) => !v)}>
           + Register Supplier
         </Btn>
@@ -223,7 +223,7 @@ export default function AuditProSupplierRegistry() {
                     {sRow.contact}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: 11, color: '#94A3B8' }} className="stx-text-wrap">
-                    {sRow.email}
+                    {sRow.email || '—'}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: 13, color: '#60A5FA', fontWeight: 700, textAlign: 'center' }}>{sa.length}</td>
                   <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 700, textAlign: 'center', color: sf > 0 ? '#FCD34D' : '#374151' }}>{sf}</td>

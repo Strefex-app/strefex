@@ -1,7 +1,7 @@
 import { useNavigate, Navigate, NavLink } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
-import { useAuthStore } from '../store/authStore'
+import { useAuditProProgramAccess } from '../utils/auditProgramAccess'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 import './ProductionManagement.css'
 import './AuditManagementHub.css'
@@ -51,7 +51,7 @@ const OPERATIONS_PAGES = [
   {
     id: 'suppliers',
     label: 'Supplier registry',
-    description: 'Sites under audit scope from Vendor Master and ad hoc',
+    description: 'Sites from your Supabase B2B directory, vendor master, or ad hoc registration',
     path: `${BASE}/suppliers`,
     icon: 'vendors',
   },
@@ -104,9 +104,7 @@ function PageRow({ page, navigate, getIcon }) {
 
 export default function AuditManagementHub() {
   const navigate = useNavigate()
-  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
-  const isAuditor = useAuthStore((s) => s.isAuditor)
-  const canUse = isSuperAdmin() || isAuditor()
+  const canUse = useAuditProProgramAccess()
 
   const getIcon = (name, size = 20) => <Icon name={name} size={size} />
 

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import useAuditProStore from '../../store/auditProStore'
-import useAuditorHubStore from '../../store/auditorHubStore'
-import { useAccountRegistry } from '../../store/accountRegistry'
 import { useAuthStore } from '../../store/authStore'
-import { fetchPlatformDirectoryProfilesForSuperadmin } from '../../services/auditManagementDb'
+import {
+  fetchCompanyProfilesAsAuditAuditors,
+  fetchPlatformDirectoryProfilesForSuperadmin,
+  getActorCompanyId,
+} from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
 import { Card, Btn, Field, Grid2, Input, Textarea, Select, Tag } from './auditProUi'
 
@@ -14,47 +16,45 @@ function normEmail(em) {
 export default function AuditProAuditorRegistry() {
   const auditors = useAuditProStore((s) => s.auditors)
   const setAuditors = useAuditProStore((s) => s.setAuditors)
-  const profiles = useAuditorHubStore((s) => s.profiles)
   const showToast = useAuditProStore((s) => s.showToast)
-  const getRegisteredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
 
   const [show, setShow] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
   const [form, setForm] = useState({ name: '', role: 'Auditor', email: '', phone: '', certifications: '', notes: '' })
 
-  const mergeFromAccountRegistry = () => {
-    const regs = getRegisteredAuditors()
-    let added = 0
-    const next = [...auditors]
-    regs.forEach((a) => {
-      const email = normEmail(a.email)
-      if (!email || next.some((row) => normEmail(row.email) === email)) return
-      next.push({
-        id: `registry_auditor:${email}`,
-        name: a.contactName || a.company || email,
-        role: 'Auditor',
-        email,
-        phone: '',
-        certifications: [],
-        notes: ['Platform registry', a.company].filter(Boolean).join(' · '),
-        registeredAt: (a.registeredAt || new Date().toISOString()).slice(0, 10),
-        accountRegistryUserId: a.id,
-        source: 'account_registry',
+  const importCompanyTeamProfiles = async () => {
+    setImportBusy(true)
+    try {
+      const cid = await getActorCompanyId()
+      if (!cid) {
+        showToast('Link a workspace with a Supabase company to import team auditors.', 'error')
+        return
+      }
+      const fromDb = await fetchCompanyProfilesAsAuditAuditors(cid)
+      let added = 0
+      const next = [...auditors]
+      ;(fromDb || []).forEach((row) => {
+        const email = normEmail(row.email)
+        if (!email || next.some((x) => normEmail(x.email) === email)) return
+        next.push(row)
+        added += 1
       })
-      added += 1
-    })
-    if (!added) {
-      showToast('No new auditor accounts in platform registry.', 'error')
-      return
+      if (!added) showToast('No new company profiles to import (or already listed).', 'error')
+      else {
+        setAuditors(next)
+        showToast(`Imported ${added} profile(s) from your company workspace.`)
+      }
+    } catch {
+      showToast('Could not load company profiles.', 'error')
+    } finally {
+      setImportBusy(false)
     }
-    setAuditors(next)
-    showToast(`Imported ${added} registered auditor account(s).`)
   }
 
-  const importFromSupabaseDirectory = async () => {
+  const importPlatformDirectorySuperadmin = async () => {
     if (!isSuperAdmin()) {
-      showToast('Database directory import requires superadmin.', 'error')
+      showToast('Full platform auditor sync requires superadmin.', 'error')
       return
     }
     setImportBusy(true)
@@ -68,42 +68,16 @@ export default function AuditProAuditorRegistry() {
         next.push(row)
         added += 1
       })
-      if (!added) {
-        showToast('No new auditors returned from Supabase (or empty).', 'error')
-      } else {
+      if (!added) showToast('No new platform auditors returned (or already listed).', 'error')
+      else {
         setAuditors(next)
-        showToast(`Synced ${added} auditor profile row(s) from database.`)
+        showToast(`Synced ${added} auditor profile row(s) from Supabase (platform-wide).`)
       }
     } catch {
       showToast('Could not load auditor directory.', 'error')
     } finally {
       setImportBusy(false)
     }
-  }
-
-  const mergeFromHub = () => {
-    let added = 0
-    const next = [...auditors]
-    profiles.forEach((p) => {
-      if (next.some((a) => String(a.email).toLowerCase() === String(p.email).toLowerCase())) return
-      next.push({
-        id: auditProUid(),
-        name: p.displayName || p.email,
-        role: 'Auditor',
-        email: p.email,
-        phone: '',
-        certifications: Array.isArray(p.competencies) ? [...p.competencies] : [],
-        notes: String(p.organization || ''),
-        registeredAt: new Date().toISOString().slice(0, 10),
-      })
-      added += 1
-    })
-    if (!added) {
-      showToast('No new auditor profiles to import.', 'error')
-      return
-    }
-    setAuditors(next)
-    showToast(`Imported ${added} profile(s) from STREFEX auditors hub.`)
   }
 
   const add = () => {
@@ -116,6 +90,7 @@ export default function AuditProAuditorRegistry() {
       ...form,
       certifications: form.certifications.split(',').map((c) => c.trim()).filter(Boolean),
       registeredAt: new Date().toISOString().slice(0, 10),
+      source: 'manual',
     }
     setAuditors([...auditors, a])
     showToast('Auditor registered!')
@@ -126,17 +101,14 @@ export default function AuditProAuditorRegistry() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
-        <Btn onClick={mergeFromAccountRegistry} variant="success">
-          Import registered auditors (platform)
+        <Btn onClick={importCompanyTeamProfiles} variant="success" disabled={importBusy}>
+          {importBusy ? 'Loading…' : 'Import company team (Supabase)'}
         </Btn>
         {isSuperAdmin() ? (
-          <Btn onClick={importFromSupabaseDirectory} variant="secondary" disabled={importBusy}>
-            {importBusy ? 'Loading…' : 'Superadmin: sync from Supabase profiles'}
+          <Btn onClick={importPlatformDirectorySuperadmin} variant="secondary" disabled={importBusy}>
+            Superadmin: import platform auditors
           </Btn>
         ) : null}
-        <Btn onClick={mergeFromHub} variant="secondary">
-          Merge auditors hub profiles
-        </Btn>
         <Btn onClick={() => setShow((v) => !v)}>
           + Register Auditor
         </Btn>

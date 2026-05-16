@@ -3,6 +3,7 @@
  * Tables: management_audits, management_audit_events, management_audit_reminders.
  */
 import { isSupabaseConfigured, supabase } from '../config/supabase'
+import { accountDirectoryEntriesService, profilesService } from './supabaseService'
 
 export function isLikelyUuid(id) {
   return (
@@ -251,6 +252,77 @@ export async function replaceAuditDirectory(companyId, auditors, suppliers) {
  * Superadmin / RLS: full profile directory with companies — maps to Audit Pro registry rows.
  * @returns {Promise<{ auditors: object[], suppliers: object[] }>}
  */
+function profileRoleToAuditorSeat(role) {
+  const r = String(role || '').toLowerCase()
+  if (r.includes('auditor')) return 'Auditor'
+  if (r === 'admin') return 'Admin'
+  if (r === 'manager') return 'Manager'
+  return 'Team member'
+}
+
+/**
+ * Profiles linked to the tenant company (Supabase / RLS). Real platform users — not local demo slices.
+ */
+export async function fetchCompanyProfilesAsAuditAuditors(companyId) {
+  if (!isSupabaseConfigured || !companyId || !isLikelyUuid(companyId)) return []
+  try {
+    const rows = await profilesService.listForCompany(companyId)
+    return (rows || [])
+      .map((row) => {
+        const email = String(row.email || '').trim().toLowerCase()
+        if (!email) return null
+        return {
+          id: `company_profile_${row.id}`,
+          name: String(row.full_name || email.split('@')[0] || 'User').trim(),
+          role: profileRoleToAuditorSeat(row.role),
+          email,
+          phone: String(row.phone || '').trim(),
+          certifications: [],
+          notes: `Company workspace profile (${row.role || 'member'})`,
+          registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
+          platformProfileId: row.id,
+          source: 'supabase_profiles',
+        }
+      })
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Tenant B2B directory rows (registered suppliers / contacts). RLS restricts to company_id.
+ */
+export async function fetchAccountDirectoryRowsAsAuditSuppliers(companyId) {
+  if (!isSupabaseConfigured || !companyId || !isLikelyUuid(companyId)) return []
+  try {
+    const rows = await accountDirectoryEntriesService.list(companyId)
+    return (rows || [])
+      .map((e) => {
+        const email = String(e.email || '').trim().toLowerCase()
+        const name = String(e.company_name || '').trim()
+        if (!name && !email) return null
+        return {
+          id: `account_directory_${e.id}`,
+          name: name || (email ? email.split('@')[0] : 'Contact'),
+          country: String(e.country || '').trim(),
+          industry: String(e.industry_label || e.industry_hub_id || '').trim(),
+          contact: String(e.contact_name || '').trim(),
+          email,
+          address: '',
+          notes: `${String(e.entry_type || 'contact').replace(/_/g, ' ')} · Directory entry`,
+          registeredAt: (e.created_at || new Date().toISOString()).slice(0, 10),
+          accountDirectoryEntryId: e.id,
+          vendorMasterId: null,
+          source: 'supabase_directory',
+        }
+      })
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 export async function fetchPlatformDirectoryProfilesForSuperadmin() {
   const out = { auditors: [], suppliers: [] }
   try {

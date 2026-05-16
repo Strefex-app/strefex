@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
-import { useAuthStore } from '../../store/authStore'
 import { useAccountRegistry } from '../../store/accountRegistry'
 import useAuditProStore from '../../store/auditProStore'
+import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 import '../../styles/app-page.css'
 import '../../styles/auditPro.css'
 
@@ -41,9 +41,7 @@ function segmentTitle(segment) {
 
 export default function AuditProLayout() {
   const location = useLocation()
-  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
-  const isAuditor = useAuthStore((s) => s.isAuditor)
-  const canUse = isSuperAdmin() || isAuditor()
+  const canUse = useAuditProProgramAccess()
 
   const rehydrateRegistryFromStorage = useAccountRegistry((s) => s.rehydrateRegistryFromStorage)
   const ensureSeed = useAuditProStore((s) => s.ensureSeed)

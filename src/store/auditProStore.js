@@ -135,6 +135,16 @@ async function persistDirectoryToRemote(getState) {
   }
 }
 
+async function deleteAuditRemote(auditId) {
+  try {
+    const { getActorCompanyId, deleteAudit } = await import('../services/auditManagementDb')
+    const cid = await getActorCompanyId()
+    if (cid && auditId) await deleteAudit(auditId, cid)
+  } catch {
+    /* offline */
+  }
+}
+
 function mergeDirectoryFromServer(serverList, localList) {
   const ids = new Set((serverList || []).map((x) => x?.id).filter(Boolean))
   const extras = (localList || []).filter((x) => x?.id && !ids.has(x.id))
