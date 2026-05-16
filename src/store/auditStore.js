@@ -7,7 +7,18 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 
-const MODULES = ['procurement', 'vendor', 'contract', 'subscription', 'team', 'security', 'compliance', 'settings', 'erp']
+const MODULES = [
+  'procurement',
+  'vendor',
+  'contract',
+  'subscription',
+  'team',
+  'security',
+  'compliance',
+  'settings',
+  'erp',
+  'audit_management',
+]
 const SEVERITIES = ['info', 'warning', 'critical']
 
 const useAuditStore = create(

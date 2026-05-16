@@ -136,6 +136,25 @@ const dedupeById = (items) => {
   return [...map.values()]
 }
 
+/** Prefer the row with the latest updatedAt (or createdAt); avoids stale Supabase copies overwriting fresher local edits). */
+const requestUpdatedMs = (r) => {
+  const t = r?.updatedAt || r?.updated_at || r?.createdAt || r?.created_at
+  const n = t ? Date.parse(t) : 0
+  return Number.isFinite(n) ? n : 0
+}
+
+const mergeRequestsPreferNewest = (...lists) => {
+  const map = new Map()
+  for (const list of lists) {
+    for (const r of list || []) {
+      if (!r?.id) continue
+      const prev = map.get(r.id)
+      if (!prev || requestUpdatedMs(r) >= requestUpdatedMs(prev)) map.set(r.id, r)
+    }
+  }
+  return [...map.values()]
+}
+
 let _refreshTimer = null
 let _refreshStorageListener = null
 let _refreshFocusListener = null
@@ -298,7 +317,7 @@ const mapDbNotificationToLocal = (row) => {
 }
 
 const toDbRequestPayload = (request) => ({
-  company_id: getAuthCompanyId(),
+  company_id: request?._companyId || getAuthCompanyId(),
   services: Array.isArray(request?.services) ? request.services : [],
   industry_id: request?.industryId || null,
   company_name: request?.companyName || null,
@@ -369,7 +388,7 @@ const getAuthUserId = () => {
 
 const persistRequestRecordToDatabase = async (request) => {
   if (!isSupabaseConfigured || !request?.id) return
-  const companyId = getAuthCompanyId()
+  const companyId = request?._companyId || getAuthCompanyId()
   if (!companyId) return
   const payload = toDbRequestPayload(request)
   if (!payload.company_id) return
@@ -968,7 +987,8 @@ export const useServiceRequestStore = create((set, get) => ({
           .filter(Boolean)
 
         if (dbRequests.length > 0) {
-          const merged = dedupeById([...dbRequests, ...loadRequestsByRole()])
+          const local = loadRequestsByRole()
+          const merged = mergeRequestsPreferNewest(local, dbRequests)
           persistRequestsByRole(merged)
         }
         if (dbNotifications.length > 0) {

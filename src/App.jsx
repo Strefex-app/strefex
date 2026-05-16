@@ -44,6 +44,20 @@ import {
   AddSupplier,
   AdminApproval,
   ManagementHub,
+  AuditManagementHub,
+  AuditProgramGate,
+  AuditProLayout,
+  AuditProDashboard,
+  AuditProNewAudit,
+  AuditProAuditPlans,
+  AuditProCalendar,
+  AuditProAuditorRegistry,
+  AuditProSupplierRegistry,
+  AuditProRiskMatrix,
+  AuditProLogs,
+  AuditProReports,
+  AuditProConduct,
+  AuditProPrintReport,
   ProjectManagement,
   ProjectDetail,
   EquipmentSupplierRequest,
@@ -366,6 +380,23 @@ function App() {
 
           {/* ── Management Hub ────────────────────────────── */}
           <Route path="/management" element={<P><ManagementHub /></P>} />
+          <Route path="/management/auditors" element={<P><AuditProgramGate /></P>}>
+            <Route path="print/:auditId" element={<AuditProPrintReport />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="overview" element={<AuditManagementHub />} />
+            <Route element={<AuditProLayout />}>
+              <Route path="dashboard" element={<AuditProDashboard />} />
+              <Route path="new-audit" element={<AuditProNewAudit />} />
+              <Route path="plans" element={<AuditProAuditPlans />} />
+              <Route path="calendar" element={<AuditProCalendar />} />
+              <Route path="auditors" element={<AuditProAuditorRegistry />} />
+              <Route path="suppliers" element={<AuditProSupplierRegistry />} />
+              <Route path="risk-matrix" element={<AuditProRiskMatrix />} />
+              <Route path="logs" element={<AuditProLogs />} />
+              <Route path="reports" element={<AuditProReports />} />
+              <Route path="conduct/:auditId" element={<AuditProConduct />} />
+            </Route>
+          </Route>
 
           {/* ── Projects ──────────────────────────────────── */}
           <Route path="/project-management" element={<P><ProjectManagement /></P>} />

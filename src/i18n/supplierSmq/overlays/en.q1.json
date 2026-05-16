@@ -1,0 +1,307 @@
+{
+  "ru-1-1": {
+    "text": "Customer focus. How are customer requirements, risks, and opportunities taken into account? How is commitment to enhancing customer satisfaction maintained?",
+    "examples": "Expected evidence: Customer requirements.",
+    "docs": ["Customer requirements"]
+  },
+  "ru-1-2": {
+    "text": "Is the organizational structure approved, process owners identified, and are roles and responsibilities assigned?",
+    "examples": "Expected evidence: Organizational chart; process model (landscape).",
+    "docs": ["Organizational chart", "Process model (landscape)"]
+  },
+  "ru-1-3": {
+    "text": "Are risks and opportunities identified when planning the QMS, and have actions been taken to address them?",
+    "examples": "Expected evidence: Risk register and records of risk treatment actions.",
+    "docs": ["Risk register and records of risk treatment actions"]
+  },
+  "ru-1-4": {
+    "text": "Has a quality policy been developed and communicated to personnel, taking customer requirements into account?",
+    "examples": "Expected evidence: Quality policy and records of communication/awareness.",
+    "docs": ["Quality policy and records of communication/awareness"]
+  },
+  "ru-1-5": {
+    "text": "Are defect-level targets defined (with a defined method for assessing defect level) for the plant over a three-year horizon, and are they achieved? Does the organization monitor defect levels internally, at customers, and at suppliers?",
+    "examples": "Expected evidence: Objectives and monitoring data.",
+    "docs": ["Objectives and monitoring data"]
+  },
+  "ru-1-6": {
+    "text": "Is planning and monitoring in place for achieving objectives in quality, occupational health and safety, and environmental management (where applicable)?",
+    "examples": "Expected evidence: Objectives and monitoring data.",
+    "docs": ["Objectives and monitoring data"]
+  },
+  "ru-1-7": {
+    "text": "Have KPIs been defined for each process?",
+    "examples": "Expected evidence: Objectives and monitoring data.",
+    "docs": ["Objectives and monitoring data"]
+  },
+  "ru-1-8": {
+    "text": "Have external and internal issues that are relevant to the organization’s context and strategic direction been determined? Is information on interested parties tracked and analyzed?",
+    "examples": "Expected evidence: Interested parties analysis.",
+    "docs": ["Interested parties analysis"]
+  },
+  "ru-1-9": {
+    "text": "Have the processes required for the QMS been determined?",
+    "examples": "Expected evidence: Process descriptions (e.g. turtle diagram).",
+    "docs": ["Process descriptions (turtle diagram)"]
+  },
+  "ru-1-10": {
+    "text": "Is documented information defined to support process operation and control?",
+    "examples": "Expected evidence: Documented information (standards, procedures).",
+    "docs": ["Documented information (standards, procedures)"]
+  },
+  "ru-1-11": {
+    "text": "Do process performance indicators reflect customer requirements?",
+    "examples": "Expected evidence: Objectives and monitoring; customer requirements.",
+    "docs": ["Objectives and monitoring", "Customer requirements"]
+  },
+  "ru-1-12": {
+    "text": "When process targets are not met, are corrective actions developed?",
+    "examples": "Expected evidence: Objectives and corrective actions.",
+    "docs": ["Objectives and corrective actions"]
+  },
+  "ru-1-13": {
+    "text": "Are rules established for conducting audits (QMS, process, and product audits)?",
+    "examples": "Expected evidence: Standard or procedure describing the activity, with a sample record.",
+    "docs": ["Standard or procedure describing the activity", "Sample audit record"]
+  },
+  "ru-1-14": {
+    "text": "Internal audit: planning, execution, and follow-up monitoring.",
+    "examples": "Expected evidence: Approved audit schedule and monitoring records.",
+    "docs": ["Approved audit schedule and monitoring records"]
+  },
+  "ru-1-15": {
+    "text": "Is competence of internal auditors demonstrated and on file?",
+    "examples": "Expected evidence: Competence matrix and supporting evidence.",
+    "docs": ["Competence matrix and supporting evidence"]
+  },
+  "ru-1-16": {
+    "text": "Is the organization certified to ISO 9001 or IATF 16949, and to ISO 14001 / ISO 45001 where applicable?",
+    "examples": "Expected evidence: Current valid certificate(s).",
+    "docs": ["Current valid certificate(s)"]
+  },
+  "ru-1-17": {
+    "text": "Are MMOG/LE requirements implemented, and is an annual self-assessment performed?",
+    "examples": "Expected evidence: Per supply agreement (self-assessment submitted to customer by 1 February each year, if required).",
+    "docs": ["Supply agreement and annual self-assessment submission records (e.g. to customer by 1 February)"]
+  },
+  "ru-1-18": {
+    "text": "Legislative and regulatory requirements applicable to the organization’s products and processes.",
+    "examples": "Expected evidence: Register of applicable legal and regulatory requirements.",
+    "docs": ["Register of applicable legal and regulatory requirements"]
+  },
+  "ru-1-19": {
+    "text": "Customer satisfaction.",
+    "examples": "Expected evidence: Supplier evaluation / customer feedback records.",
+    "docs": ["Supplier evaluation / customer feedback records"]
+  },
+  "ru-1-20": {
+    "text": "Has management review been conducted?",
+    "examples": "Expected evidence: Top management review records.",
+    "docs": ["Top management review records"]
+  },
+  "ru-1-21": {
+    "text": "Is a continual improvement and cost-reduction system in place? How many initiatives were implemented in the last year and how effective were they?",
+    "examples": "Expected evidence: Improvement proposals, kaizen, employee suggestions.",
+    "docs": ["Improvement proposals", "Kaizen records", "Employee suggestions"]
+  },
+  "ru-2-1": {
+    "text": "Is a documented process in place defining requirements for production readiness projects for new products and product changes?",
+    "examples": "Expected evidence: Standard or procedure.",
+    "docs": ["Standard or procedure"]
+  },
+  "ru-2-2": {
+    "text": "Are production readiness projects implemented in line with APQP or ANPQP?",
+    "examples": "Expected evidence: Documented information where these requirements are specified.",
+    "docs": ["Documented information where these requirements are specified"]
+  },
+  "ru-2-3": {
+    "text": "Is up-to-date product-defining documentation available (drawings, technical specifications, national standards, etc.)?",
+    "examples": "Expected evidence: Customer-specific APQP/PPAP package folder for the project.",
+    "docs": ["Customer APQP/PPAP project documentation package"]
+  },
+  "ru-2-4": {
+    "text": "Have key product characteristics and related requirements been defined and agreed with the customer (PPM, Cpk, Ppk, special characteristics as applicable)?",
+    "examples": "Expected evidence: Special-characteristics chart or equivalent.",
+    "docs": ["Special-characteristics chart or equivalent"]
+  },
+  "ru-2-5": {
+    "text": "Have key characteristics of materials and purchased components, and related requirements, been defined and agreed with suppliers (PPM, Cpk, Ppk, special characteristics as applicable)?",
+    "examples": "Expected evidence: Technical requirements, specifications.",
+    "docs": ["Technical requirements", "Specifications"]
+  },
+  "ru-2-6": {
+    "text": "Is production readiness managed as a project (schedule with assigned responsibilities)?",
+    "examples": "Expected evidence: Production readiness schedule (e.g. customer SMS/milestone schedule).",
+    "docs": ["Production readiness schedule (customer milestone/SMS schedule)"]
+  },
+  "ru-2-7": {
+    "text": "Is there a prototype and pilot-lot test plan (characteristics, test volume, test methods) for all products in scope?",
+    "examples": "Expected evidence: Test plan, test report, and test results.",
+    "docs": ["Test plan", "Test report", "Test results"]
+  },
+  "ru-2-8": {
+    "text": "Are results available from prototype and pilot-lot testing?",
+    "examples": "Expected evidence: Test plan, test report, and test results.",
+    "docs": ["Test plan", "Test report", "Test results"]
+  },
+  "ru-2-9": {
+    "text": "Is Design FMEA used to evaluate the design?",
+    "examples": "Expected evidence: Standard describing the activity and the DFMEA.",
+    "docs": ["Standard describing the activity", "DFMEA"]
+  },
+  "ru-2-10": {
+    "text": "Are process flow diagrams, control plans, and Process FMEA used to develop and assess the manufacturing process?",
+    "examples": "Expected evidence: Standard describing the activity; process flow, control plan, PFMEA.",
+    "docs": ["Standard describing the activity", "Process flow diagram", "Control plan", "PFMEA"]
+  },
+  "ru-2-11": {
+    "text": "Are process flow diagrams, control plans, and PFMEA consistent with each other?",
+    "examples": "Expected evidence: Example linkage/cross-reference records.",
+    "docs": ["Example linkage/cross-reference records"]
+  },
+  "ru-2-12": {
+    "text": "Are layout decisions for warehouse and production areas reviewed on a planned basis as part of the production readiness project?",
+    "examples": "Expected evidence: Approved layout considering the new project.",
+    "docs": ["Approved layout considering the new project"]
+  },
+  "ru-2-13": {
+    "text": "Is customer production approval performed in accordance with PPAP requirements and PSW?",
+    "examples": "Expected evidence: Documented information defining required submission documents.",
+    "docs": ["Documented information defining required submission documents"]
+  },
+  "ru-2-14": {
+    "text": "Are product safety requirements identified and implemented?",
+    "examples": "Expected evidence: Material/product technical safety requirements.",
+    "docs": ["Material/product technical safety requirements"]
+  },
+  "ru-2-15": {
+    "text": "Is phase-gate control applied alongside the master schedule; are meeting minutes available; does a responsible person issue a gate decision per the standard?",
+    "examples": "Expected evidence: Phase audits, meeting minutes, gate decision/conclusion.",
+    "docs": ["Phase gate audit records", "Meeting minutes", "Gate decision/conclusion"]
+  },
+  "ru-2-16": {
+    "text": "Is there a list of substances prohibited in design and production, agreed with the customer and meeting environmental requirements? Is there test evidence confirming absence of these substances?",
+    "examples": "Expected evidence: Material composition report or equivalent.",
+    "docs": ["Material composition report or equivalent"]
+  },
+  "ru-2-17": {
+    "text": "Are prohibited-substance requirements communicated to suppliers? Is there test evidence confirming absence of these substances?",
+    "examples": "Expected evidence: Documented activity; test report.",
+    "docs": ["Documented activity", "Test report"]
+  },
+  "ru-2-18": {
+    "text": "Is registration completed on the IMDS portal (www.mdsystem.com) where required?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-3-1": {
+    "text": "Is tooling identified, are passports/dossiers maintained, and is information kept current?",
+    "examples": "Expected evidence: Tooling identification (number, name, or equivalent).",
+    "docs": ["Tooling identification (number, name, or equivalent)"]
+  },
+  "ru-3-2": {
+    "text": "Is tooling status identification implemented: serviceable, maintenance/repair required, or mothballed?",
+    "examples": "Expected evidence: Tooling status indicator (e.g. traffic-light system).",
+    "docs": ["Tooling status indicator (e.g. traffic-light system)"]
+  },
+  "ru-3-3": {
+    "text": "Is tooling stored in a manner that prevents damage?",
+    "examples": "Expected evidence: Storage requirements (rack, trolley, or equivalent).",
+    "docs": ["Storage requirements (rack, trolley, or equivalent)"]
+  },
+  "ru-3-4": {
+    "text": "Are criteria defined for tooling qualification (initial, periodic, and after repair)?",
+    "examples": "Expected evidence: Tooling ID with last qualification date and next due date.",
+    "docs": ["Tooling ID with last qualification date and next due date"]
+  },
+  "ru-3-5": {
+    "text": "For multi-cavity tooling, is qualification performed using parts from each cavity/stream (where applicable)?",
+    "examples": "Expected evidence: Demonstrate measurement for each cavity/stream.",
+    "docs": ["Demonstrate measurement for each cavity/stream"]
+  },
+  "ru-3-6": {
+    "text": "Are current drawings available for all tooling (where applicable)?",
+    "examples": "Expected evidence: Tooling drawing.",
+    "docs": ["Tooling drawing"]
+  },
+  "ru-3-7": {
+    "text": "Are preventive maintenance schedules in place for all equipment and tooling (where applicable)?",
+    "examples": "Expected evidence: Approved preventive maintenance schedules and monitoring records.",
+    "docs": ["Approved preventive maintenance schedules", "Monitoring records"]
+  },
+  "ru-3-8": {
+    "text": "Are planned maintenance and servicing activities for equipment and tooling clearly defined (where applicable)?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-3-9": {
+    "text": "Are logs maintained for planned and breakdown maintenance, including failure records (paper or IT system)?",
+    "examples": "Expected evidence: Maintenance logs or system records.",
+    "docs": ["Maintenance logs or system records"]
+  },
+  "ru-3-10": {
+    "text": "Are records kept of maintenance work performed and acceptance of repairs?",
+    "examples": "Expected evidence: Supporting records.",
+    "docs": ["Supporting records"]
+  },
+  "ru-3-11": {
+    "text": "Is there a process to adjust preventive maintenance plans based on breakdown maintenance data?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-3-12": {
+    "text": "Is overall equipment effectiveness (OEE) or equivalent equipment utilization assessed?",
+    "examples": "Expected evidence: OEE or utilization assessment records.",
+    "docs": ["OEE or utilization assessment records"]
+  },
+  "ru-3-13": {
+    "text": "On what criteria is key/critical equipment defined?",
+    "examples": "Expected evidence: Spare parts list for key equipment.",
+    "docs": ["Spare parts list for key equipment"]
+  },
+  "ru-3-14": {
+    "text": "Are stock levels defined for spare parts for key equipment, and are target levels met?",
+    "examples": "Expected evidence: Physical count vs spare parts list.",
+    "docs": ["Physical count vs spare parts list"]
+  },
+  "ru-4-1": {
+    "text": "Has the organization determined staffing levels needed for stable operations?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-4-2": {
+    "text": "Is employee turnover monitored and managed?",
+    "examples": "Expected evidence: Objectives, monitoring, and preventive actions are defined and tracked.",
+    "docs": ["Objectives", "Monitoring", "Preventive actions"]
+  },
+  "ru-4-3": {
+    "text": "Are competence requirements defined for each workstation?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-4-4": {
+    "text": "Are criteria defined for qualification and re-qualification of operators to perform each operation?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-4-5": {
+    "text": "Are records maintained for operator qualification?",
+    "examples": "Expected evidence: Supporting qualification records.",
+    "docs": ["Supporting qualification records"]
+  },
+  "ru-4-6": {
+    "text": "Are induction/onboarding plans in place for new employees?",
+    "examples": "Expected evidence: Standard or procedure describing the activity.",
+    "docs": ["Standard or procedure describing the activity"]
+  },
+  "ru-4-7": {
+    "text": "Are job descriptions established and aligned with the qualification matrix?",
+    "examples": "Expected evidence: Job descriptions.",
+    "docs": ["Job descriptions"]
+  },
+  "ru-4-8": {
+    "text": "Is a visible skills matrix maintained showing qualification levels per workstation?",
+    "examples": "Expected evidence: Qualification/skills matrix.",
+    "docs": ["Qualification/skills matrix"]
+  }
+}

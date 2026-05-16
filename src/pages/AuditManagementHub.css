@@ -1,0 +1,58 @@
+/* Audit Management hub — reuses Production card/list tokens; responsive grid */
+.audit-mgmt-hub-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr minmax(240px, 280px);
+  gap: 12px;
+  align-items: start;
+}
+
+.audit-mgmt-hub-main .page-item-desc.audit-mgmt-page-desc {
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Match platform accent / nav chips (navy day · cyan night) */
+.audit-hub-module-icon {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+}
+
+/* Typography + links aligned with app-page tokens */
+.audit-mgmt-hub-title {
+  font-size: var(--text-page-title);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.audit-mgmt-hub-subtitle {
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
+.audit-mgmt-hub-inline-link {
+  color: var(--link-color);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+}
+
+.audit-mgmt-hub-inline-link:hover {
+  text-decoration: underline;
+}
+
+.production-action-item.audit-mgmt-hub-footer-cta {
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--bg-card);
+  color: var(--btn-primary-bg);
+  font-weight: var(--font-semibold);
+}
+
+.production-action-item.audit-mgmt-hub-footer-cta:hover {
+  background: var(--accent-light);
+}
+
+@media (max-width: 1100px) {
+  .audit-mgmt-hub-main {
+    grid-template-columns: 1fr;
+  }
+}

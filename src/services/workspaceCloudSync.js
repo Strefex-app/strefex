@@ -6,7 +6,7 @@
  * tenant_workspace_snapshots (company_id + state_key).
  *
  * Synced keys (see SYNC_SPECS): projects, vendors, rfqs, contracts, procurement, cost,
- * enterprise, production, templates, audit_logs, hr_space, account_registry, profile_contacts,
+ * enterprise, production, templates, audit_logs, audit_pro, hr_space, account_registry, profile_contacts,
  * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain).
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
@@ -21,6 +21,7 @@ import useEnterpriseStore from '../store/enterpriseStore'
 import useProductionStore from '../store/productionStore'
 import { useTemplateStore } from '../store/templateStore'
 import useAuditStore from '../store/auditStore'
+import useAuditProStore from '../store/auditProStore'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
@@ -368,6 +369,40 @@ const SYNC_SPECS = [
     },
     isEmpty: (p) => !Array.isArray(p?.logs) || p.logs.length === 0,
     subscribe: (cb) => useAuditStore.subscribe(cb),
+  },
+  {
+    /** Management / Audit Pro — persists to company via `tenant_workspace_snapshots` */
+    key: 'audit_pro',
+    extract: () => {
+      const s = useAuditProStore.getState()
+      return {
+        audits: s.audits || [],
+        auditors: s.auditors || [],
+        suppliers: s.suppliers || [],
+        auditLogs: s.auditLogs || [],
+        reminders: s.reminders || [],
+        seeded: !!s.seeded,
+      }
+    },
+    apply: (p) => {
+      if (!p || typeof p !== 'object') return
+      const next = {}
+      if (Array.isArray(p.audits)) next.audits = p.audits
+      if (Array.isArray(p.auditors)) next.auditors = p.auditors
+      if (Array.isArray(p.suppliers)) next.suppliers = p.suppliers
+      if (Array.isArray(p.auditLogs)) next.auditLogs = p.auditLogs
+      if (Array.isArray(p.reminders)) next.reminders = p.reminders
+      if (typeof p.seeded === 'boolean') next.seeded = p.seeded
+      if (Object.keys(next).length) useAuditProStore.setState(next)
+    },
+    isEmpty: (p) =>
+      !p ||
+      ((!Array.isArray(p.audits) || p.audits.length === 0) &&
+        (!Array.isArray(p.auditors) || p.auditors.length === 0) &&
+        (!Array.isArray(p.suppliers) || p.suppliers.length === 0) &&
+        (!Array.isArray(p.auditLogs) || p.auditLogs.length === 0) &&
+        (!Array.isArray(p.reminders) || p.reminders.length === 0)),
+    subscribe: (cb) => useAuditProStore.subscribe(cb),
   },
   {
     key: 'hr_space',

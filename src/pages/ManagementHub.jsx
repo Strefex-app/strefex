@@ -90,6 +90,17 @@ const MANAGEMENT_MODULES = [
     featureKey: null,
   },
   {
+    id: 'auditors-hub',
+    label: 'Audit management',
+    description:
+      'Dashboard, new audit, audit plans, calendar & reminders, auditor and supplier registries, risk matrix, activity logs, and analytics',
+    path: '/management/auditors',
+    icon: 'audit',
+    featureKey: null,
+    planLabel: 'Enterprise',
+    auditorHubOnly: true,
+  },
+  {
     id: 'procurement',
     label: 'Procurement',
     description: 'Purchase requisitions, purchase orders, multi-level approval workflows, and spend tracking',
@@ -168,11 +179,13 @@ export default function ManagementHub() {
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const hasRole = useAuthStore((s) => s.hasRole)
+  const isAuditor = useAuthStore((s) => s.isAuditor)
   const { t } = useTranslation()
 
-  // Filter modules by role requirement (e.g. Team Management requires admin); Forge is superadmin-only.
+  // Audit Pro hub: Enterprise plan, internal/external auditors, or superadmin (production audits still use `auditManagement`).
   const visibleModules = MANAGEMENT_MODULES.filter(
     (mod) =>
+      (!mod.auditorHubOnly || isSuperAdmin || isAuditor() || hasFeature('auditProProgram')) &&
       (!mod.superadminOnly || isSuperAdmin) &&
       (!mod.minRole || isSuperAdmin || hasRole(mod.minRole)),
   )
@@ -196,7 +209,10 @@ export default function ManagementHub() {
 
         <div className="mgmt-hub-grid">
           {visibleModules.map((mod) => {
-            const isUnlocked = !mod.featureKey || isSuperAdmin || hasFeature(mod.featureKey)
+            const isUnlocked =
+              mod.id === 'auditors-hub'
+                ? isSuperAdmin || isAuditor() || hasFeature('auditProProgram')
+                : !mod.featureKey || isSuperAdmin || hasFeature(mod.featureKey)
             return (
               <button
                 key={mod.id}

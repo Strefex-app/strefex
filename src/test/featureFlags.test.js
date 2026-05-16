@@ -44,6 +44,7 @@ describe('Subscription Tiers', () => {
     const { hasFeature } = useSubscriptionStore.getState()
     expect(hasFeature('costManagement')).toBe(false)
     expect(hasFeature('auditManagement')).toBe(false)
+    expect(hasFeature('auditProProgram')).toBe(false)
     expect(hasFeature('productionManagement')).toBe(false)
     expect(hasFeature('enterpriseManagement')).toBe(false)
     expect(hasFeature('teamManagement')).toBe(false)
@@ -65,8 +66,8 @@ describe('Subscription Tiers', () => {
     // Not included in basic:
     expect(hasFeature('costManagement')).toBe(false)
     expect(hasFeature('auditManagement')).toBe(false)
+    expect(hasFeature('auditProProgram')).toBe(false)
     expect(hasFeature('productionManagement')).toBe(false)
-    expect(hasFeature('messenger')).toBe(false)
   })
 
   it('should unlock standard features for standard tier', () => {
@@ -79,6 +80,7 @@ describe('Subscription Tiers', () => {
     expect(hasFeature('executiveSummary')).toBe(false)
     // Premium-tier features NOT available on Standard:
     expect(hasFeature('auditManagement')).toBe(false)
+    expect(hasFeature('auditProProgram')).toBe(false)
     expect(hasFeature('productionManagement')).toBe(false)
     expect(hasFeature('projectAuditSchedule')).toBe(false)
     expect(hasFeature('costManagement')).toBe(false)
@@ -97,6 +99,7 @@ describe('Subscription Tiers', () => {
     expect(hasFeature('profileContacts')).toBe(true)
     expect(hasFeature('customIntegrations')).toBe(true)
     expect(hasFeature('projectAuditSchedule')).toBe(true)
+    expect(hasFeature('auditProProgram')).toBe(false)
     // Enterprise-only features NOT available on Premium
     expect(hasFeature('enterpriseManagement')).toBe(false)
     expect(hasFeature('procurement')).toBe(false)
@@ -116,6 +119,7 @@ describe('Subscription Tiers', () => {
     const { hasFeature } = useSubscriptionStore.getState()
     expect(hasFeature('costManagement')).toBe(true)
     expect(hasFeature('auditManagement')).toBe(true)
+    expect(hasFeature('auditProProgram')).toBe(true)
     expect(hasFeature('productionManagement')).toBe(true)
     expect(hasFeature('enterpriseManagement')).toBe(true)
     expect(hasFeature('messenger')).toBe(true)

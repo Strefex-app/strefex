@@ -1,0 +1,287 @@
+{
+  "ru-5-1": {
+    "text": "Is there an information-exchange process between shifts regarding quality, current production issues, and key topics (when more than one shift exists)? Are health and safety requirements considered when planning work?",
+    "examples": "Expected evidence: Shop-floor quality meetings and minutes; shift handover method.",
+    "docs": ["Shop-floor quality meetings and minutes", "Shift handover method"]
+  },
+  "ru-5-2": {
+    "text": "Are daily meetings held on production issues (quality, output, breakdowns, etc.)?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-5-3": {
+    "text": "Are all workstations supplied with accessible visual work instructions?",
+    "examples": "Expected evidence: Work instructions, checklists, set-up sheets",
+    "docs": ["Work instructions", "Checklists", "Set-up sheets"]
+  },
+  "ru-5-4": {
+    "text": "Are work instructions readily available and legible where used?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-5-5": {
+    "text": "Is 5S implemented? Are cleaning schedules maintained for workshops, workstations, and equipment?",
+    "examples": "Expected evidence: Cleaning schedule, housekeeping standard.",
+    "docs": ["Cleaning schedule", "Housekeeping standard"]
+  },
+  "ru-5-6": {
+    "text": "Do workstations meet health, safety, and ergonomics requirements?",
+    "examples": "Expected evidence: Environmental/workplace assessment (lighting, noise, etc.); workstation certification where applicable.",
+    "docs": ["Environmental/workplace assessments", "Workstation certifications (where required)"]
+  },
+  "ru-5-7": {
+    "text": "At workstations, is documented evidence available for monitoring product and processes per the control plan?",
+    "examples": "Expected evidence: Inspection/test methods and result records (forms/IT).",
+    "docs": ["Inspection/test methods", "Result records"]
+  },
+  "ru-6-1": {
+    "text": "Are inspection methods defined for incoming materials and purchased parts against key characteristics?",
+    "examples": "Expected evidence: Inspection methods and result records.",
+    "docs": ["Inspection methods", "Result records"]
+  },
+  "ru-6-2": {
+    "text": "Are supplier test reports complete, available, and current?",
+    "examples": "Expected evidence: Receiving inspection: type, periodic, and acceptance test results.",
+    "docs": ["Receiving inspection records (type tests, periodic tests, acceptance tests)"]
+  },
+  "ru-6-3": {
+    "text": "Are golden samples / masters agreed for incoming parts and materials (where applicable)?",
+    "examples": "Expected evidence: Agreed master sample.",
+    "docs": ["Agreed master sample"]
+  },
+  "ru-6-4": {
+    "text": "Setup verification / first-piece approval: control of first good part after startup, downtime, changeover, batch change, etc. Are verification records retained?",
+    "examples": "Expected evidence: Setup log/settings records and first-article verification records.",
+    "docs": ["Setup log/settings records", "First-article verification records"]
+  },
+  "ru-6-5": {
+    "text": "Are responsibilities for first-article verification defined and are personnel trained?",
+    "examples": "Expected evidence: Training acknowledgement for personnel performing first-article checks.",
+    "docs": ["Training acknowledgement for personnel performing first-article checks"]
+  },
+  "ru-6-6": {
+    "text": "Are documented acceptance criteria established for first-article approval with unambiguous criteria?",
+    "examples": "Expected evidence: Control plan/method specifying first-article acceptance criteria.",
+    "docs": ["Control plan/method specifying first-article acceptance criteria"]
+  },
+  "ru-6-7": {
+    "text": "Is there a documented reaction plan for process/product deviations? Are environmental and occupational health aspects considered where relevant?",
+    "examples": "Expected evidence: Reaction plan addressing key equipment failure; disruption of outsourced products/processes/services; natural disasters; fire; utility interruptions; cybersecurity incidents affecting IT; labour shortage or infrastructure disruption.",
+    "docs": ["Reaction/contingency plan covering key scenarios (equipment failure, disruptions, cybersecurity, utilities, staffing, infrastructure)"]
+  },
+  "ru-6-8": {
+    "text": "Are nonconforming product data in production collected and analyzed?",
+    "examples": "Expected evidence: Standard or procedure and sample statistical analysis records.",
+    "docs": ["Standard or procedure", "Sample analysis records"]
+  },
+  "ru-6-9": {
+    "text": "Are corrective actions taken to eliminate causes of nonconforming product (with effectiveness verified and horizontally deployed to similar processes)?",
+    "examples": "Expected evidence: Standard or procedure with sample corrective action records.",
+    "docs": ["Standard or procedure", "Sample corrective action records"]
+  },
+  "ru-6-10": {
+    "text": "Are inspection methods and acceptance criteria documented for all manufacturing stages?",
+    "examples": "Expected evidence: Inspection methods and result records.",
+    "docs": ["Inspection methods", "Result records"]
+  },
+  "ru-6-11": {
+    "text": "Is statistical process control (SPC) applied to key characteristics where required?",
+    "examples": "Expected evidence: Standard or procedure and sample charts/records.",
+    "docs": ["Standard or procedure", "Sample charts/records"]
+  },
+  "ru-6-12": {
+    "text": "Are records retained for verification of product/process characteristics through the production cycle (receiving, in-process, final inspection)?",
+    "examples": "Expected evidence: Standard or procedure with sample verification records.",
+    "docs": ["Standard or procedure", "Sample verification records"]
+  },
+  "ru-6-13": {
+    "text": "Are control record retention periods defined per customer requirements and internal guidelines?",
+    "examples": "Expected evidence: Standard or procedure defining retention periods.",
+    "docs": ["Standard or procedure defining retention periods"]
+  },
+  "ru-6-14": {
+    "text": "Are rules documented for identification and segregation of nonconforming product?",
+    "examples": "Expected evidence: Standard or procedure with sample records.",
+    "docs": ["Standard or procedure", "Sample records"]
+  },
+  "ru-6-15": {
+    "text": "Are disposition rules documented and applied for nonconforming product: rework, scrap, concession, disposal, etc.?",
+    "examples": "Expected evidence: Standard or procedure with sample disposition records.",
+    "docs": ["Standard or procedure", "Sample disposition records"]
+  },
+  "ru-6-16": {
+    "text": "Is nonconforming product storage (quarantine/Hold area) identified and access-controlled?",
+    "examples": "Expected evidence: Quarantine/Hold area and status labelling.",
+    "docs": ["Quarantine/Hold area and status labelling"]
+  },
+  "ru-7-1": {
+    "text": "Are calibration/recalibration intervals defined in documented information per manufacturer recommendations, customer requirements, and instrument wear?",
+    "examples": "Expected evidence: Standard or procedure and sample calibration records.",
+    "docs": ["Standard or procedure", "Sample calibration records"]
+  },
+  "ru-7-2": {
+    "text": "Are measuring instruments calibrated; is calibration status clearly indicated in writing?",
+    "examples": "Expected evidence: Example calibration sticker/record.",
+    "docs": ["Calibration label or certificate excerpt"]
+  },
+  "ru-7-3": {
+    "text": "Is there a procedure and records for measurement system analysis (gage R&R/stability studies) demonstrating measurement system suitability?",
+    "examples": "Expected evidence: MSA procedure and studies for gauges/tooling.",
+    "docs": ["MSA procedure", "MSA study records"]
+  },
+  "ru-7-4": {
+    "text": "Are measurement systems fit for intended use with objective evidence per MSA results?",
+    "examples": "Expected evidence: Example MSA report.",
+    "docs": ["Example MSA report"]
+  },
+  "ru-7-5": {
+    "text": "Is each measuring instrument identified with a unique ID and next calibration due date?",
+    "examples": "Expected evidence: Example instrument marking.",
+    "docs": ["Example instrument marking"]
+  },
+  "ru-7-6": {
+    "text": "Are visual defect standards (samples/photos of nonconformance) available to inspection personnel?",
+    "examples": "Expected evidence: Defect catalog / boundary samples.",
+    "docs": ["Defect catalog / boundary samples"]
+  },
+  "ru-8-1": {
+    "text": "Does top management hold quality-focused meetings evidenced by minutes, and intervene when milestones are delayed or targets are not met?",
+    "examples": "Expected evidence: Meeting landscape; minutes with resulting corrective/improvement actions.",
+    "docs": ["Meeting schedule/landscape", "Minutes", "Corrective/improvement action records"]
+  },
+  "ru-8-2": {
+    "text": "Are rules defined for reacting to external product complaints?",
+    "examples": "Expected evidence: Standard or procedure with sample complaint handling records.",
+    "docs": ["Standard or procedure", "Sample complaint records"]
+  },
+  "ru-8-3": {
+    "text": "Are past significant issues logged in a knowledge database? Is ownership defined? Is the database updated when defects are detected?",
+    "examples": "Expected evidence: Lessons-learned/problem database.",
+    "docs": ["Lessons-learned/problem database"]
+  },
+  "ru-8-4": {
+    "text": "Are all complaints addressed using the 8D methodology?",
+    "examples": "Expected evidence: Tracking register and sample 8D report.",
+    "docs": ["Complaint tracking register", "Sample 8D"]
+  },
+  "ru-9-1": {
+    "text": "Are all key characteristics error-proofed (poke-yoke) where feasible?",
+    "examples": "Expected evidence: Standard or procedure with example device records.",
+    "docs": ["Standard or procedure", "Example device/error-proofing records"]
+  },
+  "ru-9-2": {
+    "text": "Is periodic verification of mistake-proofing device effectiveness performed?",
+    "examples": "Expected evidence: Example verification records.",
+    "docs": ["Example verification records"]
+  },
+  "ru-10-1": {
+    "text": "Is a contingency plan established for disruptions (utilities, epidemics, key equipment breakdown, etc.) to protect shipment stability?",
+    "examples": "Expected evidence: Reaction plan addressing key scenarios (equipment, outsourced disruptions, disasters, utilities, staffing, infrastructure).",
+    "docs": ["Contingency/reaction plan (utilities, disruptions, staffing, infrastructure)"]
+  },
+  "ru-10-2": {
+    "text": "Have personnel been made aware of actions to take during atypical disruptions affecting delivery stability?",
+    "examples": "Expected evidence: Training/awareness on contingency plan with evidence of understanding.",
+    "docs": ["Contingency plan awareness training", "Understanding verification records"]
+  },
+  "ru-11-1": {
+    "text": "Does finished goods packaging comply with customer requirements?",
+    "examples": "Expected evidence: Document specifying requirements (customer packaging label/DCL/spec).",
+    "docs": ["Customer packaging/documentation requirements"]
+  },
+  "ru-11-2": {
+    "text": "Does packaging adequately protect finished goods?",
+    "examples": "Expected evidence: Document specifying requirements (customer packaging label/DCL/spec).",
+    "docs": ["Customer packaging/documentation requirements"]
+  },
+  "ru-11-3": {
+    "text": "Is there a barcode/labelling process for product ready for shipment to the customer?",
+    "examples": "Expected evidence: Document specifying barcode/labelling requirements.",
+    "docs": ["Document specifying barcode/labelling requirements"]
+  },
+  "ru-11-4": {
+    "text": "Do handling and storage methods prevent mixing of different materials or components?",
+    "examples": "Expected evidence: Standard or procedure with example records.",
+    "docs": ["Standard or procedure", "Example segregation records"]
+  },
+  "ru-11-5": {
+    "text": "Do handling and storage methods prevent omission of manufacturing operations?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-11-6": {
+    "text": "Can purchased materials and components be traced to batches used in finished product?",
+    "examples": "Expected evidence: Standard or procedure with sample traceability records.",
+    "docs": ["Standard or procedure", "Sample traceability records"]
+  },
+  "ru-11-7": {
+    "text": "Are warehouse items clearly labelled and legible?",
+    "examples": "Expected evidence: Standard or procedure with sample labels/tags.",
+    "docs": ["Standard or procedure", "Sample labels/tags"]
+  },
+  "ru-11-8": {
+    "text": "Are WIP/semi-finished items identified either on the parts or containers?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-11-9": {
+    "text": "Is FIFO enforced at warehousing, manufacturing, and shipping stages?",
+    "examples": "Expected evidence: Standard or procedure with example FIFO verification.",
+    "docs": ["Standard or procedure", "FIFO verification records"]
+  },
+  "ru-11-10": {
+    "text": "If FIFO relies on IT, can FIFO be sustained manually/paper/visual when IT fails?",
+    "examples": "Expected evidence: —",
+    "docs": []
+  },
+  "ru-11-11": {
+    "text": "Are storage conditions (temperature, humidity, shelf life) met and logged? Are environmental instruments calibrated and due dates tracked?",
+    "examples": "Expected evidence: Parameter logbook; calibration of monitoring devices.",
+    "docs": ["Storage condition logs", "Calibration for monitoring devices"]
+  },
+  "ru-12-1": {
+    "text": "Are supplier selection and evaluation criteria defined (initial and periodic)?",
+    "examples": "Expected evidence: Standard or procedure with sample evaluation records.",
+    "docs": ["Standard or procedure", "Supplier evaluation samples"]
+  },
+  "ru-12-2": {
+    "text": "Is there a reaction plan for poor periodic supplier ratings and a supplier development plan to improve supplier quality/process capability?",
+    "examples": "Expected evidence: Supplier rating output; development/action plan.",
+    "docs": ["Supplier rating/scorecard outputs", "Supplier development/action plan"]
+  },
+  "ru-12-3": {
+    "text": "Is supplier PPAP/production approval aligned with PPAP or customer-specific requirements?",
+    "examples": "Expected evidence: Standard or procedure with sample PPAP approvals.",
+    "docs": ["Standard or procedure", "Sample PPAP approvals"]
+  },
+  "ru-12-4": {
+    "text": "Do suppliers resolve complaints using the 8D methodology?",
+    "examples": "Expected evidence: Supply agreement / SQ requirements.",
+    "docs": ["Supply agreement / quality agreement"]
+  },
+  "ru-12-5": {
+    "text": "Is receiving inspection aligned with the control plan, or alternatively after a supplier quality deviation notification? Are results recorded and validated by responsible management?",
+    "examples": "Expected evidence: Control plan and receiving inspection records.",
+    "docs": ["Control plan", "Receiving inspection records"]
+  },
+  "ru-12-6": {
+    "text": "How is immediate feedback provided when nonconforming product is detected at inbound/receiving?",
+    "examples": "Expected evidence: Supply agreement / escalation rules.",
+    "docs": ["Supply agreement / escalation rules"]
+  },
+  "ru-12-7": {
+    "text": "Are delivery quality requirements defined in contract (e.g. quality agreement)?",
+    "examples": "Expected evidence: Supply agreement / quality appendix.",
+    "docs": ["Supply agreement / quality appendix"]
+  },
+  "ru-13-1": {
+    "text": "Are documented procedures in place for control of documented information (creation, approval, change, obsolete withdrawal)?",
+    "examples": "Expected evidence: Standard, procedure, or documented process.",
+    "docs": ["Document control procedure or equivalent"]
+  },
+  "ru-13-2": {
+    "text": "Is there a documented information master list/register showing revision status?",
+    "examples": "Expected evidence: QMS document matrix with monitoring/updating.",
+    "docs": ["QMS documented information matrix/list with revision status monitoring"]
+  }
+}

@@ -122,6 +122,7 @@ const GRANTABLE_FEATURES = [
   { key: 'profileContacts',       label: 'Profile Contacts',       tier: 3, tierLabel: 'Premium' },
   // Enterprise-tier features (grantable to lower-plan accounts)
   { key: 'enterpriseManagement',  label: 'Enterprise Management',  tier: 4, tierLabel: 'Enterprise' },
+  { key: 'auditProProgram',         label: 'Audit Program (Management hub)', tier: 4, tierLabel: 'Enterprise' },
   { key: 'fullCompanyVisibility', label: 'Full Company Visibility', tier: 4, tierLabel: 'Enterprise' },
   { key: 'procurement',           label: 'Procurement',            tier: 4, tierLabel: 'Enterprise' },
   { key: 'contractManagement',    label: 'Contract Management',    tier: 4, tierLabel: 'Enterprise' },
@@ -268,8 +269,7 @@ export default function SuperAdminDashboard() {
   const totalRevenue = useTransactionStore((s) => s.getTotalRevenue)()
   const pendingPayments = useTransactionStore((s) => s.getPendingPayments)()
 
-  const serviceRequests = useServiceRequestStore((s) => s.getAllRequests())
-  const srStats = useServiceRequestStore((s) => s.getStats)()
+  const serviceRequests = useServiceRequestStore((s) => s.requests)
   const assignRequest = useServiceRequestStore((s) => s.assignRequest)
   const updateRequestStatus = useServiceRequestStore((s) => s.updateRequestStatus)
 
@@ -523,6 +523,30 @@ export default function SuperAdminDashboard() {
   const [srSelectedRequest, setSrSelectedRequest] = useState(null)
   const [srAssignEmail, setSrAssignEmail] = useState('')
   const [srNewStatus, setSrNewStatus] = useState('')
+
+  const srStats = useMemo(() => {
+    const all = serviceRequests
+    return {
+      total: all.length,
+      new: all.filter((r) => r.status === 'new').length,
+      assigned: all.filter((r) => r.status === 'assigned').length,
+      onHold: all.filter((r) => r.status === 'on_hold').length,
+      inProgress: all.filter((r) => r.status === 'in_progress').length,
+      completed: all.filter((r) => r.status === 'completed').length,
+      cancelled: all.filter((r) => r.status === 'cancelled').length,
+      recalled: all.filter((r) => r.status === 'recalled').length,
+    }
+  }, [serviceRequests])
+
+  useEffect(() => {
+    setSrSelectedRequest((prev) => {
+      if (!prev?.id) return prev
+      const fresh = serviceRequests.find((r) => r.id === prev.id)
+      if (!fresh) return prev
+      if (fresh.updatedAt === prev.updatedAt && fresh.status === prev.status) return prev
+      return fresh
+    })
+  }, [serviceRequests])
 
   /* ── Computed analytics (demo + local registry + Supabase) ── */
   const analytics = useMemo(() => {
