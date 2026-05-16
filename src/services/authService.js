@@ -33,6 +33,7 @@ import {
 } from './subscriptionService'
 import { useIndustryStore } from '../store/industryStore'
 import { tenantKey } from '../utils/tenantStorage'
+import { rememberOfficialRegistrationCode } from '../utils/platformRegistrationCode'
 
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
@@ -70,6 +71,18 @@ function capRole(role, email) {
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
+}
+
+function syncRegistryOfficialRegistrationCode(email, code) {
+  const em = normalizeEmail(email)
+  const c = String(code || '').trim()
+  if (!em || !c) return
+  rememberOfficialRegistrationCode(em, c)
+  import('../store/accountRegistry')
+    .then(({ useAccountRegistry }) => {
+      useAccountRegistry.getState().updateAccount(em, { registrationCode: c })
+    })
+    .catch(() => {})
 }
 
 function normalizeAccountType(value, fallback = 'seller') {
@@ -341,6 +354,11 @@ async function storeSupabaseSession(session, profile) {
     tenant: mapTenantFromProfileCompany(profile),
   })
 
+  const tenantRegistrationCode = profile?.companies?.registration_code
+    ? String(profile.companies.registration_code).trim()
+    : ''
+  if (user?.email && tenantRegistrationCode) syncRegistryOfficialRegistrationCode(user.email, tenantRegistrationCode)
+
   analytics.track('user_login', {
     method: 'supabase',
     role,
@@ -384,8 +402,9 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!hasRegistrationMetadata) {
     // Even without registration metadata, keep superadmin role persistent.
     if (superadminEmail && profile?.role !== 'superadmin') {
-      await profilesService.updateProfile({ role: 'superadmin' })
-      return profilesService.getMyProfile()
+      await profilesService.updateProfile({ role: 'superadmin'           })
+          syncRegistryOfficialRegistrationCode(profile.email, rc)
+          return profilesService.getMyProfile()
     }
     return profile
   }
@@ -712,6 +731,7 @@ const authService = {
       // user clicks the link.  We still create the company row so it's ready
       // when they confirm.
       if (user) {
+        let registrationFromCompany = null
         const companySlug = (company || fullName || email.split('@')[0])
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
@@ -727,6 +747,11 @@ const authService = {
             plan: selectedPlan,
             status: 'active',
           })
+
+          if (newCompany?.registration_code) {
+            registrationFromCompany = String(newCompany.registration_code).trim()
+            rememberOfficialRegistrationCode(normalizedEmail, registrationFromCompany)
+          }
 
           if (newCompany) {
             await profilesService.updateProfile({
@@ -766,6 +791,7 @@ const authService = {
           return {
             user,
             emailConfirmationPending: true,
+            registrationCode: registrationFromCompany,
             selectedIndustry: primaryIndustry,
             selectedIndustries: normalizedIndustries,
             selectedTier: normalizedTier,
@@ -774,6 +800,14 @@ const authService = {
 
         // Session exists — email confirmation is disabled or auto-confirmed
         const profile = await profilesService.getMyProfile()
+        const mergedRegCode =
+          profile?.companies?.registration_code
+            ? String(profile.companies.registration_code).trim()
+            : registrationFromCompany
+        if (mergedRegCode) {
+          registrationFromCompany = mergedRegCode
+          rememberOfficialRegistrationCode(normalizedEmail, mergedRegCode)
+        }
         await storeSupabaseSession(session, profile)
 
         // Free tier grants access immediately.
@@ -796,6 +830,7 @@ const authService = {
           session,
           user,
           profile,
+          registrationCode: mergedRegCode || registrationFromCompany,
           requiresPayment: normalizedTier !== 'free',
           tier: normalizedTier,
           industry: primaryIndustry,
@@ -918,6 +953,10 @@ const authService = {
             },
             tenant: mapTenantFromProfileCompany(profile) || current?.tenant || null,
           })
+          const rcRefresh = profile?.companies?.registration_code
+            ? String(profile.companies.registration_code).trim()
+            : ''
+          if (profile.email && rcRefresh) syncRegistryOfficialRegistrationCode(profile.email, rcRefresh)
           useSubscriptionStore.getState().setAccountType(effectiveAccountType)
           return profile
         }

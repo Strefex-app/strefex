@@ -15,6 +15,7 @@ import authService from '../services/authService'
 import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
 import { VISIBILITY_TIER_LABELS } from '../constants/companyProfileDirectory'
 import { loadFeatureGrants, saveFeatureGrants } from '../utils/featureGrants'
+import { mergeRegistrationPreference, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -28,6 +29,13 @@ const SEC_KEY = 'strefex-security-events'
 
 /** Supabase profile directory fetch size (merged into superadmin account list). */
 const PROFILE_DIRECTORY_PAGE = 250
+
+function coerceAccountRegistrationCode(obj) {
+  return mergeRegistrationPreference(
+    typeof obj?.registrationCode === 'string' ? obj.registrationCode : '',
+    typeof obj?.registration_code === 'string' ? obj.registration_code : '',
+  )
+}
 
 /* ── Severity helpers ────────────────────────────────── */
 const SEVERITY = {
@@ -413,6 +421,7 @@ export default function SuperAdminDashboard() {
         auditorVerificationStatus:
           a.auditorVerificationStatus || a.metadata?.auditor_verification_status || null,
         registryLookupKey: String(email || a.email || a.id || '').toLowerCase(),
+        registrationCode: coerceAccountRegistrationCode(a),
       }
       const prev = dedup.get(key)
       if (!prev) {
@@ -421,14 +430,29 @@ export default function SuperAdminDashboard() {
       }
       const prevIsUuid = String(prev.id || '').length === 36 && !String(prev.id).startsWith('pending')
       const nextIsUuid = String(row.id || '').length === 36 && !String(row.id).startsWith('pending')
-      dedup.set(
-        key,
+      const merged =
         nextIsUuid && !prevIsUuid
           ? { ...prev, ...row, id: row.id }
-          : { ...row, ...prev, id: prevIsUuid ? prev.id : row.id },
+          : { ...row, ...prev, id: prevIsUuid ? prev.id : row.id }
+
+      merged.registrationCode = mergeRegistrationPreference(
+        coerceAccountRegistrationCode(prev),
+        coerceAccountRegistrationCode(row),
       )
+
+      dedup.set(key, merged)
     }
-    return [...dedup.values()]
+    return [...dedup.values()].map((acct) => {
+      const fromRow = coerceAccountRegistrationCode(acct)
+      const resolved =
+        fromRow ||
+        resolveRegistrationCodeForDashboard({
+          email: acct.email,
+          accountType: acct.accountType,
+          hints: {},
+        })
+      return { ...acct, registrationCode: resolved }
+    })
   }, [accounts, registryAccounts, supabaseProfileRows])
 
   const selectedGrantAccount = useMemo(
@@ -727,7 +751,8 @@ export default function SuperAdminDashboard() {
         a.company.toLowerCase().includes(q) ||
         a.email.toLowerCase().includes(q) ||
         a.name.toLowerCase().includes(q) ||
-        a.id.toLowerCase().includes(q)
+        a.id.toLowerCase().includes(q) ||
+        String(a.registrationCode || '').toLowerCase().includes(q)
       )
     }
     return list.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt))
@@ -1066,9 +1091,10 @@ export default function SuperAdminDashboard() {
             <div>
               <h3 className="sad-detail-company">{selectedAccount.company}</h3>
               <p className="sad-detail-email">{selectedAccount.email}</p>
-              {selectedAccount.registrationCode && (
-                <p className="sad-detail-meta">Platform # <span className="sad-mono">{selectedAccount.registrationCode}</span></p>
-              )}
+              <p className="sad-detail-meta">
+                Platform #{' '}
+                <span className="sad-mono">{selectedAccount.registrationCode || '—'}</span>
+              </p>
             </div>
             <div className="sad-detail-actions">
               {selectedAccount.companyId && (

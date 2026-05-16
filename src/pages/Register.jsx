@@ -7,6 +7,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import { getStripe, isStripeConfigured } from '../config/stripe'
 import authService from '../services/authService'
 import stripeService, { PLANS, ACCOUNT_TYPES, getPlansForAccountType, getPlanPrice, getPlanFeatures, BUYER_TRIAL_DAYS } from '../services/stripeService'
+import { rememberOfficialRegistrationCode, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import './Login.css'
 import './Register.css'
@@ -189,6 +190,24 @@ function RegisterForm() {
           ? 'pending_verification'
           : (selectedTier === 'free' ? 'active' : 'pending_payment')
 
+      const registrationCodeFromServer =
+        result?.registrationCode ||
+        result?.profile?.companies?.registration_code ||
+        null
+
+      const platformRegistrationLabel =
+        typeof registrationCodeFromServer === 'string' && registrationCodeFromServer.trim() !== ''
+          ? registrationCodeFromServer.trim()
+          : resolveRegistrationCodeForDashboard({
+              email: normalizedEmail,
+              accountType: primaryAccountType,
+              hints: {},
+            })
+
+      if (typeof registrationCodeFromServer === 'string' && registrationCodeFromServer.trim() !== '') {
+        rememberOfficialRegistrationCode(normalizedEmail, registrationCodeFromServer.trim())
+      }
+
       registerAccount({
         id: result?.user?.id || `pending-${Date.now()}`,
         company: company.trim() || fullName.trim() || normalizedEmail.split('@')[0] || 'Business',
@@ -202,6 +221,7 @@ function RegisterForm() {
         serviceCategories: primaryAccountType === 'service_provider' ? selectedServiceCategories : [],
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
+        registrationCode: platformRegistrationLabel,
       })
 
       if (result?.emailConfirmationPending) {
