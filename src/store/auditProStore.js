@@ -33,6 +33,21 @@ function localDraftNewerThanServer(local, server) {
   return !Number.isNaN(t1) && !Number.isNaN(t2) && t1 > t2
 }
 
+/**
+ * Prefer server row bodies when DB was updated after this client's last conducted save —
+ * avoids desktop localStorage overwriting phone progress purely because locally more response keys qualify as "touched".
+ */
+function serverDraftNewerThanLocal(local, server) {
+  const lp = local?.lastProgressSavedAt
+  const su = server?.serverUpdatedAt
+  if (!su) return false
+  const tSrv = new Date(String(su)).getTime()
+  if (Number.isNaN(tSrv)) return false
+  if (!lp) return true
+  const tLoc = new Date(String(lp)).getTime()
+  return Number.isNaN(tLoc) || tSrv > tLoc
+}
+
 /** After reconnect: keep richer in-progress client copy so brief offline work is not wiped by stale server rows. */
 function mergeAuditOnHydrate(local, server) {
   if (!local) return server
@@ -46,6 +61,10 @@ function mergeAuditOnHydrate(local, server) {
         lastProgressSavedAt: local.lastProgressSavedAt,
       }
     }
+    return server
+  }
+  /* Cross-device: DB row wins when it is strictly newer than this tab's last conduct save. */
+  if (serverDraftNewerThanLocal(local, server) && !localDraftNewerThanServer(local, server)) {
     return server
   }
   const lc = responseTouchesCount(local)

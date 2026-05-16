@@ -135,7 +135,10 @@ export async function fetchAuditProgramForCompany(companyId) {
 export async function upsertAudit(audit, companyId) {
   if (!isSupabaseConfigured || !supabase || !companyId || !audit?.id) return
   const row = auditToUpsertRow(audit, companyId)
-  await supabase.from('management_audits').upsert(row, { onConflict: 'id' })
+  const { error } = await supabase.from('management_audits').upsert(row, { onConflict: 'id' })
+  if (error && process.env.NODE_ENV === 'development') {
+    console.warn('[auditManagementDb] upsertAudit:', error.message, audit?.id)
+  }
 }
 
 /** Delete audit and dependent rows (FK cascade handles events). */
