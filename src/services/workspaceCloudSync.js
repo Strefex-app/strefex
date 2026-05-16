@@ -147,6 +147,36 @@ export function notifyWorkspaceKeyDirty(stateKey, immediate = false) {
 let lastWorkspacePullAt = 0
 const WORKSPACE_PULL_THROTTLE_MS = 1200
 
+let lastAuditProgramHydrateAt = 0
+const AUDIT_PROGRAM_HYDRATE_MIN_MS = 3000
+
+/**
+ * Merge Audit Pro audits from relational `management_*` tables (`fetchAuditProgramForCompany`).
+ * Run after workspace snapshot apply so blobs from other devices are reconciled with canonical rows.
+ * Uses `applyingRemote` so hydrate does not enqueue a noisy `audit_pro` snapshot push.
+ *
+ * @param {{ force?: boolean }} [opts] — bypass short throttle after recent hydrate (default false)
+ */
+export async function hydrateAuditProFromManagementTables(opts = {}) {
+  const force = !!opts.force
+  if (typeof window === 'undefined') return
+  if (!isSupabaseConfigured) return
+
+  const companyId = await getCompanyId()
+  if (!companyId || bootstrappedCompanyId !== companyId) return
+
+  const now = Date.now()
+  if (!force && now - lastAuditProgramHydrateAt < AUDIT_PROGRAM_HYDRATE_MIN_MS) return
+  lastAuditProgramHydrateAt = Date.now()
+
+  applyingRemote = true
+  try {
+    await useAuditProStore.getState().hydrateFromSupabase()
+  } finally {
+    applyingRemote = false
+  }
+}
+
 /**
  * Pull latest workspace snapshots from Supabase and apply to local stores.
  * Throttled to avoid hammering the API on rapid visibility/pageshow events (mobile).
@@ -156,7 +186,11 @@ export async function pullWorkspaceSnapshots() {
   if (!isSupabaseConfigured) return
 
   const now = Date.now()
-  if (now - lastWorkspacePullAt < WORKSPACE_PULL_THROTTLE_MS) return
+  if (now - lastWorkspacePullAt < WORKSPACE_PULL_THROTTLE_MS) {
+    /* Still merge management_* so Audit Pro catches phone/web progress without re-fetching blobs. */
+    void hydrateAuditProFromManagementTables()
+    return
+  }
 
   const companyId = await getCompanyId()
   if (!companyId || bootstrappedCompanyId !== companyId) return
@@ -183,6 +217,8 @@ export async function pullWorkspaceSnapshots() {
   } finally {
     applyingRemote = false
   }
+
+  await hydrateAuditProFromManagementTables({ force: true })
 }
 
 /**
@@ -638,6 +674,7 @@ export function stopWorkspaceCloudSync() {
   unsubscribers = []
   bootstrappedCompanyId = null
   lastWorkspacePullAt = 0
+  lastAuditProgramHydrateAt = 0
 }
 
 /**
@@ -674,6 +711,8 @@ export async function bootstrapWorkspaceCloudSync() {
   } finally {
     applyingRemote = false
   }
+
+  await hydrateAuditProFromManagementTables({ force: true })
 
   /* Seed cloud from local data when server has no meaningful row yet. */
   for (const spec of SYNC_SPECS) {

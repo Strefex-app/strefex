@@ -3,6 +3,7 @@ import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import { useAccountRegistry } from '../../store/accountRegistry'
 import useAuditProStore from '../../store/auditProStore'
+import { hydrateAuditProFromManagementTables } from '../../services/workspaceCloudSync'
 import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 import '../../styles/app-page.css'
 import '../../styles/auditPro.css'
@@ -53,6 +54,22 @@ export default function AuditProLayout() {
     rehydrateRegistryFromStorage()
     ensureSeed()
     void hydrateFromSupabase()
+
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        void hydrateAuditProFromManagementTables()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+
+    const intervalId = window.setInterval(() => {
+      void hydrateAuditProFromManagementTables()
+    }, 120_000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.clearInterval(intervalId)
+    }
   }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase])
 
   if (!canUse) {
