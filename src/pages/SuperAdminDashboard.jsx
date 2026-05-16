@@ -71,7 +71,7 @@ const INDUSTRIES = [
   { id: 'medical', label: 'Medical', color: '#e74c3c' },
 ]
 
-/* ── Platform accounts — loaded from account registry ──── */
+/* ── Offline-only demo roster (included in unified account list only when Supabase is not configured). ──── */
 function loadDemoAccounts() {
   const key = 'strefex-admin-accounts'
   try {
@@ -265,6 +265,33 @@ function profileRowToAccountStub(p) {
   }
 }
 
+/** Profiles from Postgres for the Roles tab (no client-registry fillers). */
+function profilesToPlatformUserRows(rows) {
+  const users = []
+  for (const p of rows || []) {
+    const co = p?.companies
+    const md = p?.metadata && typeof p.metadata === 'object' ? p.metadata : {}
+    const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
+    const email = String(p.email || co?.email || '')
+      .trim()
+      .toLowerCase()
+    users.push({
+      id: p.id,
+      email,
+      name: p.full_name || co?.name || md.company_name || '',
+      company: co?.name || md.company_name || '',
+      accountType: types[0] || co?.account_type || 'seller',
+      plan: co?.plan || 'start',
+      role: String(p.role || 'user').toLowerCase(),
+      status: co?.status === 'active'
+        ? 'active'
+        : String(p.status || 'active').toLowerCase(),
+      registeredAt: p.created_at || new Date().toISOString(),
+    })
+  }
+  return users
+}
+
 /* ═══════════════════════════════════════════════════════
  *  SUPER ADMIN DASHBOARD
  * ═══════════════════════════════════════════════════════ */
@@ -398,7 +425,12 @@ export default function SuperAdminDashboard() {
 
   const normalizedAccounts = useMemo(() => {
     const fromDb = supabaseProfileRows.map(profileRowToAccountStub)
-    const merged = [...accounts, ...registryAccounts, ...fromDb]
+    // With Supabase, the directory is Postgres only — excludes local demo
+    // (strefex-admin-accounts) and client registry fillers (market / Add Supplier, etc.).
+    const merged =
+      isSupabaseConfigured
+        ? fromDb
+        : [...accounts, ...registryAccounts, ...fromDb]
     const dedup = new Map()
     let seq = 0
     for (const a of merged) {
@@ -467,7 +499,7 @@ export default function SuperAdminDashboard() {
         })
       return { ...acct, registrationCode: resolved }
     })
-  }, [accounts, registryAccounts, supabaseProfileRows])
+  }, [accounts, registryAccounts, supabaseProfileRows, isSupabaseConfigured])
 
   const selectedGrantAccount = useMemo(
     () => normalizedAccounts.find((a) => a.id === grantCompany),
@@ -586,7 +618,7 @@ export default function SuperAdminDashboard() {
     })
   }, [serviceRequests])
 
-  /* ── Computed analytics (demo + local registry + Supabase) ── */
+  /* ── Computed analytics (Supabase-only when backend configured; else demo + registry) ── */
   const analytics = useMemo(() => {
     const rows = normalizedAccounts
     const total = rows.length
@@ -1727,8 +1759,12 @@ export default function SuperAdminDashboard() {
     { id: 'user', label: 'User', color: '#2e7d32', desc: 'Standard platform user with plan-based access to features.' },
   ]
 
-  // Build a combined list of all platform users from account registry for role management
+  // With Supabase: list real auth.users profiles only. Offline: legacy client registry (+ team invites).
   const allPlatformUsers = useMemo(() => {
+    if (isSupabaseConfigured) {
+      return profilesToPlatformUserRows(supabaseProfileRows)
+    }
+
     const users = []
     registryAccounts.forEach((acct) => {
       // Primary account holder
@@ -1762,7 +1798,7 @@ export default function SuperAdminDashboard() {
       }
     })
     return users
-  }, [registryAccounts])
+  }, [isSupabaseConfigured, supabaseProfileRows, registryAccounts])
 
   const filteredRoleUsers = useMemo(() => {
     return allPlatformUsers.filter((u) => {
@@ -1784,6 +1820,22 @@ export default function SuperAdminDashboard() {
     // Only an existing superadmin can assign superadmin to another user
     if (newRole === 'superadmin' && !canAssignSuperadmin(currentRole)) {
       alert('Only an existing superadmin can assign superadmin rights to another account.')
+      return
+    }
+    const em = String(userEmail || '').trim().toLowerCase()
+    if (
+      isSupabaseConfigured &&
+      supabaseProfileRows.some(
+        (p) =>
+          String(p.email || p.companies?.email || '')
+            .trim()
+            .toLowerCase() === em &&
+          em !== '',
+      )
+    ) {
+      alert(
+        'This profile is stored in Supabase. Role updates from this UI only affect offline registry clones; manage server roles in Supabase.',
+      )
       return
     }
     // Update in account registry
