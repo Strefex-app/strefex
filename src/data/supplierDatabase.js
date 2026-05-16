@@ -724,6 +724,7 @@ function registrySellerToSupplier(acct) {
     name: acct.company || acct.contactName || 'Unknown',
     country: acct.country || '—',
     city: acct.city || '—',
+    accountType: acct.accountType || 'seller',
     coordinates: acct.coordinates || [0, 0],
     industries: acct.industries || [],
     categories: allCats,
@@ -759,6 +760,11 @@ function getAllSuppliers() {
   const staticIds = new Set(SUPPLIER_DATABASE.map((s) => s.id))
   const unique = registrySuppliers.filter((s) => !staticIds.has(s.id))
   return [...SUPPLIER_DATABASE, ...unique]
+}
+
+/** Seeded marketplace directory + registered sellers & service_provider accounts (same merge as RFQ / maps). */
+export function getAllSuppliersIncludingRegistry() {
+  return getAllSuppliers()
 }
 
 // Get suppliers by industry (includes registered sellers)

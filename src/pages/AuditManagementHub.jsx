@@ -51,7 +51,8 @@ const OPERATIONS_PAGES = [
   {
     id: 'suppliers',
     label: 'Supplier registry',
-    description: 'Sites from your Supabase B2B directory, vendor master, or ad hoc registration',
+    description:
+      'Seeded marketplace directory + sellers/service providers (import), tenant B2B directory, vendors, Supabase registrations',
     path: `${BASE}/suppliers`,
     icon: 'vendors',
   },

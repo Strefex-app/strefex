@@ -2,10 +2,12 @@ import { useState } from 'react'
 import useAuditProStore from '../../store/auditProStore'
 import useVendorStore from '../../store/vendorStore'
 import { useAuthStore } from '../../store/authStore'
+import { getAllSuppliersIncludingRegistry } from '../../data/supplierDatabase'
 import {
   fetchAccountDirectoryRowsAsAuditSuppliers,
   fetchPlatformDirectoryProfilesForSuperadmin,
   getActorCompanyId,
+  supplierUniverseRecordToAuditSupplier,
 } from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
 import { INDUSTRIES } from './auditProUi'
@@ -88,6 +90,36 @@ export default function AuditProSupplierRegistry() {
     }
   }
 
+  const importSupplierMarketplaceDatabase = () => {
+    try {
+      const rows = getAllSuppliersIncludingRegistry()
+        .map(supplierUniverseRecordToAuditSupplier)
+        .filter(Boolean)
+      rows.forEach((row) => {
+        if (!row?.id) return
+        if (next.some((s) => s.id === row.id)) return
+        if (
+          row.supplierDbId &&
+          next.some((s) => String(s.supplierDbId || '') === String(row.supplierDbId))
+        )
+          return
+        next.push(row)
+        added += 1
+      })
+
+      if (!added) {
+        showToast('No new suppliers to add — marketplace DB rows are already linked.', 'error')
+        return
+      }
+      setSuppliers(next)
+      showToast(
+        `Linked ${added} supplier / seller / service provider row(s) from the platform marketplace database.`,
+      )
+    } catch {
+      showToast('Could not load marketplace supplier dataset.', 'error')
+    }
+  }
+
   const importVendorMaster = () => {
     const next = [...suppliers]
     let added = 0
@@ -144,6 +176,9 @@ export default function AuditProSupplierRegistry() {
         </Btn>
         <Btn onClick={importVendorMaster} variant="secondary">
           Import vendor master (your ERP records)
+        </Btn>
+        <Btn onClick={importSupplierMarketplaceDatabase} variant="secondary" title="Seeded marketplace directory plus registered sellers and service providers (same corpus as RFQ / maps).">
+          Import marketplace suppliers · sellers
         </Btn>
         {isSuperAdmin() ? (
           <Btn onClick={importPlatformSuppliersSuperadmin} variant="secondary" disabled={importBusy}>
@@ -218,6 +253,19 @@ export default function AuditProSupplierRegistry() {
                     <Tag color="#3B82F6" small>
                       {sRow.industry || '—'}
                     </Tag>
+                    {sRow.source === 'supplier_universe' && sRow.supplySegment ? (
+                      <div style={{ marginTop: 4 }}>
+                        <Tag color="#64748B" small>
+                          {sRow.supplySegment === 'service_provider'
+                            ? 'Service provider'
+                            : sRow.supplySegment === 'seller'
+                              ? 'Seller'
+                              : sRow.supplySegment === 'registered'
+                                ? 'Registry'
+                                : 'Market DB'}
+                        </Tag>
+                      </div>
+                    ) : null}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: 11, color: '#94A3B8' }} className="stx-text-wrap">
                     {sRow.contact}
@@ -239,7 +287,12 @@ export default function AuditProSupplierRegistry() {
           </tbody>
         </table>
         {!suppliers.length && (
-          <div style={{ padding: 20, textAlign: 'center', color: '#374151' }}>No suppliers.</div>
+          <div style={{ padding: 20, textAlign: 'center', color: '#374151' }}>
+            No suppliers yet — use&nbsp;
+            <strong>Import marketplace suppliers · sellers</strong>
+            &nbsp;to link the seeded directory and registered sellers / service providers, or import from Supabase /
+            Vendor Master above.
+          </div>
         )}
       </div>
     </div>

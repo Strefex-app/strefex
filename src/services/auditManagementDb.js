@@ -323,6 +323,60 @@ export async function fetchAccountDirectoryRowsAsAuditSuppliers(companyId) {
   }
 }
 
+/**
+ * Map a SUPPLIER_DATABASE (+ registry mergers) row into Audit Pro supplier directory shape.
+ */
+export function supplierUniverseRecordToAuditSupplier(record) {
+  if (!record || record.id === undefined || record.id === null || String(record.id).trim() === '') {
+    return null
+  }
+  const pid = String(record.id).trim()
+  const email = String(record.email || '').trim().toLowerCase()
+  const industries = Array.isArray(record.industries) ? record.industries : []
+  const primaryIndustry = industries.length > 0 ? String(industries[0]) : ''
+  const regSlice =
+    typeof record.registeredAt === 'string' && record.registeredAt.length >= 10
+      ? record.registeredAt.slice(0, 10)
+      : typeof record.established === 'number' && record.established > 1900
+        ? `${String(record.established).slice(0, 4)}-01-01`
+        : new Date().toISOString().slice(0, 10)
+  const at = String(record.accountType || '').toLowerCase()
+  const segment =
+    at === 'service_provider'
+      ? 'service_provider'
+      : at === 'seller'
+        ? 'seller'
+        : record.source === 'registered'
+          ? 'registered'
+          : 'directory_seed'
+  const segmentLabel =
+    segment === 'service_provider'
+      ? 'Service provider (registry)'
+      : segment === 'seller'
+        ? 'Seller (registry)'
+        : segment === 'registered'
+          ? 'Registered account'
+          : 'Marketplace supplier database'
+  const src = record.source === 'registered' ? 'registry' : String(record.source || 'database')
+
+  return {
+    id: `supplier_db_${pid}`,
+    supplierDbId: pid,
+    name: String(record.name || '').trim() || (email ? email.split('@')[0] : 'Supplier'),
+    country: String(record.country || '').trim(),
+    industry: primaryIndustry,
+    contact: String(record.contactName || '').trim(),
+    email,
+    address: [record.city].filter(Boolean).join(', ') || '',
+    notes: `${segmentLabel} · source: ${src}`,
+    registeredAt: regSlice,
+    vendorMasterId: null,
+    source: 'supplier_universe',
+    supplySegment: segment,
+    universeSource: record.source || '',
+  }
+}
+
 export async function fetchPlatformDirectoryProfilesForSuperadmin() {
   const out = { auditors: [], suppliers: [] }
   try {
