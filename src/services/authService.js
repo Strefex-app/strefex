@@ -73,11 +73,12 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
 }
 
-function syncRegistryOfficialRegistrationCode(email, code) {
+function syncRegistryOfficialRegistrationCode(email, code, companyId) {
   const em = normalizeEmail(email)
   const c = String(code || '').trim()
-  if (!em || !c) return
-  rememberOfficialRegistrationCode(em, c)
+  if (!c) return
+  rememberOfficialRegistrationCode(em, c, companyId)
+  if (!em) return
   import('../store/accountRegistry')
     .then(({ useAccountRegistry }) => {
       useAccountRegistry.getState().updateAccount(em, { registrationCode: c })
@@ -357,7 +358,13 @@ async function storeSupabaseSession(session, profile) {
   const tenantRegistrationCode = profile?.companies?.registration_code
     ? String(profile.companies.registration_code).trim()
     : ''
-  if (user?.email && tenantRegistrationCode) syncRegistryOfficialRegistrationCode(user.email, tenantRegistrationCode)
+  if (tenantRegistrationCode) {
+    syncRegistryOfficialRegistrationCode(
+      user?.email || profile?.email || '',
+      tenantRegistrationCode,
+      profile?.company_id ?? null,
+    )
+  }
 
   analytics.track('user_login', {
     method: 'supabase',
@@ -402,9 +409,8 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!hasRegistrationMetadata) {
     // Even without registration metadata, keep superadmin role persistent.
     if (superadminEmail && profile?.role !== 'superadmin') {
-      await profilesService.updateProfile({ role: 'superadmin'           })
-          syncRegistryOfficialRegistrationCode(profile.email, rc)
-          return profilesService.getMyProfile()
+      await profilesService.updateProfile({ role: 'superadmin' })
+      return profilesService.getMyProfile()
     }
     return profile
   }
@@ -750,7 +756,7 @@ const authService = {
 
           if (newCompany?.registration_code) {
             registrationFromCompany = String(newCompany.registration_code).trim()
-            rememberOfficialRegistrationCode(normalizedEmail, registrationFromCompany)
+            rememberOfficialRegistrationCode(normalizedEmail, registrationFromCompany, newCompany.id)
           }
 
           if (newCompany) {
@@ -806,7 +812,7 @@ const authService = {
             : registrationFromCompany
         if (mergedRegCode) {
           registrationFromCompany = mergedRegCode
-          rememberOfficialRegistrationCode(normalizedEmail, mergedRegCode)
+          rememberOfficialRegistrationCode(normalizedEmail, mergedRegCode, profile?.company_id ?? null)
         }
         await storeSupabaseSession(session, profile)
 
@@ -956,7 +962,13 @@ const authService = {
           const rcRefresh = profile?.companies?.registration_code
             ? String(profile.companies.registration_code).trim()
             : ''
-          if (profile.email && rcRefresh) syncRegistryOfficialRegistrationCode(profile.email, rcRefresh)
+          if (rcRefresh) {
+            syncRegistryOfficialRegistrationCode(
+              profile.email || '',
+              rcRefresh,
+              profile?.company_id ?? null,
+            )
+          }
           useSubscriptionStore.getState().setAccountType(effectiveAccountType)
           return profile
         }

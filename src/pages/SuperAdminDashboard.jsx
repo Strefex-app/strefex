@@ -31,9 +31,14 @@ const SEC_KEY = 'strefex-security-events'
 const PROFILE_DIRECTORY_PAGE = 250
 
 function coerceAccountRegistrationCode(obj) {
+  const fromNested =
+    typeof obj?.companies?.registration_code === 'string' ? obj.companies.registration_code : ''
   return mergeRegistrationPreference(
-    typeof obj?.registrationCode === 'string' ? obj.registrationCode : '',
-    typeof obj?.registration_code === 'string' ? obj.registration_code : '',
+    mergeRegistrationPreference(
+      typeof obj?.registrationCode === 'string' ? obj.registrationCode : '',
+      typeof obj?.registration_code === 'string' ? obj.registration_code : '',
+    ),
+    fromNested,
   )
 }
 
@@ -234,12 +239,16 @@ function profileRowToAccountStub(p) {
   const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
   const accountType = types[0] || co?.account_type || 'seller'
   const industries = Array.isArray(md.industries) ? md.industries : md.industry ? [md.industry] : []
+  const contactEmail =
+    String(p.email || co?.email || '')
+      .trim()
+      .toLowerCase()
   return {
     id: p.id,
     companyId: co?.id || null,
     registrationCode: co?.registration_code || null,
     visibilityTier: co?.visibility_tier || null,
-    email: String(p.email || '').trim().toLowerCase(),
+    email: contactEmail,
     company: co?.name || md.company_name || '',
     contactName: p.full_name,
     fullName: p.full_name,
@@ -449,7 +458,12 @@ export default function SuperAdminDashboard() {
         resolveRegistrationCodeForDashboard({
           email: acct.email,
           accountType: acct.accountType,
-          hints: {},
+          companyId: acct.companyId || acct.company_id || null,
+          hints: {
+            registrationCode: fromRow || acct.registrationCode,
+            registration_code: acct.registration_code,
+            companiesRegistrationCode: acct.companies?.registration_code,
+          },
         })
       return { ...acct, registrationCode: resolved }
     })

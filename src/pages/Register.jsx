@@ -201,11 +201,16 @@ function RegisterForm() {
           : resolveRegistrationCodeForDashboard({
               email: normalizedEmail,
               accountType: primaryAccountType,
+              companyId: result?.profile?.company_id ?? null,
               hints: {},
             })
 
       if (typeof registrationCodeFromServer === 'string' && registrationCodeFromServer.trim() !== '') {
-        rememberOfficialRegistrationCode(normalizedEmail, registrationCodeFromServer.trim())
+        rememberOfficialRegistrationCode(
+          normalizedEmail,
+          registrationCodeFromServer.trim(),
+          result?.profile?.company_id ?? null,
+        )
       }
 
       registerAccount({

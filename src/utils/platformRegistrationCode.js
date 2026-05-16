@@ -5,6 +5,7 @@
  * Uses `LX…` prefixed fallbacks only when Supabase rows are unavailable (offline / orphaned registry).
  */
 const BY_EMAIL_KEY = 'strefex-platform-registration-by-email-v1'
+const BY_COMPANY_KEY = 'strefex-platform-registration-by-company-v1'
 const LOCAL_SEQ_KEYS = {
   seller: 'strefex-platform-reg-seq-local-seller',
   buyer: 'strefex-platform-reg-seq-local-buyer',
@@ -14,6 +15,13 @@ const LOCAL_SEQ_KEYS = {
 
 export function normalizeRegEmail(email) {
   return String(email || '').trim().toLowerCase()
+}
+
+/** Lowercase trimmed UUID — used when profile email is empty but company row exists */
+export function normalizeRegCompanyId(companyId) {
+  const s = String(companyId || '').trim().toLowerCase()
+  if (!s) return ''
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) ? s : ''
 }
 
 function loadByEmailMap() {
@@ -34,6 +42,24 @@ function saveByEmailMap(map) {
   }
 }
 
+function loadByCompanyMap() {
+  try {
+    const raw = localStorage.getItem(BY_COMPANY_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveByCompanyMap(map) {
+  try {
+    localStorage.setItem(BY_COMPANY_KEY, JSON.stringify(map))
+  } catch {
+    /* no-op */
+  }
+}
+
 /** True for client-only provisional codes until a DB `registration_code` replaces them. */
 export function isTemporaryLocalRegistrationCode(code) {
   const c = String(code || '').trim()
@@ -42,19 +68,35 @@ export function isTemporaryLocalRegistrationCode(code) {
 
 /**
  * Persist official identifier from Supabase / server (replacing any local provisional row).
+ * `email` may be empty when only `companyId` is known (e.g. directory rows with company email).
  */
-export function rememberOfficialRegistrationCode(email, code) {
-  const em = normalizeRegEmail(email)
+export function rememberOfficialRegistrationCode(email, code, companyId) {
   const c = String(code || '').trim()
-  if (!em || !c) return
-  const map = loadByEmailMap()
-  map[em] = { code: c, source: 'db', updatedAt: new Date().toISOString() }
-  saveByEmailMap(map)
+  if (!c) return
+  const ts = new Date().toISOString()
+  const em = normalizeRegEmail(email)
+  if (em) {
+    const map = loadByEmailMap()
+    map[em] = { code: c, source: 'db', updatedAt: ts }
+    saveByEmailMap(map)
+  }
+  const cid = normalizeRegCompanyId(companyId)
+  if (cid) {
+    const mapC = loadByCompanyMap()
+    mapC[cid] = { code: c, source: 'db', updatedAt: ts }
+    saveByCompanyMap(mapC)
+  }
 }
 
 function readStoredEntry(email) {
   const map = loadByEmailMap()
   return map[normalizeRegEmail(email)] || null
+}
+
+function readStoredEntryByCompany(companyId) {
+  const cid = normalizeRegCompanyId(companyId)
+  if (!cid) return null
+  return loadByCompanyMap()[cid] || null
 }
 
 function bumpSequence(storageKey, padLen) {
@@ -110,9 +152,29 @@ export function allocateTemporaryLocalRegistrationCode(email, accountType) {
 }
 
 /**
+ * Same as {@link allocateTemporaryLocalRegistrationCode} but keyed by company UUID (no profile email).
+ */
+export function allocateTemporaryLocalRegistrationCodeByCompany(companyId, accountType) {
+  const cid = normalizeRegCompanyId(companyId)
+  if (!cid) return null
+  const stored = readStoredEntryByCompany(cid)
+  if (stored?.code && !isTemporaryLocalRegistrationCode(stored.code)) {
+    return stored.code
+  }
+  if (stored?.code && isTemporaryLocalRegistrationCode(stored.code)) {
+    return stored.code
+  }
+  const code = nextLocalCodeForAccountType(accountType)
+  const map = loadByCompanyMap()
+  map[cid] = { code, source: 'local', updatedAt: new Date().toISOString() }
+  saveByCompanyMap(map)
+  return code
+}
+
+/**
  * Canonical string for dashboards (DB code wins; then stored map; then temporary local).
  */
-export function resolveRegistrationCodeForDashboard({ email, accountType, hints = {} }) {
+export function resolveRegistrationCodeForDashboard({ email, accountType, hints = {}, companyId } = {}) {
   const hc =
     hints.registrationCode ||
     hints.registration_code ||
@@ -121,13 +183,21 @@ export function resolveRegistrationCodeForDashboard({ email, accountType, hints 
   if (hc != null && String(hc).trim() !== '') {
     return String(hc).trim()
   }
+  const cid = normalizeRegCompanyId(companyId)
+  if (cid) {
+    const fromCompany = readStoredEntryByCompany(cid)?.code || ''
+    if (fromCompany) return fromCompany
+  }
   const em = normalizeRegEmail(email)
-  if (!em) return ''
-  const fromStore = readStoredEntry(em)?.code || ''
-  if (fromStore) return fromStore
-
-  /* Only mint when missing — caller should pass hints from Postgres when available */
-  return allocateTemporaryLocalRegistrationCode(em, accountType) || ''
+  if (em) {
+    const fromStore = readStoredEntry(em)?.code || ''
+    if (fromStore) return fromStore
+    return allocateTemporaryLocalRegistrationCode(em, accountType) || ''
+  }
+  if (cid) {
+    return allocateTemporaryLocalRegistrationCodeByCompany(cid, accountType) || ''
+  }
+  return ''
 }
 
 export function mergeRegistrationPreference(prevCode, nextCode) {
