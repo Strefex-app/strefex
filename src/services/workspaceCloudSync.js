@@ -665,9 +665,25 @@ function attachSubscribers() {
   })
 }
 
+/** management_audits realtime → debounced hydrate (phone saves show on web without refresh). */
+let unsubManagementAuditsRealtime = null
+let managementAuditsHydrateDebounceTimer = null
+
+function detachManagementAuditsRealtime() {
+  try {
+    unsubManagementAuditsRealtime?.()
+  } catch { /* */ }
+  unsubManagementAuditsRealtime = null
+  if (managementAuditsHydrateDebounceTimer != null) {
+    clearTimeout(managementAuditsHydrateDebounceTimer)
+    managementAuditsHydrateDebounceTimer = null
+  }
+}
+
 export function stopWorkspaceCloudSync() {
   debounceTimers.forEach((t) => clearTimeout(t))
   debounceTimers.clear()
+  detachManagementAuditsRealtime()
   unsubscribers.forEach((u) => {
     try { u() } catch { /* */ }
   })
@@ -724,6 +740,23 @@ export async function bootstrapWorkspaceCloudSync() {
         await flushPush(companyId, spec.key, local)
       }
     }
+  }
+
+  detachManagementAuditsRealtime()
+  try {
+    const { realtimeService } = await import('./supabaseService')
+    const { unsubscribe } = realtimeService.subscribe('management_audits', companyId, () => {
+      if (managementAuditsHydrateDebounceTimer != null) {
+        clearTimeout(managementAuditsHydrateDebounceTimer)
+      }
+      managementAuditsHydrateDebounceTimer = window.setTimeout(() => {
+        managementAuditsHydrateDebounceTimer = null
+        void hydrateAuditProFromManagementTables({ force: true })
+      }, 400)
+    })
+    unsubManagementAuditsRealtime = unsubscribe
+  } catch {
+    /* Realtime publication may be off — visibility/pull still refreshes audits */
   }
 
   attachSubscribers()

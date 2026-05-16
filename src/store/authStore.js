@@ -196,12 +196,25 @@ const rehydrateAllTenantStores = () => {
         }
       } catch { /* silent */ }
 
+      /* Audit Pro uses persist but was not in persistStores; ensure disk rehydrate finishes
+       * before workspace bootstrap, otherwise a late localStorage load can overwrite merged cloud rows. */
+      try {
+        const auditProMod = await import('./auditProStore')
+        const ap = auditProMod.default
+        if (ap?.persist?.rehydrate) {
+          await Promise.resolve(ap.persist.rehydrate())
+        }
+      } catch { /* silent */ }
+
     } catch { /* silent — defensive against import failures */ }
 
     /* Cross-device workspace sync (Supabase) — after local tenant rehydrate */
-    import('../services/workspaceCloudSync')
-      .then((m) => m.bootstrapWorkspaceCloudSync())
-      .catch(() => {})
+    try {
+      const m = await import('../services/workspaceCloudSync')
+      await m.bootstrapWorkspaceCloudSync()
+    } catch {
+      /* offline / init race */
+    }
   }, 0)
 }
 
