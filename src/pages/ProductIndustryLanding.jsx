@@ -3,11 +3,18 @@ import { useMemo } from 'react'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
-import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
+import {
+  getSuppliersByIndustry,
+  getSuppliersByIndustryAndCategory,
+  filterSuppliersRespectingCatalogVisibility,
+  augmentSupplierListForSuperadminPlatformView,
+} from '../data/supplierDatabase'
 import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import { useTranslation } from '../i18n/useTranslation'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 import '../styles/app-page.css'
 import './IndustryHub.css'
 
@@ -39,18 +46,32 @@ export default function ProductIndustryLanding() {
   const canSeeExecSummary = isSuperAdmin || accountType === 'buyer'
 
   const corpusEntries = useWorkspaceSellerCorpusStore((s) => s.entries)
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
   const supplierCountByCategory = useMemo(() => {
     const cats = getProductCategoriesForIndustry(industryId)
     const m = {}
     for (const cat of cats) {
-      m[cat.id] = getSuppliersByIndustryAndCategory(industryId, cat.id).length
+      const raw = getSuppliersByIndustryAndCategory(industryId, cat.id)
+      const filtered = filterSuppliersRespectingCatalogVisibility(raw, showMarketplaceCatalog)
+      m[cat.id] = augmentSupplierListForSuperadminPlatformView(
+        filtered,
+        industryId,
+        cat.id,
+        isSuperAdmin,
+      ).length
     }
     return m
-  }, [industryId, corpusEntries])
+  }, [industryId, corpusEntries, showMarketplaceCatalog, isSuperAdmin])
 
   const totalRegisteredSuppliers = useMemo(
-    () => getSuppliersByIndustry(industryId).length,
-    [industryId, corpusEntries],
+    () =>
+      augmentSupplierListForSuperadminPlatformView(
+        filterSuppliersRespectingCatalogVisibility(getSuppliersByIndustry(industryId), showMarketplaceCatalog),
+        industryId,
+        null,
+        isSuperAdmin,
+      ).length,
+    [industryId, corpusEntries, showMarketplaceCatalog, isSuperAdmin],
   )
 
   return (
@@ -69,6 +90,9 @@ export default function ProductIndustryLanding() {
           <p className="industry-hub-subtitle">
             Browse manufacturing categories relevant to the <strong>{industryLabel}</strong> industry. Each category shows processes and suppliers specific to this sector.
           </p>
+          <div style={{ marginTop: 12 }}>
+            <MarketplaceCatalogVisibilityControl compact />
+          </div>
         </div>
 
         {/* Stats Row */}

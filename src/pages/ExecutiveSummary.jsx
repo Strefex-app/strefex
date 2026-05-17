@@ -9,7 +9,11 @@ import {
   getIndustryMetrics,
   matchSuppliersToRfq,
   INDUSTRY_LABELS,
+  filterSuppliersRespectingCatalogVisibility,
+  augmentSupplierListForSuperadminPlatformView,
 } from '../data/supplierDatabase'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
 import { useAccountRegistry } from '../store/accountRegistry'
@@ -165,6 +169,7 @@ const ExecutiveSummary = () => {
   // Get data — merge static supplier DB with registered sellers
   // Scope to equipment category when available
   const industryLabel = industryId ? INDUSTRY_LABELS[industryId] || industryId : 'All Industries'
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
   const suppliers = useMemo(() => {
     const staticSuppliers = categoryId
       ? getSuppliersByIndustryAndCategory(industryId, categoryId)
@@ -201,11 +206,22 @@ const ExecutiveSummary = () => {
       ...fromRegistry.map((s) => (s.name || '').toLowerCase()),
     ])
     const fromDatabase = dbRegisteredSellers.filter((s) => !namesAfterRegistry.has((s.name || '').toLowerCase()))
-    return [...staticSuppliers, ...fromRegistry, ...fromDatabase]
-  }, [industryId, categoryId, registeredSellers, dbRegisteredSellers])
+    return augmentSupplierListForSuperadminPlatformView(
+      filterSuppliersRespectingCatalogVisibility(
+        [...staticSuppliers, ...fromRegistry, ...fromDatabase],
+        showMarketplaceCatalog,
+      ),
+      industryId,
+      categoryId,
+      isSuperAdmin,
+    )
+  }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, showMarketplaceCatalog, isSuperAdmin])
 
   const supplierLocations = useMemo(() => {
-    const staticLocs = getSupplierLocations(industryId, categoryId)
+    const staticLocsRaw = getSupplierLocations(industryId, categoryId)
+    const staticLocs = showMarketplaceCatalog
+      ? staticLocsRaw
+      : staticLocsRaw.filter((l) => l.source !== 'database')
     const staticIds = new Set(staticLocs.map((l) => l.id))
     const registryAndDb = [...registeredSellers, ...dbRegisteredSellers]
 
@@ -234,14 +250,42 @@ const ExecutiveSummary = () => {
       })
 
     const allLocs = [...staticLocs, ...regLocs]
+    const idsInMap = new Set(allLocs.map((l) => l.id))
+    const extraFromSuppliers = []
+    if (isSuperAdmin) {
+      for (const s of suppliers) {
+        if (!s?.coordinates || s.coordinates[0] === 0) continue
+        if (idsInMap.has(s.id)) continue
+        idsInMap.add(s.id)
+        extraFromSuppliers.push({
+          id: s.id,
+          name: s.name,
+          coordinates: s.coordinates,
+          country: s.country || '—',
+          city: s.city || '—',
+          rating: s.rating ?? 0,
+          riskLevel: s.riskLevel ?? 50,
+          fitLevel: s.fitLevel ?? 50,
+          source: s.source || 'registered',
+        })
+      }
+    }
+    const mergedLocs = [...allLocs, ...extraFromSuppliers]
     // Anonymize names on map for non-premium buyers
     if (!canSeeNames) {
-      return allLocs.map((loc, i) => ({ ...loc, name: `Supplier #${(i + 1).toString().padStart(2, '0')}` }))
+      return mergedLocs.map((loc, i) => ({ ...loc, name: `Supplier #${(i + 1).toString().padStart(2, '0')}` }))
     }
-    return allLocs
-  }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, canSeeNames])
+    return mergedLocs
+  }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, canSeeNames, showMarketplaceCatalog, isSuperAdmin, suppliers])
 
-  const metrics = useMemo(() => getIndustryMetrics(industryId, categoryId), [industryId, categoryId])
+  const metrics = useMemo(
+    () =>
+      getIndustryMetrics(industryId, categoryId, {
+        excludeMarketplaceCatalog: !showMarketplaceCatalog,
+        superadminPlatformView: isSuperAdmin,
+      }),
+    [industryId, categoryId, showMarketplaceCatalog, isSuperAdmin],
+  )
 
   const immIntelRows = useMemo(
     () => getInjectionMachineIntelRows(selectedSupplier),
@@ -267,8 +311,10 @@ const ExecutiveSummary = () => {
       industryId,
       categoryId: newRfq.categoryId,
       requirements: newRfq.requirements,
+      excludeMarketplaceCatalog: !showMarketplaceCatalog,
+      superadminPlatformView: isSuperAdmin,
     })
-  }, [newRfq.categoryId, newRfq.requirements, industryId, suppliers])
+  }, [newRfq.categoryId, newRfq.requirements, industryId, suppliers, showMarketplaceCatalog, isSuperAdmin])
 
   const comparedSuppliers = useMemo(
     () => suppliers.filter((s) => selectedForRfq.has(s.id)),
@@ -415,28 +461,31 @@ const ExecutiveSummary = () => {
                 </span>
               </p>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              <button
-                type="button"
-                className="exec-rfq-btn exec-rfq-btn--outline"
-                onClick={() =>
-                  navigate(
-                    `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
-                  )
-                }
-              >
-                RFQ Intelligence
-              </button>
-              <button
-                type="button"
-                className="exec-rfq-btn"
-                onClick={() => setShowRfqModal(true)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Create RFQ
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, maxWidth: '100%' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="exec-rfq-btn exec-rfq-btn--outline"
+                  onClick={() =>
+                    navigate(
+                      `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
+                    )
+                  }
+                >
+                  RFQ Intelligence
+                </button>
+                <button
+                  type="button"
+                  className="exec-rfq-btn"
+                  onClick={() => setShowRfqModal(true)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Create RFQ
+                </button>
+              </div>
+              <MarketplaceCatalogVisibilityControl />
             </div>
           </div>
         </div>

@@ -5,7 +5,13 @@ import { useAuthStore } from '../store/authStore'
 import useRfqStore from '../store/rfqStore'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getEquipmentForIndustryCategory } from '../data/equipmentByIndustryCategory'
-import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
+import {
+  getSuppliersByIndustry,
+  getSuppliersByIndustryAndCategory,
+  filterSuppliersRespectingCatalogVisibility,
+  augmentSupplierListForSuperadminPlatformView,
+} from '../data/supplierDatabase'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import '../styles/app-page.css'
 import './EquipmentSupplierRequest.css'
 
@@ -22,6 +28,7 @@ const EquipmentSupplierRequest = () => {
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const addRfq = useRfqStore((s) => s.addRfq)
   const sendRfq = useRfqStore((s) => s.sendRfq)
 
@@ -65,6 +72,8 @@ const EquipmentSupplierRequest = () => {
     [industryId, formData.categoryId]
   )
 
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
+
   const goBack = () => navigate(-1)
 
   const handleInputChange = (e) => {
@@ -87,10 +96,16 @@ const EquipmentSupplierRequest = () => {
     const selectedCategory = categories.find((cat) => cat.id === formData.categoryId)?.name || formData.categoryId
     const selectedEquipment = equipmentList.find((eq) => eq.id === formData.equipmentId)?.name || formData.equipmentId
 
-    const staticSuppliers =
+    const raw =
       !isProductContext && formData.categoryId
         ? getSuppliersByIndustryAndCategory(formData.industryId, formData.categoryId)
         : getSuppliersByIndustry(formData.industryId)
+    const staticSuppliers = augmentSupplierListForSuperadminPlatformView(
+      filterSuppliersRespectingCatalogVisibility(raw, showMarketplaceCatalog),
+      formData.industryId,
+      !isProductContext && formData.categoryId ? formData.categoryId : null,
+      isSuperAdmin,
+    )
     const seen = new Set()
     const supplierIds = []
     const maxSuppliers = 12

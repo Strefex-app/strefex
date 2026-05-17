@@ -11,6 +11,8 @@ import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusSto
 import { getEffectiveLimits } from '../services/stripeService'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 
 const INDUSTRY_LABELS = {
   automotive: 'Automotive Industry',
@@ -53,9 +55,18 @@ const IndustryEquipmentLanding = () => {
 
   /* ── Seller counts: workspace corpus + signup registry + optional seed (reactive to corpus) ────── */
   const corpusEntries = useWorkspaceSellerCorpusStore((s) => s.entries)
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
   const sellerCounts = useMemo(
-    () => getSellerCountByCategoryForIndustry(industryId),
-    [industryId, corpusEntries],
+    () =>
+      getSellerCountByCategoryForIndustry(industryId, {
+        excludeMarketplaceCatalog: !showMarketplaceCatalog,
+        superadminPlatformView: isSuperAdmin,
+      }),
+    [industryId, corpusEntries, showMarketplaceCatalog, isSuperAdmin],
+  )
+  const totalSellersInIndustry = useMemo(
+    () => Object.values(sellerCounts).reduce((a, b) => a + b, 0),
+    [sellerCounts],
   )
 
   /* ── Sellers/Service Providers cannot access this page — redirect (superadmin exempt) ── */
@@ -198,6 +209,9 @@ const IndustryEquipmentLanding = () => {
           </a>
           <h1 className="industry-hub-title">{isRawMaterials ? 'Material Categories & Sellers' : 'Equipment & Sellers'}</h1>
           <p className="industry-hub-subtitle">{subtitleText}</p>
+          <div style={{ marginTop: 12 }}>
+            <MarketplaceCatalogVisibilityControl compact />
+          </div>
         </div>
 
         {/* Stats Row */}
@@ -216,7 +230,7 @@ const IndustryEquipmentLanding = () => {
               <Icon name="users" size={24} />
             </div>
             <div>
-              <div className="industry-hub-indicator-value">45+</div>
+              <div className="industry-hub-indicator-value">{totalSellersInIndustry}</div>
               <div className="industry-hub-indicator-label">Suppliers</div>
             </div>
           </div>

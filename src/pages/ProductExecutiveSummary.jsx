@@ -7,7 +7,14 @@ import { useAuthStore } from '../store/authStore'
 import { tenantKey } from '../utils/tenantStorage'
 import WorldMap from '../components/WorldMap'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
-import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
+import {
+  getSuppliersByIndustry,
+  getSuppliersByIndustryAndCategory,
+  filterSuppliersRespectingCatalogVisibility,
+  augmentSupplierListForSuperadminPlatformView,
+} from '../data/supplierDatabase'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -67,14 +74,22 @@ export default function ProductExecutiveSummary() {
     return `/add-supplier?${p.toString()}`
   }
 
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
+
   // Merged suppliers: workspace corpus + account registry signup + optional seed (same as equipment executive summary DB)
   const mergedSuppliers = useMemo(() => {
     if (!industryId) return []
-    if (categoryId) {
-      return getSuppliersByIndustryAndCategory(industryId, categoryId)
-    }
-    return getSuppliersByIndustry(industryId)
-  }, [industryId, categoryId])
+    const raw = categoryId
+      ? getSuppliersByIndustryAndCategory(industryId, categoryId)
+      : getSuppliersByIndustry(industryId)
+    const filtered = filterSuppliersRespectingCatalogVisibility(raw, showMarketplaceCatalog)
+    return augmentSupplierListForSuperadminPlatformView(
+      filtered,
+      industryId,
+      categoryId,
+      isSuperAdmin,
+    )
+  }, [industryId, categoryId, showMarketplaceCatalog, isSuperAdmin])
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(industryId))
   const serviceProviderRows = useMemo(() => {
@@ -149,6 +164,9 @@ export default function ProductExecutiveSummary() {
           <p style={{ color: '#666', fontSize: 14, margin: 0 }}>
             {process.description}
           </p>
+          <div style={{ marginTop: 12 }}>
+            <MarketplaceCatalogVisibilityControl compact />
+          </div>
         </div>
 
         {/* Tabs */}

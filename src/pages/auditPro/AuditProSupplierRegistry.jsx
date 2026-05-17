@@ -19,6 +19,7 @@ import {
   supplierUniverseRecordToAuditSupplier,
 } from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
+import { collectAuditProSuppliersFromAllTenants } from '../../utils/superadminLocalPlatformAggregation'
 import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
 import {
@@ -27,6 +28,7 @@ import {
   syncAuditSupplierRowToSellerRegistry,
   syncAuditSupplierRowsToSellerRegistry,
 } from '../../services/supplierSellerRegistrySync'
+import { MarketplaceCatalogVisibilityControl } from '../../components/MarketplaceCatalogVisibilityControl'
 
 const emptyForm = {
   name: '',
@@ -65,8 +67,11 @@ export default function AuditProSupplierRegistry() {
   const suppliers = useAuditProStore((s) => s.suppliers)
   const setSuppliers = useAuditProStore((s) => s.setSuppliers)
   const showToast = useAuditProStore((s) => s.showToast)
+  const mergeSuppliersFromPlatformUniverse = useAuditProStore((s) => s.mergeSuppliersFromPlatformUniverse)
   const vendors = useVendorStore((s) => s.vendors)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
+  const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
+  const superadminRole = useAuthStore((s) => s.role === 'superadmin')
 
   /** `register` = new supplier; `edit` = amend existing row (plans / conduct stay linked by supplier id). */
   const [panelMode, setPanelMode] = useState('register')
@@ -105,6 +110,31 @@ export default function AuditProSupplierRegistry() {
     () => (platformIndustrySlug ? getProductCategoryCheckboxOptionsForIndustry(platformIndustrySlug) : []),
     [platformIndustrySlug],
   )
+
+  /** Superadmin: show Audit Pro supplier rows stored under other tenant keys in this browser (read-only). */
+  const displaySuppliers = useMemo(() => {
+    if (!superadminRole) return suppliers
+    const seenId = new Set((suppliers || []).map((s) => s.id))
+    const out = [...(suppliers || [])]
+    for (const { tenantId, supplier } of collectAuditProSuppliersFromAllTenants()) {
+      if (!supplier || tenantId === currentTenantId) continue
+      const id = `agg-${tenantId}-${supplier.id}`
+      if (seenId.has(id)) continue
+      const email = normEmail(supplier.email)
+      const name = String(supplier.name || '').trim()
+      if (email && out.some((r) => normEmail(r.email) === email)) continue
+      if (name && out.some((r) => r.name === name && (!email || normEmail(r.email) === email))) continue
+      seenId.add(id)
+      out.push({
+        ...supplier,
+        id,
+        _peerTenantId: tenantId,
+        _readOnlyPeer: true,
+        source: supplier.source || 'peer_workspace',
+      })
+    }
+    return out
+  }, [suppliers, superadminRole, currentTenantId])
 
   const openRegister = () => {
     setPanelMode('register')
@@ -359,8 +389,45 @@ export default function AuditProSupplierRegistry() {
     if (editSupplierId === sRow.id) closeSupplierPanel()
   }
 
+  const bulkMergeMarketplaceRegistry = async () => {
+    setImportBusy(true)
+    try {
+      const before = useAuditProStore.getState().suppliers.length
+      await mergeSuppliersFromPlatformUniverse()
+      const after = useAuditProStore.getState().suppliers.length
+      if (after > before) {
+        showToast(`Bulk import: added ${after - before} supplier row(s) (deduped marketplace + optional platform).`)
+      } else {
+        showToast('No new marketplace rows to add — already linked.', 'error')
+      }
+    } catch {
+      showToast('Bulk import failed.', 'error')
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
   return (
     <div>
+      {isSuperAdmin() ? (
+        <Card title="Industry supplier lists & executive summaries" icon="◇" style={{ marginBottom: 16 }}>
+          <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginTop: -4, marginBottom: 12 }}>
+            Superadmin only: controls whether seeded <strong>marketplace catalog</strong> companies appear in executive
+            summaries, industry hub counts, and RFQ matching. Other accounts only see suppliers from vendor master, audit
+            registry, B2B directory, and workspace signups.
+          </p>
+          <MarketplaceCatalogVisibilityControl />
+        </Card>
+      ) : (
+        <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginBottom: 14 }}>
+          Seeded marketplace catalog and bulk marketplace import are limited to <strong>platform superadmin</strong>. Use{' '}
+          <strong>Register Supplier</strong>, <strong>vendor master</strong>, or <strong>B2B directory</strong> to manage your audit auditees.
+        </p>
+      )}
+
+      <p className="stx-text-small" style={{ fontWeight: 'var(--font-semibold)', marginBottom: 8 }}>
+        Bulk import into audit registry
+      </p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
         <Btn onClick={importDirectoryContacts} variant="success" disabled={importBusy}>
           {importBusy ? 'Loading…' : 'Import B2B directory (Supabase)'}
@@ -368,9 +435,21 @@ export default function AuditProSupplierRegistry() {
         <Btn onClick={importVendorMaster} variant="secondary">
           Import vendor master (your ERP records)
         </Btn>
-        <Btn onClick={importSupplierMarketplaceDatabase} variant="secondary" title="Seeded marketplace directory plus registered sellers and service providers (same corpus as RFQ / maps).">
-          Import marketplace suppliers · sellers
-        </Btn>
+        {isSuperAdmin() ? (
+          <>
+            <Btn onClick={importSupplierMarketplaceDatabase} variant="secondary" title="Seeded marketplace directory plus registered sellers and service providers (same corpus as RFQ / maps). Superadmin only.">
+              Import marketplace suppliers · sellers
+            </Btn>
+            <Btn
+              onClick={() => void bulkMergeMarketplaceRegistry()}
+              variant="secondary"
+              disabled={importBusy}
+              title="Runs full dedupe merge (marketplace universe + optional platform directory). Superadmin only."
+            >
+              Bulk merge marketplace registry
+            </Btn>
+          </>
+        ) : null}
         {isSuperAdmin() ? (
           <Btn onClick={importPlatformSuppliersSuperadmin} variant="secondary" disabled={importBusy}>
             Superadmin: import platform sellers
@@ -600,7 +679,15 @@ export default function AuditProSupplierRegistry() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--ap-panel-3)' }}>
-              {['Supplier', 'Country', 'Industry', 'Contact', 'Email', 'Audits', 'Findings', 'Registered', ''].map((h) => (
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
+                Supplier
+              </th>
+              {superadminRole ? (
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
+                  Workspace
+                </th>
+              ) : null}
+              {['Country', 'Industry', 'Contact', 'Email', 'Audits', 'Findings', 'Registered', ''].map((h) => (
                 <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
                   {h}
                 </th>
@@ -608,14 +695,26 @@ export default function AuditProSupplierRegistry() {
             </tr>
           </thead>
           <tbody>
-            {suppliers.map((sRow) => {
+            {displaySuppliers.map((sRow) => {
               const sa = audits.filter((a) => a.supplierId === sRow.id)
               const sf = sa.reduce((n, a) => n + (a.findings?.length || 0), 0)
+              const readOnly = !!sRow._readOnlyPeer
               return (
                 <tr key={sRow.id} className="ap-hovrow" style={{ borderBottom: '1px solid #0F1A2E' }}>
                   <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--ap-text)', fontWeight: 500 }} className="stx-text-wrap">
                     {sRow.name}
                   </td>
+                  {superadminRole ? (
+                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#94A3B8' }} className="stx-text-wrap">
+                      {readOnly ? (
+                        <Tag color="#64748B" small title={sRow._peerTenantId || ''}>
+                          Peer
+                        </Tag>
+                      ) : (
+                        <span style={{ opacity: 0.85 }}>This workspace</span>
+                      )}
+                    </td>
+                  ) : null}
                   <td style={{ padding: '10px 12px', fontSize: 11, color: '#94A3B8' }}>{sRow.country}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <Tag color="#3B82F6" small>
@@ -646,20 +745,28 @@ export default function AuditProSupplierRegistry() {
                   <td style={{ padding: '10px 12px', fontSize: 11, color: '#374151' }}>{sRow.registeredAt}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => openEdit(sRow)}
-                        style={{ background: 'var(--ap-panel-3)', border: '1px solid var(--ap-border)', color: 'var(--ap-text)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeSupplierRow(sRow)}
-                        style={{ background: '#7F1D1D15', border: 'none', color: '#F87171', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
-                      >
-                        Remove
-                      </button>
+                      {readOnly ? (
+                        <span className="stx-text-caption" style={{ color: '#64748B' }}>
+                          View only
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(sRow)}
+                            style={{ background: 'var(--ap-panel-3)', border: '1px solid var(--ap-border)', color: 'var(--ap-text)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeSupplierRow(sRow)}
+                            style={{ background: '#7F1D1D15', border: 'none', color: '#F87171', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -667,7 +774,7 @@ export default function AuditProSupplierRegistry() {
             })}
           </tbody>
         </table>
-        {!suppliers.length && (
+        {!displaySuppliers.length && (
           <div style={{ padding: 20, textAlign: 'center', color: '#374151' }}>
             No suppliers yet — use&nbsp;
             <strong>Import marketplace suppliers · sellers</strong>

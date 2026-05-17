@@ -8,6 +8,7 @@ import {
   syncAuditSupplierRowToSellerRegistry,
   syntheticVendorMasterEmail,
 } from '../services/supplierSellerRegistrySync'
+import { collectVendorMasterRowsFromAllTenants } from '../utils/superadminLocalPlatformAggregation'
 import './VendorManagement.css'
 
 const STATUS_META = {
@@ -43,6 +44,8 @@ const Stars = ({ value, max = 5 }) => {
 export default function VendorManagement() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
 
   const vendors = useVendorStore((s) => s.vendors)
   const stats = useVendorStore((s) => s.getVendorStats)()
@@ -65,9 +68,29 @@ export default function VendorManagement() {
     bankName: '', iban: '', bic: '', accountHolder: '', paymentTerms: 'Net 30',
   })
 
+  /** Superadmin: append vendor master rows from other tenant workspaces in this browser (read-only). */
+  const vendorsForTable = useMemo(() => {
+    if (!isSuperAdmin || typeof window === 'undefined') return vendors
+    const seen = new Set(vendors.map((v) => v.id))
+    const peers = []
+    for (const { tenantId, vendor } of collectVendorMasterRowsFromAllTenants()) {
+      if (!vendor || tenantId === currentTenantId) continue
+      const id = `agg-${tenantId}-${vendor.id}`
+      if (seen.has(id)) continue
+      seen.add(id)
+      peers.push({
+        ...vendor,
+        id,
+        _peerTenantId: tenantId,
+        _readOnlyPeer: true,
+      })
+    }
+    return [...vendors, ...peers]
+  }, [vendors, isSuperAdmin, currentTenantId])
+
   /* Filtered & sorted vendors */
   const filteredVendors = useMemo(() => {
-    let list = [...vendors]
+    let list = [...vendorsForTable]
     if (filterStatus !== 'all') list = list.filter((v) => v.status === filterStatus)
     if (filterIndustry !== 'all') list = list.filter((v) => (v.general.industry || []).includes(filterIndustry))
     if (search.trim()) {
@@ -76,17 +99,17 @@ export default function VendorManagement() {
         v.vendorNumber.toLowerCase().includes(q) ||
         v.general.companyName.toLowerCase().includes(q) ||
         (v.general.country || '').toLowerCase().includes(q) ||
-        v.contacts.some((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+        (v.contacts || []).some((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
       )
     }
     return list.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-  }, [vendors, filterStatus, filterIndustry, search])
+  }, [vendorsForTable, filterStatus, filterIndustry, search])
 
   const uniqueIndustries = useMemo(() => {
     const set = new Set()
-    vendors.forEach((v) => (v.general.industry || []).forEach((i) => set.add(i)))
+    vendorsForTable.forEach((v) => (v.general.industry || []).forEach((i) => set.add(i)))
     return [...set].sort()
-  }, [vendors])
+  }, [vendorsForTable])
 
   /* Handle add vendor */
   const handleAddVendor = () => {
@@ -210,6 +233,7 @@ export default function VendorManagement() {
             <thead>
               <tr>
                 <th>Vendor #</th>
+                {isSuperAdmin ? <th>Source</th> : null}
                 <th>Company</th>
                 <th>Country</th>
                 <th>Industry</th>
@@ -225,10 +249,34 @@ export default function VendorManagement() {
             <tbody>
               {filteredVendors.map((v) => {
                 const sm = STATUS_META[v.status] || STATUS_META.active
-                const primary = v.contacts.find((c) => c.isPrimary) || v.contacts[0]
+                const primary = (v.contacts || []).find((c) => c.isPrimary) || (v.contacts || [])[0]
+                const readOnlyPeer = !!v._readOnlyPeer
                 return (
-                  <tr key={v.id} className="vm-row" onClick={() => navigate(`/vendors/${v.id}`)}>
+                  <tr
+                    key={v.id}
+                    className="vm-row"
+                    onClick={() => {
+                      if (readOnlyPeer) {
+                        setFeedback({
+                          type: 'success',
+                          text: 'Read-only: vendor record from another workspace on this browser (not in your tenant store).',
+                        })
+                        setTimeout(() => setFeedback(null), 5000)
+                        return
+                      }
+                      navigate(`/vendors/${v.id}`)
+                    }}
+                  >
                     <td className="vm-cell-number">{v.vendorNumber}</td>
+                    {isSuperAdmin ? (
+                      <td>
+                        {readOnlyPeer ? (
+                          <span className="vm-mini-tag" title={v._peerTenantId || ''}>Peer</span>
+                        ) : (
+                          <span className="vm-mini-tag">This workspace</span>
+                        )}
+                      </td>
+                    ) : null}
                     <td>
                       <div className="vm-cell-company">{v.general.companyName}</div>
                       {primary && <div className="vm-cell-contact">{primary.name} · {primary.email}</div>}
@@ -249,21 +297,27 @@ export default function VendorManagement() {
                     <td className="vm-cell-date">{fmtDate(v.updatedAt)}</td>
                     <td>
                       <div className="vm-row-actions" onClick={(e) => e.stopPropagation()}>
-                        <button className="vm-btn-sm blue" onClick={() => navigate(`/vendors/${v.id}`)}>View</button>
-                        <button className="vm-btn-sm" onClick={() => navigate(`/suppliers/${v.id}`)}>Supplier Profile</button>
-                        {v.status === 'pending_approval' && (
-                          <button className="vm-btn-sm green" onClick={() => {
-                            approveVendor(v.id)
-                            setFeedback({ type: 'success', text: `${v.vendorNumber} approved` })
-                            setTimeout(() => setFeedback(null), 3000)
-                          }}>Approve</button>
-                        )}
-                        {v.status === 'active' && (
-                          <button className="vm-btn-sm red" onClick={() => {
-                            blockVendor(v.id, 'Blocked by admin')
-                            setFeedback({ type: 'success', text: `${v.vendorNumber} blocked` })
-                            setTimeout(() => setFeedback(null), 3000)
-                          }}>Block</button>
+                        {readOnlyPeer ? (
+                          <span className="stx-text-caption" style={{ color: '#888' }}>View only</span>
+                        ) : (
+                          <>
+                            <button className="vm-btn-sm blue" onClick={() => navigate(`/vendors/${v.id}`)}>View</button>
+                            <button className="vm-btn-sm" onClick={() => navigate(`/suppliers/${v.id}`)}>Supplier Profile</button>
+                            {v.status === 'pending_approval' && (
+                              <button className="vm-btn-sm green" onClick={() => {
+                                approveVendor(v.id)
+                                setFeedback({ type: 'success', text: `${v.vendorNumber} approved` })
+                                setTimeout(() => setFeedback(null), 3000)
+                              }}>Approve</button>
+                            )}
+                            {v.status === 'active' && (
+                              <button className="vm-btn-sm red" onClick={() => {
+                                blockVendor(v.id, 'Blocked by admin')
+                                setFeedback({ type: 'success', text: `${v.vendorNumber} blocked` })
+                                setTimeout(() => setFeedback(null), 3000)
+                              }}>Block</button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

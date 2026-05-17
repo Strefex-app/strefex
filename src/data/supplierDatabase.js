@@ -715,6 +715,45 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import { normSellerRegistryEmail } from '../services/supplierSellerRegistrySync'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
+import { collectWorkspaceSellerAccountsFromAllTenants } from '../utils/superadminLocalPlatformAggregation'
+
+/**
+ * Merge workspace seller corpus from other tenant localStorage slices (same browser).
+ * Superadmin-only consumer; tagged with source `workspace_peer_tenant` and _sourceTenantId.
+ */
+function mergePeerTenantWorkspaceIntoSuppliers(baseList, industryId, categoryId) {
+  const peers = collectWorkspaceSellerAccountsFromAllTenants()
+  const seen = new Set(
+    baseList.map((s) => {
+      const e = normSellerRegistryEmail(s.email)
+      return `${e}::${String(s.name || '').trim().toLowerCase()}`
+    }),
+  )
+  const add = []
+  for (const { tenantId, account } of peers) {
+    const sup = registrySellerToSupplier(account)
+    if (industryId && !(sup.industries || []).includes(industryId)) continue
+    if (categoryId && !(sup.categories || []).includes(categoryId)) continue
+    const k = `${normSellerRegistryEmail(account.email)}::${String(sup.name || '').trim().toLowerCase()}`
+    if (seen.has(k)) continue
+    seen.add(k)
+    add.push({
+      ...sup,
+      id: `peer-${tenantId}-${sup.id}`,
+      source: 'workspace_peer_tenant',
+      _sourceTenantId: tenantId,
+    })
+  }
+  return [...baseList, ...add]
+}
+
+/**
+ * @param {boolean} enabled — pass `role === 'superadmin'` from the caller.
+ */
+export function augmentSupplierListForSuperadminPlatformView(suppliers, industryId, categoryId, enabled) {
+  if (!enabled || typeof window === 'undefined') return suppliers
+  return mergePeerTenantWorkspaceIntoSuppliers(suppliers, industryId, categoryId || null)
+}
 
 /**
  * Convert a registered seller account into the same shape as SUPPLIER_DATABASE entries.
@@ -791,12 +830,32 @@ export function getAllSuppliersIncludingRegistry() {
   return getAllSuppliers()
 }
 
+/** Seeded static catalog rows (`SUPPLIER_DATABASE`), not workspace/registry signups. */
+export function isMarketplaceCatalogSupplier(s) {
+  return s?.source === 'database'
+}
+
+/** When `showMarketplaceCatalog` is false, strips seeded directory-only rows from a supplier array. */
+export function filterSuppliersRespectingCatalogVisibility(suppliers, showMarketplaceCatalog) {
+  if (showMarketplaceCatalog) return suppliers || []
+  return (suppliers || []).filter((s) => !isMarketplaceCatalogSupplier(s))
+}
+
 /** Count suppliers per equipment/product category id for one industry (corpus + registry + optional seed). */
-export function getSellerCountByCategoryForIndustry(industryId) {
+export function getSellerCountByCategoryForIndustry(industryId, opts = {}) {
   if (!industryId) return {}
+  const exclude = !!opts.excludeMarketplaceCatalog
+  const superadmin = !!opts.superadminPlatformView
   const counts = {}
-  for (const s of getAllSuppliers()) {
-    if (!s.industries.includes(industryId)) continue
+  let pool = getAllSuppliers()
+  if (exclude) {
+    pool = pool.filter((s) => !isMarketplaceCatalogSupplier(s))
+  }
+  if (superadmin) {
+    pool = mergePeerTenantWorkspaceIntoSuppliers(pool, industryId, null)
+  }
+  for (const s of pool) {
+    if (!s.industries?.includes(industryId)) continue
     for (const cat of s.categories || []) {
       counts[cat] = (counts[cat] || 0) + 1
     }
@@ -870,12 +929,20 @@ export function getSupplierLocations(industryId = null, categoryId = null) {
 
 // Calculate aggregate metrics (includes registered sellers)
 // Supports optional categoryId to scope metrics to a specific equipment category.
-export function getIndustryMetrics(industryId, categoryId = null) {
+// opts.excludeMarketplaceCatalog — omit seeded static directory rows (source: database).
+// opts.superadminPlatformView — merge other tenants’ workspace corpus rows from this browser (superadmin only).
+export function getIndustryMetrics(industryId, categoryId = null, opts = {}) {
   let suppliers
   if (industryId && categoryId) {
     suppliers = getSuppliersByIndustryAndCategory(industryId, categoryId)
   } else {
     suppliers = industryId ? getSuppliersByIndustry(industryId) : getAllSuppliers()
+  }
+  if (opts.excludeMarketplaceCatalog) {
+    suppliers = suppliers.filter((s) => !isMarketplaceCatalogSupplier(s))
+  }
+  if (opts.superadminPlatformView) {
+    suppliers = mergePeerTenantWorkspaceIntoSuppliers(suppliers, industryId, categoryId || null)
   }
   // Only include suppliers with valid metrics (rating > 0) for averages
   const withMetrics = suppliers.filter(s => s.rating > 0)
@@ -912,8 +979,22 @@ export function getIndustryMetrics(industryId, categoryId = null) {
 
 // Match suppliers to RFQ requirements (includes registered sellers)
 export function matchSuppliersToRfq(rfq) {
-  const { industryId, categoryId, requirements = {} } = rfq
+  const {
+    industryId,
+    categoryId,
+    requirements = {},
+    excludeMarketplaceCatalog,
+    superadminPlatformView,
+  } = rfq
   let suppliers = getAllSuppliers()
+
+  if (excludeMarketplaceCatalog) {
+    suppliers = suppliers.filter((s) => !isMarketplaceCatalogSupplier(s))
+  }
+
+  if (superadminPlatformView && industryId) {
+    suppliers = mergePeerTenantWorkspaceIntoSuppliers(suppliers, industryId, categoryId || null)
+  }
   
   if (industryId) {
     suppliers = suppliers.filter(s => s.industries.includes(industryId))
