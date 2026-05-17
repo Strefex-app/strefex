@@ -688,13 +688,43 @@ export default function AuditProConduct() {
                 <>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{supplier.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
-                    {supplier.country} · {supplier.contact}
+                    {supplier.country}
+                    {supplier.contact ? <> · {supplier.contact}</> : null}
+                    {supplier.email ? <> · {supplier.email}</> : null}
                   </div>
                   {supplier.address ? (
                     <div style={{ fontSize: 11, color: '#374151', marginTop: 3 }} className="stx-text-wrap">
                       {supplier.address}
                     </div>
                   ) : null}
+                  {supplier.notes ? (
+                    <div style={{ fontSize: 11, color: '#475569', marginTop: 6 }} className="stx-text-wrap">
+                      {supplier.notes}
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="stx-text-caption"
+                    style={{
+                      marginTop: 8,
+                      padding: 0,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--accent)',
+                      fontWeight: 'var(--font-medium)',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: 3,
+                      fontSize: 'var(--text-caption)',
+                      display: 'block',
+                      textAlign: 'left',
+                    }}
+                    onClick={() =>
+                      navigate(`/management/auditors/suppliers?edit=${encodeURIComponent(supplier.id)}`)
+                    }
+                  >
+                    Update supplier details
+                  </button>
                 </>
               ) : (
                 <div style={{ color: '#374151' }}>Not assigned</div>

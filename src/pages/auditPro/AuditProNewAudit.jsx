@@ -131,6 +131,32 @@ export default function AuditProNewAudit() {
               onChange={(v) => set('supplierId', v)}
               options={[{ value: '', label: '— Select Supplier —' }, ...suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` }))]}
             />
+            {form.supplierId ? (
+              <button
+                type="button"
+                className="stx-text-caption stx-text-wrap"
+                style={{
+                  marginTop: 8,
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--accent)',
+                  fontWeight: 'var(--font-medium)',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 3,
+                  display: 'block',
+                  fontSize: 'var(--text-caption)',
+                }}
+                onClick={() => navigate(`/management/auditors/suppliers?edit=${encodeURIComponent(form.supplierId)}`)}
+              >
+                Correct supplier name / contact / notes…
+              </button>
+            ) : (
+              <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginTop: 8 }}>
+                After scheduling, you can still update supplier details — open Supplier Registry or use Audit Plans → Edit supplier data.
+              </p>
+            )}
           </Field>
         </Grid2>
         <Grid2>

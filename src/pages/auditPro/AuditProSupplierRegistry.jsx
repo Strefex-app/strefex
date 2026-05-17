@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
+import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useVendorStore from '../../store/vendorStore'
 import { useAuthStore } from '../../store/authStore'
 import { getAllSuppliersIncludingRegistry } from '../../data/supplierDatabase'
@@ -17,7 +19,22 @@ import {
   syncAuditSupplierRowsToSellerRegistry,
 } from '../../services/supplierSellerRegistrySync'
 
+const emptyForm = { name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' }
+
+function supplierRowFromStore(sRow) {
+  return {
+    name: sRow.name || '',
+    country: sRow.country || '',
+    industry: sRow.industry || '',
+    contact: sRow.contact || '',
+    email: sRow.email || '',
+    address: sRow.address || '',
+    notes: sRow.notes || '',
+  }
+}
+
 export default function AuditProSupplierRegistry() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const audits = useAuditProStore((s) => s.audits)
   const suppliers = useAuditProStore((s) => s.suppliers)
   const setSuppliers = useAuditProStore((s) => s.setSuppliers)
@@ -25,9 +42,45 @@ export default function AuditProSupplierRegistry() {
   const vendors = useVendorStore((s) => s.vendors)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
 
-  const [show, setShow] = useState(false)
+  /** `register` = new supplier; `edit` = amend existing row (plans / conduct stay linked by supplier id). */
+  const [panelMode, setPanelMode] = useState('register')
+  const [editSupplierId, setEditSupplierId] = useState(null)
+  const [showPanel, setShowPanel] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
-  const [form, setForm] = useState({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
+  const [form, setForm] = useState(() => ({ ...emptyForm }))
+
+  const openRegister = () => {
+    setPanelMode('register')
+    setEditSupplierId(null)
+    setForm({ ...emptyForm })
+    setShowPanel(true)
+  }
+
+  const openEdit = (sRow) => {
+    setPanelMode('edit')
+    setEditSupplierId(sRow.id)
+    setForm(supplierRowFromStore(sRow))
+    setShowPanel(true)
+  }
+
+  useEffect(() => {
+    const id = searchParams.get('edit')
+    if (!id) return
+    const row = suppliers.find((s) => s.id === id)
+    if (!row) return
+    setPanelMode('edit')
+    setEditSupplierId(row.id)
+    setForm(supplierRowFromStore(row))
+    setShowPanel(true)
+    setSearchParams(
+      (p) => {
+        const next = new URLSearchParams(p)
+        next.delete('edit')
+        return next
+      },
+      { replace: true },
+    )
+  }, [searchParams, suppliers, setSearchParams])
 
   const importDirectoryContacts = async () => {
     setImportBusy(true)
@@ -165,6 +218,7 @@ export default function AuditProSupplierRegistry() {
       return
     }
     setSuppliers(next)
+    notifyWorkspaceKeyDirty('audit_pro', true)
     try {
       const { synced } = syncAuditSupplierRowsToSellerRegistry(syncedRows)
       showToast(`Imported ${added} from Vendor Master; ${synced} merged into unified seller registry.`)
@@ -173,32 +227,76 @@ export default function AuditProSupplierRegistry() {
     }
   }
 
-  const add = () => {
+  const closeSupplierPanel = () => {
+    setShowPanel(false)
+    setPanelMode('register')
+    setEditSupplierId(null)
+    setForm({ ...emptyForm })
+  }
+
+  const saveSupplierPanel = () => {
     if (!form.name || !form.email) {
       showToast('Name and email required.', 'error')
       return
     }
-    const id = auditProUid()
+    if (panelMode === 'register') {
+      const id = auditProUid()
+      const row = {
+        id,
+        ...form,
+        registeredAt: new Date().toISOString().slice(0, 10),
+        source: 'manual',
+      }
+      try {
+        const r = syncAuditSupplierRowToSellerRegistry(row)
+        if (!r.ok) throw new Error(r.reason || 'sync failed')
+      } catch {
+        showToast('Saved in Audit Pro only — seller database sync failed.', 'error')
+        setSuppliers([...suppliers, row])
+        closeSupplierPanel()
+        notifyWorkspaceKeyDirty('audit_pro', true)
+        return
+      }
+      setSuppliers([...suppliers, row])
+      notifyWorkspaceKeyDirty('audit_pro', true)
+      showToast('Supplier registered and added to the seller database.')
+      closeSupplierPanel()
+      return
+    }
+
+    const prev = suppliers.find((s) => s.id === editSupplierId)
+    if (!prev) {
+      closeSupplierPanel()
+      return
+    }
     const row = {
-      id,
+      ...prev,
       ...form,
-      registeredAt: new Date().toISOString().slice(0, 10),
-      source: 'manual',
+      id: editSupplierId,
+      registeredAt: prev.registeredAt,
     }
     try {
       const r = syncAuditSupplierRowToSellerRegistry(row)
       if (!r.ok) throw new Error(r.reason || 'sync failed')
     } catch {
-      showToast('Saved in Audit Pro only — seller database sync failed.', 'error')
-      setSuppliers([...suppliers, row])
-      setForm({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
-      setShow(false)
+      showToast('Updated in Audit Pro only — unified seller corpus sync failed.', 'error')
+      setSuppliers(suppliers.map((s) => (s.id === editSupplierId ? row : s)))
+      closeSupplierPanel()
+      notifyWorkspaceKeyDirty('audit_pro', true)
       return
     }
-    setSuppliers([...suppliers, row])
-    showToast('Supplier registered and added to the seller database.')
-    setForm({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
-    setShow(false)
+    setSuppliers(suppliers.map((s) => (s.id === editSupplierId ? row : s)))
+    notifyWorkspaceKeyDirty('audit_pro', true)
+    showToast('Supplier updated — linked audit plans keep the same supplier; details refreshed everywhere.')
+    closeSupplierPanel()
+  }
+
+  const removeSupplierRow = (sRow) => {
+    const n = audits.filter((a) => a.supplierId === sRow.id).length
+    if (n > 0 && !window.confirm(`This supplier is used on ${n} audit plan(s). Remove anyway?`)) return
+    setSuppliers(suppliers.filter((x) => x.id !== sRow.id))
+    notifyWorkspaceKeyDirty('audit_pro', true)
+    if (editSupplierId === sRow.id) closeSupplierPanel()
   }
 
   return (
@@ -218,12 +316,22 @@ export default function AuditProSupplierRegistry() {
             Superadmin: import platform sellers
           </Btn>
         ) : null}
-        <Btn onClick={() => setShow((v) => !v)}>
+        <Btn onClick={openRegister}>
           + Register Supplier
         </Btn>
       </div>
-      {show && (
-        <Card title="Register Supplier" icon="◉" style={{ marginBottom: 18 }}>
+      {showPanel && (
+        <Card
+          title={panelMode === 'edit' ? 'Edit supplier / auditee' : 'Register Supplier'}
+          icon="◉"
+          style={{ marginBottom: 18 }}
+        >
+          {panelMode === 'edit' ? (
+            <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginTop: -6, marginBottom: 14 }}>
+              Updates appear on Audit Plans, Conduct, and reports. Planned audits stay linked by supplier id —
+              you only change master data here.
+            </p>
+          ) : null}
           <Grid2>
             <Field label="Supplier Name *">
               <Input value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
@@ -252,10 +360,10 @@ export default function AuditProSupplierRegistry() {
             <Textarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} rows={2} placeholder="Certifications, risk level…" />
           </Field>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn onClick={add} variant="success">
-              Save
+            <Btn onClick={saveSupplierPanel} variant="success">
+              {panelMode === 'edit' ? 'Save changes' : 'Save'}
             </Btn>
-            <Btn onClick={() => setShow(false)} variant="secondary">
+            <Btn onClick={closeSupplierPanel} variant="secondary">
               Cancel
             </Btn>
           </div>
@@ -310,9 +418,22 @@ export default function AuditProSupplierRegistry() {
                   <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 700, textAlign: 'center', color: sf > 0 ? '#FCD34D' : '#374151' }}>{sf}</td>
                   <td style={{ padding: '10px 12px', fontSize: 11, color: '#374151' }}>{sRow.registeredAt}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    <button type="button" onClick={() => setSuppliers(suppliers.filter((x) => x.id !== sRow.id))} style={{ background: '#7F1D1D15', border: 'none', color: '#F87171', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}>
-                      Remove
-                    </button>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(sRow)}
+                        style={{ background: 'var(--ap-panel-3)', border: '1px solid var(--ap-border)', color: 'var(--ap-text)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSupplierRow(sRow)}
+                        style={{ background: '#7F1D1D15', border: 'none', color: '#F87171', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 11 }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

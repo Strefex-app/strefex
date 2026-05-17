@@ -170,8 +170,32 @@ export default function AuditProAuditPlans() {
                   <td className="stx-text-caption ap-text-secondary" style={{ padding: '10px 12px' }}>
                     {aud?.name?.split(' ')[0] || '—'}
                   </td>
-                  <td className="stx-text-caption ap-text-secondary" style={{ padding: '10px 12px' }}>
-                    {sup?.name?.slice(0, 20) || '—'}
+                  <td style={{ padding: '10px 12px', maxWidth: 180 }} className="stx-text-wrap">
+                    <div className="stx-text-caption ap-text-secondary">
+                      {sup?.name?.slice(0, 28) || '—'}
+                      {sup?.name?.length > 28 ? '…' : ''}
+                    </div>
+                    {sup?.id ? (
+                      <button
+                        type="button"
+                        className="stx-text-caption"
+                        style={{
+                          marginTop: 4,
+                          padding: 0,
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--accent)',
+                          fontWeight: 'var(--font-medium)',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: 3,
+                          fontSize: 'var(--text-caption)',
+                        }}
+                        onClick={() => navigate(`/management/auditors/suppliers?edit=${encodeURIComponent(sup.id)}`)}
+                      >
+                        Edit supplier data
+                      </button>
+                    ) : null}
                   </td>
                   <td className="stx-text-caption ap-text-secondary" style={{ padding: '10px 12px' }}>
                     {a.plannedDate}
