@@ -239,6 +239,7 @@ const useAuditProStore = create(
         }
       },
 
+      /** Explicit import only (Supplier Registry buttons) — do not auto-run on layout mount. */
       mergeSuppliersFromPlatformUniverse: async () => {
         const norm = (e) => String(e || '').trim().toLowerCase()
         const { supplierUniverseRecordToAuditSupplier, fetchPlatformDirectoryProfilesForSuperadmin } = await import(

@@ -52,7 +52,7 @@ const OPERATIONS_PAGES = [
     id: 'suppliers',
     label: 'Supplier registry',
     description:
-      'Seeded marketplace directory + sellers/service providers (import), tenant B2B directory, vendors, Supabase registrations',
+      'Register auditees or import from marketplace, B2B directory, vendors, or Supabase — supplier list starts empty until you add or import',
     path: `${BASE}/suppliers`,
     icon: 'vendors',
   },
