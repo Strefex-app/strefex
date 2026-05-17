@@ -25,8 +25,16 @@ function tallyVerdict(responses, v) {
 
 /**
  * Printable “official audit report” body (used in Conduct preview and full print route).
+ * When `suppressReportChrome` is true (print route + PM-style frame), omit the centred
+ * ribbon/title duplicate — chrome lives in AuditProPrintReport.
  */
-export default function AuditProOfficialReport({ audit, auditor, supplier, questionnaire }) {
+export default function AuditProOfficialReport({
+  audit,
+  auditor,
+  supplier,
+  questionnaire,
+  suppressReportChrome = false,
+}) {
   const majors = audit.findings.filter((f) => f.type === 'Major NC')
   const minors = audit.findings.filter((f) => f.type === 'Minor NC')
   const totalQ = getTotalQuestions(questionnaire)
@@ -80,51 +88,57 @@ export default function AuditProOfficialReport({ audit, auditor, supplier, quest
         { l: 'QMS Eff.', v: `${eff}%`, br: 'var(--rfqi-teal)', val: 'var(--rfqi-teal)' },
       ]
 
-  return (
+  const chromeBlock = suppressReportChrome ? null : (
     <div
       style={{
+        textAlign: 'center',
+        marginBottom: 22,
+        borderBottom: '1px solid var(--border-light)',
+        paddingBottom: 16,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 'var(--text-overline)',
+          letterSpacing: '0.2em',
+          color: 'var(--color-muted)',
+          marginBottom: 5,
+        }}
+      >
+        OFFICIAL AUDIT REPORT
+      </div>
+      <div
+        style={{
+          fontSize: 'var(--text-section)',
+          fontWeight: 'var(--font-semibold)',
+          color: 'var(--color-primary)',
+          marginBottom: 7,
+        }}
+        className="stx-text-wrap"
+      >
+        {audit.title}
+      </div>
+      <div style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Tag color="var(--accent)">{audit.industry}</Tag>
+        <Tag color="var(--rfqi-purple)">{audit.standard}</Tag>
+        <StatusBadge status={audit.status} />
+      </div>
+    </div>
+  )
+
+  const shellStyle = suppressReportChrome
+    ? { padding: 0 }
+    : {
         background: 'var(--bg-card)',
         border: '1px solid var(--border-light)',
         borderRadius: 12,
         padding: 24,
         boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: 22,
-          borderBottom: '1px solid var(--border-light)',
-          paddingBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 'var(--text-overline)',
-            letterSpacing: '0.2em',
-            color: 'var(--color-muted)',
-            marginBottom: 5,
-          }}
-        >
-          OFFICIAL AUDIT REPORT
-        </div>
-        <div
-          style={{
-            fontSize: 'var(--text-section)',
-            fontWeight: 'var(--font-semibold)',
-            color: 'var(--color-primary)',
-            marginBottom: 7,
-          }}
-          className="stx-text-wrap"
-        >
-          {audit.title}
-        </div>
-        <div style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Tag color="var(--accent)">{audit.industry}</Tag>
-          <Tag color="var(--rfqi-purple)">{audit.standard}</Tag>
-          <StatusBadge status={audit.status} />
-        </div>
-      </div>
+      }
+
+  return (
+    <div className={suppressReportChrome ? 'ap-official-report-embedded stx-text-wrap' : ''} style={shellStyle}>
+      {chromeBlock}
       <div
         style={{
           display: 'grid',
