@@ -19,6 +19,7 @@ const INDUSTRIES = [
   { id: 'raw-materials', tKey: 'industry.rawMaterials', path: '/industry/raw-materials', descKey: 'industry.description' },
   { id: 'oil-gas', tKey: 'industry.oilGas', path: '/industry/oil-gas', descKey: 'industry.description' },
   { id: 'green-energy', tKey: 'industry.greenEnergy', path: '/industry/green-energy', descKey: 'industry.description' },
+  { id: 'household-products', tKey: null, label: 'Household Products', path: '/industry/household-products', descKey: 'industry.description' },
 ]
 
 const INDUSTRY_ICONS = {
@@ -63,6 +64,11 @@ const INDUSTRY_ICONS = {
   'green-energy': (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  'household-products': (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-6v-6H10v6H4a1 1 0 0 1-1-1V10.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
 }
@@ -153,7 +159,7 @@ export default function EquipmentHub() {
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a2e' }}>
-                          {t(item.tKey)}
+                          {item.tKey ? t(item.tKey) : item.label || item.id}
                           {chosen && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}>Registered</span>}
                         </div>
                         <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Browse equipment categories and suppliers</div>
@@ -185,7 +191,7 @@ export default function EquipmentHub() {
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a2e' }}>
-                        {t(item.tKey)}
+                        {item.tKey ? t(item.tKey) : item.label || item.id}
                       </div>
                       <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>
                         Register this industry through a separate account onboarding
@@ -205,7 +211,14 @@ export default function EquipmentHub() {
             <div className="home-modal" onClick={(e) => e.stopPropagation()}>
               <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Register Industry</h3>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: '#666', lineHeight: 1.5 }}>
-                To add <strong>{t(INDUSTRIES.find(i => i.id === showPicker)?.tKey || '')}</strong>, log out and create a separate registration for this industry.
+                To add{' '}
+                <strong>
+                  {(() => {
+                    const sel = INDUSTRIES.find((i) => i.id === showPicker)
+                    return sel?.tKey ? t(sel.tKey) : sel?.label || showPicker
+                  })()}
+                </strong>
+                , log out and create a separate registration for this industry.
                 <br />
                 <span style={{ color: '#e65100', fontSize: 13 }}>
                   Each industry registration has its own plan and Stripe checkout.

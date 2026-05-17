@@ -595,6 +595,28 @@ export function getProductCategoriesForIndustry(industryId) {
 }
 
 /**
+ * Flat list for checkbox UIs: parent row (id = top-level category) + every subcategory
+ * (id = `${parentId}::${subId}`) so selections are unique across the tree.
+ */
+export function getProductCategoryCheckboxOptionsForIndustry(industryId) {
+  const top = getProductCategoriesForIndustry(industryId)
+  const out = []
+  for (const cat of top) {
+    out.push({ id: cat.id, name: cat.name, kind: 'family', parentLabel: cat.name })
+    for (const sub of cat.subcategories || []) {
+      out.push({
+        id: `${cat.id}::${sub.id}`,
+        name: sub.name,
+        kind: 'sub',
+        parentLabel: cat.name,
+        description: sub.description,
+      })
+    }
+  }
+  return out
+}
+
+/**
  * Get a single manufacturing category by ID within a specific industry.
  * Industry context is required since categories differ across industries.
  */

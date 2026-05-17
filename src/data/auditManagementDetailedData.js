@@ -132,13 +132,33 @@ export const DEFAULT_Q = {
 // ============================================================
 // CONSTANTS & UTILITIES
 // ============================================================
-export const INDUSTRIES = ["Automotive","Medical","Aerospace","Oil & Gas"];
+/** Same sectors as Product / Equipment hubs on Home, plus legacy Aerospace (maps to machinery catalog elsewhere). */
+export const INDUSTRIES = [
+  'Automotive',
+  'Machinery',
+  'Electronics',
+  'Medical',
+  'Raw Materials',
+  'Oil & Gas',
+  'Green Energy',
+  'Household Products',
+  'Aerospace',
+]
 export const AUDIT_TYPES = ["Manufacturing / Quality","Financial","Cybersecurity / IT"];
+
+const CYBER_DEFAULT = ['ISO 27001', 'IEC 62443', 'NIST CSF']
+const FIN_ISO = ['SOX Compliance', 'IFRS', 'GAAP']
+
 export const AUDIT_STANDARDS = {
   Automotive:{"Manufacturing / Quality":["IATF 16949:2016","VDA 6.3","ISO 9001:2015"],"Financial":["SOX Compliance","IFRS","GAAP"],"Cybersecurity / IT":["TISAX","ISO 27001","IEC 62443"]},
   Medical:{"Manufacturing / Quality":["ISO 13485:2016","FDA 21 CFR Part 820","ISO 14971"],"Financial":["SOX Compliance","IFRS / ASC 606"],"Cybersecurity / IT":["HIPAA","ISO 27001","IEC 62443"]},
   Aerospace:{"Manufacturing / Quality":["AS9100 Rev D","VDA 6.3","NADCAP"],"Financial":["DCAA / FAR","SOX","IFRS"],"Cybersecurity / IT":["CMMC 2.0","NIST SP 800-171","ISO 27001"]},
+  Machinery:{"Manufacturing / Quality":["AS9100 Rev D","ISO 9001:2015","VDA 6.3","NADCAP"],"Financial":["DCAA / FAR","SOX","IFRS"],"Cybersecurity / IT":["CMMC 2.0","ISO 27001","IEC 62443"]},
+  Electronics:{"Manufacturing / Quality":["ISO 9001:2015","IPC-A-610","J-STD-001"],"Financial":FIN_ISO,"Cybersecurity / IT":["ISO 27001","IEC 62443","TISAX"]},
+  "Raw Materials":{"Manufacturing / Quality":["ISO 9001:2015","ISO 22000","FSSC 22000"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
   "Oil & Gas":{"Manufacturing / Quality":["API Q1","API Q2","ISO 29001"],"Financial":["IFRS 6","SOX","SEC Reporting"],"Cybersecurity / IT":["IEC 62443","NERC CIP","ISO 27001"]},
+  "Green Energy":{"Manufacturing / Quality":["ISO 9001:2015","ISO 50001","IEC 61400"],"Financial":FIN_ISO,"Cybersecurity / IT":["ISO 27001","IEC 62443","NERC CIP"]},
+  "Household Products":{"Manufacturing / Quality":["ISO 9001:2015","ISO 14001:2015","Consumer Product Safety"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
 };
 export const FINDING_TYPES = ["Major NC","Minor NC","Observation","Opportunity for Improvement","Positive Finding"];
 export const STATUS_COLORS = {Planned:"#3B82F6","In Progress":"#F59E0B",Completed:"#10B981",Cancelled:"#EF4444",Draft:"#8B5CF6"};

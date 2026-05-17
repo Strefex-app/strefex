@@ -6,7 +6,12 @@ import useVendorStore from '../../store/vendorStore'
 import { useAuthStore } from '../../store/authStore'
 import { getAllSuppliersIncludingRegistry } from '../../data/supplierDatabase'
 import { getEquipmentCategoriesForIndustry } from '../../data/equipmentCategoriesByIndustry'
-import { getProductCategoriesForIndustry } from '../../data/productCategoriesByIndustry'
+import { getProductCategoryCheckboxOptionsForIndustry } from '../../data/productCategoriesByIndustry'
+import {
+  PLATFORM_HUB_INDUSTRY_META,
+  platformSlugFromAuditIndustryLabel,
+} from '../../data/platformHubIndustries'
+import { SERVICE_PROVIDER_HUB_GROUPS } from '../../data/serviceProviderHubCategories'
 import {
   fetchAccountDirectoryRowsAsAuditSuppliers,
   fetchPlatformDirectoryProfilesForSuperadmin,
@@ -15,6 +20,7 @@ import {
 } from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
 import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
+import { useTranslation } from '../../i18n/useTranslation'
 import {
   normSellerRegistryEmail as normEmail,
   resolveIndustryIdsFromAuditRow,
@@ -32,6 +38,7 @@ const emptyForm = {
   address: '',
   equipmentCategoryIds: [],
   productCategoryIds: [],
+  serviceCategoryIds: [],
   notes: '',
 }
 
@@ -46,11 +53,13 @@ function supplierRowFromStore(sRow) {
     address: sRow.address || '',
     equipmentCategoryIds: Array.isArray(sRow.equipmentCategoryIds) ? sRow.equipmentCategoryIds : [],
     productCategoryIds: Array.isArray(sRow.productCategoryIds) ? sRow.productCategoryIds : [],
+    serviceCategoryIds: Array.isArray(sRow.serviceCategoryIds) ? sRow.serviceCategoryIds : [],
     notes: sRow.notes || '',
   }
 }
 
 export default function AuditProSupplierRegistry() {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const audits = useAuditProStore((s) => s.audits)
   const suppliers = useAuditProStore((s) => s.suppliers)
@@ -67,16 +76,33 @@ export default function AuditProSupplierRegistry() {
   const [form, setForm] = useState(() => ({ ...emptyForm }))
 
   const platformIndustrySlug = useMemo(() => {
-    const ids = resolveIndustryIdsFromAuditRow(form.industry, [])
-    return ids[0] || null
+    const label = String(form.industry || '').trim()
+    const fromLabel = platformSlugFromAuditIndustryLabel(label)
+    if (fromLabel) return fromLabel
+    const raw = label.toLowerCase()
+    return resolveIndustryIdsFromAuditRow(raw, [])[0] || null
   }, [form.industry])
+
+  const industrySelectOptions = useMemo(
+    () =>
+      INDUSTRIES.map((label) => {
+        const slug = platformSlugFromAuditIndustryLabel(label)
+        const meta = slug ? PLATFORM_HUB_INDUSTRY_META[slug] : null
+        let display = label
+        if (label === 'Aerospace') display = 'Aerospace (legacy)'
+        else if (meta?.tKey) display = t(meta.tKey)
+        else if (meta?.label) display = meta.label
+        return { value: label, label: display }
+      }),
+    [t],
+  )
 
   const equipmentCatsForIndustry = useMemo(
     () => (platformIndustrySlug ? getEquipmentCategoriesForIndustry(platformIndustrySlug) : []),
     [platformIndustrySlug],
   )
   const productCatsForIndustry = useMemo(
-    () => (platformIndustrySlug ? getProductCategoriesForIndustry(platformIndustrySlug) : []),
+    () => (platformIndustrySlug ? getProductCategoryCheckboxOptionsForIndustry(platformIndustrySlug) : []),
     [platformIndustrySlug],
   )
 
@@ -237,6 +263,9 @@ export default function AuditProSupplierRegistry() {
         email: String(v.general?.email || ''),
         address: [v.general?.street, v.general?.city].filter(Boolean).join(', ') || '',
         notes: 'Procurement vendor master',
+        equipmentCategoryIds: [],
+        productCategoryIds: [],
+        serviceCategoryIds: [],
         registeredAt: new Date().toISOString().slice(0, 10),
         source: 'vendor_master',
       }
@@ -375,7 +404,7 @@ export default function AuditProSupplierRegistry() {
             <Field label="City / Region">
               <Input value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} placeholder="For maps & executive summary" />
             </Field>
-            <Field label="Industry">
+            <Field label={t('home.industries')}>
               <Select
                 value={form.industry}
                 onChange={(v) =>
@@ -384,9 +413,10 @@ export default function AuditProSupplierRegistry() {
                     industry: v,
                     equipmentCategoryIds: [],
                     productCategoryIds: [],
+                    serviceCategoryIds: [],
                   }))
                 }
-                options={['', ...INDUSTRIES]}
+                options={[{ value: '', label: '—' }, ...industrySelectOptions]}
               />
             </Field>
           </Grid2>
@@ -402,15 +432,34 @@ export default function AuditProSupplierRegistry() {
             <Input value={form.address} onChange={(v) => setForm((f) => ({ ...f, address: v }))} />
           </Field>
           {platformIndustrySlug ? (
-            <div style={{ marginBottom: 12 }}>
-              <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginBottom: 8 }}>
-                Link to equipment & product hubs — supplier appears under these categories on industry pages and executive summaries.
+            <div style={{ marginBottom: 16, marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--ap-border)' }}>
+              <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginBottom: 14 }}>
+                Equipment and product taxonomy matches Product &amp; Equipment hubs; service lines match{' '}
+                <strong style={{ fontWeight: 'var(--font-medium)' }}>Service Providers</strong>
+                {' '}on Home. Selected items sync into the unified seller registry for summaries and browsing.
               </p>
-              <div style={{ marginBottom: 12 }}>
-                <span className="stx-text-caption" style={{ color: 'var(--color-muted)', fontWeight: 'var(--font-medium)' }}>Equipment categories</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', marginTop: 8 }}>
+
+              <div style={{ marginBottom: 18 }}>
+                <div
+                  className="stx-text-small"
+                  style={{ fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)', marginBottom: 10 }}
+                >
+                  Equipment categories
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                    gap: '8px 12px',
+                    alignItems: 'start',
+                  }}
+                >
                   {equipmentCatsForIndustry.map((c) => (
-                    <label key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                    <label
+                      key={c.id}
+                      className="stx-text-caption stx-text-wrap"
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', minWidth: 0 }}
+                    >
                       <input
                         type="checkbox"
                         checked={form.equipmentCategoryIds.includes(c.id)}
@@ -422,17 +471,35 @@ export default function AuditProSupplierRegistry() {
                               : [...f.equipmentCategoryIds, c.id],
                           }))
                         }
+                        style={{ marginTop: 2, flexShrink: 0 }}
                       />
                       <span className="stx-text-wrap">{c.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
-              <div style={{ marginBottom: 4 }}>
-                <span className="stx-text-caption" style={{ color: 'var(--color-muted)', fontWeight: 'var(--font-medium)' }}>Product / manufacturing categories</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', marginTop: 8 }}>
+
+              <div style={{ marginBottom: 18 }}>
+                <div
+                  className="stx-text-small"
+                  style={{ fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)', marginBottom: 10 }}
+                >
+                  Product &amp; component categories (families &amp; sub-processes)
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                    gap: '8px 12px',
+                    alignItems: 'start',
+                  }}
+                >
                   {productCatsForIndustry.map((c) => (
-                    <label key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                    <label
+                      key={c.id}
+                      className="stx-text-caption stx-text-wrap"
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', minWidth: 0 }}
+                    >
                       <input
                         type="checkbox"
                         checked={form.productCategoryIds.includes(c.id)}
@@ -444,14 +511,78 @@ export default function AuditProSupplierRegistry() {
                               : [...f.productCategoryIds, c.id],
                           }))
                         }
+                        style={{ marginTop: 2, flexShrink: 0 }}
                       />
-                      <span className="stx-text-wrap">{c.name}</span>
+                      <span className="stx-text-wrap">
+                        {c.kind === 'sub' ? (
+                          <>
+                            <span style={{ opacity: 0.75 }}>{c.parentLabel} · </span>
+                            {c.name}
+                          </>
+                        ) : (
+                          <span style={{ fontWeight: 'var(--font-semibold)' }}>{c.name}</span>
+                        )}
+                      </span>
                     </label>
                   ))}
                 </div>
               </div>
+
+              <div style={{ marginBottom: 8 }}>
+                <div
+                  className="stx-text-small"
+                  style={{ fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)', marginBottom: 10 }}
+                >
+                  Service provider categories
+                </div>
+                {SERVICE_PROVIDER_HUB_GROUPS.map((group) => (
+                  <div key={group.id} style={{ marginBottom: 14 }}>
+                    <div className="stx-text-caption stx-text-wrap" style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-muted)', marginBottom: 4 }}>
+                      {group.name}
+                    </div>
+                    <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ margin: '0 0 8px 0', lineHeight: 1.45 }}>
+                      {group.description}
+                    </p>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: '8px 12px',
+                        alignItems: 'start',
+                      }}
+                    >
+                      {(group.items || []).map((it) => (
+                        <label
+                          key={it.id}
+                          className="stx-text-caption stx-text-wrap"
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', minWidth: 0 }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.serviceCategoryIds.includes(it.id)}
+                            onChange={() =>
+                              setForm((f) => ({
+                                ...f,
+                                serviceCategoryIds: f.serviceCategoryIds.includes(it.id)
+                                  ? f.serviceCategoryIds.filter((x) => x !== it.id)
+                                  : [...f.serviceCategoryIds, it.id],
+                              }))
+                            }
+                            style={{ marginTop: 2, flexShrink: 0 }}
+                          />
+                          <span className="stx-text-wrap">{it.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginBottom: 12 }}>
+              Choose {t('home.industries').toLowerCase()} to unlock equipment, product/component, and service category links aligned with the main platform hubs.
+            </p>
+          )}
           <Field label="Notes">
             <Textarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} rows={2} placeholder="Certifications, risk level…" />
           </Field>

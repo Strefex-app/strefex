@@ -19,6 +19,18 @@ function conductFindingsUrl(auditId, findingId) {
   return `/management/auditors/conduct/${auditId}?${q}`
 }
 
+const INDUSTRY_CHART_COLORS = {
+  Automotive: 'var(--accent)',
+  Machinery: '#6366f1',
+  Electronics: '#8b5cf6',
+  Medical: 'var(--danger)',
+  'Raw Materials': '#0d9488',
+  'Oil & Gas': 'var(--rfqi-amber)',
+  'Green Energy': '#22c55e',
+  'Household Products': '#db2777',
+  Aerospace: '#64748b',
+}
+
 export default function AuditProDashboard() {
   const navigate = useNavigate()
   const remindersRef = useRef(null)
@@ -638,12 +650,7 @@ export default function AuditProDashboard() {
           {INDUSTRIES.map((ind) => {
             const cnt = audits.filter((a) => a.industry === ind).length
             const pct = audits.length ? Math.round((cnt / audits.length) * 100) : 0
-            const colors = {
-              Automotive: 'var(--accent)',
-              Medical: 'var(--danger)',
-              Aerospace: 'var(--rfqi-purple)',
-              'Oil & Gas': 'var(--rfqi-amber)',
-            }
+            const barColor = INDUSTRY_CHART_COLORS[ind] || '#64748b'
             return (
               <button
                 key={ind}
@@ -664,10 +671,10 @@ export default function AuditProDashboard() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                   <span className="stx-text-small" style={{ color: 'var(--color-muted)' }}>{ind}</span>
-                  <span className="stx-text-small" style={{ color: colors[ind], fontWeight: 'var(--font-semibold)' }}>{cnt}</span>
+                  <span className="stx-text-small" style={{ color: barColor, fontWeight: 'var(--font-semibold)' }}>{cnt}</span>
                 </div>
                 <div style={{ background: 'var(--border-light)', borderRadius: 4, height: 5 }}>
-                  <div style={{ background: colors[ind], width: `${pct}%`, height: '100%', borderRadius: 4 }} />
+                  <div style={{ background: barColor, width: `${pct}%`, height: '100%', borderRadius: 4 }} />
                 </div>
               </button>
             )

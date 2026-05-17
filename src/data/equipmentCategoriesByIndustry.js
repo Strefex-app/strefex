@@ -88,6 +88,16 @@ export const EQUIPMENT_CATEGORIES_BY_INDUSTRY = {
     { id: 'cables-connectors', name: 'Cables & Connectors', description: 'Power cables, connectors, and wiring systems' },
     { id: 'mounting-structures', name: 'Mounting Structures', description: 'Solar racking, trackers, and structural systems' },
   ],
+  'household-products': [
+    { id: 'appliance-assembly', name: 'Appliance Assembly Lines', description: 'Small appliance and white-goods assembly' },
+    { id: 'injection-appliance', name: 'Injection Molding (Consumer)', description: 'Housing and structural plastic for home products' },
+    { id: 'stamping-consumer', name: 'Stamping & Forming', description: 'Metal enclosures, brackets, hardware' },
+    { id: 'motor-drives-small', name: 'Motors & Drives', description: 'Compact motors, fans, pumps for appliances' },
+    { id: 'coating-finishing-consumer', name: 'Coating & Finishing', description: 'Powder coat, painting, decorative finishes' },
+    { id: 'testing-consumer', name: 'Safety & Performance Test', description: 'Electrical safety, lifecycle, drop and vibration' },
+    { id: 'packaging-lines', name: 'Packaging Equipment', description: 'Flow wrap, cartoning, labeling, filling' },
+    { id: 'electronics-consumer', name: 'Electronics Assembly (Consumer)', description: 'PCBA, SMT for home electronics' },
+  ],
 }
 
 export function getEquipmentCategoriesForIndustry(industryId) {

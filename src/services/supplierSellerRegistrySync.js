@@ -7,32 +7,17 @@
 
 import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import useVendorStore from '../store/vendorStore'
+import {
+  PLATFORM_INDUSTRY_SLUG_SET,
+  platformSlugFromAuditIndustryLabel,
+} from '../data/platformHubIndustries'
 
 export function normSellerRegistryEmail(em) {
   return String(em || '').trim().toLowerCase()
 }
 
-/** Industry slugs used across equipment catalogs / RFQ flows. */
-export const PLATFORM_INDUSTRY_SLUGS = new Set([
-  'automotive',
-  'machinery',
-  'electronics',
-  'medical',
-  'raw-materials',
-  'oil-gas',
-  'green-energy',
-  'household-products',
-])
-
-/** Audit Pro dropdown labels → platform slugs. */
-const AUDIT_INDUSTRY_LABEL_TO_PLATFORM_ID = Object.fromEntries(
-  [
-    ['Automotive', 'automotive'],
-    ['Medical', 'medical'],
-    ['Aerospace', 'machinery'],
-    ['Oil & Gas', 'oil-gas'],
-  ].map(([label, id]) => [label.toLowerCase(), id]),
-)
+/** @deprecated use `PLATFORM_INDUSTRY_SLUG_SET` from `../data/platformHubIndustries` */
+export const PLATFORM_INDUSTRY_SLUGS = PLATFORM_INDUSTRY_SLUG_SET
 
 function sanitizeVmToken(id) {
   return String(id).trim().replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 120) || 'unknown'
@@ -48,11 +33,12 @@ function isVendorMasterPlaceholderEmail(email) {
 }
 
 export function resolveIndustryIdsFromAuditRow(industryRaw, existingIndustryIds = []) {
-  const raw = String(industryRaw || '').trim().toLowerCase()
+  const trimmed = String(industryRaw || '').trim()
+  const raw = trimmed.toLowerCase()
   const fromRow = []
-  if (raw && PLATFORM_INDUSTRY_SLUGS.has(raw)) fromRow.push(raw)
-  const fromAudit = AUDIT_INDUSTRY_LABEL_TO_PLATFORM_ID[raw]
-  if (fromAudit) fromRow.push(fromAudit)
+  if (raw && PLATFORM_INDUSTRY_SLUG_SET.has(raw)) fromRow.push(raw)
+  const fromLabel = platformSlugFromAuditIndustryLabel(trimmed)
+  if (fromLabel) fromRow.push(fromLabel)
   return [...new Set([...(existingIndustryIds || []), ...fromRow])]
 }
 
@@ -60,7 +46,7 @@ export function resolveIndustryIdsFromAuditRow(industryRaw, existingIndustryIds 
 function resolveIndustryIdsFromSellerRow(row, existingIndustryIds = []) {
   const fromAudit = resolveIndustryIdsFromAuditRow(row?.industry, existingIndustryIds)
   const extra = Array.isArray(row?.industryIds)
-    ? row.industryIds.filter((id) => PLATFORM_INDUSTRY_SLUGS.has(id))
+    ? row.industryIds.filter((id) => PLATFORM_INDUSTRY_SLUG_SET.has(id))
     : []
   return [...new Set([...fromAudit, ...extra])]
 }
@@ -111,7 +97,8 @@ export function syncAuditSupplierRowToSellerRegistry(row) {
 
   const eqCats = Array.isArray(row?.equipmentCategoryIds) ? row.equipmentCategoryIds.filter(Boolean) : []
   const prodCats = Array.isArray(row?.productCategoryIds) ? row.productCategoryIds.filter(Boolean) : []
-  const auditExtraCats = [...new Set([...eqCats, ...prodCats])]
+  const svcCats = Array.isArray(row?.serviceCategoryIds) ? row.serviceCategoryIds.filter(Boolean) : []
+  const auditExtraCats = [...new Set([...eqCats, ...prodCats, ...svcCats])]
   if (auditExtraCats.length && industryIds.length) {
     for (const ind of industryIds) {
       if (!categories[ind]) categories[ind] = []
