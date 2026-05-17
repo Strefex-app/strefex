@@ -5,6 +5,7 @@ import useAuditProStore from '../../store/auditProStore'
 import { Btn, getQuestionnaire, getTotalQuestions } from './auditProUi'
 import AuditProOfficialReport from './auditProOfficialReport'
 import { useTranslation } from '../../i18n/useTranslation'
+import { getCompanyName } from '../../utils/tenantStorage'
 import '../../styles/auditPro.css'
 
 export default function AuditProPrintReport() {
@@ -44,7 +45,8 @@ export default function AuditProPrintReport() {
   )
   const printedBy =
     user?.fullName?.trim() || user?.companyName?.trim() || user?.email?.trim() || 'Unknown'
-  const logoSrc = `${import.meta.env.BASE_URL}assets/strefex-logo-reference.png`
+  const brandLogoSrc = `${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`
+  const orgDisplayName = getCompanyName()
   const totalQ = questionnaire ? getTotalQuestions(questionnaire) : 0
   const answeredQ = questionnaire
     ? (questionnaire || []).reduce(
@@ -74,10 +76,17 @@ export default function AuditProPrintReport() {
       </div>
       <div className="ap-print-sheet pm-portfolio-shell app-page ap-pm-print-sheet stx-text-wrap">
         <div className="ap-pm-print-frame">
+          <div className="ap-pm-print-brand-bar">
+            <img
+              src={brandLogoSrc}
+              alt="STREFEX"
+              className="ap-pm-print-brand-logo"
+              decoding="async"
+            />
+            <p className="ap-pm-print-org-name stx-text-wrap">{orgDisplayName}</p>
+          </div>
           <header className="ap-pm-print-header" aria-label="Export header">
-            <div className="ap-pm-print-header-leading">
-              <img className="ap-pm-print-logo" src={logoSrc} alt="" width={120} height={40} decoding="async" />
-            </div>
+            <div className="ap-pm-print-header-gutter-left" aria-hidden="true" />
             <h1 className="ap-pm-print-header-title stx-text-wrap">{audit.title || 'Official audit report'}</h1>
             <time className="ap-pm-print-header-date" dateTime={reportDateStr}>
               {reportDateStr}

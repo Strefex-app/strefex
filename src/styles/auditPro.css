@@ -545,29 +545,58 @@ html[data-theme='dark'] .ap-btn-success {
   min-width: 0;
 }
 
+/* Black STREFEX brand + organisation (Executive Summary hero pattern); sits above gradient title bar */
+.ap-pm-print-brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px 18px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid rgb(226, 232, 241);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  min-width: 0;
+}
+
+.ap-pm-print-brand-logo {
+  display: block;
+  height: auto;
+  max-height: 44px;
+  max-width: min(100%, 320px);
+  width: auto;
+  object-fit: contain;
+}
+
+.ap-pm-print-org-name {
+  margin: 0;
+  flex: 1;
+  min-width: 12rem;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-primary, #0f172a);
+}
+
 .ap-pm-print-header {
   display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
   align-items: center;
-  gap: 12px 16px;
+  gap: 8px 12px;
   min-height: 52px;
-  padding: 6px 12px 6px 8px;
+  padding: 6px 12px 6px 10px;
   box-sizing: border-box;
   background: linear-gradient(90deg, #000622 0%, #000088 52%, #0008a8 100%);
   color: #fff;
-  border-radius: 12px 12px 0 0;
+  border-radius: 0;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
-.ap-pm-print-logo {
-  display: block;
-  height: 36px;
-  width: auto;
-  max-width: 130px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: 0.95;
+.ap-pm-print-header-gutter-left {
+  min-width: 0;
 }
 
 .ap-pm-print-header-title {
@@ -576,6 +605,7 @@ html[data-theme='dark'] .ap-btn-success {
   font-size: var(--text-heading);
   font-weight: var(--font-semibold);
   line-height: var(--leading-snug);
+  justify-self: center;
   text-align: center;
   color: #fff !important;
   min-width: 0;
@@ -587,6 +617,7 @@ html[data-theme='dark'] .ap-btn-success {
   font-size: var(--text-caption);
   font-weight: var(--font-regular);
   white-space: nowrap;
+  justify-self: end;
   color: rgb(190, 200, 230) !important;
   text-align: right;
 }
@@ -975,6 +1006,17 @@ html[data-theme='dark'] .am-prog-btn--outline .am-prog-btn__icon-wrap {
   .ap-print-page-root {
     background: #fff !important;
     padding: 0 !important;
+    color: #0f172a !important;
+  }
+
+  .ap-pm-print-brand-bar {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .ap-pm-print-org-name {
     color: #0f172a !important;
   }
 
