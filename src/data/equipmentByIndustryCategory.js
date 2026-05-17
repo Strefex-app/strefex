@@ -113,6 +113,54 @@ export const EQUIPMENT_BY_INDUSTRY_CATEGORY = {
     { id: 'med-pkg-blister', name: 'Blister packaging', description: 'Medical blister lines' },
     { id: 'med-pkg-seal', name: 'Sealing equipment', description: 'Pouch and tray sealing' },
   ],
+  // Nuclear — representative equipment (extend with qualified machine models as needed)
+  [key('nuclear', 'reactor-pressure')]: [
+    { id: 'nucl-rpv-interfaces', name: 'Pressure vessel closure & internals tooling', description: 'Stud tensioners, seal seat tooling, lift rigs for RPV interfaces' },
+    { id: 'nucl-heavy-weld', name: 'Heavy-section welding positioners', description: 'Positioners and manipulators for thick-section nuclear vessels' },
+  ],
+  [key('nuclear', 'fuel-storage')]: [
+    { id: 'nucl-fuel-cask-handling', name: 'Fuel cask handling & transfer systems', description: 'Overhead handling, transporters, and alignment for fuel casks' },
+    { id: 'nucl-rack-systems', name: 'Storage rack handling equipment', description: 'Installation and rack positioning tools for spent fuel stores' },
+  ],
+  [key('nuclear', 'radiation-monitoring')]: [
+    { id: 'nucl-area-monitors', name: 'Area radiation monitors & stacks', description: 'Installed area monitors and effluent radiation measurement' },
+    { id: 'nucl-portable-survey', name: 'Portable survey instrumentation', description: 'Handheld survey meters and contamination monitors' },
+  ],
+  [key('nuclear', 'nuclear-welding-nde')]: [
+    { id: 'nucl-orbital-weld', name: 'Orbital & mechanized GTAW / SMAW systems', description: 'Closed-head orbital welders and mechanized pipe welding' },
+    { id: 'nucl-weld-process-mon', name: 'Weld parameter monitoring & recording', description: 'Arc voltage, current, travel, and WPS traceability systems' },
+  ],
+  [key('nuclear', 'nuclear-fabrication-assembly')]: [
+    { id: 'nucl-vmc-hmc', name: 'Large CNC machining centers', description: '5-axis and horizontal boring for nuclear-qualified fabrications' },
+    { id: 'nucl-plate-roll', name: 'Plate rolls, presses & brake forming', description: 'Thick plate forming for shells, cones, and structural weldments' },
+    { id: 'nucl-clean-assembly', name: 'Clean / controlled assembly bays', description: 'Cranes, alignment fixtures, and ESD-controlled assembly for safety equipment' },
+  ],
+  [key('nuclear', 'pipe-spool-fabrication')]: [
+    { id: 'nucl-pipe-cold-cut', name: 'Cold cutting, beveling & facing', description: 'Track, clamshell, and stationary pipe prep machines' },
+    { id: 'nucl-pipe-bend', name: 'Induction & mandrel pipe benders', description: 'Precision bends for LSA and safety-related piping' },
+    { id: 'nucl-fit-weld-cell', name: 'Spool fit-up & welding stations', description: 'Rotators, column-boom, and roller beds for shop spool fabrication' },
+  ],
+  [key('nuclear', 'pressure-leak-test')]: [
+    { id: 'nucl-hydro-bench', name: 'Hydrostatic test pumps & intensifiers', description: 'High-pressure hydro benches with charted pressure–time records' },
+    { id: 'nucl-helium-leak', name: 'Helium leak detectors (vacuum & sniffer)', description: 'Mass-spectrometer leak testing for valves and penetrations' },
+    { id: 'nucl-pneumatic-leak', name: 'Pneumatic decay & bubble leak testers', description: 'Low-pressure pneumatic decay and immersion bubble test setups' },
+  ],
+  [key('nuclear', 'nde-test-equipment')]: [
+    { id: 'nucl-ut-paut', name: 'UT / PAUT / TOFD systems', description: 'Phased-array and conventional UT for welds and thickness' },
+    { id: 'nucl-rt-digital', name: 'RT / digital radiography', description: 'X-ray and gamma enclosures, CR/DR panels, crawlers for pipe' },
+    { id: 'nucl-pt-mt', name: 'PT / MT inspection lines', description: 'UV booths, electrostatic powder PT, prods and yokes for MT' },
+    { id: 'nucl-et-therm', name: 'ET / thermography / visual', description: 'Eddy current, IR thermography, and borescope inspection kits' },
+  ],
+  [key('nuclear', 'electrical-ica-test')]: [
+    { id: 'nucl-hipot-ir', name: 'Hipot & insulation resistance testers', description: 'AC/DC hipot, megger, and dielectric withstand sets' },
+    { id: 'nucl-loop-cal', name: 'Loop calibrators & process calibrators', description: 'mA/V/RTD calibrators for I&C checkout and SAT' },
+    { id: 'nucl-relay-test', name: 'Relay & protection test sets', description: 'Secondary injection and three-phase relay test equipment' },
+  ],
+  [key('nuclear', 'materials-lab-testers')]: [
+    { id: 'nucl-spectro', name: 'OES / XRF / mobile PMI', description: 'Spark OES, handheld XRF, and PMI for material verification' },
+    { id: 'nucl-tensile-impact', name: 'Tensile, hardness & impact testers', description: 'Universal test machines, Rockwell/Brinell/Vickers, Charpy' },
+    { id: 'nucl-metallography', name: 'Metallography prep & microscopy', description: 'Mounting, polishing, and microscopes for weld/HAZ evaluation' },
+  ],
 }
 
 export function getEquipmentForIndustryCategory(industryId, categoryId) {

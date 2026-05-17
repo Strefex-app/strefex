@@ -102,7 +102,13 @@ export const EQUIPMENT_CATEGORIES_BY_INDUSTRY = {
     { id: 'reactor-pressure', name: 'Reactor & pressure boundary equipment', description: 'NSSS-related vessels, internals interfaces per ASME III / RCC-M where applicable' },
     { id: 'fuel-storage', name: 'Fuel handling & storage systems', description: 'Fresh/spent fuel handling, criticality and containment' },
     { id: 'radiation-monitoring', name: 'Radiation protection & monitoring', description: 'Area monitors, dosimetry, containment systems' },
-    { id: 'nuclear-welding-nde', name: 'Nuclear-grade welding & examination', description: 'Qualified WPS/PQR, NDE per ASME V / national nuclear rules' },
+    { id: 'nuclear-welding-nde', name: 'Nuclear-grade welding & automated welding', description: 'Qualified WPS/PQR, orbital / mechanized welding, NDE per ASME V / national nuclear rules' },
+    { id: 'nuclear-fabrication-assembly', name: 'Nuclear-related manufacturing & assembly', description: 'CNC, plate/sheet metal, heavy fabrication, and clean assembly for nuclear supply chains' },
+    { id: 'pipe-spool-fabrication', name: 'Pipe prefabrication & forming', description: 'Pipe cutting, bending, beveling, fit-up stations, and spool fab lines' },
+    { id: 'pressure-leak-test', name: 'Pressure & leak testing', description: 'Hydrostatic, pneumatic, vacuum, and helium mass-spectrometer leak testers' },
+    { id: 'nde-test-equipment', name: 'NDE & inspection testers', description: 'UT, RT, PT, MT, ET, PAUT/TOFD, thermography, and automated inspection cells' },
+    { id: 'electrical-ica-test', name: 'Electrical & I&C testers', description: 'Hipot, insulation resistance, loop calibrators, relay/fuse test sets, protection relay test' },
+    { id: 'materials-lab-testers', name: 'Materials & chemistry lab testers', description: 'Spectroscopy, hardness, tensile, impact, metallography prep, and environmental simulation' },
   ],
 }
 
