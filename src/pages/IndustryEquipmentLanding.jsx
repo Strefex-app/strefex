@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
@@ -6,7 +6,8 @@ import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesBy
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useIndustryStore } from '../store/industryStore'
 import { useAuthStore } from '../store/authStore'
-import { useAccountRegistry } from '../store/accountRegistry'
+import { getSellerCountByCategoryForIndustry } from '../data/supplierDatabase'
+import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import { getEffectiveLimits } from '../services/stripeService'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
@@ -46,8 +47,12 @@ const IndustryEquipmentLanding = () => {
   const isBuyer = accountType === 'buyer'
   const canSeeExecSummary = isSuperAdmin || isBuyer
 
-  /* ── Seller counts from registry (for buyer view) ────── */
-  const sellerCounts = useAccountRegistry((s) => s.getSellerCountByCategory(industryId))
+  /* ── Seller counts: workspace corpus + signup registry + optional seed (reactive to corpus) ────── */
+  const corpusEntries = useWorkspaceSellerCorpusStore((s) => s.entries)
+  const sellerCounts = useMemo(
+    () => getSellerCountByCategoryForIndustry(industryId),
+    [industryId, corpusEntries],
+  )
 
   /* ── Sellers/Service Providers cannot access this page — redirect (superadmin exempt) ── */
   const isSellerLike = accountType === 'seller' || accountType === 'service_provider'

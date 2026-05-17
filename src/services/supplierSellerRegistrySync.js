@@ -1,10 +1,12 @@
 /**
  * Canonical write path for workspace sell-side counterparties merged into `getAllSuppliersIncludingRegistry()`
  * (`src/data/supplierDatabase.js`). Imports persist to **`useWorkspaceSellerCorpusStore`** — one corpus per tenant
- * (shared across buyer / seller access), layered with signup sellers from `useAccountRegistry` and seeded data.
+ * (shared across buyer / seller access), layered with signup sellers from `useAccountRegistry` and optional
+ * seeded directory when `VITE_SEED_SUPPLIER_DIRECTORY=true`.
  */
 
 import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
+import useVendorStore from '../store/vendorStore'
 
 export function normSellerRegistryEmail(em) {
   return String(em || '').trim().toLowerCase()
@@ -54,6 +56,15 @@ export function resolveIndustryIdsFromAuditRow(industryRaw, existingIndustryIds 
   return [...new Set([...(existingIndustryIds || []), ...fromRow])]
 }
 
+/** Audit label/string + optional `row.industryIds` from Add Supplier / imports. */
+function resolveIndustryIdsFromSellerRow(row, existingIndustryIds = []) {
+  const fromAudit = resolveIndustryIdsFromAuditRow(row?.industry, existingIndustryIds)
+  const extra = Array.isArray(row?.industryIds)
+    ? row.industryIds.filter((id) => PLATFORM_INDUSTRY_SLUGS.has(id))
+    : []
+  return [...new Set([...fromAudit, ...extra])]
+}
+
 /**
  * Upsert one Audit Pro–shaped supplier row into the **tenant workspace seller corpus** (buyer+seller shared).
  * @returns {{ ok: true }} | {{ ok: false, reason: string }}
@@ -85,11 +96,28 @@ export function syncAuditSupplierRowToSellerRegistry(row) {
   }
 
   const nowIso = new Date().toISOString()
-  const industryIds = resolveIndustryIdsFromAuditRow(row?.industry, existing?.industries)
+  const industryIds = resolveIndustryIdsFromSellerRow(row, existing?.industries)
   const categories = { ...(existing?.categories || {}) }
   industryIds.forEach((industryId) => {
     if (!categories[industryId]) categories[industryId] = []
   })
+  if (row?.categories && typeof row.categories === 'object') {
+    for (const [k, v] of Object.entries(row.categories)) {
+      if (!categories[k]) categories[k] = []
+      const arr = Array.isArray(v) ? v : []
+      categories[k] = [...new Set([...(categories[k] || []), ...arr])]
+    }
+  }
+
+  const eqCats = Array.isArray(row?.equipmentCategoryIds) ? row.equipmentCategoryIds.filter(Boolean) : []
+  const prodCats = Array.isArray(row?.productCategoryIds) ? row.productCategoryIds.filter(Boolean) : []
+  const auditExtraCats = [...new Set([...eqCats, ...prodCats])]
+  if (auditExtraCats.length && industryIds.length) {
+    for (const ind of industryIds) {
+      if (!categories[ind]) categories[ind] = []
+      categories[ind] = [...new Set([...categories[ind], ...auditExtraCats])]
+    }
+  }
 
   const accountPayload = {
     company: name,
@@ -101,7 +129,8 @@ export function syncAuditSupplierRowToSellerRegistry(row) {
     industries: industryIds.length ? industryIds : existing?.industries || [],
     categories,
     country: String(row?.country || '').trim() || existing?.country || '',
-    city: existing?.city || '',
+    city: String(row?.city || '').trim() || existing?.city || '',
+    address: String(row?.address || '').trim() || existing?.address || '',
     rating: existing?.rating ?? 0,
     riskLevel: existing?.riskLevel ?? 50,
     fitLevel: existing?.fitLevel ?? 50,
@@ -122,6 +151,22 @@ export function syncAuditSupplierRowToSellerRegistry(row) {
     id: registryAccountId,
     ...accountPayload,
   })
+
+  try {
+    useVendorStore.getState().upsertVendorFromCounterparty({
+      companyName: name,
+      email: storedEmail,
+      contactName: accountPayload.contactName,
+      country: accountPayload.country,
+      city: accountPayload.city,
+      addressLine: accountPayload.address,
+      industryIds: accountPayload.industries,
+      vendorMasterId: vmId,
+      corpusAccountId: registryAccountId,
+    })
+  } catch {
+    /* non-fatal — vendor mirror is best-effort */
+  }
 
   return { ok: true }
 }

@@ -1,6 +1,7 @@
-/** Equipment suppliers: open source and database. Replace with your DB later. */
+/** Equipment suppliers: replace with your directory; sample rows + supplychain augment gated by seed env. */
 import { SUPPLIER_DATABASE_CORE } from './supplierDatabase'
 import { buildSupplychainEquipmentAugment } from './supplychainImportedSuppliers'
+import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 
 const SUPPLYCHAIN_EQ_EXTRA = buildSupplychainEquipmentAugment(SUPPLIER_DATABASE_CORE)
 
@@ -46,6 +47,7 @@ export const SUPPLIERS_BY_EQUIPMENT = {
 }
 
 export function getSuppliersForEquipment(equipmentId) {
+  if (!isSeededSupplierDirectoryEnabled()) return []
   const base = SUPPLIERS_BY_EQUIPMENT[equipmentId] || SUPPLIERS_BY_EQUIPMENT.default
   const extra = SUPPLYCHAIN_EQ_EXTRA[equipmentId] || []
   return [...base, ...extra]

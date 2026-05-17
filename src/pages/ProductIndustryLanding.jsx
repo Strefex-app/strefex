@@ -1,7 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
+import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
+import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import { useTranslation } from '../i18n/useTranslation'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
@@ -33,6 +36,21 @@ export default function ProductIndustryLanding() {
   const accountType = useSubscriptionStore((s) => s.accountType)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const canSeeExecSummary = isSuperAdmin || accountType === 'buyer'
+
+  const corpusEntries = useWorkspaceSellerCorpusStore((s) => s.entries)
+  const supplierCountByCategory = useMemo(() => {
+    const cats = getProductCategoriesForIndustry(industryId)
+    const m = {}
+    for (const cat of cats) {
+      m[cat.id] = getSuppliersByIndustryAndCategory(industryId, cat.id).length
+    }
+    return m
+  }, [industryId, corpusEntries])
+
+  const totalRegisteredSuppliers = useMemo(
+    () => getSuppliersByIndustry(industryId).length,
+    [industryId, corpusEntries],
+  )
 
   return (
     <AppLayout>
@@ -77,7 +95,7 @@ export default function ProductIndustryLanding() {
               <Icon name="profile" size={24} />
             </div>
             <div>
-              <div className="industry-hub-indicator-value">120+</div>
+              <div className="industry-hub-indicator-value">{totalRegisteredSuppliers}</div>
               <div className="industry-hub-indicator-label">Suppliers</div>
             </div>
           </div>
@@ -120,6 +138,14 @@ export default function ProductIndustryLanding() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e' }}>{cat.name}</span>
+                    {supplierCountByCategory[cat.id] > 0 ? (
+                      <span style={{
+                        fontSize: 11, padding: '2px 8px', borderRadius: 999,
+                        background: `${cat.color}18`, color: cat.color, fontWeight: 600,
+                      }}>
+                        {supplierCountByCategory[cat.id]} supplier{supplierCountByCategory[cat.id] === 1 ? '' : 's'}
+                      </span>
+                    ) : null}
                     <span style={{
                       fontSize: 10, padding: '2px 7px', borderRadius: 4,
                       background: `${cat.color}12`, color: cat.color, fontWeight: 600,

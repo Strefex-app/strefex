@@ -1,7 +1,7 @@
 /**
  * Workspace-level seller/supplier corpus: one canonical store per COMPANY (tenant), shared across
  * buyer / seller / service_provider sessions. Audit Pro, Vendor Master, and directory imports write here;
- * seeded SUPPLIER_DATABASE + signup registrations (accountRegistry) merge in supplierDatabase.js.
+ * **`SUPPLIER_DATABASE` is off by default**; see `src/config/supplierDataMode.js`.
  */
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'

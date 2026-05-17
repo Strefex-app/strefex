@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { tenantKey } from '../utils/tenantStorage'
 import WorldMap from '../components/WorldMap'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import { getSuppliersByIndustry, getSuppliersByIndustryAndCategory } from '../data/supplierDatabase'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -65,8 +66,15 @@ export default function ProductExecutiveSummary() {
     return `/add-supplier?${p.toString()}`
   }
 
-  // Registered sellers — adapt to product process context
-  const registeredSellers = useAccountRegistry((s) => s.getRegisteredSellers(industryId))
+  // Merged suppliers: workspace corpus + account registry signup + optional seed (same as equipment executive summary DB)
+  const mergedSuppliers = useMemo(() => {
+    if (!industryId) return []
+    if (categoryId) {
+      return getSuppliersByIndustryAndCategory(industryId, categoryId)
+    }
+    return getSuppliersByIndustry(industryId)
+  }, [industryId, categoryId])
+
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(industryId))
   const serviceProviderRows = useMemo(() => {
     const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
@@ -79,14 +87,14 @@ export default function ProductExecutiveSummary() {
   }, [registeredServiceProviders])
 
   const sellerMapLocations = useMemo(() =>
-    registeredSellers
+    mergedSuppliers
       .map((s, idx) => {
         const coords = getApproximateLngLatOrFallback({ country: s.country, city: s.city, address: s.address, seed: s.id })
-        const name = canSeeNames ? (s.company || s.contactName || 'Supplier') : `Supplier #${String(idx + 1).padStart(2, '0')}`
+        const name = canSeeNames ? (s.name || 'Supplier') : `Supplier #${String(idx + 1).padStart(2, '0')}`
         return { id: s.id, name, coordinates: coords, city: s.city, country: s.country }
       })
       .filter(Boolean),
-  [registeredSellers, canSeeNames])
+  [mergedSuppliers, canSeeNames])
 
   if (!category || !process) {
     return (
@@ -168,7 +176,7 @@ export default function ProductExecutiveSummary() {
             {/* KPI Cards */}
             <div className="app-page-card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Registered Suppliers</div>
-              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>0</div>
+              <div style={{ fontSize: 28, fontWeight: 600, color: '#1a1a2e' }}>{mergedSuppliers.length}</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>For {processLabel} in {industryLabel}</div>
             </div>
             <div className="app-page-card" style={{ padding: 20 }}>
@@ -283,41 +291,66 @@ export default function ProductExecutiveSummary() {
             <div className="app-page-card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600 }}>Registered Suppliers — {processLabel}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>
-                Suppliers registered for {processLabel} in the {industryLabel} industry.
+                Suppliers registered for {processLabel} in the {industryLabel} industry (workspace registry, signups, and imports).
                 {!canSeeNames && <span style={{ color: '#e65100', fontWeight: 600 }}> Requester view keeps identities masked. Superadmin can view full details.</span>}
               </p>
 
-              <div style={{
-                padding: '24px 20px', borderRadius: 12, background: '#f8fafc',
-                border: '1px dashed #cbd5e1', textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 40, marginBottom: 8, opacity: 0.3 }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+              {mergedSuppliers.length > 0 ? (
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {mergedSuppliers.map((s, i) => (
+                    <li
+                      key={s.id}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 8,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 14 }} className="stx-text-wrap">
+                        {canSeeNames ? (s.name || 'Supplier') : `Supplier #${String(i + 1).padStart(2, '0')}`}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }} className="stx-text-wrap">
+                        {[s.country, s.city].filter(Boolean).join(' · ') || '—'}
+                        {s.source ? ` · ${s.source}` : ''}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div style={{
+                  padding: '24px 20px', borderRadius: 12, background: '#f8fafc',
+                  border: '1px dashed #cbd5e1', textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 40, marginBottom: 8, opacity: 0.3 }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e', marginBottom: 6 }}>No suppliers registered yet</div>
+                  <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
+                    Be the first to register as a <strong>{processLabel}</strong> supplier for the <strong>{industryLabel}</strong> industry.
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => navigate(quoteUrl())} style={{
+                      padding: '9px 20px', borderRadius: 8, border: 'none',
+                      background: category.color, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    }}>
+                      Request a Quote
+                    </button>
+                    <button type="button" onClick={() => navigate(addSupplierUrl())} style={{
+                      padding: '9px 20px', borderRadius: 8,
+                      border: `1px solid ${category.color}`, background: 'var(--bg-card)',
+                      color: category.color, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    }}>
+                      Add Supplier
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a2e', marginBottom: 6 }}>No suppliers registered yet</div>
-                <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
-                  Be the first to register as a <strong>{processLabel}</strong> supplier for the <strong>{industryLabel}</strong> industry.
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => navigate(quoteUrl())} style={{
-                    padding: '9px 20px', borderRadius: 8, border: 'none',
-                    background: category.color, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  }}>
-                    Request a Quote
-                  </button>
-                  <button type="button" onClick={() => navigate(addSupplierUrl())} style={{
-                    padding: '9px 20px', borderRadius: 8,
-                    border: `1px solid ${category.color}`, background: 'var(--bg-card)',
-                    color: category.color, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  }}>
-                    Add Supplier
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}

@@ -8,6 +8,7 @@ import { useIndustryStore } from '../store/industryStore'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import { syncAuditSupplierRowToSellerRegistry } from '../services/supplierSellerRegistrySync'
 import '../styles/app-page.css'
 import './AddSupplier.css'
 
@@ -217,6 +218,7 @@ const AddSupplier = () => {
       const emailKey = (formData.email || '').trim().toLowerCase()
       const nowIso = new Date().toISOString()
       const existing = getAccountByEmail(emailKey)
+      const accountId = existing?.id || `supp-${Date.now()}`
       const accountPayload = {
         company: formData.companyName?.trim() || tenant?.name || 'Supplier',
         email: emailKey,
@@ -240,13 +242,27 @@ const AddSupplier = () => {
       }
 
       if (existing) {
-        updateAccount(emailKey, accountPayload)
+        updateAccount(emailKey, { ...accountPayload, id: accountId })
       } else {
         registerAccount({
-          id: `supp-${Date.now()}`,
+          id: accountId,
           ...accountPayload,
         })
       }
+
+      syncAuditSupplierRowToSellerRegistry({
+        id: accountId,
+        name: accountPayload.company,
+        email: emailKey,
+        contact: accountPayload.contactName,
+        industry: industryIds[0] || '',
+        industryIds,
+        country: accountPayload.country,
+        city: accountPayload.city,
+        address: formData.address?.trim() || '',
+        categories: accountPayload.categories,
+        vendorMasterId: '',
+      })
 
       // 3) Mirror to current logged-in supplier profile flow (industry/category selection)
       // if this submission is for the signed-in account and route context includes industry/category.

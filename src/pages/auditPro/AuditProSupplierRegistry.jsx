@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useVendorStore from '../../store/vendorStore'
 import { useAuthStore } from '../../store/authStore'
 import { getAllSuppliersIncludingRegistry } from '../../data/supplierDatabase'
+import { getEquipmentCategoriesForIndustry } from '../../data/equipmentCategoriesByIndustry'
+import { getProductCategoriesForIndustry } from '../../data/productCategoriesByIndustry'
 import {
   fetchAccountDirectoryRowsAsAuditSuppliers,
   fetchPlatformDirectoryProfilesForSuperadmin,
@@ -15,20 +17,35 @@ import { auditProUid } from '../../utils/auditProUid'
 import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
 import {
   normSellerRegistryEmail as normEmail,
+  resolveIndustryIdsFromAuditRow,
   syncAuditSupplierRowToSellerRegistry,
   syncAuditSupplierRowsToSellerRegistry,
 } from '../../services/supplierSellerRegistrySync'
 
-const emptyForm = { name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' }
+const emptyForm = {
+  name: '',
+  country: '',
+  city: '',
+  industry: '',
+  contact: '',
+  email: '',
+  address: '',
+  equipmentCategoryIds: [],
+  productCategoryIds: [],
+  notes: '',
+}
 
 function supplierRowFromStore(sRow) {
   return {
     name: sRow.name || '',
     country: sRow.country || '',
+    city: sRow.city || '',
     industry: sRow.industry || '',
     contact: sRow.contact || '',
     email: sRow.email || '',
     address: sRow.address || '',
+    equipmentCategoryIds: Array.isArray(sRow.equipmentCategoryIds) ? sRow.equipmentCategoryIds : [],
+    productCategoryIds: Array.isArray(sRow.productCategoryIds) ? sRow.productCategoryIds : [],
     notes: sRow.notes || '',
   }
 }
@@ -48,6 +65,20 @@ export default function AuditProSupplierRegistry() {
   const [showPanel, setShowPanel] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
   const [form, setForm] = useState(() => ({ ...emptyForm }))
+
+  const platformIndustrySlug = useMemo(() => {
+    const ids = resolveIndustryIdsFromAuditRow(form.industry, [])
+    return ids[0] || null
+  }, [form.industry])
+
+  const equipmentCatsForIndustry = useMemo(
+    () => (platformIndustrySlug ? getEquipmentCategoriesForIndustry(platformIndustrySlug) : []),
+    [platformIndustrySlug],
+  )
+  const productCatsForIndustry = useMemo(
+    () => (platformIndustrySlug ? getProductCategoriesForIndustry(platformIndustrySlug) : []),
+    [platformIndustrySlug],
+  )
 
   const openRegister = () => {
     setPanelMode('register')
@@ -341,21 +372,86 @@ export default function AuditProSupplierRegistry() {
             </Field>
           </Grid2>
           <Grid2>
-            <Field label="Industry">
-              <Select value={form.industry} onChange={(v) => setForm((f) => ({ ...f, industry: v }))} options={['', ...INDUSTRIES]} />
+            <Field label="City / Region">
+              <Input value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} placeholder="For maps & executive summary" />
             </Field>
-            <Field label="Contact Person">
-              <Input value={form.contact} onChange={(v) => setForm((f) => ({ ...f, contact: v }))} />
+            <Field label="Industry">
+              <Select
+                value={form.industry}
+                onChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    industry: v,
+                    equipmentCategoryIds: [],
+                    productCategoryIds: [],
+                  }))
+                }
+                options={['', ...INDUSTRIES]}
+              />
             </Field>
           </Grid2>
           <Grid2>
+            <Field label="Contact Person">
+              <Input value={form.contact} onChange={(v) => setForm((f) => ({ ...f, contact: v }))} />
+            </Field>
             <Field label="Email *">
               <Input type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} />
             </Field>
-            <Field label="Site Address">
-              <Input value={form.address} onChange={(v) => setForm((f) => ({ ...f, address: v }))} />
-            </Field>
           </Grid2>
+          <Field label="Site Address">
+            <Input value={form.address} onChange={(v) => setForm((f) => ({ ...f, address: v }))} />
+          </Field>
+          {platformIndustrySlug ? (
+            <div style={{ marginBottom: 12 }}>
+              <p className="stx-text-caption ap-text-muted stx-text-wrap" style={{ marginBottom: 8 }}>
+                Link to equipment & product hubs — supplier appears under these categories on industry pages and executive summaries.
+              </p>
+              <div style={{ marginBottom: 12 }}>
+                <span className="stx-text-caption" style={{ color: 'var(--color-muted)', fontWeight: 'var(--font-medium)' }}>Equipment categories</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', marginTop: 8 }}>
+                  {equipmentCatsForIndustry.map((c) => (
+                    <label key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.equipmentCategoryIds.includes(c.id)}
+                        onChange={() =>
+                          setForm((f) => ({
+                            ...f,
+                            equipmentCategoryIds: f.equipmentCategoryIds.includes(c.id)
+                              ? f.equipmentCategoryIds.filter((x) => x !== c.id)
+                              : [...f.equipmentCategoryIds, c.id],
+                          }))
+                        }
+                      />
+                      <span className="stx-text-wrap">{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <span className="stx-text-caption" style={{ color: 'var(--color-muted)', fontWeight: 'var(--font-medium)' }}>Product / manufacturing categories</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', marginTop: 8 }}>
+                  {productCatsForIndustry.map((c) => (
+                    <label key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.productCategoryIds.includes(c.id)}
+                        onChange={() =>
+                          setForm((f) => ({
+                            ...f,
+                            productCategoryIds: f.productCategoryIds.includes(c.id)
+                              ? f.productCategoryIds.filter((x) => x !== c.id)
+                              : [...f.productCategoryIds, c.id],
+                          }))
+                        }
+                      />
+                      <span className="stx-text-wrap">{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
           <Field label="Notes">
             <Textarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} rows={2} placeholder="Certifications, risk level…" />
           </Field>

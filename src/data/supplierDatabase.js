@@ -706,14 +706,15 @@ export const SUPPLIER_DATABASE = [
 ]
 
 /* ── Registry + workspace corpus integration ─────────────────────────────────
- * Seeded SUPPLIER_DATABASE is global platform data. Signup/onboarding sellers stay in `useAccountRegistry`
- * (scoped per session/account-type). Importer-created counterparties live in **`useWorkspaceSellerCorpusStore`**
- * (`supplierSellerRegistrySync.js`) keyed only by **company / tenant**, so buyer and seller logins share one
- * counterparty corpus while different companies remain isolated (`createTenantStorage` / `getTenantId()`).
+ * The large static **`SUPPLIER_DATABASE`** list is **off by default** (`VITE_SEED_SUPPLIER_DIRECTORY` must be
+ * `"true"` to merge it). Otherwise the merge is only: workspace corpus + session registry sellers.
+ * Accounts stay in `useAccountRegistry` (localStorage scoped); counterparties from Audit / imports use
+ * **`useWorkspaceSellerCorpusStore`** (per-tenant via `createTenantStorage` / `getTenantId()`).
  * ──────────────────────────────────────────────────────── */
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
 import { normSellerRegistryEmail } from '../services/supplierSellerRegistrySync'
+import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 
 /**
  * Convert a registered seller account into the same shape as SUPPLIER_DATABASE entries.
@@ -747,14 +748,17 @@ function registrySellerToSupplier(acct) {
     contactName: acct.contactName,
     plan: acct.plan,
     registeredAt: acct.registeredAt,
+    address: acct.address || '',
   }
 }
 
 /**
- * Merge static seed + tenant workspace corpus (imports) + session signup sellers (`useAccountRegistry`).
- * De-duplicated by static id then email (corpus overlays signup for the same mailbox).
+ * Merge optional legacy static seed + tenant workspace corpus + session signup sellers (`useAccountRegistry`).
+ * Seed is disabled unless `VITE_SEED_SUPPLIER_DIRECTORY=true`.
  */
 function getAllSuppliers() {
+  const seededStatic = isSeededSupplierDirectoryEnabled() ? SUPPLIER_DATABASE : []
+
   const ws = useWorkspaceSellerCorpusStore.getState()
   ws.ensureLegacySlicesMigratedIntoCorpus()
   const corpusAccounts = ws.getCorpusAccountsForSupplierMerge()
@@ -773,18 +777,31 @@ function getAllSuppliers() {
   const corpusSuppliers = corpusAccounts.map(registrySellerToSupplier)
   const signupSuppliers = extraSignup.map(registrySellerToSupplier)
 
-  const staticIds = new Set(SUPPLIER_DATABASE.map((s) => s.id))
+  const staticIds = new Set(seededStatic.map((s) => s.id))
 
   const uniqueCorpus = corpusSuppliers.filter((s) => !staticIds.has(s.id))
   const corpusIds = new Set(uniqueCorpus.map((s) => s.id))
   const uniqueSignup = signupSuppliers.filter((s) => !staticIds.has(s.id) && !corpusIds.has(s.id))
 
-  return [...SUPPLIER_DATABASE, ...uniqueCorpus, ...uniqueSignup]
+  return [...seededStatic, ...uniqueCorpus, ...uniqueSignup]
 }
 
-/** Seeded marketplace directory + tenant workspace imports + signup sellers/service providers session slice. */
+/** Workspace + registry suppliers; optional seeded directory when `VITE_SEED_SUPPLIER_DIRECTORY=true`. */
 export function getAllSuppliersIncludingRegistry() {
   return getAllSuppliers()
+}
+
+/** Count suppliers per equipment/product category id for one industry (corpus + registry + optional seed). */
+export function getSellerCountByCategoryForIndustry(industryId) {
+  if (!industryId) return {}
+  const counts = {}
+  for (const s of getAllSuppliers()) {
+    if (!s.industries.includes(industryId)) continue
+    for (const cat of s.categories || []) {
+      counts[cat] = (counts[cat] || 0) + 1
+    }
+  }
+  return counts
 }
 
 // Get suppliers by industry (includes registered sellers)

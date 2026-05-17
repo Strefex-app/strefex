@@ -124,6 +124,121 @@ const useVendorStore = create(
       deleteVendor: (id) =>
         set((s) => ({ vendors: s.vendors.filter((v) => v.id !== id) })),
 
+      /**
+       * Upsert a vendor row from a workspace/audit counterparty so Vendor Master stays aligned with the seller corpus.
+       * Dedupes by strefexVendorMasterId, else primary/contact email (skips matching on synthetic @vendor-master.strefex only).
+       */
+      upsertVendorFromCounterparty: (payload) => {
+        const companyName = String(payload?.companyName || '').trim()
+        const contactName = String(payload?.contactName || '').trim()
+        const country = String(payload?.country || '').trim()
+        const city = String(payload?.city || '').trim()
+        const industryIds = Array.isArray(payload?.industryIds)
+          ? payload.industryIds.filter(Boolean)
+          : []
+        const vendorMasterId = String(payload?.vendorMasterId || '').trim()
+        const corpusAccountId = String(payload?.corpusAccountId || '').trim()
+        const rawEmail = payload?.email
+        const addressLine = String(payload?.addressLine || '').trim()
+
+        const norm = (e) => String(e || '').trim().toLowerCase()
+        const em = norm(rawEmail)
+        const isSyntheticVmEmail =
+          typeof rawEmail === 'string' && rawEmail.endsWith('@vendor-master.strefex')
+
+        const vendors = get().vendors
+        let match = null
+        if (vendorMasterId) {
+          match = vendors.find((v) => String(v.general?.strefexVendorMasterId || '').trim() === vendorMasterId)
+        }
+        if (!match && em && !isSyntheticVmEmail) {
+          match = vendors.find(
+            (v) =>
+              norm(v.general?.strefexPrimaryEmail) === em ||
+              (v.contacts || []).some((c) => norm(c.email) === em),
+          )
+        }
+
+        const industries = industryIds.length ? industryIds : ['general']
+
+        if (match) {
+          const nextContacts = (() => {
+            if (!em || isSyntheticVmEmail) return match.contacts
+            const contacts = [...(match.contacts || [])]
+            const ix = contacts.findIndex((c) => norm(c.email) === em)
+            const row = {
+              id: ix >= 0 ? contacts[ix].id : `ct-${Date.now()}`,
+              name: contactName || contacts[ix]?.name || 'Contact',
+              email: String(rawEmail).trim(),
+              phone: ix >= 0 ? contacts[ix].phone || '' : '',
+              isPrimary: true,
+            }
+            if (ix >= 0) contacts[ix] = { ...contacts[ix], ...row }
+            else contacts.unshift(row)
+            return contacts
+          })()
+
+          get().updateVendor(match.id, {
+            general: {
+              ...match.general,
+              companyName: companyName || match.general.companyName,
+              ...(country ? { country } : {}),
+              industry: [...new Set([...(match.general.industry || []).filter(Boolean), ...industries])],
+              ...(vendorMasterId ? { strefexVendorMasterId: vendorMasterId } : {}),
+              ...(em && rawEmail ? { strefexPrimaryEmail: String(rawEmail).trim() } : {}),
+              ...(corpusAccountId ? { strefexSellerCorpusId: corpusAccountId } : {}),
+            },
+            addresses: {
+              ...match.addresses,
+              main: {
+                ...(match.addresses?.main || {}),
+                ...(addressLine ? { street: addressLine } : {}),
+                ...(city ? { city } : {}),
+                ...(country ? { country } : {}),
+              },
+            },
+            contacts: nextContacts,
+          })
+          return get().getVendorById(match.id)
+        }
+
+        if (!companyName) return null
+
+        return get().addVendor({
+          general: {
+            companyName,
+            legalName: companyName,
+            country: country || '',
+            currency: 'USD',
+            industry: industries,
+            categories: [],
+            ...(vendorMasterId ? { strefexVendorMasterId: vendorMasterId } : {}),
+            ...(em && !isSyntheticVmEmail && rawEmail ? { strefexPrimaryEmail: String(rawEmail).trim() } : {}),
+            ...(corpusAccountId ? { strefexSellerCorpusId: corpusAccountId } : {}),
+          },
+          addresses: {
+            main: {
+              street: addressLine || '',
+              city: city || '',
+              country: country || '',
+            },
+          },
+          contacts:
+            em && !isSyntheticVmEmail && rawEmail
+              ? [
+                  {
+                    id: `ct-${Date.now()}`,
+                    name: contactName || 'Contact',
+                    email: String(rawEmail).trim(),
+                    phone: '',
+                    isPrimary: true,
+                  },
+                ]
+              : [],
+          banking: {},
+        })
+      },
+
       /* ═══════════════════════════════════════════════════════════
        *  STATUS MANAGEMENT
        * ═══════════════════════════════════════════════════════════ */

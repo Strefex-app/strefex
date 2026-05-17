@@ -1,6 +1,7 @@
-/** Sample supplier lists: open source and database placeholder. Replace with your DB later. */
+/** Sample supplier lists; gated by seed env — otherwise empty until wired to your DB. */
 import { SUPPLIER_DATABASE_CORE } from './supplierDatabase'
 import { buildSupplychainMaterialAugment } from './supplychainImportedSuppliers'
+import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 
 const SUPPLYCHAIN_MAT_EXTRA = buildSupplychainMaterialAugment(SUPPLIER_DATABASE_CORE)
 
@@ -44,6 +45,7 @@ export const SUPPLIERS_BY_MATERIAL = {
 }
 
 export function getSuppliersForMaterial(materialId) {
+  if (!isSeededSupplierDirectoryEnabled()) return []
   const base = SUPPLIERS_BY_MATERIAL[materialId] || SUPPLIERS_BY_MATERIAL.default
   const extra = SUPPLYCHAIN_MAT_EXTRA[materialId] || []
   return [...base, ...extra]

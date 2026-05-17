@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import useVendorStore from '../store/vendorStore'
+import {
+  resolveIndustryIdsFromAuditRow,
+  syncAuditSupplierRowToSellerRegistry,
+  syntheticVendorMasterEmail,
+} from '../services/supplierSellerRegistrySync'
 import './VendorManagement.css'
 
 const STATUS_META = {
@@ -119,6 +124,35 @@ export default function VendorManagement() {
         paymentTerms: newVendor.paymentTerms, paymentMethod: 'bank_transfer', currency: newVendor.currency,
       },
     })
+    try {
+      const rawIndustryTokens = newVendor.industry.split(',').map((s) => s.trim()).filter(Boolean)
+      const industryIds = [...new Set(rawIndustryTokens.flatMap((t) => resolveIndustryIdsFromAuditRow(t, [])))]
+      if (industryIds.length > 0) {
+        const catTokens = newVendor.categories.split(',').map((s) => s.trim()).filter(Boolean)
+        const categoriesMap = {}
+        for (const ind of industryIds) {
+          categoriesMap[ind] = [...catTokens]
+        }
+        const contactEmail = newVendor.contactEmail?.trim()
+        const email = contactEmail || syntheticVendorMasterEmail(vendor.id)
+        const addrLine = [newVendor.street, newVendor.city, newVendor.state, newVendor.postalCode, newVendor.country].filter(Boolean).join(', ')
+        syncAuditSupplierRowToSellerRegistry({
+          id: vendor.id,
+          name: vendor.general.companyName,
+          email,
+          contact: newVendor.contactName,
+          industry: industryIds[0] || '',
+          industryIds,
+          country: newVendor.country,
+          city: newVendor.city,
+          address: addrLine,
+          categories: categoriesMap,
+          vendorMasterId: '',
+        })
+      }
+    } catch {
+      /* unified seller corpus sync is best-effort */
+    }
     setShowAddModal(false)
     setNewVendor({ companyName: '', legalName: '', taxId: '', vatNumber: '', website: '', country: '', currency: 'USD', industry: '', categories: '', street: '', city: '', state: '', postalCode: '', phone: '', contactName: '', contactRole: '', contactEmail: '', contactPhone: '', bankName: '', iban: '', bic: '', accountHolder: '', paymentTerms: 'Net 30' })
     setFeedback({ type: 'success', text: `Vendor ${vendor.vendorNumber} created — pending approval` })
