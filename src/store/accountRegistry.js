@@ -465,6 +465,12 @@ export const useAccountRegistry = create((set, get) => ({
 
   getAccountByEmail: (email) => get().accounts.find((a) => a.email === email),
 
+  getAccountByVendorMasterId: (vendorMasterId) => {
+    const v = String(vendorMasterId || '').trim()
+    if (!v) return undefined
+    return get().accounts.find((a) => String(a.vendorMasterId || '').trim() === v)
+  },
+
   getTotals: () => {
     const all = get().accounts
     return {

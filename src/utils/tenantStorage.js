@@ -14,8 +14,8 @@
  *   4. email domain — extracted from user email (e.g. acme.com → acme.com)
  *   5. 'guest'      — fallback when no one is logged in
  *
- * GLOBAL data (auth session, account registry, UI settings) is NOT
- * scoped — it lives at the platform level.
+ * GLOBAL data includes the raw auth session. `strefex-account-registry` is additionally scoped inside
+ * `accountRegistry`; **workspace tenant data** (`createTenantStorage`) isolates Procurement / Audit catalogs per company.
  *
  * Usage:
  *   import { tenantKey, createTenantStorage, getUserId } from '../utils/tenantStorage'

@@ -705,12 +705,15 @@ export const SUPPLIER_DATABASE = [
   ...buildSupplychainIntelSuppliers(SUPPLIER_DATABASE_CORE, COUNTRY_COORDINATES),
 ]
 
-/* ── Registry integration ─────────────────────────────────
- * Registered sellers from the account registry are merged into the supplier
- * database so that Executive Summary, equipment pages, and RFQ matching
- * always reference every seller for the related industry/equipment.
+/* ── Registry + workspace corpus integration ─────────────────────────────────
+ * Seeded SUPPLIER_DATABASE is global platform data. Signup/onboarding sellers stay in `useAccountRegistry`
+ * (scoped per session/account-type). Importer-created counterparties live in **`useWorkspaceSellerCorpusStore`**
+ * (`supplierSellerRegistrySync.js`) keyed only by **company / tenant**, so buyer and seller logins share one
+ * counterparty corpus while different companies remain isolated (`createTenantStorage` / `getTenantId()`).
  * ──────────────────────────────────────────────────────── */
 import { useAccountRegistry } from '../store/accountRegistry'
+import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusStore'
+import { normSellerRegistryEmail } from '../services/supplierSellerRegistrySync'
 
 /**
  * Convert a registered seller account into the same shape as SUPPLIER_DATABASE entries.
@@ -748,21 +751,38 @@ function registrySellerToSupplier(acct) {
 }
 
 /**
- * Get ALL suppliers: static database + registered sellers from the account registry.
- * De-duplicated by id.
+ * Merge static seed + tenant workspace corpus (imports) + session signup sellers (`useAccountRegistry`).
+ * De-duplicated by static id then email (corpus overlays signup for the same mailbox).
  */
 function getAllSuppliers() {
-  const registry = useAccountRegistry.getState()
-  const registeredSellers = registry.getRegisteredSellers()
-  const registrySuppliers = registeredSellers.map(registrySellerToSupplier)
+  const ws = useWorkspaceSellerCorpusStore.getState()
+  ws.ensureLegacySlicesMigratedIntoCorpus()
+  const corpusAccounts = ws.getCorpusAccountsForSupplierMerge()
 
-  // Merge: static first, then registry entries that aren't already in the static list
+  const registry = useAccountRegistry.getState()
+  const sessionSignupSellers = registry.getRegisteredSellers()
+
+  const corpusEmails = new Set(
+    corpusAccounts.map((a) => normSellerRegistryEmail(a.email)).filter(Boolean),
+  )
+  const extraSignup = sessionSignupSellers.filter((a) => {
+    const e = normSellerRegistryEmail(a.email)
+    return !e || !corpusEmails.has(e)
+  })
+
+  const corpusSuppliers = corpusAccounts.map(registrySellerToSupplier)
+  const signupSuppliers = extraSignup.map(registrySellerToSupplier)
+
   const staticIds = new Set(SUPPLIER_DATABASE.map((s) => s.id))
-  const unique = registrySuppliers.filter((s) => !staticIds.has(s.id))
-  return [...SUPPLIER_DATABASE, ...unique]
+
+  const uniqueCorpus = corpusSuppliers.filter((s) => !staticIds.has(s.id))
+  const corpusIds = new Set(uniqueCorpus.map((s) => s.id))
+  const uniqueSignup = signupSuppliers.filter((s) => !staticIds.has(s.id) && !corpusIds.has(s.id))
+
+  return [...SUPPLIER_DATABASE, ...uniqueCorpus, ...uniqueSignup]
 }
 
-/** Seeded marketplace directory + registered sellers & service_provider accounts (same merge as RFQ / maps). */
+/** Seeded marketplace directory + tenant workspace imports + signup sellers/service providers session slice. */
 export function getAllSuppliersIncludingRegistry() {
   return getAllSuppliers()
 }

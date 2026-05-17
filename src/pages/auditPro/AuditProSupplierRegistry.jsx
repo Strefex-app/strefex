@@ -10,12 +10,12 @@ import {
   supplierUniverseRecordToAuditSupplier,
 } from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
-import { INDUSTRIES } from './auditProUi'
-import { Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
-
-function normEmail(em) {
-  return String(em || '').trim().toLowerCase()
-}
+import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
+import {
+  normSellerRegistryEmail as normEmail,
+  syncAuditSupplierRowToSellerRegistry,
+  syncAuditSupplierRowsToSellerRegistry,
+} from '../../services/supplierSellerRegistrySync'
 
 export default function AuditProSupplierRegistry() {
   const audits = useAuditProStore((s) => s.audits)
@@ -40,6 +40,7 @@ export default function AuditProSupplierRegistry() {
       const fromDb = await fetchAccountDirectoryRowsAsAuditSuppliers(cid)
       let added = 0
       const next = [...suppliers]
+      const syncedRows = []
       ;(fromDb || []).forEach((row) => {
         const email = normEmail(row.email)
         const name = String(row.name || '').trim()
@@ -47,12 +48,18 @@ export default function AuditProSupplierRegistry() {
         const dupName = name && next.some((s) => s.name === name && (!email || normEmail(s.email) === email))
         if ((!email && !name) || dupEmail || dupName) return
         next.push(row)
+        syncedRows.push(row)
         added += 1
       })
       if (!added) showToast('No new directory contacts to import (or already listed).', 'error')
       else {
         setSuppliers(next)
-        showToast(`Imported ${added} contact row(s) from your B2B directory (Supabase).`)
+        try {
+          const { synced } = syncAuditSupplierRowsToSellerRegistry(syncedRows)
+          showToast(`Imported ${added} B2B directory row(s); ${synced} merged into unified seller registry.`)
+        } catch {
+          showToast(`Imported ${added} contact row(s) from your B2B directory — seller-registry merge skipped.`)
+        }
       }
     } catch {
       showToast('Could not load directory entries.', 'error')
@@ -71,17 +78,24 @@ export default function AuditProSupplierRegistry() {
       const { suppliers: fromDb } = await fetchPlatformDirectoryProfilesForSuperadmin()
       let added = 0
       const next = [...suppliers]
+      const syncedRows = []
       ;(fromDb || []).forEach((row) => {
         const email = normEmail(row.email)
         if (!email) return
         if (next.some((s) => s.id === row.id || normEmail(s.email) === email)) return
         next.push(row)
+        syncedRows.push(row)
         added += 1
       })
       if (!added) showToast('No new platform suppliers returned (or already listed).', 'error')
       else {
         setSuppliers(next)
-        showToast(`Synced ${added} supplier row(s) from Supabase (platform-wide).`)
+        try {
+          const { synced } = syncAuditSupplierRowsToSellerRegistry(syncedRows)
+          showToast(`Synced ${added} platform supplier row(s); ${synced} merged into unified seller registry.`)
+        } catch {
+          showToast(`Synced ${added} supplier row(s) from Supabase — seller-registry merge skipped.`)
+        }
       }
     } catch {
       showToast('Could not load supplier directory.', 'error')
@@ -95,6 +109,8 @@ export default function AuditProSupplierRegistry() {
       const rows = getAllSuppliersIncludingRegistry()
         .map(supplierUniverseRecordToAuditSupplier)
         .filter(Boolean)
+      const next = [...suppliers]
+      let added = 0
       rows.forEach((row) => {
         if (!row?.id) return
         if (next.some((s) => s.id === row.id)) return
@@ -123,10 +139,11 @@ export default function AuditProSupplierRegistry() {
   const importVendorMaster = () => {
     const next = [...suppliers]
     let added = 0
+    const syncedRows = []
     vendors.forEach((v) => {
       const name = String(v.general?.companyName || v.vendorNumber || v.id || '').trim()
       if (!name || next.some((s) => s.vendorMasterId === v.id || s.name === name)) return
-      next.push({
+      const row = {
         id: auditProUid(),
         vendorMasterId: v.id,
         name,
@@ -138,7 +155,9 @@ export default function AuditProSupplierRegistry() {
         notes: 'Procurement vendor master',
         registeredAt: new Date().toISOString().slice(0, 10),
         source: 'vendor_master',
-      })
+      }
+      next.push(row)
+      syncedRows.push(row)
       added += 1
     })
     if (!added) {
@@ -146,7 +165,12 @@ export default function AuditProSupplierRegistry() {
       return
     }
     setSuppliers(next)
-    showToast(`Imported ${added} supplier(s) from Vendor Master.`)
+    try {
+      const { synced } = syncAuditSupplierRowsToSellerRegistry(syncedRows)
+      showToast(`Imported ${added} from Vendor Master; ${synced} merged into unified seller registry.`)
+    } catch {
+      showToast(`Imported ${added} supplier(s) from Vendor Master — seller-registry merge skipped.`)
+    }
   }
 
   const add = () => {
@@ -154,16 +178,25 @@ export default function AuditProSupplierRegistry() {
       showToast('Name and email required.', 'error')
       return
     }
-    setSuppliers([
-      ...suppliers,
-      {
-        id: auditProUid(),
-        ...form,
-        registeredAt: new Date().toISOString().slice(0, 10),
-        source: 'manual',
-      },
-    ])
-    showToast('Supplier registered!')
+    const id = auditProUid()
+    const row = {
+      id,
+      ...form,
+      registeredAt: new Date().toISOString().slice(0, 10),
+      source: 'manual',
+    }
+    try {
+      const r = syncAuditSupplierRowToSellerRegistry(row)
+      if (!r.ok) throw new Error(r.reason || 'sync failed')
+    } catch {
+      showToast('Saved in Audit Pro only — seller database sync failed.', 'error')
+      setSuppliers([...suppliers, row])
+      setForm({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
+      setShow(false)
+      return
+    }
+    setSuppliers([...suppliers, row])
+    showToast('Supplier registered and added to the seller database.')
     setForm({ name: '', country: '', industry: '', contact: '', email: '', address: '', notes: '' })
     setShow(false)
   }
@@ -290,8 +323,8 @@ export default function AuditProSupplierRegistry() {
           <div style={{ padding: 20, textAlign: 'center', color: '#374151' }}>
             No suppliers yet — use&nbsp;
             <strong>Import marketplace suppliers · sellers</strong>
-            &nbsp;to link the seeded directory and registered sellers / service providers, or import from Supabase /
-            Vendor Master above.
+            &nbsp;to mirror the unified seller corpus here, or add rows via Vendor Master / B2B directory / Register
+            Supplier (they sync into the same registry used platform-wide).
           </div>
         )}
       </div>
