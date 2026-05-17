@@ -96,6 +96,57 @@ export const DETAILED_QUESTIONNAIRES = {
     ]}
   ],
 
+  "API Q2": [
+    { section:"4 – QMS for Service Supply (Upstream)", clause:"4.1–4.2", questions:[
+      { id:"pq2a", text:"Is a documented QMS maintained that identifies all service types in scope (drilling, well intervention, inspection, maintenance, logistics) and maps them to applicable API product/service specifications?", reference:"API Spec Q2 2nd Ed. §4 / ISO 29001 alignment", examples:"Scope statement must list geographic areas, service categories, and exclusions. Documented process for contract review to confirm capability before commitment. Evidence: master service list, capability matrix vs. customer CSR, and deviation procedures.", docs:["Q2-aligned Quality Manual","Service scope and capability register","Contract review records (technical and QHSE)","Customer CSR and deviation register"], weight:4 },
+      { id:"pq2b", text:"Are critical suppliers and subcontractors for field services assessed, approved, monitored, and subject to equivalent QHSE requirements?", reference:"API Q2 §7.4 / Supply chain / Subcontractor control", examples:"Subcontractor evaluation: HSE performance, equipment fitness, competence records, insurance, and emergency response. Field mobilization checklists tied to approved vendors only. Audit or surveillance records for high-risk subcontractors.", docs:["Approved subcontractor list","Subcontractor evaluation / reassessment records","Work pack or JSA with subcontractor tasks","Surveillance audit reports"], weight:4 },
+    ]},
+    { section:"7 – Service Realization & Wellsite Execution", clause:"7.5 / Field ops", questions:[
+      { id:"pq2c", text:"Are work instructions, permits, JSAs, and wellsite verification records maintained so each job is traceable to the authorized scope and released equipment?", reference:"API Q2 §7.5 / Well control & operational discipline", examples:"Traceability from job ticket to equipment calibration, crew competence, and barrier verification. Check: last 3 jobs — are PTW, isolations, and pressure tests documented before critical steps?", docs:["Job books / work orders","Permit to work and JSA bundles","Equipment inspection and calibration logs","Well control drills / BOP test records (where applicable)"], weight:4 },
+    ]},
+  ],
+
+  "ISO 29001": [
+    { section:"4 – Context & Oil & Gas Sector Risks", clause:"4.1/6.1", questions:[
+      { id:"i29a", text:"Has the organization identified sector-specific risks (sour gas/H2S, blowout/well control, pressure containment, Major Accident Hazards, environmental spills) and integrated them into the QMS and operational controls?", reference:"ISO 29001:2020 §4.1 / §6.1", examples:"Risk registers must link to operating procedures, emergency plans, drill records, and barrier management. Review: are SIMOPS and simultaneously occurring activities assessed on multi-contractor sites?", docs:["Oil & gas contextual risk register","MAH / COMAH or equivalent major hazard studies","Emergency response plan and drill records","Barrier diagrams (bow-tie) for critical scenarios"], weight:4 },
+      { id:"i29b", text:"Are product and service conformity requirements from API, ASME, customer CSRs, and national regulations flowed into design/development or service planning?", reference:"ISO 29001 §8.1", examples:"Evidence of technical specifications, material grades, pressure-temperature ratings, and verification plans before release. Changes to service design must go through controlled review.", docs:["Contract / CSR register","Design / service realization plans","Verification and validation (or qualification) records","Management of change for technical requirements"], weight:3 },
+    ]},
+    { section:"9 – Performance Evaluation (HSE & Quality KPIs)", clause:"9.1", questions:[
+      { id:"i29c", text:"Are leading and lagging HSE/process indicators monitored (TRIR, environmental releases, NPT, equipment failure rates) with management review driving corrective actions?", reference:"ISO 29001 §9.1 / §9.3", examples:"Dashboards should tie incidents to root cause and systemic actions. Check: repeat incidents — is there evidence effectiveness verification?", docs:["HSE & quality KPI definitions","Monthly operating / management review packs","Incident investigation and CAPA records","Customer scorecards and complaints"], weight:3 },
+    ]},
+  ],
+
+  "ASME NQA-1": [
+    { section:"1-2 – NQA Program & Graded Approach", clause:"NQA-1", questions:[
+      { id:"nqa1a", text:"Is a Quality Assurance Program (QAP) documented per ASME NQA-1 with a graded approach linking applicable Parts (I, II, III) to safety class and regulatory requirements?", reference:"ASME NQA-1 / NQA-1a addenda", examples:"Program must address: organization, QA procedures, design control, procurement, inspection, test, records, audits, and M&A. Safety-related vs. non-safety items must be distinguished.", docs:["Approved QA program manual","Grading matrix (safety class / QA category)","Regulatory design inputs (safety analysis references)"], weight:4 },
+      { id:"nqa1b", text:"Are items and services for nuclear applications procured with technical and QA requirements flowed down, source surveillance where required, and objective evidence of conformity?", reference:"ASME NQA-1 Part II Subpart 2.7 / 2.15 (procurement)", examples:"Approved supplier lists with audits, source inspection at critical suppliers, and purchase order QA clauses. ASME / RCC-M / RCC-E references as applicable.", docs:["Procurement specifications with QA clauses","Supplier audits and surveillances","Source inspection reports","Material certificates and data reports traceable to heat/lot"], weight:4 },
+    ]},
+    { section:"11-18 – Design, Inspection, Test & Records", clause:"NQA-1", questions:[
+      { id:"nqa1c", text:"Are inspections and tests defined in ITPIPs / ITPs with hold and witness points, calibrated equipment, and formally accepted results before installation or use?", reference:"ASME NQA-1 inspection and test", examples:"Nuclear codes may require third-party inspection (Authorized Inspection Agency). Check calibration due dates for NDT, pressure gauges, and electrical safety testers.", docs:["ITP / ITPIP packages","Inspection and test records","NDE / pressure test reports","Calibration system records (ISO/IEC 17025 traceability)"], weight:4 },
+    ]},
+  ],
+
+  "ISO 19443": [
+    { section:"4 – Nuclear Supply Chain QMS", clause:"ISO 19443:2018", questions:[
+      { id:"iso19443a", text:"Is the QMS aligned with nuclear safety culture expectations, including falsification suspicion vigilance, counterfeiting prevention, and traceability of safety-related items?", reference:"ISO 19443 §4–8", examples:"Flow-down of customer technical and QA requirements; fraud prevention training; obsolescence and counterfeit parts controls aligned to IAEA and customer expectations.", docs:["Safety culture / vigilance training records","CSR / flow-down register","Suspect and counterfeit item procedure (SCI)","Traceability from raw material to installed component"], weight:4 },
+      { id:"iso19443b", text:"Are critical characteristics for nuclear safety–related supplies identified, controlled, and verified with documented evidence?", reference:"ISO 19443 §8", examples:"Critical characteristics on drawings; PFMEA where applicable; inspection plans with defined sampling and acceptance criteria; concession control for use-as-is deviations.", docs:["Critical characteristic register","PFMEA / control plans for nuclear products","Inspection reports and concessions","Nonconformance and CAPA linkage to safety significance"], weight:4 },
+    ]},
+  ],
+
+  "IEC 61215": [
+    { section:"Design Qualification — PV Modules", clause:"IEC 61215 (series)", questions:[
+      { id:"pv12a", text:"Is the PV module design qualification (DQT) program implemented per IEC 61215 (appropriate part: crystalline thin-film or bifacial) including representative samples and defined test severity?", reference:"IEC 61215-1/-2 / test flow per technology", examples:"Qualification matrix: thermal cycling, humidity-freeze, damp heat, UV, mechanical load, hail, etc. Must document cell/BOM revision under qualification. Requalification required for major design changes.", docs:["Design qualification test plan (DQT)","IEC 61215 test reports from accredited lab","BOM and revision control vs. qualified design","Change control linking redesign to re-qualification"], weight:4 },
+      { id:"pv12b", text:"Are production control plans aligned with qualified design (cell supplier, encapsulant, junction box, frame) with incoming inspection and periodic production surveillance tests?", reference:"IEC 61215 / factory production control", examples:"Production tests: insulation, visual, power measurement at STC, optional EL sampling. Track serial-to-BOM genealogy.", docs:["Bill of materials vs. qualified design","Incoming inspection criteria for cells and backsheets","In-line test limits (flash, insulation)","Production surveillance / periodic retest plan"], weight:3 },
+    ]},
+  ],
+
+  "IEC 61730": [
+    { section:"PV Module Safety Qualification", clause:"IEC 61730-1 / -2", questions:[
+      { id:"pv73a", text:"Is safety class (Class I / II) and application defined and reflected in construction, insulation coordination, marking, and maximum system voltage rating?", reference:"IEC 61730-1 Construction evaluation", examples:"Spacings, creepage/clearance, fire performance ratings of materials, and bushing / junction box ingress. Compare tested ratings vs. datasheet claims.", docs:["Construction drawings and insulation diagram","Flammability ratings (UL 94 / IEC spread of flame)","IEC 61730 test reports (construction & test)","Datasheet vs. qualified construction revision"], weight:4 },
+      { id:"pv73b", text:"Are safety part tests (e.g., bypass diode thermal, impulse voltage, wet leakage, hot-spot endurance) completed and on file with pass criteria before market release?", reference:"IEC 61730-2 Test requirements", examples:"Align with local grid connection rules (e.g., connector safety). Evidence of qualification maintenance when materials or ratings change.", docs:["IEC 61730-2 test reports","Diode thermal test and worst-case string design","Hot-spot / reverse current safety rationale","Field installation limits in installation manual"], weight:4 },
+    ]},
+  ],
+
   "VDA 6.3": [
     { section:"P1–P7 – VDA 6.3 Process Audit Sections (3rd Edition)", clause:"VDA 6.3 3rd Ed. / VDA FMEA Handbook", questions:[
       { id:"v1a", text:"Is APQP planning complete with VDA-AIAG FMEA, control plan, and special characteristics identification — all before start of production (SOP)?", reference:"VDA 6.3 P3 / VDA FMEA Handbook (2019 AIAG-VDA FMEA)", examples:"P3 planning checks: DFMEA and PFMEA completed using 2019 AIAG-VDA FMEA methodology (Action Priority AP instead of RPN), control plan aligned to PFMEA actions, special characteristics (SC, CC, YC symbols) identified and controlled with SPC. Check: Is the PFMEA using AP (High/Medium/Low) or still legacy RPN? OEM customers now require AP-based FMEAs.", docs:["PFMEA using AIAG-VDA 2019 methodology (with AP evaluation)","DFMEA (if design responsibility)","Control Plan aligned to PFMEA recommended actions","Special Characteristics register with control method","Process audit checklist (VDA 6.3 P3 section)","Gate review records (go/no-go at each APQP phase)"], weight:4 },
@@ -140,6 +191,7 @@ export const INDUSTRIES = [
   'Medical',
   'Raw Materials',
   'Oil & Gas',
+  'Nuclear',
   'Green Energy',
   'Household Products',
   'Aerospace',
@@ -157,7 +209,8 @@ export const AUDIT_STANDARDS = {
   Electronics:{"Manufacturing / Quality":["ISO 9001:2015","IPC-A-610","J-STD-001"],"Financial":FIN_ISO,"Cybersecurity / IT":["ISO 27001","IEC 62443","TISAX"]},
   "Raw Materials":{"Manufacturing / Quality":["ISO 9001:2015","ISO 22000","FSSC 22000"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
   "Oil & Gas":{"Manufacturing / Quality":["API Q1","API Q2","ISO 29001"],"Financial":["IFRS 6","SOX","SEC Reporting"],"Cybersecurity / IT":["IEC 62443","NERC CIP","ISO 27001"]},
-  "Green Energy":{"Manufacturing / Quality":["ISO 9001:2015","ISO 50001","IEC 61400"],"Financial":FIN_ISO,"Cybersecurity / IT":["ISO 27001","IEC 62443","NERC CIP"]},
+  Nuclear:{"Manufacturing / Quality":["ASME NQA-1","ISO 19443","ISO 9001:2015"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
+  "Green Energy":{"Manufacturing / Quality":["ISO 9001:2015","ISO 50001","IEC 61400","IEC 61215","IEC 61730"],"Financial":FIN_ISO,"Cybersecurity / IT":["ISO 27001","IEC 62443","NERC CIP"]},
   "Household Products":{"Manufacturing / Quality":["ISO 9001:2015","ISO 14001:2015","Consumer Product Safety"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
 };
 export const FINDING_TYPES = ["Major NC","Minor NC","Observation","Opportunity for Improvement","Positive Finding"];

@@ -8,6 +8,11 @@ const INDUSTRY_LABELS = {
   machinery: 'Machinery Industry',
   electronics: 'Electronics Industry',
   medical: 'Medical Industry',
+  'raw-materials': 'Raw Materials',
+  'oil-gas': 'Oil & Gas',
+  nuclear: 'Nuclear',
+  'green-energy': 'Green Energy',
+  'household-products': 'Household Products',
 }
 
 const IndustryOverview = () => {

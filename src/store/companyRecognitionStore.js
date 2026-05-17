@@ -26,6 +26,7 @@ export const PLATFORM_AUDIT_INDUSTRIES = [
   { id: 'medical', label: 'Medical devices' },
   { id: 'aerospace', label: 'Aerospace' },
   { id: 'oil_gas', label: 'Oil & gas' },
+  { id: 'nuclear', label: 'Nuclear' },
 ]
 
 export const useCompanyRecognitionStore = create(

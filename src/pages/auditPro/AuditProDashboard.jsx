@@ -26,6 +26,7 @@ const INDUSTRY_CHART_COLORS = {
   Medical: 'var(--danger)',
   'Raw Materials': '#0d9488',
   'Oil & Gas': 'var(--rfqi-amber)',
+  Nuclear: '#7c3aed',
   'Green Energy': '#22c55e',
   'Household Products': '#db2777',
   Aerospace: '#64748b',

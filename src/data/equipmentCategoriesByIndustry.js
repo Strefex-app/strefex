@@ -98,6 +98,12 @@ export const EQUIPMENT_CATEGORIES_BY_INDUSTRY = {
     { id: 'packaging-lines', name: 'Packaging Equipment', description: 'Flow wrap, cartoning, labeling, filling' },
     { id: 'electronics-consumer', name: 'Electronics Assembly (Consumer)', description: 'PCBA, SMT for home electronics' },
   ],
+  nuclear: [
+    { id: 'reactor-pressure', name: 'Reactor & pressure boundary equipment', description: 'NSSS-related vessels, internals interfaces per ASME III / RCC-M where applicable' },
+    { id: 'fuel-storage', name: 'Fuel handling & storage systems', description: 'Fresh/spent fuel handling, criticality and containment' },
+    { id: 'radiation-monitoring', name: 'Radiation protection & monitoring', description: 'Area monitors, dosimetry, containment systems' },
+    { id: 'nuclear-welding-nde', name: 'Nuclear-grade welding & examination', description: 'Qualified WPS/PQR, NDE per ASME V / national nuclear rules' },
+  ],
 }
 
 export function getEquipmentCategoriesForIndustry(industryId) {

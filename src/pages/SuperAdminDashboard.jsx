@@ -69,6 +69,11 @@ const INDUSTRIES = [
   { id: 'machinery', label: 'Machinery', color: '#2ecc71' },
   { id: 'electronics', label: 'Electronics', color: '#9b59b6' },
   { id: 'medical', label: 'Medical', color: '#e74c3c' },
+  { id: 'raw-materials', label: 'Raw Materials', color: '#1abc9c' },
+  { id: 'oil-gas', label: 'Oil & Gas', color: '#f39c12' },
+  { id: 'green-energy', label: 'Green Energy', color: '#27ae60' },
+  { id: 'household-products', label: 'Household Products', color: '#8e44ad' },
+  { id: 'nuclear', label: 'Nuclear', color: '#7f8c8d' },
 ]
 
 /* ── Offline-only demo roster (included in unified account list only when Supabase is not configured). ──── */

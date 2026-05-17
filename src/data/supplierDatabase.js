@@ -955,7 +955,9 @@ export const INDUSTRY_LABELS = {
   medical: 'Medical',
   'raw-materials': 'Raw Materials',
   'oil-gas': 'Oil & Gas',
+  nuclear: 'Nuclear',
   'green-energy': 'Green Energy',
+  'household-products': 'Household Products',
 }
 
 export default SUPPLIER_DATABASE

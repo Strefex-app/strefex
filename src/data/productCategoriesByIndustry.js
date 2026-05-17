@@ -582,6 +582,20 @@ export const PRODUCT_CATEGORIES_BY_INDUSTRY = {
       ],
     },
   ],
+
+  nuclear: [
+    {
+      id: 'ssc-supply',
+      name: 'Safety-related & safety-class supply',
+      description: 'Items important to nuclear safety (SSC) — design, procurement, and manufacturing controls',
+      color: '#4527a0',
+      subcategories: [
+        { id: 'pressure-parts', name: 'Pressure-retaining / structural parts', description: 'Forgings, castings, welds with ASME III / RCC-M classification' },
+        { id: 'traceability-cert', name: 'Material traceability & certificates', description: 'Heat-lot traceability, EN 10204 3.1/3.2, data reports' },
+        { id: 'qualification-iq', name: 'Equipment qualification (EQ)', description: 'Seismic, EMI/EMC, environmental qualification for I&C' },
+      ],
+    },
+  ],
 }
 
 /* ─────────────────────────────── Helper Functions ─────────────────────────── */

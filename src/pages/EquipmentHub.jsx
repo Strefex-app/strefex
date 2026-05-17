@@ -19,6 +19,7 @@ const INDUSTRIES = [
   { id: 'raw-materials', tKey: 'industry.rawMaterials', path: '/industry/raw-materials', descKey: 'industry.description' },
   { id: 'oil-gas', tKey: 'industry.oilGas', path: '/industry/oil-gas', descKey: 'industry.description' },
   { id: 'green-energy', tKey: 'industry.greenEnergy', path: '/industry/green-energy', descKey: 'industry.description' },
+  { id: 'nuclear', tKey: 'industry.nuclear', path: '/industry/nuclear', descKey: 'industry.description' },
   { id: 'household-products', tKey: null, label: 'Household Products', path: '/industry/household-products', descKey: 'industry.description' },
 ]
 
@@ -64,6 +65,14 @@ const INDUSTRY_ICONS = {
   'green-energy': (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  nuclear: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85">
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+      <ellipse cx="12" cy="12" rx="9.5" ry="3.75" />
+      <ellipse cx="12" cy="12" rx="9.5" ry="3.75" transform="rotate(60 12 12)" />
+      <ellipse cx="12" cy="12" rx="9.5" ry="3.75" transform="rotate(120 12 12)" />
     </svg>
   ),
   'household-products': (

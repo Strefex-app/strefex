@@ -21,6 +21,7 @@ const INDUSTRIES = [
   { id: 'medical', label: 'Medical' },
   { id: 'raw-materials', label: 'Raw Materials' },
   { id: 'oil-gas', label: 'Oil & Gas' },
+  { id: 'nuclear', label: 'Nuclear' },
   { id: 'green-energy', label: 'Green Energy' },
   { id: 'household-products', label: 'Household Products' },
 ]

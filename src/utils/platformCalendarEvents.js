@@ -6,6 +6,7 @@ export const INDUSTRY_ID_TO_EXHIBITION_LABEL = {
   medical: 'Medical Equipment',
   'raw-materials': 'Raw Materials',
   'oil-gas': 'Oil & Gas',
+  nuclear: 'Nuclear',
   'green-energy': 'Green Energy',
   'household-products': 'Household Products',
   plastic: 'Plastic',

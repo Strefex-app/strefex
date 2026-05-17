@@ -24,6 +24,7 @@ const INDUSTRY_HUB_OPTIONS = [
   { id: 'medical', label: 'Medical' },
   { id: 'raw-materials', label: 'Raw materials' },
   { id: 'oil-gas', label: 'Oil & gas' },
+  { id: 'nuclear', label: 'Nuclear' },
   { id: 'green-energy', label: 'Green energy' },
   { id: 'household-products', label: 'Household products' },
 ]

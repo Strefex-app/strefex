@@ -13,6 +13,7 @@ export const PLATFORM_HUB_INDUSTRY_SLUGS = [
   'oil-gas',
   'green-energy',
   'household-products',
+  'nuclear',
 ]
 
 /** UI / audit-plan label (English) → platform slug */
@@ -25,6 +26,7 @@ export const AUDIT_INDUSTRY_LABEL_TO_SLUG = {
   'Oil & Gas': 'oil-gas',
   'Green Energy': 'green-energy',
   'Household Products': 'household-products',
+  Nuclear: 'nuclear',
   /** Legacy audits — treat as machinery for platform maps & equipment catalog */
   Aerospace: 'machinery',
 }
@@ -39,6 +41,7 @@ export const AUDIT_INDUSTRY_LABELS_HUB_ORDER = [
   'Oil & Gas',
   'Green Energy',
   'Household Products',
+  'Nuclear',
   'Aerospace',
 ]
 
@@ -61,6 +64,7 @@ export const PLATFORM_HUB_INDUSTRY_META = {
   'oil-gas': { tKey: 'industry.oilGas', label: 'Oil & Gas' },
   'green-energy': { tKey: 'industry.greenEnergy', label: 'Green Energy' },
   'household-products': { tKey: null, label: 'Household Products' },
+  nuclear: { tKey: 'industry.nuclear', label: 'Nuclear' },
 }
 
 /**

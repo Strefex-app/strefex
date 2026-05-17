@@ -19,13 +19,22 @@ const INDUSTRY_TKEYS = {
   electronics: 'industry.electronics',
   medical: 'industry.medical',
   'raw-materials': 'industry.rawMaterials',
+  'oil-gas': 'industry.oilGas',
+  'green-energy': 'industry.greenEnergy',
+  nuclear: 'industry.nuclear',
+  'household-products': null,
 }
 
 const IndustryHub = () => {
   const navigate = useNavigate()
   const { industryId } = useParams()
   const { t } = useTranslation()
-  const title = INDUSTRY_TKEYS[industryId] ? t(INDUSTRY_TKEYS[industryId]) : `${industryId || 'Industry'}`
+  const title = (() => {
+    if (industryId === 'household-products') return 'Household Products'
+    const k = INDUSTRY_TKEYS[industryId]
+    if (k) return t(k)
+    return industryId ? industryId.replace(/-/g, ' ') : 'Industry'
+  })()
   const description = t('industry.description')
   const basePath = `/industry/${industryId}`
 

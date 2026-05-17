@@ -105,6 +105,7 @@ const translations = {
   'industry.rawMaterials': { en: 'Raw Materials', zh: '原材料', es: 'Materias Primas', fr: 'Matières Premières', de: 'Rohstoffe', ru: 'Сырьё', pt: 'Matérias-primas' },
   'industry.oilGas': { en: 'Oil & Gas', zh: '石油与天然气', es: 'Petróleo y Gas', fr: 'Pétrole et Gaz', de: 'Öl & Gas', ru: 'Нефть и газ', pt: 'Petróleo e gás' },
   'industry.greenEnergy': { en: 'Green Energy', zh: '绿色能源', es: 'Energía Verde', fr: 'Énergie Verte', de: 'Grüne Energie', ru: 'Зелёная энергетика', pt: 'Energias renováveis' },
+  'industry.nuclear': { en: 'Nuclear', zh: '核能', es: 'Nuclear', fr: 'Nucléaire', de: 'Kernenergie', ru: 'Ядерная отрасль', pt: 'Nuclear' },
   'industry.description': { en: 'Equipment, suppliers, and services', zh: '设备、供应商和服务', es: 'Equipos, proveedores y servicios', fr: 'Équipements, fournisseurs et services', de: 'Ausrüstung, Lieferanten und Dienstleistungen', ru: 'Оборудование, поставщики и услуги', pt: 'Equipamento, fornecedores e serviços' },
 
   /* ── Production Management ──────────────────────────────────── */
