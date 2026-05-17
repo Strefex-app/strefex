@@ -50,10 +50,15 @@ export default function AuditProLayout() {
   const reminders = useAuditProStore((s) => s.reminders)
   const toast = useAuditProStore((s) => s.toast)
 
+  const mergeSuppliersFromPlatformUniverse = useAuditProStore((s) => s.mergeSuppliersFromPlatformUniverse)
+
   useEffect(() => {
     rehydrateRegistryFromStorage()
     ensureSeed()
-    void hydrateFromSupabase()
+    void mergeSuppliersFromPlatformUniverse()
+    void hydrateFromSupabase().then(() => {
+      void mergeSuppliersFromPlatformUniverse()
+    })
 
     const onVis = () => {
       if (document.visibilityState === 'visible') {
@@ -70,7 +75,7 @@ export default function AuditProLayout() {
       document.removeEventListener('visibilitychange', onVis)
       window.clearInterval(intervalId)
     }
-  }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase])
+  }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase, mergeSuppliersFromPlatformUniverse])
 
   if (!canUse) {
     return <Navigate to="/management" replace />

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.management_audits (
   standard TEXT NOT NULL,
   supplier_ref TEXT,
   auditor_ref TEXT,
+  secondary_auditor_ref TEXT,
   status TEXT NOT NULL DEFAULT 'Planned',
   planned_date DATE,
   completed_date DATE,

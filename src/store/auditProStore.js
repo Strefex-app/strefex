@@ -239,6 +239,72 @@ const useAuditProStore = create(
         }
       },
 
+      mergeSuppliersFromPlatformUniverse: async () => {
+        const norm = (e) => String(e || '').trim().toLowerCase()
+        const { supplierUniverseRecordToAuditSupplier, fetchPlatformDirectoryProfilesForSuperadmin } = await import(
+          '../services/auditManagementDb'
+        )
+        const { getAllSuppliersIncludingRegistry } = await import('../data/supplierDatabase')
+        const { isSupabaseConfigured } = await import('../config/supabase')
+        const { useAuthStore } = await import('../store/authStore')
+
+        const existing = get().suppliers || []
+        const byKey = new Set()
+        existing.forEach((s) => {
+          if (s.email) byKey.add(`e:${norm(s.email)}`)
+          if (s.supplierDbId) byKey.add(`db:${String(s.supplierDbId)}`)
+          if (s.platformProfileId) byKey.add(`pp:${String(s.platformProfileId)}`)
+          if (s.platformCompanyId) byKey.add(`pc:${String(s.platformCompanyId)}`)
+          byKey.add(`id:${s.id}`)
+        })
+
+        const additions = []
+        const consider = (row) => {
+          if (!row?.id) return
+          const e = row.email ? `e:${norm(row.email)}` : null
+          const db = row.supplierDbId ? `db:${String(row.supplierDbId)}` : null
+          const pp = row.platformProfileId ? `pp:${String(row.platformProfileId)}` : null
+          const pc = row.platformCompanyId ? `pc:${String(row.platformCompanyId)}` : null
+          if (byKey.has(`id:${row.id}`)) return
+          if (e && byKey.has(e)) return
+          if (db && byKey.has(db)) return
+          if (pp && byKey.has(pp)) return
+          if (pc && byKey.has(pc)) return
+          additions.push(row)
+          if (e) byKey.add(e)
+          if (db) byKey.add(db)
+          if (pp) byKey.add(pp)
+          if (pc) byKey.add(pc)
+          byKey.add(`id:${row.id}`)
+        }
+
+        for (const rec of getAllSuppliersIncludingRegistry()) {
+          const row = supplierUniverseRecordToAuditSupplier(rec)
+          if (row) consider(row)
+        }
+
+        if (isSupabaseConfigured && useAuthStore.getState().isSuperAdmin?.()) {
+          try {
+            const { suppliers: platRows } = await fetchPlatformDirectoryProfilesForSuperadmin()
+            ;(platRows || []).forEach(consider)
+          } catch {
+            /* offline */
+          }
+        }
+
+        if (additions.length === 0) return
+
+        const nextSuppliers = [...existing, ...additions]
+        set({ suppliers: nextSuppliers })
+        void persistDirectoryToRemote(get)
+        try {
+          const { syncAuditSupplierRowsToSellerRegistry } = await import('../services/supplierSellerRegistrySync')
+          syncAuditSupplierRowsToSellerRegistry(additions)
+        } catch {
+          /* best-effort seller corpus */
+        }
+      },
+
       setAudits: (audits) => set({ audits }),
       setAuditors: (auditors) => {
         set({ auditors })
@@ -317,6 +383,7 @@ const useAuditProStore = create(
           standard: audit.standard,
           supplierId: audit.supplierId,
           auditorId: audit.auditorId,
+          secondaryAuditorId: audit.secondaryAuditorId,
           status: 'Planned',
           plannedDate: nextAuditDate,
           completedDate: null,

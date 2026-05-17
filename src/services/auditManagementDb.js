@@ -31,6 +31,7 @@ export function rowToAudit(row) {
     standard: row.standard,
     supplierId: row.supplier_ref || '',
     auditorId: row.auditor_ref || '',
+    secondaryAuditorId: row.secondary_auditor_ref || '',
     status: row.status,
     plannedDate: row.planned_date || '',
     completedDate: row.completed_date || null,
@@ -370,7 +371,11 @@ export function supplierUniverseRecordToAuditSupplier(record) {
     industry: primaryIndustry,
     contact: String(record.contactName || '').trim(),
     email,
-    address: [record.city].filter(Boolean).join(', ') || '',
+    city: String(record.city || '').trim(),
+    address:
+      String(record.address || '').trim() ||
+      [record.city, record.country].filter(Boolean).join(', ') ||
+      '',
     notes: `${segmentLabel} · source: ${src}`,
     registeredAt: regSlice,
     vendorMasterId: null,

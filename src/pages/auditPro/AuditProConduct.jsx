@@ -347,6 +347,7 @@ export default function AuditProConduct() {
   }
 
   const auditor = auditors.find((a) => a.id === conduct.auditorId)
+  const secondaryAuditor = auditors.find((a) => a.id === conduct.secondaryAuditorId)
   const supplier = suppliers.find((s) => s.id === conduct.supplierId)
   const questionnaire = getQuestionnaire(conduct.standard, conduct.auditType, language)
   const verdictPreset = getQuestionnaireVerdictPreset(conduct.standard)
@@ -682,6 +683,19 @@ export default function AuditProConduct() {
                 <div style={{ color: '#374151' }}>Not assigned</div>
               )}
             </div>
+            <div style={{ borderTop: '1px solid var(--ap-border)', paddingTop: 14, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 700, letterSpacing: '.06em' }}>SUPPORTING AUDITOR</div>
+              {secondaryAuditor ? (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{secondaryAuditor.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
+                    {secondaryAuditor.role} · {secondaryAuditor.email}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: '#374151', fontSize: 12 }}>Not assigned</div>
+              )}
+            </div>
             <div style={{ borderTop: '1px solid var(--ap-border)', paddingTop: 14 }}>
               <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 700, letterSpacing: '.06em' }}>SUPPLIER / AUDITEE</div>
               {supplier ? (
@@ -689,6 +703,7 @@ export default function AuditProConduct() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{supplier.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
                     {supplier.country}
+                    {supplier.city ? <> · {supplier.city}</> : null}
                     {supplier.contact ? <> · {supplier.contact}</> : null}
                     {supplier.email ? <> · {supplier.email}</> : null}
                   </div>

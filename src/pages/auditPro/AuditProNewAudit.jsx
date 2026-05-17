@@ -18,6 +18,7 @@ import {
   getTotalQuestions,
 } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
+import { useServiceRequestStore } from '../../store/serviceRequestStore'
 
 export default function AuditProNewAudit() {
   const navigate = useNavigate()
@@ -36,6 +37,7 @@ export default function AuditProNewAudit() {
     standard: '',
     supplierId: '',
     auditorId: '',
+    secondaryAuditorId: '',
     plannedDate: '',
     scope: '',
     status: 'Planned',
@@ -55,6 +57,7 @@ export default function AuditProNewAudit() {
     }
     const audit = {
       ...form,
+      secondaryAuditorId: form.secondaryAuditorId || '',
       id: auditProUid(),
       findings: [],
       responses: {},
@@ -63,7 +66,27 @@ export default function AuditProNewAudit() {
     setAudits([...audits, audit])
     void useAuditProStore.getState().upsertAuditRemote(audit)
     const aud = auditors.find((a) => a.id === form.auditorId)
+    const sec = auditors.find((a) => a.id === form.secondaryAuditorId)
     addAuditLog(audit.id, 'Audit Created', aud?.name || 'System', `Created for ${form.standard}. Questionnaire: ${totalQ} questions.`)
+
+    const pushGlobal = useServiceRequestStore.getState().pushGlobalPlatformNotification
+    const planNote = `Audit "${form.title}" · ${form.standard} · planned ${form.plannedDate || 'TBD'}. Management → Auditors → Audit Plans.`
+    if (aud?.email) {
+      pushGlobal({
+        targetEmail: aud.email,
+        title: 'You are the lead auditor on a new audit plan',
+        message: `Lead assignment: ${planNote}`,
+        type: 'audit_plan_assigned',
+      })
+    }
+    if (sec?.email && sec.id !== aud?.id) {
+      pushGlobal({
+        targetEmail: sec.email,
+        title: 'You are supporting auditor on a new audit plan',
+        message: `Supporting assignment: ${planNote}`,
+        type: 'audit_plan_assigned',
+      })
+    }
     notifyWorkspaceKeyDirty('audit_pro', true)
     showToast('Audit plan created!')
     navigate('/management/auditors/plans')
@@ -118,18 +141,30 @@ export default function AuditProNewAudit() {
           </Field>
         </Grid2>
         <Grid2>
-          <Field label="Lead Auditor">
+          <Field label="Lead auditor">
             <Select
               value={form.auditorId}
               onChange={(v) => set('auditorId', v)}
-              options={[{ value: '', label: '— Select Auditor —' }, ...auditors.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` }))]}
+              options={[{ value: '', label: '— Select lead auditor —' }, ...auditors.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` }))]}
             />
           </Field>
-          <Field label="Supplier / Auditee">
+          <Field label="Supporting auditor (optional)">
+            <Select
+              value={form.secondaryAuditorId}
+              onChange={(v) => set('secondaryAuditorId', v)}
+              options={[
+                { value: '', label: '— None —' },
+                ...auditors.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` })),
+              ]}
+            />
+          </Field>
+        </Grid2>
+        <Grid2>
+          <Field label="Supplier / auditee">
             <Select
               value={form.supplierId}
               onChange={(v) => set('supplierId', v)}
-              options={[{ value: '', label: '— Select Supplier —' }, ...suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` }))]}
+              options={[{ value: '', label: '— Select supplier —' }, ...suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` }))]}
             />
             {form.supplierId ? (
               <button
