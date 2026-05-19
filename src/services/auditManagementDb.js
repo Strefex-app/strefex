@@ -264,14 +264,23 @@ function profileRoleToAuditorSeat(role) {
   return 'Team member'
 }
 
+function profileRowIsRegisteredPlatformAuditor(row) {
+  const role = String(row?.role || '').toLowerCase()
+  if (role === 'auditor_internal' || role === 'auditor_external') return true
+  const at = String(row?.companies?.account_type || '').toLowerCase()
+  return at === 'auditor'
+}
+
 /**
- * Profiles linked to the tenant company (Supabase / RLS). Real platform users — not local demo slices.
+ * Profiles linked to the tenant company (Supabase / RLS). Only users who are **registered as auditors**
+ * on the platform (auditor account type company and/or auditor_internal | auditor_external role).
  */
 export async function fetchCompanyProfilesAsAuditAuditors(companyId) {
   if (!isSupabaseConfigured || !companyId || !isLikelyUuid(companyId)) return []
   try {
     const rows = await profilesService.listForCompany(companyId)
     return (rows || [])
+      .filter((row) => profileRowIsRegisteredPlatformAuditor(row))
       .map((row) => {
         const email = String(row.email || '').trim().toLowerCase()
         if (!email) return null
@@ -282,7 +291,7 @@ export async function fetchCompanyProfilesAsAuditAuditors(companyId) {
           email,
           phone: String(row.phone || '').trim(),
           certifications: [],
-          notes: `Company workspace profile (${row.role || 'member'})`,
+          notes: `Platform auditor — ${String(row.role || 'member')} · workspace profile`,
           registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
           platformProfileId: row.id,
           source: 'supabase_profiles',

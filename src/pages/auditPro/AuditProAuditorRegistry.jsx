@@ -28,7 +28,7 @@ export default function AuditProAuditorRegistry() {
     try {
       const cid = await getActorCompanyId()
       if (!cid) {
-        showToast('Link a workspace with a Supabase company to import team auditors.', 'error')
+        showToast('Link a workspace with a Supabase company to import auditors.', 'error')
         return
       }
       const fromDb = await fetchCompanyProfilesAsAuditAuditors(cid)
@@ -40,13 +40,51 @@ export default function AuditProAuditorRegistry() {
         next.push(row)
         added += 1
       })
-      if (!added) showToast('No new company profiles to import (or already listed).', 'error')
+      if (!added) showToast('No eligible platform auditors found to import (or already listed).', 'error')
       else {
         setAuditors(next)
-        showToast(`Imported ${added} profile(s) from your company workspace.`)
+        showToast(`Imported ${added} platform auditor profile(s) from your company workspace (auditor roles or auditor account type only).`)
       }
     } catch {
       showToast('Could not load company profiles.', 'error')
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
+  const pruneNonRegisteredCompanyAuditors = async () => {
+    setImportBusy(true)
+    try {
+      const cid = await getActorCompanyId()
+      if (!cid) {
+        showToast('Link a workspace with a Supabase company to clean up imports.', 'error')
+        return
+      }
+      const eligible = await fetchCompanyProfilesAsAuditAuditors(cid)
+      const emailsOk = new Set((eligible || []).map((r) => normEmail(r.email)))
+      const snapshot = useAuditProStore.getState().auditors
+      const toRemove = snapshot.filter(
+        (a) =>
+          String(a?.id || '').startsWith('company_profile_') &&
+          a.source === 'supabase_profiles' &&
+          !emailsOk.has(normEmail(a.email)),
+      )
+      if (toRemove.length === 0) {
+        showToast('No imported company auditors to remove — list matches registered platform auditors.')
+        return
+      }
+      if (
+        !window.confirm(
+          `Remove ${toRemove.length} auditor registry entr${toRemove.length === 1 ? 'y' : 'ies'} that are not registered as auditors on STREFEX? Manual entries stay.`,
+        )
+      ) {
+        return
+      }
+      const removeIds = new Set(toRemove.map((a) => a.id))
+      setAuditors(snapshot.filter((a) => !removeIds.has(a.id)))
+      showToast(`Removed ${toRemove.length} entr${toRemove.length === 1 ? 'y' : 'ies'} not registered as auditors.`)
+    } catch {
+      showToast('Could not verify auditors against Supabase.', 'error')
     } finally {
       setImportBusy(false)
     }
@@ -102,7 +140,10 @@ export default function AuditProAuditorRegistry() {
     <div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
         <Btn onClick={importCompanyTeamProfiles} variant="success" disabled={importBusy}>
-          {importBusy ? 'Loading…' : 'Import company team (Supabase)'}
+          {importBusy ? 'Loading…' : 'Import company auditors (Supabase)'}
+        </Btn>
+        <Btn onClick={() => void pruneNonRegisteredCompanyAuditors()} variant="secondary" disabled={importBusy}>
+          Remove non-platform auditors…
         </Btn>
         {isSuperAdmin() ? (
           <Btn onClick={importPlatformDirectorySuperadmin} variant="secondary" disabled={importBusy}>

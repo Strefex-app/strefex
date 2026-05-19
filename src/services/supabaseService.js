@@ -209,7 +209,7 @@ export const profilesService = {
     if (!isSupabaseConfigured || !companyId) return []
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, phone, role, metadata, status, created_at, company_id')
+      .select('id, email, full_name, phone, role, metadata, status, created_at, company_id, companies(account_type)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: true })
     if (error) throw error
