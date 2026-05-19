@@ -100,6 +100,7 @@ export const HrAttendanceModule = lazy(() => import('../pages/HrAttendanceModule
 export const HrHiringRecruitment = lazy(() => import('../pages/HrHiringRecruitment'))
 export const HrEmployeeProfile = lazy(() => import('../pages/HrEmployeeProfile'))
 export const CommunitySupport = lazy(() => import('../pages/CommunitySupport'))
+export const Forum = lazy(() => import('../pages/Forum'))
 export const DeveloperDashboard = lazy(() => import('../pages/DeveloperDashboard'))
 export const CompanyMessenger = lazy(() => import('../pages/CompanyMessenger'))
 export const SuperAdminDashboard = lazy(() => import('../pages/SuperAdminDashboard'))

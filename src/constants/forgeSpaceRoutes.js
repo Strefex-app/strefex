@@ -1,5 +1,8 @@
-/** Canonical routes for Forge (Management hub). Keep in sync with `lazyPages` + `App.jsx` routes (`FORGE_PATH_CLUB_DOC` for club templates). */
-
+/**
+ * Canonical routes for Forge — superadmin-only in `App.jsx`.
+ * Forge is intentionally not linked from Management Hub (`ManagementHub.jsx`); open via `/forge` (or subpaths) directly.
+ * Keep in sync with `lazyPages` + `App.jsx` routes (`FORGE_PATH_CLUB_DOC` for club templates).
+ */
 export const FORGE_BASE = '/forge'
 
 /** URL segment for the membership onboarding module (must match `<Route path={...}>`). */

@@ -116,6 +116,7 @@ import {
   ForgeProjects,
   ForgeClubDocumentPage,
   CommunitySupport,
+  Forum,
   DeveloperDashboard,
   CompanyMessenger,
   SuperAdminDashboard,
@@ -380,6 +381,7 @@ function App() {
 
           {/* ── Management Hub ────────────────────────────── */}
           <Route path="/management" element={<P><ManagementHub /></P>} />
+          <Route path="/forum" element={<P><Forum /></P>} />
           <Route path="/management/auditors" element={<P><AuditProgramGate /></P>}>
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
             <Route index element={<Navigate to="dashboard" replace />} />

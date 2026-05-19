@@ -7,7 +7,6 @@ import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './ManagementHub.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
-import { FORGE_BASE } from '../constants/forgeSpaceRoutes'
 
 /* ── Management modules definition ─────────────────────── */
 const MANAGEMENT_MODULES = [
@@ -34,17 +33,17 @@ const MANAGEMENT_MODULES = [
     planLabel: 'Premium',
     minRole: 'manager',
   },
+  /** Former Forge tile position — Forum; Forge stays at `/forge` via direct link only. */
   {
-    id: 'forge',
-    label: 'Forge',
+    id: 'forum',
+    label: 'Forum',
     description:
-      'Community hub: registration, member and committee rosters, membership onboarding scorecards, pipeline stats, and future committee and analytics modules',
-    path: FORGE_BASE,
+      'Shared discussions and announcements for your organization — threaded forums and integrations coming soon',
+    path: '/forum',
     icon: 'clipboard',
     featureKey: 'productionManagement',
     planLabel: 'Premium',
     minRole: 'manager',
-    superadminOnly: true,
   },
   {
     id: 'project',
