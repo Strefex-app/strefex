@@ -1,8 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import { useAccountRegistry } from '../../store/accountRegistry'
 import useAuditProStore from '../../store/auditProStore'
+import { useAuthStore } from '../../store/authStore'
+import { useAuditProDemoKitStore } from '../../store/auditProDemoKitStore'
+import { auditProReminderTouchesDemoReminder } from '../../data/auditProDemoKit'
 import { hydrateAuditProFromManagementTables } from '../../services/workspaceCloudSync'
 import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 import '../../styles/app-page.css'
@@ -49,6 +52,20 @@ export default function AuditProLayout() {
   const hydrateFromSupabase = useAuditProStore((s) => s.hydrateFromSupabase)
   const reminders = useAuditProStore((s) => s.reminders)
   const toast = useAuditProStore((s) => s.toast)
+  const audits = useAuditProStore((s) => s.audits)
+  const auditors = useAuditProStore((s) => s.auditors)
+  const suppliers = useAuditProStore((s) => s.suppliers)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const demoKitVisible = useAuditProDemoKitStore((s) => s.demoKitVisible)
+  const toggleDemoKit = useAuditProDemoKitStore((s) => s.toggleDemoKit)
+
+  const demoKitEffective = isSuperAdmin && demoKitVisible
+
+  const openRemindersForNav = useMemo(() => {
+    const open = (reminders || []).filter((r) => r.status === 'Open')
+    if (demoKitEffective) return open
+    return open.filter((r) => !auditProReminderTouchesDemoReminder(r, audits, auditors, suppliers))
+  }, [reminders, demoKitEffective, audits, auditors, suppliers])
 
   useEffect(() => {
     rehydrateRegistryFromStorage()
@@ -78,9 +95,9 @@ export default function AuditProLayout() {
 
   const leaf = location.pathname.replace(/^.+\/auditors\/?/, '').split('/')[0] || 'dashboard'
   const title = segmentTitle(leaf)
-  const openRems = (reminders || []).filter((r) => r.status === 'Open').length
-  const overdue = (reminders || []).filter(
-    (r) => r.status === 'Open' && new Date(r.dueDate) < new Date(new Date().toISOString().slice(0, 10)),
+  const openRems = openRemindersForNav.length
+  const overdue = openRemindersForNav.filter(
+    (r) => new Date(r.dueDate) < new Date(new Date().toISOString().slice(0, 10)),
   ).length
 
   return (
@@ -103,6 +120,20 @@ export default function AuditProLayout() {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+              {isSuperAdmin ? (
+                <button
+                  type="button"
+                  className={`ap-demo-kit-toggle stx-click-feedback${demoKitVisible ? ' ap-demo-kit-toggle--on' : ''}`}
+                  onClick={() => toggleDemoKit()}
+                  title={
+                    demoKitVisible
+                      ? 'Demo Kit is on — hide sample Audit Pro contacts and demo audits.'
+                      : 'Show STREFEX sample Audit Pro rows for demos and recordings.'
+                  }
+                >
+                  Demo Kit {demoKitVisible ? 'On' : 'Off'}
+                </button>
+              ) : null}
               {overdue > 0 && (
                 <div className="ap-overdue-chip">
                   ⚠ {overdue} overdue
@@ -110,7 +141,9 @@ export default function AuditProLayout() {
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <div className="ap-pulse-dot" />
-                <span style={{ fontSize: 11, color: 'var(--badge-success-text)' }}>Live</span>
+                <span className="stx-text-caption" style={{ color: 'var(--badge-success-text)' }}>
+                  Live
+                </span>
               </div>
             </div>
           </div>
@@ -137,6 +170,12 @@ export default function AuditProLayout() {
               )
             })}
           </nav>
+
+          {demoKitEffective ? (
+            <div className="ap-demo-kit-banner stx-text-caption stx-text-wrap">
+              Demo Kit enabled — seeded sample contacts and audits are visible for recordings only. Turn off for normal workspace use.
+            </div>
+          ) : null}
 
           <div className="ap-root ap-root--platform ap-scrollbar stx-text-wrap">
             <Outlet />

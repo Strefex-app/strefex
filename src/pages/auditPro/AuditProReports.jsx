@@ -1,11 +1,27 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
+import {
+  filterAuditProAuditsForVisibility,
+  filterAuditProSuppliersForVisibility,
+} from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import { Card, Tag, FINDING_TYPES, Btn } from './auditProUi'
 
 export default function AuditProReports() {
   const navigate = useNavigate()
-  const audits = useAuditProStore((s) => s.audits)
-  const suppliers = useAuditProStore((s) => s.suppliers)
+  const auditsAll = useAuditProStore((s) => s.audits)
+  const suppliersAll = useAuditProStore((s) => s.suppliers)
+  const auditors = useAuditProStore((s) => s.auditors)
+  const demoKitShown = useAuditProDemoKitVisible()
+  const audits = useMemo(
+    () => filterAuditProAuditsForVisibility(auditsAll, auditors, suppliersAll, demoKitShown),
+    [auditsAll, auditors, suppliersAll, demoKitShown],
+  )
+  const suppliers = useMemo(
+    () => filterAuditProSuppliersForVisibility(suppliersAll, demoKitShown),
+    [suppliersAll, demoKitShown],
+  )
 
   const totalF = audits.reduce((s, a) => s + (a.findings?.length || 0), 0)
   const maj = audits.reduce((s, a) => s + (a.findings?.filter((f) => f.type === 'Major NC').length || 0), 0)

@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
+import { auditProReminderTouchesDemoReminder, filterAuditProAuditsForVisibility } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import { Card, StatusBadge, FINDING_TYPES, INDUSTRIES, Btn } from './auditProUi'
 
 
@@ -36,11 +38,17 @@ export default function AuditProDashboard() {
   const navigate = useNavigate()
   const remindersRef = useRef(null)
 
-  const audits = useAuditProStore((s) => s.audits)
+  const auditsAll = useAuditProStore((s) => s.audits)
   const auditors = useAuditProStore((s) => s.auditors)
   const suppliers = useAuditProStore((s) => s.suppliers)
   const reminders = useAuditProStore((s) => s.reminders)
   const dismissReminder = useAuditProStore((s) => s.dismissReminder)
+
+  const demoKitShown = useAuditProDemoKitVisible()
+  const audits = useMemo(
+    () => filterAuditProAuditsForVisibility(auditsAll, auditors, suppliers, demoKitShown),
+    [auditsAll, auditors, suppliers, demoKitShown],
+  )
 
   const [drill, setDrill] = useState(null)
 
@@ -59,7 +67,12 @@ export default function AuditProDashboard() {
     (s, a) => s + (a.findings?.filter((f) => f.type === 'Major NC').length || 0),
     0,
   )
-  const openRems = (reminders || []).filter((r) => r.status === 'Open')
+  const openRemsAll = (reminders || []).filter((r) => r.status === 'Open')
+  const openRems = demoKitShown
+    ? openRemsAll
+    : openRemsAll.filter(
+        (r) => !auditProReminderTouchesDemoReminder(r, auditsAll, auditors, suppliers),
+      )
   const overdueRems = openRems.filter((r) => new Date(r.dueDate) < new Date())
   const upcoming = audits
     .filter((a) => ['Planned', 'In Progress'].includes(a.status))

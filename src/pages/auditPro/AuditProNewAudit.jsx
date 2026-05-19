@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useAuditProStore from '../../store/auditProStore'
 import { auditProUid } from '../../utils/auditProUid'
+import { filterAuditProAuditorsForVisibility, filterAuditProSuppliersForVisibility } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import {
   AUDIT_STANDARDS,
   INDUSTRIES,
@@ -29,6 +31,16 @@ export default function AuditProNewAudit() {
   const setAudits = useAuditProStore((s) => s.setAudits)
   const addAuditLog = useAuditProStore((s) => s.addAuditLog)
   const showToast = useAuditProStore((s) => s.showToast)
+
+  const showDemoKit = useAuditProDemoKitVisible()
+  const auditorsForPicker = useMemo(
+    () => filterAuditProAuditorsForVisibility(auditors, showDemoKit),
+    [auditors, showDemoKit],
+  )
+  const suppliersForPicker = useMemo(
+    () => filterAuditProSuppliersForVisibility(suppliers, showDemoKit),
+    [suppliers, showDemoKit],
+  )
 
   const [form, setForm] = useState({
     title: '',
@@ -145,7 +157,7 @@ export default function AuditProNewAudit() {
             <Select
               value={form.auditorId}
               onChange={(v) => set('auditorId', v)}
-              options={[{ value: '', label: '— Select lead auditor —' }, ...auditors.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` }))]}
+              options={[{ value: '', label: '— Select lead auditor —' }, ...auditorsForPicker.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` }))]}
             />
           </Field>
           <Field label="Supporting auditor (optional)">
@@ -154,7 +166,7 @@ export default function AuditProNewAudit() {
               onChange={(v) => set('secondaryAuditorId', v)}
               options={[
                 { value: '', label: '— None —' },
-                ...auditors.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` })),
+                ...auditorsForPicker.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` })),
               ]}
             />
           </Field>
@@ -164,7 +176,7 @@ export default function AuditProNewAudit() {
             <Select
               value={form.supplierId}
               onChange={(v) => set('supplierId', v)}
-              options={[{ value: '', label: '— Select supplier —' }, ...suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` }))]}
+              options={[{ value: '', label: '— Select supplier —' }, ...suppliersForPicker.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` }))]}
             />
             {form.supplierId ? (
               <button

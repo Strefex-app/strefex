@@ -1,13 +1,33 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
+import {
+  auditProReminderTouchesDemoReminder,
+  filterAuditProAuditsForVisibility,
+} from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import { Card, STATUS_COLORS } from './auditProUi'
 
 export default function AuditProCalendar() {
   const navigate = useNavigate()
-  const audits = useAuditProStore((s) => s.audits)
+  const auditsAll = useAuditProStore((s) => s.audits)
+  const auditors = useAuditProStore((s) => s.auditors)
+  const suppliers = useAuditProStore((s) => s.suppliers)
   const reminders = useAuditProStore((s) => s.reminders)
   const dismissReminder = useAuditProStore((s) => s.dismissReminder)
+
+  const demoKitShown = useAuditProDemoKitVisible()
+  const audits = useMemo(
+    () => filterAuditProAuditsForVisibility(auditsAll, auditors, suppliers, demoKitShown),
+    [auditsAll, auditors, suppliers, demoKitShown],
+  )
+  const openRemindersForUi = useMemo(() => {
+    const open = (reminders || []).filter((r) => r.status === 'Open')
+    if (demoKitShown) return open
+    return open.filter(
+      (r) => !auditProReminderTouchesDemoReminder(r, auditsAll, auditors, suppliers),
+    )
+  }, [reminders, demoKitShown, auditsAll, auditors, suppliers])
 
   const today = new Date()
   const [month, setMonth] = useState(today.getMonth())
@@ -33,7 +53,7 @@ export default function AuditProCalendar() {
     const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     return {
       audits: audits.filter((a) => a.plannedDate === ds),
-      rems: (reminders || []).filter((r) => r.dueDate === ds && r.status === 'Open'),
+      rems: openRemindersForUi.filter((r) => r.dueDate === ds && r.status === 'Open'),
     }
   }
 
@@ -41,7 +61,7 @@ export default function AuditProCalendar() {
   for (let i = 0; i < fd; i++) cells.push(null)
   for (let i = 1; i <= dim; i++) cells.push(i)
 
-  const openRems = (reminders || []).filter((r) => r.status === 'Open').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+  const openRems = [...openRemindersForUi].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 

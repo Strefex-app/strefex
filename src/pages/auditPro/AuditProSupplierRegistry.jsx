@@ -22,6 +22,8 @@ import { auditProUid } from '../../utils/auditProUid'
 import { collectAuditProSuppliersFromAllTenants } from '../../utils/superadminLocalPlatformAggregation'
 import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select, Textarea, Tag } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
+import { filterAuditProSuppliersForVisibility } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import {
   normSellerRegistryEmail as normEmail,
   resolveIndustryIdsFromAuditRow,
@@ -72,6 +74,9 @@ export default function AuditProSupplierRegistry() {
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
   const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
   const superadminRole = useAuthStore((s) => s.role === 'superadmin')
+
+  /** When false, seeded demo suppliers are hidden unless superadmin enabled Demo Kit. */
+  const showDemoKit = useAuditProDemoKitVisible()
 
   /** `register` = new supplier; `edit` = amend existing row (plans / conduct stay linked by supplier id). */
   const [panelMode, setPanelMode] = useState('register')
@@ -135,6 +140,11 @@ export default function AuditProSupplierRegistry() {
     }
     return out
   }, [suppliers, superadminRole, currentTenantId])
+
+  const suppliersForUi = useMemo(
+    () => filterAuditProSuppliersForVisibility(displaySuppliers, showDemoKit),
+    [displaySuppliers, showDemoKit],
+  )
 
   const openRegister = () => {
     setPanelMode('register')
@@ -695,7 +705,7 @@ export default function AuditProSupplierRegistry() {
             </tr>
           </thead>
           <tbody>
-            {displaySuppliers.map((sRow) => {
+            {suppliersForUi.map((sRow) => {
               const sa = audits.filter((a) => a.supplierId === sRow.id)
               const sf = sa.reduce((n, a) => n + (a.findings?.length || 0), 0)
               const readOnly = !!sRow._readOnlyPeer
@@ -774,7 +784,7 @@ export default function AuditProSupplierRegistry() {
             })}
           </tbody>
         </table>
-        {!displaySuppliers.length && (
+        {!suppliersForUi.length && (
           <div style={{ padding: 20, textAlign: 'center', color: '#374151' }}>
             No suppliers yet — use&nbsp;
             <strong>Import marketplace suppliers · sellers</strong>

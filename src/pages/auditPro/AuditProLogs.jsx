@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import useAuditProStore from '../../store/auditProStore'
+import { auditTouchesDemoParticipants } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 
 export default function AuditProLogs() {
   const auditLogs = useAuditProStore((s) => s.auditLogs)
-  const audits = useAuditProStore((s) => s.audits)
+  const auditsAll = useAuditProStore((s) => s.audits)
+  const auditors = useAuditProStore((s) => s.auditors)
+  const suppliers = useAuditProStore((s) => s.suppliers)
+  const demoKitShown = useAuditProDemoKitVisible()
   const [filter, setFilter] = useState('')
   const sorted = [...auditLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
   const filtered = sorted.filter(
@@ -13,6 +18,14 @@ export default function AuditProLogs() {
       l.user.toLowerCase().includes(filter.toLowerCase()) ||
       String(l.detail).toLowerCase().includes(filter.toLowerCase()),
   )
+  const filteredLogs = useMemo(() => {
+    if (demoKitShown) return filtered
+    return filtered.filter((l) => {
+      const aud = auditsAll.find((a) => a.id === l.auditId)
+      if (!aud) return true
+      return !auditTouchesDemoParticipants(aud, auditors, suppliers)
+    })
+  }, [filtered, demoKitShown, auditsAll, auditors, suppliers])
   const ac = {
     'Audit Created': '#3B82F6',
     'Audit Started': '#F59E0B',
@@ -39,8 +52,8 @@ export default function AuditProLogs() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((l) => {
-              const aud = audits.find((a) => a.id === l.auditId)
+            {filteredLogs.map((l) => {
+              const aud = auditsAll.find((a) => a.id === l.auditId)
               return (
                 <tr key={l.id} style={{ borderBottom: '1px solid #0A1015' }}>
                   <td style={{ padding: '9px 12px', fontSize: 10, color: '#374151', fontFamily: 'IBM Plex Mono, ui-monospace, monospace' }}>
@@ -63,7 +76,7 @@ export default function AuditProLogs() {
             })}
           </tbody>
         </table>
-        {!filtered.length && (
+        {!filteredLogs.length && (
           <div style={{ padding: 20, textAlign: 'center', color: '#374151', fontSize: 11 }}>No logs.</div>
         )}
       </div>

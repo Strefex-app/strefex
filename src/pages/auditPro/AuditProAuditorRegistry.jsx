@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import useAuditProStore from '../../store/auditProStore'
 import { useAuthStore } from '../../store/authStore'
+import { filterAuditProAuditorsForVisibility } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import {
   fetchCompanyProfilesAsAuditAuditors,
   fetchPlatformDirectoryProfilesForSuperadmin,
@@ -18,6 +20,13 @@ export default function AuditProAuditorRegistry() {
   const setAuditors = useAuditProStore((s) => s.setAuditors)
   const showToast = useAuditProStore((s) => s.showToast)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
+
+  /** When false, seeded demo auditors are hidden unless superadmin enabled Demo Kit. */
+  const showDemoKit = useAuditProDemoKitVisible()
+  const auditorsForUi = useMemo(
+    () => filterAuditProAuditorsForVisibility(auditors, showDemoKit),
+    [auditors, showDemoKit],
+  )
 
   const [show, setShow] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
@@ -197,7 +206,7 @@ export default function AuditProAuditorRegistry() {
         </Card>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 13 }}>
-        {auditors.map((a) => (
+        {auditorsForUi.map((a) => (
           <div key={a.id} style={{ background: 'var(--ap-panel)', border: '1px solid var(--ap-border)', borderRadius: 11, padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>

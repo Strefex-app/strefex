@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useAuditProStore, { auditHasConductProgress } from '../../store/auditProStore'
+import { filterAuditProAuditsForVisibility } from '../../data/auditProDemoKit'
+import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
 import { INDUSTRIES } from './auditProUi'
 import { Btn, StatusBadge, Tag } from './auditProUi'
 
@@ -16,6 +18,12 @@ export default function AuditProAuditPlans() {
   const addAuditLog = useAuditProStore((s) => s.addAuditLog)
   const showToast = useAuditProStore((s) => s.showToast)
 
+  const showDemoKit = useAuditProDemoKitVisible()
+  const auditsForUi = useMemo(
+    () => filterAuditProAuditsForVisibility(audits, auditors, suppliers, showDemoKit),
+    [audits, auditors, suppliers, showDemoKit],
+  )
+
   const [filter, setFilter] = useState({ industry: '', status: '', search: '' })
 
   useEffect(() => {
@@ -29,7 +37,7 @@ export default function AuditProAuditPlans() {
     }))
   }, [searchParams])
 
-  const filtered = audits.filter(
+  const filtered = auditsForUi.filter(
     (a) =>
       (!filter.industry || a.industry === filter.industry) &&
       (!filter.status || a.status === filter.status) &&
