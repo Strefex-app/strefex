@@ -130,7 +130,7 @@ const Login = () => {
     <div className="login-container">
       <div className="login-header">
         <div className="login-logo">
-          <img src="/assets/strefex-logo-user-exact.png" alt="STREFEX Logo" className="logo-image" />
+          <img src="/assets/strefex-logo-auth-white.png" alt="STREFEX" className="logo-image" />
         </div>
       </div>
 
