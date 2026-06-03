@@ -9,6 +9,7 @@ import authService from '../services/authService'
 import stripeService, { PLANS, ACCOUNT_TYPES, getPlansForAccountType, getPlanPrice, getPlanFeatures, BUYER_TRIAL_DAYS } from '../services/stripeService'
 import { rememberOfficialRegistrationCode, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import AuthPageShell from '../components/AuthPageShell'
 import './Login.css'
 import './Register.css'
 
@@ -262,14 +263,8 @@ function RegisterForm() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-header">
-        <div className="login-logo">
-          <img src="/assets/strefex-logo-auth-white.png" alt="STREFEX" className="logo-image" />
-        </div>
-      </div>
-
-      <div className="login-content" style={{ maxWidth: step === 2 ? 720 : 500 }}>
+    <AuthPageShell contentMaxWidth={step === 2 ? 720 : 500}>
+      <div className="login-content">
         <div className="login-card">
           <h1 className="login-title">Create Account</h1>
           <p className="login-subtitle">
@@ -673,7 +668,6 @@ function RegisterForm() {
             </Link>
           </div>
         </div>
-
       </div>
 
       {/* ── Platform Agreement & NDA Modal ───────────────── */}
@@ -804,7 +798,7 @@ function RegisterForm() {
           </div>
         </div>
       )}
-    </div>
+    </AuthPageShell>
   )
 }
 

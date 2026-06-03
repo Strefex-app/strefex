@@ -1,0 +1,100 @@
+/* Login / Register backdrop — navy first, image lazy-loaded (see authPageAssets.js) */
+
+.auth-page-shell {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+.auth-page-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(165deg, #0e1d3e 0%, #0a1428 52%, #060b16 100%);
+}
+
+.auth-page-backdrop__picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.auth-page-backdrop__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.auth-page-backdrop__image--visible {
+  opacity: 1;
+}
+
+.auth-page-backdrop__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    165deg,
+    rgba(14, 29, 62, 0.55) 0%,
+    rgba(10, 20, 40, 0.62) 50%,
+    rgba(6, 11, 22, 0.72) 100%
+  );
+  pointer-events: none;
+}
+
+.auth-page-shell__foreground {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-page-shell__logo-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.auth-page-shell__logo {
+  width: min(100%, 320px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.25));
+}
+
+.auth-page-shell__content {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .auth-page-shell {
+    padding: 16px;
+  }
+
+  .auth-page-shell__logo-wrap {
+    margin-bottom: 20px;
+  }
+
+  .auth-page-shell__logo {
+    width: min(100%, 260px);
+  }
+}
