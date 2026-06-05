@@ -1,0 +1,44 @@
+---
+description: Reliable git commit and push when the user requests it
+alwaysApply: true
+---
+
+# Git commit & push (agent)
+
+When the user asks to **commit**, **push**, or **commit and push**:
+
+## Commit (agent can do this)
+
+1. Run `git status`, `git diff`, and `git log -5 --oneline` in parallel first.
+2. Stage and commit with `required_permissions: ["git_write"]`.
+3. Do not commit `.env`, credentials, or secrets; warn if the user asked to include them.
+4. Default staging: tracked modifications only (`git add -u`). Use explicit paths for new files.
+
+```bash
+git add -u   # or git add -- <paths>
+git commit -m "$(cat <<'EOF'
+Your message here.
+EOF
+)"
+```
+
+Optional: `./scripts/git-publish.sh --message "…" --no-push` (commit only).
+
+## Push (user terminal only — agent must NOT push)
+
+**Never run `git push` or `./scripts/git-publish.sh --push-only` from the agent.**
+
+This repo uses HTTPS + macOS Keychain. The agent sandbox cannot access Keychain; push attempts hang for minutes/hours and can freeze Cursor. Manual push in the integrated terminal works instantly.
+
+After committing, tell the user:
+
+```bash
+git push origin main
+```
+
+Do not retry push. Do not request `["all"]` or `full_network` for push. One commit locally + one terminal command for the user.
+
+## Verify
+
+- After commit: `git status -sb` should show `ahead N`.
+- User runs push; then `main...origin/main` with no ahead count.
