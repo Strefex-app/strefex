@@ -9,8 +9,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "quality": "npm test && npm run build",
+    "quality": "npm test && npm run build && npm run audit:ci",
+    "audit:ci": "node scripts/npm-audit-ci.mjs",
     "generate-icons": "node scripts/generate-icons.mjs"
+  },
+  "overrides": {
+    "ws": "^8.18.2"
   },
   "dependencies": {
     "@sentry/react": "^10.38.0",

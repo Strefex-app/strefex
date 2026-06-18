@@ -2,7 +2,7 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,11 +34,24 @@ class Settings(BaseSettings):
     jwt_access_expire_minutes: int = Field(default=60, description="Access token TTL")
     jwt_refresh_expire_days: int = Field(default=7, description="Refresh token TTL")
 
-    # CORS (Bubble, FlutterFlow, local)
+    # CORS (Bubble, FlutterFlow, local — use allow_origin_regex in main for subdomains)
     cors_origins: List[str] = Field(
-        default=["http://localhost:5173", "http://localhost:3000", "https://*.bubble.io", "https://*.flutterflow.io"],
-        description="Allowed CORS origins",
+        default=["http://localhost:5173", "http://localhost:3000"],
+        description="Allowed CORS origins (exact match)",
     )
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        if not self.debug:
+            if self.jwt_secret_key.startswith("change-me"):
+                raise ValueError(
+                    "JWT_SECRET_KEY must be set to a strong secret when DEBUG=false"
+                )
+            if "postgres:postgres@" in self.database_url:
+                raise ValueError(
+                    "DATABASE_URL must not use default postgres credentials when DEBUG=false"
+                )
+        return self
 
 
 @lru_cache

@@ -15,6 +15,22 @@ while ((match = routeRegex.exec(appSource)) !== null) {
   routes.add(match[1])
 }
 
+// Expand known nested layouts (relative child paths under a parent Route)
+const nestedLayouts = [
+  {
+    parent: '/management/auditors',
+    children: [
+      'dashboard', 'new-audit', 'plans', 'calendar', 'auditors', 'suppliers',
+      'risk-matrix', 'logs', 'reports', 'overview', 'conduct/:auditId', 'print/:auditId',
+    ],
+  },
+]
+for (const { parent, children } of nestedLayouts) {
+  for (const child of children) {
+    routes.add(`${parent}/${child}`.replace(/\/+/g, '/'))
+  }
+}
+
 const routeList = [...routes]
 const staticRoutes = routeList.filter((r) => !r.includes(':') && r !== '*')
 const dynamicRoutes = routeList.filter((r) => r.includes(':'))

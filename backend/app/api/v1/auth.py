@@ -1,9 +1,10 @@
 """Auth endpoints: login, register, me."""
 from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser
+from app.core.rate_limit import check_auth_rate_limit
 from app.core.security import get_password_hash
 from app.database import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, UserInResponse
@@ -25,12 +26,14 @@ class RegisterRequest(BaseModel):
 @router.post("/login", response_model=LoginResponse)
 async def login(
     payload: LoginRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Login with email and password. Returns JWT access token.
     Optional tenant_slug (company slug) for multi-tenant; omit for single-company UX.
     """
+    check_auth_rate_limit(request, "login")
     user, error = await auth_service.authenticate(
         db, payload.email, payload.password, payload.tenant_slug
     )
@@ -54,6 +57,7 @@ async def login(
 @router.post("/register", response_model=LoginResponse)
 async def register(
     payload: RegisterRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -61,6 +65,7 @@ async def register(
     Returns JWT access token (auto-login).
     Default tier: 'start' (free).
     """
+    check_auth_rate_limit(request, "register")
     import re
 
     # Validation
@@ -72,26 +77,25 @@ async def register(
         raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
     if not any(c.isdigit() for c in payload.password):
         raise HTTPException(status_code=400, detail="Password must contain at least one number")
+    if not payload.company_name or not payload.company_name.strip():
+        raise HTTPException(status_code=400, detail="Company name is required")
 
     # Check if email already exists
     existing = await user_repository.get_by_email_any_company(db, payload.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create or find company
-    company = None
-    if payload.company_name:
-        slug = re.sub(r'[^a-z0-9]+', '-', payload.company_name.lower()).strip('-')
-        company = await company_repository.get_by_slug(db, slug)
-        if not company:
-            company = await company_repository.create(db, name=payload.company_name, slug=slug)
+    company_name = payload.company_name.strip()
+    slug = re.sub(r'[^a-z0-9]+', '-', company_name.lower()).strip('-')
+    if not slug:
+        raise HTTPException(status_code=400, detail="Company name must contain at least one letter or number")
 
-    if not company:
-        # Default company for standalone users
-        default_slug = "default"
-        company = await company_repository.get_by_slug(db, default_slug)
-        if not company:
-            company = await company_repository.create(db, name="Default", slug=default_slug)
+    company = await company_repository.get_by_slug(db, slug)
+    is_new_company = company is None
+    if is_new_company:
+        company = await company_repository.create(db, name=company_name, slug=slug)
+
+    admin_role = await company_repository.get_role_by_code(db, company.id, "admin")
 
     # Create user
     from app.models.user import User
@@ -101,6 +105,7 @@ async def register(
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         is_active=True,
+        role_id=admin_role.id if is_new_company and admin_role else None,
     )
     db.add(user)
     await db.flush()

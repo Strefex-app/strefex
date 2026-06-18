@@ -70,6 +70,18 @@ async def test_register_validation(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_register_requires_company_name(client: AsyncClient):
+    """POST /api/v1/auth/register without company_name should fail."""
+    response = await client.post("/api/v1/auth/register", json={
+        "full_name": "Test User",
+        "email": "nocompany@example.com",
+        "password": "StrongPass1",
+    })
+    assert response.status_code == 400
+    assert "Company name is required" in response.json().get("detail", "")
+
+
+@pytest.mark.asyncio
 async def test_register_email_validation(client: AsyncClient):
     """POST /api/v1/auth/register with invalid email should fail."""
     response = await client.post("/api/v1/auth/register", json={

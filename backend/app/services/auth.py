@@ -52,7 +52,16 @@ class AuthService:
                 return None, "Company not found"
             user = await user_repository.get_by_email(session, email, company.id)
         else:
-            user = await user_repository.get_by_email_any_company(session, email)
+            matches = await user_repository.list_by_email_all_companies(session, email)
+            if len(matches) > 1:
+                slugs = sorted(
+                    {u.company.slug for u in matches if u.company and u.company.slug}
+                )
+                hint = ", ".join(slugs[:5])
+                if len(slugs) > 5:
+                    hint += ", …"
+                return None, f"Multiple companies found. Sign in with company slug ({hint})."
+            user = matches[0] if matches else None
         if not user:
             return None, "Invalid credentials"
         if not user.is_active:

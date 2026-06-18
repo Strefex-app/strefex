@@ -109,7 +109,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run npm audit
-        run: npm audit --audit-level=high || true
+        run: node scripts/npm-audit-ci.mjs
 
       - name: Run pip-audit (backend)
         run: |

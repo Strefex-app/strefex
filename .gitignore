@@ -19,6 +19,6 @@ __pycache__
 .vscode
 .idea
 
-# Coverage
-coverage/
-.nyc_output/
+# Asset regeneration sources (keep local)
+public/assets/*-source.jpg
+

@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, CurrentTenant, get_db
-from app.database import get_db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -218,7 +217,7 @@ async def create_checkout(
         return CheckoutResponse(session_id=session.id)
     except Exception as e:
         logger.error(f"[Billing] Checkout error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Checkout failed. Please try again.")
 
 
 @router.post("/create-subscription", response_model=CreateSubscriptionResponse)
@@ -285,7 +284,7 @@ async def create_subscription(
         raise HTTPException(status_code=400, detail=f"Card error: {e.user_message}")
     except Exception as e:
         logger.error(f"[Billing] Create subscription error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Subscription creation failed. Please try again.")
 
 
 @router.post("/portal", response_model=PortalResponse)

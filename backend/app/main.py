@@ -8,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import api_router
 from app.config import get_settings
+from app.core.exceptions import http_exception_handler
 from app.core.security import decode_token
 from app.database import init_db
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 settings = get_settings()
 
@@ -48,14 +50,17 @@ app = FastAPI(
     description="Multi-tenant B2B REST API for Bubble and FlutterFlow",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
 )
+
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"https://.*\.(bubble\.io|flutterflow\.io)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

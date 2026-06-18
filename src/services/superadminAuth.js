@@ -1,28 +1,12 @@
 /**
  * Superadmin Authentication — STREFEX Platform Administration
  *
- * The superadmin role belongs EXCLUSIVELY to STREFEX administration.
- * - Only the registered STREFEX superadmin email can log in as superadmin
- * - Only an existing superadmin can promote another account to superadmin
- * - Company admins CANNOT self-escalate to superadmin
- *
- * Primary source of truth is Supabase Auth + public.profiles role.
- * VITE_SA_EMAIL is used as an additional client-side safeguard to avoid
- * accidental superadmin escalation for non-STREFEX emails.
+ * Superadmin role is assigned server-side (Supabase Auth + public.profiles).
+ * Client-side email check is a safeguard only — never authenticate passwords here.
  */
 
 const DEFAULT_SUPERADMIN_EMAIL = 'strefex@strfgroup.ru'
 const SUPERADMIN_EMAIL = (import.meta.env.VITE_SA_EMAIL || DEFAULT_SUPERADMIN_EMAIL).trim().toLowerCase()
-const SA_PASS_HASH     = (import.meta.env.VITE_SA_PASS_HASH || '').trim()
-
-function verifyPassword(password) {
-  if (!SA_PASS_HASH) return false
-  try {
-    return password === atob(SA_PASS_HASH)
-  } catch {
-    return false
-  }
-}
 
 /**
  * Check whether an email address is the registered STREFEX superadmin.
@@ -32,12 +16,9 @@ export function isSuperadminEmail(email) {
   return email?.trim().toLowerCase() === SUPERADMIN_EMAIL
 }
 
-/**
- * Validate superadmin credentials (email + password).
- */
-export function validateSuperadminCredentials(email, password) {
-  if (!isSuperadminEmail(email)) return false
-  return verifyPassword(password)
+/** @deprecated Use Supabase auth; client must not verify superadmin passwords. */
+export function validateSuperadminCredentials(_email, _password) {
+  return false
 }
 
 export function canAssignSuperadmin(currentRole) {
@@ -49,6 +30,5 @@ export function getSuperadminEmail() {
 }
 
 export function changeSuperadminPassword(_currentPassword, _newPassword) {
-  // Password changes must go through the backend / Supabase auth in production.
   return false
 }

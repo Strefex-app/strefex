@@ -48,13 +48,21 @@ class UserRepository:
         email: str,
     ) -> User | None:
         """First user with this email (any company). Used when no company_slug on login."""
+        matches = await self.list_by_email_all_companies(session, email)
+        return matches[0] if matches else None
+
+    async def list_by_email_all_companies(
+        self,
+        session: AsyncSession,
+        email: str,
+    ) -> Sequence[User]:
         result = await session.execute(
             select(User)
             .options(selectinload(User.company), selectinload(User.role))
             .where(User.email == email)
-            .limit(1)
+            .order_by(User.created_at.asc())
         )
-        return result.scalar_one_or_none()
+        return result.scalars().all()
 
     async def list_by_company(
         self,

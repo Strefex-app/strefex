@@ -7,7 +7,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import CurrentUser
 
 from app.engine.normalizer import trim_timeframe, worldbank_to_series
 from app.engine.report_builder import build_report
@@ -51,6 +53,7 @@ async def _extensions_for_country(country: str) -> dict[str, Any]:
 
 @router.get("/indicators")
 async def indicators(
+    _current_user: CurrentUser,
     country: str = Query("IT", min_length=2, max_length=3),
     timeframe: Literal["5y", "10y", "all"] = Query("5y"),
 ) -> dict[str, Any]:
@@ -68,6 +71,7 @@ async def indicators(
 
 @router.get("/inflation-momentum")
 async def inflation_momentum_route(
+    _current_user: CurrentUser,
     country: str = Query("IT", min_length=2, max_length=2),
 ) -> dict[str, Any]:
     """ECB monthly HICP (MoM change in YoY rate, pp) + WB annual GDP growth delta (pp)."""
@@ -76,6 +80,7 @@ async def inflation_momentum_route(
 
 @router.get("/report")
 async def report(
+    _current_user: CurrentUser,
     country: str = Query("IT", min_length=2, max_length=3),
     city: str = Query("Milan", min_length=1, max_length=120),
 ) -> dict[str, Any]:

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import * as XLSX from 'xlsx'
+import { readSpreadsheetFirstSheet } from '../utils/spreadsheet'
 import AppLayout from '../components/AppLayout'
 import {
   isSupabaseConfigured,
@@ -406,9 +406,7 @@ export default function RegisteredSuppliersPage() {
       }
 
       const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      const json = await readSpreadsheetFirstSheet(buf)
       const parsed = parseDirectorySpreadsheetRows(json, {
         defaultSegment: 'Company list (2025)',
         defaultCountry: 'Russia',

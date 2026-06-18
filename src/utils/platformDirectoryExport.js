@@ -2,6 +2,7 @@
  * Export helpers for Buyer directory (superadmin) — CSV, Excel, PDF.
  * PDF uses html2canvas so Cyrillic / Unicode render correctly.
  */
+import { writeJsonRowsToExcel } from './spreadsheet'
 
 export const DIRECTORY_EXPORT_HEADERS = [
   'segment',
@@ -51,12 +52,8 @@ export function downloadCsv(filename, rows) {
 }
 
 export async function exportExcel(filename, rows) {
-  const XLSX = await import('xlsx')
   const data = rows.map((r) => rowToExportObject(r))
-  const ws = XLSX.utils.json_to_sheet(data)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Directory')
-  XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`)
+  await writeJsonRowsToExcel(filename, data, 'Directory')
 }
 
 /**
