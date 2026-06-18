@@ -99,7 +99,7 @@ cd backend && DEBUG=true pytest tests/ -v
 | **H6** | Main chunk still ~1.1 MB | Route-level lazy loading; trim static store imports (M1) |
 | **H8** | No ESLint in CI | Add ESLint; fix/remove noop `tsc` step |
 | **H9** | Backend integration gaps | Register success test, tenant isolation, webhook tests |
-| **H10** | Login UX for multi-company | Frontend: company slug field when API returns slug hint |
+| **H10** | Login UX for multi-company | ~~Frontend company slug field~~ done; Supabase multi-tenant UX TBD |
 | **npm** | `xlsx` vulnerability | Replace with maintained fork or server-side export (allowlist is temporary) |
 
 ### Medium (backlog)
