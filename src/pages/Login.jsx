@@ -31,6 +31,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [canResendConfirmation, setCanResendConfirmation] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [companySlug, setCompanySlug] = useState('')
+  const [showCompanySlug, setShowCompanySlug] = useState(false)
 
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -105,12 +107,16 @@ const Login = () => {
     // ── Regular login via Supabase / backend ──
     setLoading(true)
     try {
-      await authService.loginWithEmail(normalizedEmail, password)
+      const slug = companySlug.trim().toLowerCase() || null
+      await authService.loginWithEmail(normalizedEmail, password, slug)
       navigate('/main-menu')
     } catch (err) {
       const msg = getReadableErrorMessage(err, '')
 
-      if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
+      if (msg.toLowerCase().includes('multiple companies') || msg.toLowerCase().includes('company slug')) {
+        setShowCompanySlug(true)
+        setError(msg)
+      } else if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
         setError('Please verify your email before logging in.')
         setCanResendConfirmation(true)
       } else if (err.code === 'request_timeout' || msg.toLowerCase().includes('timed out')) {
@@ -168,6 +174,24 @@ const Login = () => {
                 disabled={loading}
               />
             </div>
+
+            {(showCompanySlug || companySlug) && (
+              <div className="form-group">
+                <label htmlFor="companySlug">Company slug</label>
+                <input
+                  type="text"
+                  id="companySlug"
+                  value={companySlug}
+                  onChange={(e) => setCompanySlug(e.target.value)}
+                  placeholder="your-company-slug"
+                  autoComplete="organization"
+                  disabled={loading}
+                />
+                <p className="login-field-hint stx-text-caption">
+                  Required when your email is registered with more than one company.
+                </p>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="password">{t('login.password')}</label>

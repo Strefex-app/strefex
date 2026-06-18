@@ -77,6 +77,15 @@ cd backend && DEBUG=true pytest tests/ -v
 
 ---
 
+## Phase 3 — In progress
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H10** | Login UX for multi-company | Company slug field on login; passed as `tenant_slug` | `Login.jsx`, `Login.css` |
+| **C2*** | Broken `Tenant.users` ORM | Removed invalid relationship; model marked deprecated | `backend/app/models/tenant.py` |
+
+---
+
 ## Still open — plan
 
 ### Critical / High
