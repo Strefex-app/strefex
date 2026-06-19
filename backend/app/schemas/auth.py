@@ -27,9 +27,18 @@ class UserInResponse(BaseModel):
     full_name: str | None
     role: str
     is_active: bool
+    email_verified: bool = False
 
     class Config:
         from_attributes = True
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., min_length=8)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 class TenantInResponse(BaseModel):

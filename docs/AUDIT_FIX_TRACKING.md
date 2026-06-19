@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 8)  
+**Last updated:** 2026-05-20 (phase 9)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–8) | 46 |
-| Partially fixed | 5 |
-| Open / planned | 5+ |
+| Fixed (phase 1–9) | 50 |
+| Partially fixed | 6 |
+| Open / planned | 4+ |
 
 ---
 
@@ -59,12 +59,12 @@
 Run locally (agent shell timeouts prevented re-run here):
 
 ```bash
-npm test                    # expect 65 tests (phase 8)
+npm test                    # expect 65 tests
 npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 32 tests (phase 8)
+cd backend && DEBUG=true pytest tests/ -v   # expect 42 tests (phase 9; Redis tests skip without REDIS_URL)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,22 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 32 tests (phase 8)
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 32 tests with Postgres (phase 8) |
+| Backend pytest | **CI** — 42 tests with Postgres + Redis (phase 9) |
+
+---
+
+## Phase 9 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H4** | Rate limit single-process only | `RedisRateLimitBackend` when `REDIS_URL` set; async `check_auth_rate_limit` | `rate_limit_backends.py`, `rate_limit.py`, `auth.py`, `config.py` |
+| **H4*** | No email verification | `email_verified_at` + token hash; `/verify-email`, `/resend-verification`; optional login gate | `004_user_email_verification.py`, `email_verification.py`, `auth.py`, `user.py` |
+| **TEST** | Rate limit async + Redis | `test_auth_security.py` (async), `test_rate_limit_redis.py` | CI Redis service + `REDIS_URL` |
+| **TEST** | Email verification flow | Register unverified, verify token, resend, login gate | `test_email_verification.py` |
+
+\*SMTP delivery not wired — DEBUG logs verification link; set `REQUIRE_EMAIL_VERIFICATION=true` when ready.
+
+Deploy: `cd backend && alembic upgrade head` (applies `004` if not yet applied). Optional: `REDIS_URL=redis://…` for multi-worker rate limits.
 
 ---
 
@@ -159,7 +174,7 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 |----|-------|------|
 | ~~**C2**~~ | ~~Dual tenant model~~ | Done phase 7 — `companies` only; migration `003` |
 | ~~**H1**~~ | ~~JWT in `localStorage`~~ | Done phase 8 — httpOnly cookies; Bearer fallback retained |
-| **H4** | Rate limit single-process only | Redis/slowapi for multi-worker; add email verification |
+| ~~**H4**~~ | ~~Rate limit single-process only~~ | Done phase 9 — Redis backend + email verification (SMTP TBD) |
 | ~~**H5**~~ | ~~Billing in memory~~ | Done phase 6 — Postgres `company_subscriptions`; run `alembic upgrade head` on deploy |
 | **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
 | ~~**H8**~~ | ~~No ESLint in CI~~ | Done phase 4 — expand scope to full `src/` |
@@ -187,13 +202,13 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 
 ## Changed files (uncommitted)
 
-**Phase 8:** `auth_cookies.py`, `auth.py`, `deps.py`, `security.py`, `config.py`, frontend auth files, `test_auth_cookies.py`, `docs/AUDIT_FIX_TRACKING.md`.
+**Phase 9:** `rate_limit_backends.py`, `rate_limit.py`, `email_verification.py`, `004_user_email_verification.py`, `auth.py`, `config.py`, `user.py`, `schemas/auth.py`, tests, `ci.yml`, `.env.example`, `docs/AUDIT_FIX_TRACKING.md`.
 
 Suggested commit:
 
 ```
-feat(auth): phase 8 — httpOnly cookie sessions and JWT refresh
+feat(security): phase 9 — Redis rate limits and email verification
 
-Set httpOnly access/refresh cookies on login, add refresh/logout endpoints,
-and update the frontend to use credentials mode without localStorage JWTs.
+Add optional Redis-backed auth rate limiting, email verification endpoints,
+and migration 004; CI runs Redis service for integration tests.
 ```

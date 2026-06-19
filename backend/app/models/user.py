@@ -1,8 +1,9 @@
 """User model - maps to users table."""
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import String, Boolean, ForeignKey, UniqueConstraint, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,6 +44,8 @@ class User(Base, UUIDMixin, TimestampMixin):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verification_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     company: Mapped["Company"] = relationship("Company", back_populates="users", lazy="selectin")
     role: Mapped["Role | None"] = relationship("Role", back_populates="users", lazy="selectin")

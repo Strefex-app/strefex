@@ -76,6 +76,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +106,7 @@ jobs:
         run: pytest tests/ -v --tb=short
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strefex_test
+          REDIS_URL: redis://localhost:6379/0
           JWT_SECRET_KEY: ci-test-secret-key-do-not-use-in-production
           JWT_ALGORITHM: HS256
           JWT_ACCESS_EXPIRE_MINUTES: 60

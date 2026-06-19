@@ -1,12 +1,30 @@
-"""In-memory rate limiting for auth endpoints (single-process; use Redis for multi-worker)."""
-import time
-from collections import defaultdict
-from threading import Lock
+"""Rate limiting for auth endpoints — Redis when configured, else in-memory."""
+from __future__ import annotations
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request
 
-_lock = Lock()
-_hits: dict[str, list[float]] = defaultdict(list)
+from app.config import get_settings
+from app.core.rate_limit_backends import MemoryRateLimitBackend, RateLimitBackend, RedisRateLimitBackend
+
+_backend: RateLimitBackend | None = None
+
+
+def _resolve_backend() -> RateLimitBackend:
+    global _backend
+    if _backend is not None:
+        return _backend
+    settings = get_settings()
+    if settings.redis_url:
+        _backend = RedisRateLimitBackend(settings.redis_url)
+    else:
+        _backend = MemoryRateLimitBackend()
+    return _backend
+
+
+def reset_rate_limit_backend_for_tests() -> None:
+    """Reset singleton backend (pytest)."""
+    global _backend
+    _backend = None
 
 
 def client_ip(request: Request) -> str:
@@ -18,24 +36,26 @@ def client_ip(request: Request) -> str:
     return "unknown"
 
 
-def check_rate_limit(key: str, *, max_calls: int, window_seconds: int) -> None:
-    now = time.monotonic()
-    with _lock:
-        recent = [t for t in _hits[key] if now - t < window_seconds]
-        if len(recent) >= max_calls:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests. Please try again later.",
-            )
-        recent.append(now)
-        _hits[key] = recent
+async def check_rate_limit(key: str, *, max_calls: int, window_seconds: int) -> None:
+    backend = _resolve_backend()
+    await backend.check(key, max_calls=max_calls, window_seconds=window_seconds)
 
 
-def check_auth_rate_limit(request: Request, action: str) -> None:
+async def check_auth_rate_limit(request: Request, action: str) -> None:
     ip = client_ip(request)
     limits = {
         "login": (30, 60),
         "register": (10, 3600),
+        "verify_resend": (3, 3600),
     }
     max_calls, window = limits.get(action, (20, 60))
-    check_rate_limit(f"auth:{action}:{ip}", max_calls=max_calls, window_seconds=window)
+    await check_rate_limit(f"auth:{action}:{ip}", max_calls=max_calls, window_seconds=window)
+
+
+async def check_email_rate_limit(email: str, action: str) -> None:
+    normalized = email.strip().lower()
+    limits = {
+        "verify_resend": (3, 3600),
+    }
+    max_calls, window = limits.get(action, (5, 3600))
+    await check_rate_limit(f"auth:{action}:email:{normalized}", max_calls=max_calls, window_seconds=window)

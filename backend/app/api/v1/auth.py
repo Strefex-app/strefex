@@ -6,16 +6,28 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser
+from app.config import get_settings
 from app.core.auth_cookies import (
     clear_auth_cookies,
     read_refresh_cookie,
     set_auth_cookies,
 )
-from app.core.rate_limit import check_auth_rate_limit
+from app.core.rate_limit import check_auth_rate_limit, check_email_rate_limit
 from app.core.security import get_password_hash
 from app.database import get_db
-from app.schemas.auth import LoginRequest, LoginResponse, UserInResponse
+from app.schemas.auth import (
+    LoginRequest,
+    LoginResponse,
+    ResendVerificationRequest,
+    UserInResponse,
+    VerifyEmailRequest,
+)
 from app.services.auth import auth_service
+from app.services.email_verification import (
+    is_email_verified,
+    issue_verification_token,
+    verify_email_token,
+)
 from app.repositories.user import user_repository
 from app.repositories.company import company_repository
 
@@ -59,7 +71,7 @@ async def login(
     Optional tenant_slug (company slug) for multi-tenant; omit for single-company UX.
     When cookie auth is enabled, tokens are also set as httpOnly cookies.
     """
-    check_auth_rate_limit(request, "login")
+    await check_auth_rate_limit(request, "login")
     user, error = await auth_service.authenticate(
         db, payload.email, payload.password, payload.tenant_slug
     )
@@ -67,6 +79,11 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if get_settings().require_email_verification and not is_email_verified(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before signing in.",
+        )
 
     company = user.company
     company_slug = company.slug if company else None
@@ -86,7 +103,7 @@ async def register(
     Returns JWT access token (auto-login).
     Default tier: 'start' (free).
     """
-    check_auth_rate_limit(request, "register")
+    await check_auth_rate_limit(request, "register")
 
     if not payload.email or not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', payload.email):
         raise HTTPException(status_code=400, detail="Invalid email address")
@@ -128,6 +145,8 @@ async def register(
     await db.flush()
     await db.refresh(user, ["company", "role"])
 
+    await issue_verification_token(db, user)
+
     access_token, refresh_token = auth_service.create_tokens_for_user(user, company.slug)
     return _login_response(response, user, company, access_token, refresh_token)
 
@@ -165,3 +184,32 @@ async def logout(response: Response):
 async def me(current_user: CurrentUser):
     """Protected: return current authenticated user (requires valid JWT)."""
     return auth_service.user_to_response(current_user)
+
+
+@router.post("/verify-email", response_model=UserInResponse)
+async def verify_email(
+    payload: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm email ownership using the token from the verification link."""
+    user = await verify_email_token(db, payload.token)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    return auth_service.user_to_response(user)
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    payload: ResendVerificationRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend verification email (always returns generic success to avoid email enumeration)."""
+    await check_auth_rate_limit(request, "verify_resend")
+    await check_email_rate_limit(payload.email, "verify_resend")
+
+    user = await user_repository.get_by_email_any_company(db, payload.email)
+    if user and not is_email_verified(user):
+        await issue_verification_token(db, user)
+
+    return {"status": "ok", "message": "If an unverified account exists, a verification link was sent."}

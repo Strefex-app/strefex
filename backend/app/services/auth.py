@@ -10,6 +10,7 @@ from app.models.user import User
 from app.repositories.company import company_repository
 from app.repositories.user import user_repository
 from app.schemas.auth import UserInResponse, TenantInResponse
+from app.services.email_verification import is_email_verified
 
 
 def _effective_role(user: User) -> str:
@@ -158,6 +159,7 @@ class AuthService:
             full_name=user.full_name,
             role=_effective_role(user),
             is_active=user.is_active,
+            email_verified=is_email_verified(user),
         )
 
     @staticmethod

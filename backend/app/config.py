@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     auth_cookie_samesite: str = Field(default="lax", description="SameSite: lax, strict, or none")
     auth_cookie_domain: str | None = Field(default=None, description="Optional cookie domain")
 
+    # Redis (optional — enables shared rate limits across workers)
+    redis_url: str | None = Field(default=None, description="Redis URL, e.g. redis://localhost:6379/0")
+
+    # Email verification
+    require_email_verification: bool = Field(
+        default=False,
+        description="When true, login blocked until email_verified_at is set",
+    )
+    email_verification_expire_hours: int = Field(default=24)
+    frontend_url: str = Field(default="http://localhost:5173")
+
     # CORS (Bubble, FlutterFlow, local — use allow_origin_regex in main for subdomains)
     cors_origins: List[str] = Field(
         default=["http://localhost:5173", "http://localhost:3000"],
