@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     jwt_access_expire_minutes: int = Field(default=60, description="Access token TTL")
     jwt_refresh_expire_days: int = Field(default=7, description="Refresh token TTL")
 
+    # httpOnly cookie auth (H1) — Bearer header remains supported for API clients
+    auth_use_cookies: bool = Field(default=True, description="Set JWT in httpOnly cookies on login")
+    auth_cookie_secure: bool = Field(
+        default=False,
+        description="Secure cookie flag (auto-true when DEBUG=false unless overridden)",
+    )
+    auth_cookie_samesite: str = Field(default="lax", description="SameSite: lax, strict, or none")
+    auth_cookie_domain: str | None = Field(default=None, description="Optional cookie domain")
+
     # CORS (Bubble, FlutterFlow, local — use allow_origin_regex in main for subdomains)
     cors_origins: List[str] = Field(
         default=["http://localhost:5173", "http://localhost:3000"],

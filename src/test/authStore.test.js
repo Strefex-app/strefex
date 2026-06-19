@@ -2,7 +2,12 @@
  * Auth store tests.
  * Validates role hierarchy, token management, and session state.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
+vi.mock('../config/authCookies', () => ({
+  AUTH_USE_COOKIES: false,
+}))
+
 import { useAuthStore } from '../store/authStore'
 
 describe('Auth Store', () => {

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { AUTH_USE_COOKIES } from '../config/authCookies'
 import { isSuperadminEmail } from '../services/superadminAuth'
 import {
   scheduleRehydrateTenantStores,
@@ -31,7 +32,7 @@ const persist = (state) => {
       JSON.stringify({
         isAuthenticated: state.isAuthenticated,
         role: state.role,
-        token: state.token,
+        token: AUTH_USE_COOKIES ? null : state.token,
         expiresAt: state.expiresAt,
         user: state.user,
         tenant: state.tenant,
@@ -56,7 +57,7 @@ const stored = getStored()
 export const useAuthStore = create((set, get) => ({
   isAuthenticated: stored?.isAuthenticated ?? false,
   role: stored?.role ?? 'user', // 'superadmin' | 'auditor_external' | 'admin' | 'auditor_internal' | 'manager' | 'user'
-  token: stored?.token ?? null,
+  token: AUTH_USE_COOKIES ? null : (stored?.token ?? null),
   expiresAt: stored?.expiresAt ?? null,
 
   /** User profile from backend. */
@@ -76,7 +77,8 @@ export const useAuthStore = create((set, get) => ({
     if (safeRole === 'superadmin' && !isSuperadminEmail(user?.email)) {
       safeRole = 'admin'
     }
-    const next = { isAuthenticated: true, role: safeRole, token, expiresAt, user, tenant }
+    const safeToken = AUTH_USE_COOKIES ? null : token
+    const next = { isAuthenticated: true, role: safeRole, token: safeToken, expiresAt, user, tenant }
     persist(next)
     set(next)
     scheduleRehydrateTenantStores(get)
@@ -135,9 +137,14 @@ export const useAuthStore = create((set, get) => ({
     return (hierarchy[get().role] ?? 0) >= (hierarchy[requiredRole] ?? 0)
   },
 
-  /** Check if token is still valid (not expired). */
+  /** Check if session is still valid (Bearer token or cookie session expiry). */
   isTokenValid: () => {
-    const { token, expiresAt } = get()
+    const { token, expiresAt, isAuthenticated } = get()
+    if (AUTH_USE_COOKIES) {
+      if (!isAuthenticated) return false
+      if (expiresAt && Date.now() > expiresAt) return false
+      return true
+    }
     if (!token) return false
     if (expiresAt && Date.now() > expiresAt) return false
     return true

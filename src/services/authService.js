@@ -20,6 +20,7 @@ import {
 import { auth as firebaseAuth, isFirebaseConfigured } from '../config/firebase'
 import { isSupabaseConfigured } from '../config/supabase'
 import env from '../config/env'
+import { AUTH_USE_COOKIES } from '../config/authCookies'
 import { supabaseAuth, profilesService, companiesService } from './supabaseService'
 import { authApi } from './api'
 import { useAuthStore } from '../store/authStore'
@@ -523,7 +524,7 @@ function storeSession(backendResponse) {
 
   useAuthStore.getState().login({
     role,
-    token: access_token,
+    token: AUTH_USE_COOKIES ? null : access_token,
     expiresAt,
     user: user
       ? {
@@ -907,6 +908,9 @@ const authService = {
   async logout() {
     analytics.track('user_logout')
 
+    if (AUTH_USE_COOKIES) {
+      await authApi.logout().catch(() => {})
+    }
     if (isSupabaseConfigured) {
       await supabaseAuth.signOut().catch(() => {})
     }
@@ -1055,6 +1059,31 @@ const authService = {
    * stale localStorage state from granting access.
    */
   async initSession() {
+    if (AUTH_USE_COOKIES) {
+      const state = useAuthStore.getState()
+      if (!state.isAuthenticated || !state.user) {
+        try {
+          const data = await authApi.refresh()
+          if (data?.user) {
+            storeSession(data)
+            return data
+          }
+        } catch {
+          /* no cookie session */
+        }
+      } else if (state.expiresAt && Date.now() > state.expiresAt) {
+        try {
+          const data = await authApi.refresh()
+          if (data?.user) {
+            storeSession(data)
+            return data
+          }
+        } catch {
+          useAuthStore.getState().logout()
+        }
+      }
+    }
+
     if (!isSupabaseConfigured) {
       // Without Supabase, check if the stored token has expired
       const { expiresAt, isAuthenticated } = useAuthStore.getState()

@@ -2,10 +2,11 @@
 import uuid
 from typing import Annotated, List
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth_cookies import read_access_cookie
 from app.core.tenant import TenantContext
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -19,18 +20,27 @@ def _effective_role_code(user: User) -> str:
     return "user"
 
 
-# Prefer Bearer token (clients send Authorization: Bearer <token>)
 security = HTTPBearer(auto_error=False)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
-async def get_token(
+async def get_token_optional(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
     token: Annotated[str | None, Depends(oauth2_scheme)],
 ) -> str | None:
-    """Extract JWT from Authorization: Bearer or OAuth2 form."""
+    """Extract JWT from httpOnly cookie, Authorization: Bearer, or OAuth2 form."""
+    cookie_token = read_access_cookie(request)
+    if cookie_token:
+        return cookie_token
     if credentials and credentials.scheme == "Bearer":
         return credentials.credentials
+    return token
+
+
+async def get_token(
+    token: Annotated[str | None, Depends(get_token_optional)],
+) -> str | None:
     return token
 
 
@@ -95,7 +105,6 @@ def require_roles(allowed_roles: List[UserRole]):
     return _require
 
 
-# Type aliases for secure dependency injection
 CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentTenant = Annotated[TenantContext, Depends(get_current_tenant)]
 CompanyId = Annotated[uuid.UUID, Depends(get_company_id)]

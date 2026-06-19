@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 7)  
+**Last updated:** 2026-05-20 (phase 8)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–7) | 40 |
+| Fixed (phase 1–8) | 46 |
 | Partially fixed | 5 |
-| Open / planned | 6+ |
+| Open / planned | 5+ |
 
 ---
 
@@ -59,12 +59,12 @@
 Run locally (agent shell timeouts prevented re-run here):
 
 ```bash
-npm test                    # expect 64+ tests
+npm test                    # expect 65 tests (phase 8)
 npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 26 tests (phase 7)
+cd backend && DEBUG=true pytest tests/ -v   # expect 32 tests (phase 8)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,20 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 26 tests (phase 7)
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 26 tests with Postgres (phase 7) |
+| Backend pytest | **CI** — 32 tests with Postgres (phase 8) |
+
+---
+
+## Phase 8 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H1** | JWT in `localStorage` | httpOnly `strefex_*` cookies on login/register; cookie-first auth in deps | `auth_cookies.py`, `auth.py`, `deps.py`, `main.py` |
+| **H1** | Frontend token storage | `VITE_AUTH_USE_COOKIES`; `credentials: 'include'`; no JWT in localStorage | `authCookies.js`, `api.js`, `authStore.js`, `authService.js` |
+| **M10** | No JWT refresh | `POST /auth/refresh` with rotation; auto-retry on 401; `POST /auth/logout` clears cookies | `security.py`, `auth.py`, `api.js` |
+| **TEST** | Cookie auth coverage | `test_auth_cookies.py`, `authCookies.test.js` | 6 backend + 1 frontend test |
+
+\*Bearer header still supported for Bubble/API clients. Set `VITE_AUTH_USE_COOKIES=false` to revert to Bearer-only UX.
 
 ---
 
@@ -145,7 +158,7 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 | ID | Issue | Plan |
 |----|-------|------|
 | ~~**C2**~~ | ~~Dual tenant model~~ | Done phase 7 — `companies` only; migration `003` |
-| **H1** | JWT in `localStorage` | httpOnly cookie session |
+| ~~**H1**~~ | ~~JWT in `localStorage`~~ | Done phase 8 — httpOnly cookies; Bearer fallback retained |
 | **H4** | Rate limit single-process only | Redis/slowapi for multi-worker; add email verification |
 | ~~**H5**~~ | ~~Billing in memory~~ | Done phase 6 — Postgres `company_subscriptions`; run `alembic upgrade head` on deploy |
 | **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
@@ -161,7 +174,7 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 | **M1** | Redundant dynamic imports | ~~Rehydrate extracted~~ done; projectStore→workspaceCloudSync cycle remains dynamic |
 | **M6** | Silent `.catch(() => {})` | ~~Auth bootstrap devWarn~~ done; user feedback on critical UI paths |
 | ~~**M8**~~ | ~~Thin integration tests~~ | Demo kit hook test done phase 3 |
-| **M10** | No JWT refresh | Refresh endpoint + rotation |
+| ~~**M10**~~ | ~~No JWT refresh~~ | Done phase 8 — `/auth/refresh` + cookie rotation |
 | **M12** | Vite esbuild deprecation | Migrate to oxc when stable |
 
 ### Low
@@ -174,13 +187,13 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 
 ## Changed files (uncommitted)
 
-**Phase 7:** `003_drop_tenants_table.py`, removed tenant model/API/schemas, `test_tenant_deprecation.py`, `TENANT_DEPRECATION.md`, `api.js`, `docs/AUDIT_FIX_TRACKING.md`.
+**Phase 8:** `auth_cookies.py`, `auth.py`, `deps.py`, `security.py`, `config.py`, frontend auth files, `test_auth_cookies.py`, `docs/AUDIT_FIX_TRACKING.md`.
 
 Suggested commit:
 
 ```
-refactor(tenant): phase 7 — drop legacy tenants table and API
+feat(auth): phase 8 — httpOnly cookie sessions and JWT refresh
 
-Migrate orphan tenant slugs to companies, drop tenants table, remove dead
-ORM/routes/frontend client, and add deprecation regression tests.
+Set httpOnly access/refresh cookies on login, add refresh/logout endpoints,
+and update the frontend to use credentials mode without localStorage JWTs.
 ```

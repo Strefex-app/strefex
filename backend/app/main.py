@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import api_router
 from app.config import get_settings
 from app.core.exceptions import http_exception_handler
+from app.core.auth_cookies import read_access_cookie
 from app.core.security import decode_token
 from app.database import init_db
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -85,14 +86,18 @@ async def add_security_headers(request: Request, call_next: Any):
 async def add_auth_context(request: Request, call_next: Any):
     """Extract JWT and set request.state.auth_* for user/company context (logging, audit)."""
     auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+    if not token:
+        token = read_access_cookie(request)
+    if not token:
         request.state.auth_user_id = None
         request.state.auth_tenant_id = None
         request.state.auth_payload = None
     else:
-        token = auth_header[7:].strip()
         payload = decode_token(token)
-        if not payload:
+        if not payload or payload.get("type") == "refresh":
             request.state.auth_user_id = None
             request.state.auth_tenant_id = None
             request.state.auth_payload = None

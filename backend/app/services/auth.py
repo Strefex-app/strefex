@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import verify_password, create_access_token, decode_token
+from app.core.security import verify_password, create_access_token, create_refresh_token, decode_token
 from app.core.tenant import TenantContext, get_tenant_context
 from app.models.user import User
 from app.repositories.company import company_repository
@@ -91,17 +91,34 @@ class AuthService:
             extra={"tenant_slug": payload.get("tenant_slug")},
         )
 
+    def create_refresh_token_for_user(self, user: User, company_slug: str | None = None) -> str:
+        payload = self.build_token_payload(user, company_slug)
+        return create_refresh_token(
+            subject=payload["sub"],
+            tenant_id=payload["tenant_id"],
+            role=payload["role"],
+            extra={"tenant_slug": payload.get("tenant_slug")},
+        )
+
+    def create_tokens_for_user(
+        self, user: User, company_slug: str | None = None
+    ) -> tuple[str, str]:
+        return (
+            self.create_token_for_user(user, company_slug),
+            self.create_refresh_token_for_user(user, company_slug),
+        )
+
     def token_to_context(self, token: str) -> TenantContext | None:
         payload = decode_token(token)
+        if not payload or payload.get("type") == "refresh":
+            return None
         return get_tenant_context(payload)
 
-    async def get_user_from_token(
+    async def get_user_from_payload(
         self,
         session: AsyncSession,
-        token: str,
+        payload: dict[str, Any],
     ) -> User | None:
-        """Load current user from JWT; ensure user exists and belongs to token company."""
-        payload = decode_token(token)
         if not payload or "sub" not in payload or "tenant_id" not in payload:
             return None
         try:
@@ -111,6 +128,27 @@ class AuthService:
             return None
         user = await user_repository.get_by_id(session, user_id, company_id)
         return user if user and user.is_active else None
+
+    async def get_user_from_token(
+        self,
+        session: AsyncSession,
+        token: str,
+    ) -> User | None:
+        """Load current user from access JWT; ensure user exists and belongs to token company."""
+        payload = decode_token(token)
+        if not payload or payload.get("type") == "refresh":
+            return None
+        return await self.get_user_from_payload(session, payload)
+
+    async def get_user_from_refresh_token(
+        self,
+        session: AsyncSession,
+        token: str,
+    ) -> User | None:
+        payload = decode_token(token)
+        if not payload or payload.get("type") != "refresh":
+            return None
+        return await self.get_user_from_payload(session, payload)
 
     @staticmethod
     def user_to_response(user: User) -> UserInResponse:

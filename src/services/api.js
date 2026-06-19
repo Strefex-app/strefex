@@ -7,6 +7,7 @@
  * - Falls back to mock behaviour when the backend is unreachable.
  */
 import env from '../config/env'
+import { AUTH_USE_COOKIES } from '../config/authCookies'
 import { useAuthStore } from '../store/authStore'
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -27,10 +28,26 @@ function getToken() {
 
 function handleUnauthorized() {
   useAuthStore.getState().logout()
-  // Only redirect if we're in a browser context
   if (typeof window !== 'undefined') {
     window.location.href = '/login'
   }
+}
+
+let refreshInFlight = null
+
+async function refreshCookieSession() {
+  if (!AUTH_USE_COOKIES) return false
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${env.API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    }).finally(() => {
+      refreshInFlight = null
+    })
+  }
+  const response = await refreshInFlight
+  return response.ok
 }
 
 /**
@@ -39,36 +56,41 @@ function handleUnauthorized() {
  * @param {object} opts   – fetch options + { skipAuth, raw }
  */
 async function request(path, opts = {}) {
-  const { skipAuth = false, raw = false, ...fetchOpts } = opts
+  const { skipAuth = false, raw = false, _retried = false, ...fetchOpts } = opts
 
   const headers = {
     'Content-Type': 'application/json',
     ...(fetchOpts.headers || {}),
   }
 
-  if (!skipAuth) {
+  if (!skipAuth && !AUTH_USE_COOKIES) {
     const token = getToken()
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
   }
 
-  // Remove Content-Type for FormData (browser sets it with boundary)
   if (fetchOpts.body instanceof FormData) {
     delete headers['Content-Type']
   }
 
   const url = `${env.API_BASE_URL}${path}`
+  const credentials = AUTH_USE_COOKIES ? 'include' : 'same-origin'
 
   let response
   try {
-    response = await fetch(url, { ...fetchOpts, headers })
+    response = await fetch(url, { ...fetchOpts, headers, credentials })
   } catch (err) {
-    // Network error — backend unreachable
     throw new ApiError(0, `Network error: ${err.message}`)
   }
 
-  // Handle 401 globally
+  if (response.status === 401 && !skipAuth && AUTH_USE_COOKIES && !_retried) {
+    const refreshed = await refreshCookieSession()
+    if (refreshed) {
+      return request(path, { ...opts, _retried: true })
+    }
+  }
+
   if (response.status === 401) {
     handleUnauthorized()
     throw new ApiError(401, 'Session expired. Please log in again.')
@@ -116,13 +138,13 @@ export const authApi = {
   login: (email, password, tenantSlug = null) =>
     api.post('/auth/login', { email, password, tenant_slug: tenantSlug }, { skipAuth: true }),
 
-  /**
-   * Register a new user. Returns { access_token, token_type, user, tenant }.
-   */
   register: (data) =>
     api.post('/auth/register', data, { skipAuth: true }),
 
-  /** Get current authenticated user profile. */
+  refresh: () => api.post('/auth/refresh', {}, { skipAuth: true }),
+
+  logout: () => api.post('/auth/logout', {}),
+
   me: () => api.get('/auth/me'),
 }
 

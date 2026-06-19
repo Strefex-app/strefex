@@ -33,6 +33,34 @@ def create_access_token(
         "sub": str(subject),
         "tenant_id": str(tenant_id),
         "role": role,
+        "type": "access",
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+    }
+    if extra:
+        to_encode.update(extra)
+    return jwt.encode(
+        to_encode,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def create_refresh_token(
+    subject: str | Any,
+    tenant_id: str,
+    role: str,
+    expires_delta: timedelta | None = None,
+    extra: dict[str, Any] | None = None,
+) -> str:
+    if expires_delta is None:
+        expires_delta = timedelta(days=settings.jwt_refresh_expire_days)
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode = {
+        "sub": str(subject),
+        "tenant_id": str(tenant_id),
+        "role": role,
+        "type": "refresh",
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }

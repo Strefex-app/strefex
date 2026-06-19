@@ -1,9 +1,16 @@
-"""Auth endpoints: login, register, me."""
-from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+"""Auth endpoints: login, register, me, refresh, logout."""
+import re
+
+from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser
+from app.core.auth_cookies import (
+    clear_auth_cookies,
+    read_refresh_cookie,
+    set_auth_cookies,
+)
 from app.core.rate_limit import check_auth_rate_limit
 from app.core.security import get_password_hash
 from app.database import get_db
@@ -23,15 +30,34 @@ class RegisterRequest(BaseModel):
     selected_plan: str | None = "start"
 
 
+def _login_response(
+    response: Response,
+    user,
+    company,
+    access_token: str,
+    refresh_token: str,
+) -> LoginResponse:
+    set_auth_cookies(response, access_token, refresh_token)
+    company_slug = company.slug if company else None
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=auth_service.user_to_response(user),
+        tenant=auth_service.tenant_to_response(company) if company else None,
+    )
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
     payload: LoginRequest,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Login with email and password. Returns JWT access token.
     Optional tenant_slug (company slug) for multi-tenant; omit for single-company UX.
+    When cookie auth is enabled, tokens are also set as httpOnly cookies.
     """
     check_auth_rate_limit(request, "login")
     user, error = await auth_service.authenticate(
@@ -44,20 +70,15 @@ async def login(
 
     company = user.company
     company_slug = company.slug if company else None
-    access_token = auth_service.create_token_for_user(user, company_slug)
-
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=auth_service.user_to_response(user),
-        tenant=auth_service.tenant_to_response(company) if company else None,
-    )
+    access_token, refresh_token = auth_service.create_tokens_for_user(user, company_slug)
+    return _login_response(response, user, company, access_token, refresh_token)
 
 
 @router.post("/register", response_model=LoginResponse)
 async def register(
     payload: RegisterRequest,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -66,9 +87,7 @@ async def register(
     Default tier: 'start' (free).
     """
     check_auth_rate_limit(request, "register")
-    import re
 
-    # Validation
     if not payload.email or not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', payload.email):
         raise HTTPException(status_code=400, detail="Invalid email address")
     if not payload.password or len(payload.password) < 8:
@@ -80,7 +99,6 @@ async def register(
     if not payload.company_name or not payload.company_name.strip():
         raise HTTPException(status_code=400, detail="Company name is required")
 
-    # Check if email already exists
     existing = await user_repository.get_by_email_any_company(db, payload.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -97,7 +115,6 @@ async def register(
 
     admin_role = await company_repository.get_role_by_code(db, company.id, "admin")
 
-    # Create user
     from app.models.user import User
     user = User(
         company_id=company.id,
@@ -111,15 +128,37 @@ async def register(
     await db.flush()
     await db.refresh(user, ["company", "role"])
 
-    # Generate JWT
-    access_token = auth_service.create_token_for_user(user, company.slug)
+    access_token, refresh_token = auth_service.create_tokens_for_user(user, company.slug)
+    return _login_response(response, user, company, access_token, refresh_token)
 
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=auth_service.user_to_response(user),
-        tenant=auth_service.tenant_to_response(company),
-    )
+
+@router.post("/refresh", response_model=LoginResponse)
+async def refresh_session(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Issue new access + refresh tokens from httpOnly refresh cookie (rotation)."""
+    refresh_token = read_refresh_cookie(request)
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token required")
+
+    user = await auth_service.get_user_from_refresh_token(db, refresh_token)
+    if not user:
+        clear_auth_cookies(response)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+
+    company = user.company
+    company_slug = company.slug if company else None
+    access_token, new_refresh = auth_service.create_tokens_for_user(user, company_slug)
+    return _login_response(response, user, company, access_token, new_refresh)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    """Clear httpOnly auth cookies."""
+    clear_auth_cookies(response)
+    return None
 
 
 @router.get("/me", response_model=UserInResponse)
