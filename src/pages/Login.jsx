@@ -5,6 +5,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import authService from '../services/authService'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import AuthPageShell from '../components/AuthPageShell'
+import { normalizeCompanySlugInput, shouldPromptCompanySlug } from '../utils/loginErrors'
 import './Login.css'
 
 function getReadableErrorMessage(err, fallback) {
@@ -107,13 +108,13 @@ const Login = () => {
     // ── Regular login via Supabase / backend ──
     setLoading(true)
     try {
-      const slug = companySlug.trim().toLowerCase() || null
+      const slug = normalizeCompanySlugInput(companySlug)
       await authService.loginWithEmail(normalizedEmail, password, slug)
       navigate('/main-menu')
     } catch (err) {
       const msg = getReadableErrorMessage(err, '')
 
-      if (msg.toLowerCase().includes('multiple companies') || msg.toLowerCase().includes('company slug')) {
+      if (shouldPromptCompanySlug(msg)) {
         setShowCompanySlug(true)
         setError(msg)
       } else if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {

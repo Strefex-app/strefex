@@ -77,12 +77,15 @@ cd backend && DEBUG=true pytest tests/ -v
 
 ---
 
-## Phase 3 — In progress
+## Phase 3 — Fixed / in progress
 
 | ID | Issue | Fix | Files |
 |----|-------|-----|-------|
-| **H10** | Login UX for multi-company | Company slug field on login; passed as `tenant_slug` | `Login.jsx`, `Login.css` |
-| **C2*** | Broken `Tenant.users` ORM | Removed invalid relationship; model marked deprecated | `backend/app/models/tenant.py` |
+| **H10** | Login UX for multi-company | Company slug field + helpers | `Login.jsx`, `loginErrors.js` |
+| **C2*** | Broken `Tenant.users` ORM | Removed relationship; deprecation doc | `tenant.py`, `TENANT_DEPRECATION.md` |
+| **H9*** | Register flow untested | `test_register_success_assigns_admin` | `test_health.py` |
+| **H9*** | Multi-company message | `format_multi_company_login_error` + tests | `auth.py`, `test_auth_messages.py` |
+| **M8*** | Audit Pro demo kit hook | `useAuditProDemoKitVisible.test.js` | hook test |
 
 ---
 

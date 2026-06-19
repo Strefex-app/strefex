@@ -19,6 +19,13 @@ def _effective_role(user: User) -> str:
     return "user"
 
 
+def format_multi_company_login_error(slugs: list[str]) -> str:
+    hint = ", ".join(slugs[:5])
+    if len(slugs) > 5:
+        hint += ", …"
+    return f"Multiple companies found. Sign in with company slug ({hint})."
+
+
 class AuthService:
     async def resolve_company_id(
         self,
@@ -57,10 +64,7 @@ class AuthService:
                 slugs = sorted(
                     {u.company.slug for u in matches if u.company and u.company.slug}
                 )
-                hint = ", ".join(slugs[:5])
-                if len(slugs) > 5:
-                    hint += ", …"
-                return None, f"Multiple companies found. Sign in with company slug ({hint})."
+                return None, format_multi_company_login_error(slugs)
             user = matches[0] if matches else None
         if not user:
             return None, "Invalid credentials"

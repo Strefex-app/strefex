@@ -1,4 +1,6 @@
 """Basic health and billing endpoint tests."""
+import uuid
+
 import pytest
 from httpx import AsyncClient
 from tests.conftest import make_auth_header
@@ -79,6 +81,24 @@ async def test_register_requires_company_name(client: AsyncClient):
     })
     assert response.status_code == 400
     assert "Company name is required" in response.json().get("detail", "")
+
+
+@pytest.mark.asyncio
+async def test_register_success_assigns_admin(client: AsyncClient):
+    """Register with company creates tenant and assigns admin role to creator."""
+    uid = uuid.uuid4().hex[:8]
+    response = await client.post("/api/v1/auth/register", json={
+        "full_name": "Acme Admin",
+        "email": f"acme-admin-{uid}@example.com",
+        "password": "StrongPass1",
+        "company_name": f"Acme Corp {uid}",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["token_type"] == "bearer"
+    assert data["access_token"]
+    assert data["user"]["role"] == "admin"
+    assert data["tenant"]["slug"]
 
 
 @pytest.mark.asyncio
