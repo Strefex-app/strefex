@@ -1,7 +1,9 @@
 import { create } from 'zustand'
-import { devWarn } from '../utils/devLog'
-import { getLegacyTenantIds, tenantKey } from '../utils/tenantStorage'
 import { isSuperadminEmail } from '../services/superadminAuth'
+import {
+  scheduleRehydrateTenantStores,
+  stopWorkspaceCloudSyncOnLogout,
+} from './rehydrateTenantStores'
 
 /* ── helpers ─────────────────────────────────────────────── */
 const STORAGE_KEY = 'strefex-auth'
@@ -48,169 +50,6 @@ const clear = () => {
   }
 }
 
-const readTenantScopedRaw = (baseKey, fallback = null) => {
-  try {
-    const canonical = localStorage.getItem(tenantKey(baseKey))
-    if (canonical != null) return canonical
-    const legacyTenantIds = getLegacyTenantIds()
-    for (let i = 0; i < legacyTenantIds.length; i += 1) {
-      const legacyRaw = localStorage.getItem(`${baseKey}::${legacyTenantIds[i]}`)
-      if (legacyRaw != null) return legacyRaw
-    }
-    return fallback
-  } catch {
-    return fallback
-  }
-}
-
-/**
- * Rehydrate all tenant-scoped Zustand stores so they load data
- * for the *current* user (after login or logout changes the tenant).
- *
- * - Zustand `persist` stores expose `.persist.rehydrate()` — we call it
- *   so the middleware re-reads from the new tenant-scoped localStorage key.
- * - Manual stores (industry, service, subscription) re-read via their
- *   getStored helpers which already use `tenantKey()`, so we reset their
- *   Zustand state from the new tenant-scoped localStorage.
- * - We wrap in a setTimeout(0) so the auth change has been committed to
- *   localStorage before stores try to derive the new tenantId.
- *
- * Uses dynamic import() to avoid circular dependency issues.
- */
-const rehydrateAllTenantStores = () => {
-  setTimeout(async () => {
-    try {
-      // ── Zustand persist stores — call .persist.rehydrate() ──
-      const [
-        projectMod,
-        productionMod,
-        costMod,
-        enterpriseMod,
-        rfqMod,
-        contractMod,
-        procurementMod,
-        vendorMod,
-        auditorHubMod,
-        auditMod,
-        templateMod,
-        companyRecognitionMod,
-        myCalendarMod,
-      ] = await Promise.all([
-        import('./projectStore'),
-        import('./productionStore'),
-        import('./costStore'),
-        import('./enterpriseStore'),
-        import('./rfqStore'),
-        import('./contractStore'),
-        import('./procurementStore'),
-        import('./vendorStore'),
-        import('./auditorHubStore'),
-        import('./auditStore'),
-        import('./templateStore'),
-        import('./companyRecognitionStore'),
-        import('./myCalendarStore'),
-      ])
-
-      const persistStores = [
-        projectMod.useProjectStore,
-        productionMod.default,
-        costMod.default,
-        enterpriseMod.default,
-        rfqMod.default,
-        contractMod.default,
-        procurementMod.default,
-        vendorMod.default,
-        auditorHubMod.default,
-        auditMod.default,
-        templateMod.useTemplateStore,
-        companyRecognitionMod.useCompanyRecognitionStore,
-        myCalendarMod.useMyCalendarStore,
-      ]
-      persistStores.forEach((store) => {
-        try { store?.persist?.rehydrate?.() } catch { /* silent */ }
-      })
-
-      // ── Manual stores — re-read from tenant-scoped localStorage ──
-      const [industryMod, serviceMod, featureMod, txMod, svcReqMod] = await Promise.all([
-        import('./industryStore'),
-        import('./serviceStore'),
-        import('../services/featureFlags'),
-        import('./transactionStore'),
-        import('./serviceRequestStore'),
-      ])
-
-      // industryStore
-      try {
-        const industries = JSON.parse(readTenantScopedRaw('strefex-selected-industries', '[]') || '[]')
-        const categories = JSON.parse(readTenantScopedRaw('strefex-selected-categories', '{}') || '{}')
-        industryMod.useIndustryStore.setState({ selectedIndustries: industries, selectedCategories: categories })
-      } catch { /* silent */ }
-
-      // serviceStore
-      try {
-        const services = JSON.parse(readTenantScopedRaw('strefex-selected-services', '[]') || '[]')
-        serviceMod.useServiceStore.setState({ selectedServices: services })
-      } catch { /* silent */ }
-
-      // subscriptionStore
-      try {
-        const sub = JSON.parse(readTenantScopedRaw('strefex-subscription', '{}') || '{}')
-        const auth = get()
-        const fallbackAccountType = String(
-          auth?.user?.primaryAccountType ||
-          auth?.user?.accountType ||
-          (Array.isArray(auth?.user?.accountTypes) ? auth.user.accountTypes[0] : '') ||
-          'seller'
-        ).toLowerCase()
-        featureMod.useSubscriptionStore.setState({
-          planId: sub.planId || 'start',
-          accountType: sub.accountType || fallbackAccountType,
-          status: sub.status || 'active',
-          trialEndsAt: sub.trialEndsAt || null,
-          overrides: sub.overrides || {},
-        })
-      } catch { /* silent */ }
-
-      // transactionStore — reload from tenant-scoped key
-      try {
-        const txData = JSON.parse(readTenantScopedRaw('strefex-transactions', '[]') || '[]')
-        txMod.useTransactionStore.setState({ transactions: txData })
-      } catch { /* silent */ }
-
-      // serviceRequestStore — reload from tenant-scoped key
-      try {
-        const store = svcReqMod.useServiceRequestStore.getState()
-        if (typeof store.refreshFromStorage === 'function') {
-          store.refreshFromStorage()
-        } else {
-          const reqKey = tenantKey('strefex-service-requests')
-          const notifKey = tenantKey('strefex-service-notifications')
-          const globalNotifKey = 'strefex-service-notifications-global'
-          const reqData = JSON.parse(localStorage.getItem(reqKey) || '[]')
-          const notifData = JSON.parse(localStorage.getItem(notifKey) || '[]')
-          const globalNotifData = JSON.parse(localStorage.getItem(globalNotifKey) || '[]')
-          svcReqMod.useServiceRequestStore.setState({
-            requests: reqData,
-            notifications: notifData,
-            globalNotifications: Array.isArray(globalNotifData) ? globalNotifData : [],
-          })
-        }
-      } catch { /* silent */ }
-
-    } catch (err) {
-      devWarn('tenant store rehydrate failed', err)
-    }
-
-    /* Cross-device workspace sync (Supabase) — after local tenant rehydrate */
-    try {
-      const m = await import('../services/workspaceCloudSync')
-      await m.bootstrapWorkspaceCloudSync()
-    } catch (err) {
-      devWarn('workspace cloud sync bootstrap skipped', err)
-    }
-  }, 0)
-}
-
 /* ── store ────────────────────────────────────────────────── */
 const stored = getStored()
 
@@ -240,7 +79,7 @@ export const useAuthStore = create((set, get) => ({
     const next = { isAuthenticated: true, role: safeRole, token, expiresAt, user, tenant }
     persist(next)
     set(next)
-    rehydrateAllTenantStores()
+    scheduleRehydrateTenantStores(get)
   },
 
   /** Update user profile without re-authenticating. */
@@ -261,9 +100,7 @@ export const useAuthStore = create((set, get) => ({
 
   /** Logout — clears session and rehydrates stores to 'guest' (empty) state. */
   logout: () => {
-    import('../services/workspaceCloudSync')
-      .then((m) => m.stopWorkspaceCloudSync())
-      .catch((err) => devWarn('workspace cloud sync stop skipped', err))
+    stopWorkspaceCloudSyncOnLogout()
     clear()
     set({
       isAuthenticated: false,
@@ -275,7 +112,7 @@ export const useAuthStore = create((set, get) => ({
     })
     // Rehydrate all stores — now tenantId becomes 'guest', so the stores
     // will load empty/default data instead of the previous user's data.
-    rehydrateAllTenantStores()
+    scheduleRehydrateTenantStores(get)
   },
 
   /* ── convenience helpers ───────────────────────────────── */

@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 4)  
+**Last updated:** 2026-05-20 (phase 5)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–4) | 28 |
+| Fixed (phase 1–5) | 33 |
 | Partially fixed | 5 |
-| Open / planned | 10+ |
+| Open / planned | 8+ |
 
 ---
 
@@ -64,7 +64,7 @@ npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v
+cd backend && DEBUG=true pytest tests/ -v   # expect 21 tests (phase 5)
 ```
 
 | Check | Last known result |
@@ -74,11 +74,24 @@ cd backend && DEBUG=true pytest tests/ -v
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | Run locally (Postgres required) |
+| Backend pytest | **CI** — 74 tests with Postgres (phase 5) |
 
 ---
 
-## Phase 3 — Fixed / in progress
+## Phase 5 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H9** | No tenant isolation tests | Cross-company project/user/me tests | `test_tenant_isolation.py`, `helpers.py` |
+| **H9** | Stripe webhook untested | Mocked webhook lifecycle tests | `test_billing_webhook.py` |
+| **M1*** | Rehydrate logic duplicated in authStore | Extracted `rehydrateTenantStores.js`; authStore imports module statically | `rehydrateTenantStores.js`, `authStore.js` |
+| **M6*** | Silent catch in projectStore sync | `devWarn` on workspace notify failure | `projectStore.js` |
+
+\*Partial — dynamic imports retained where required for circular-deps / lazy load.
+
+---
+
+## Phase 3 — Fixed
 
 | ID | Issue | Fix | Files |
 |----|-------|-----|-------|
@@ -111,10 +124,10 @@ cd backend && DEBUG=true pytest tests/ -v
 | **C2** | Dual tenant model | Deprecate `tenants` table; company-only APIs |
 | **H1** | JWT in `localStorage` | httpOnly cookie session |
 | **H4** | Rate limit single-process only | Redis/slowapi for multi-worker; add email verification |
-| **H5** | Billing in memory | Postgres + Stripe webhooks as source of truth |
+| **H5** | Billing in memory | Postgres + Stripe webhooks as source of truth (webhook handler tested; persistence TBD) |
 | **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
 | ~~**H8**~~ | ~~No ESLint in CI~~ | Done phase 4 — expand scope to full `src/` |
-| **H9** | Backend integration gaps | Register success test, tenant isolation, webhook tests |
+| ~~**H9**~~ | ~~Backend integration gaps~~ | Tenant isolation + webhook tests done phase 5 |
 | **H10** | Login UX for multi-company | ~~Frontend company slug field~~ done; Supabase multi-tenant UX TBD |
 | **npm** | `xlsx` vulnerability | Replace with maintained fork or server-side export (allowlist is temporary) |
 
@@ -122,7 +135,7 @@ cd backend && DEBUG=true pytest tests/ -v
 
 | ID | Issue | Plan |
 |----|-------|------|
-| **M1** | Redundant dynamic imports | Remove `import()` from stores also statically imported |
+| **M1** | Redundant dynamic imports | ~~Rehydrate extracted~~ done; projectStore→workspaceCloudSync cycle remains dynamic |
 | **M6** | Silent `.catch(() => {})` | ~~Auth bootstrap devWarn~~ done; user feedback on critical UI paths |
 | ~~**M8**~~ | ~~Thin integration tests~~ | Demo kit hook test done phase 3 |
 | **M10** | No JWT refresh | Refresh endpoint + rotation |
@@ -138,13 +151,13 @@ cd backend && DEBUG=true pytest tests/ -v
 
 ## Changed files (uncommitted)
 
-**Phase 4:** `eslint.config.js`, `scripts/lint-ci.mjs`, `src/utils/devLog.js`, `authStore.js`, `vite.config.js`, `ci.yml`, `package.json`, `docs/AUDIT_FIX_TRACKING.md`.
+**Phase 5:** `backend/tests/helpers.py`, `test_tenant_isolation.py`, `test_billing_webhook.py`, `src/store/rehydrateTenantStores.js`, `authStore.js`, `projectStore.js`, `docs/AUDIT_FIX_TRACKING.md`.
 
 Suggested commit:
 
 ```
-chore(audit): phase 4 — ESLint CI gate, dev logging, bundle split
+test(audit): phase 5 — tenant isolation, webhook tests, rehydrate module
 
-Replace noop tsc with scoped ESLint, add devWarn on auth bootstrap paths,
-and split Audit Pro pages into a dedicated Vite chunk.
+Add cross-company API integration tests, mocked Stripe webhook coverage,
+and extract tenant store rehydration from authStore.
 ```

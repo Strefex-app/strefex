@@ -3,13 +3,15 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit } from '../utils/companyGuard'
 
+import { devWarn } from '../utils/devLog'
+
 function syncProjectsCloudNow() {
   if (typeof window === 'undefined') return
   import('../services/workspaceCloudSync').then((m) => {
     if (typeof m.notifyWorkspaceKeyDirty === 'function') {
       m.notifyWorkspaceKeyDirty('projects', true)
     }
-  }).catch(() => {})
+  }).catch((err) => devWarn('workspace sync notify skipped', err))
 }
 
 // Helper to calculate duration in days
