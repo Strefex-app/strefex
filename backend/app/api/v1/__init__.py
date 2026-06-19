@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, billing, cost_transformation, example, projects, tenants, users, assets
+from app.api.v1 import auth, billing, cost_transformation, example, projects, users, assets
 from app.config import get_settings
 
 api_router = APIRouter()
@@ -13,7 +13,6 @@ api_router.include_router(assets.router, prefix="/assets", tags=["assets"])
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
 api_router.include_router(cost_transformation.router, prefix="/cti", tags=["cost-transformation"])
 
-# Legacy / demo routers — development only
+# Demo router — development only
 if settings.debug:
     api_router.include_router(example.router, prefix="/example", tags=["example-protected"])
-    api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])

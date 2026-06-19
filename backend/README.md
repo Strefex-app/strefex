@@ -29,15 +29,15 @@ alembic revision --autogenerate -m "Initial"
 alembic upgrade head
 ```
 
-(Optional) Seed a tenant and admin user via API or a small script using `tenant_repository.create` and `user_repository.create`.
+(Optional) Create a company and admin via `POST /api/v1/auth/register` with `company_name`.
 
 ## API
 
 - `POST /api/v1/auth/login` — Login (email, password, optional tenant_slug).
+- `POST /api/v1/auth/register` — Register (requires `company_name`; creator becomes admin).
 - `GET /api/v1/auth/me` — Current user (Bearer token).
-- `GET/POST /api/v1/users` — List/create users (tenant-scoped; Admin).
+- `GET/POST /api/v1/users` — List/create users (company-scoped; Admin).
 - `GET/PATCH/DELETE /api/v1/users/{id}` — User CRUD (Admin for write).
-- `GET/POST /api/v1/tenants` — List/create tenants (Admin).
-- `GET/PATCH /api/v1/tenants/{id}` — Tenant CRUD.
+- `GET/POST /api/v1/projects`, `/assets`, `/billing/*` — Company-scoped modules.
 
-All tenant-scoped data is isolated by `tenant_id` from the JWT.
+All tenant-scoped data is isolated by `tenant_id` (company UUID) from the JWT.

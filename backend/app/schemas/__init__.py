@@ -1,6 +1,5 @@
 from app.schemas.auth import LoginRequest, LoginResponse, TokenResponse, UserInResponse, TenantInResponse
 from app.schemas.user import UserBase, UserCreate, UserUpdate, UserInDB, UserResponse
-from app.schemas.tenant import TenantBase, TenantCreate, TenantUpdate, TenantResponse
 from app.schemas.common import UuidStr
 from app.schemas.company import CompanyBase, CompanyCreate, CompanyUpdate, CompanyRead
 from app.schemas.role import RoleBase, RoleCreate, RoleUpdate, RoleRead
@@ -29,10 +28,6 @@ __all__ = [
     "UserUpdate",
     "UserInDB",
     "UserResponse",
-    "TenantBase",
-    "TenantCreate",
-    "TenantUpdate",
-    "TenantResponse",
     "UuidStr",
     "CompanyBase",
     "CompanyCreate",

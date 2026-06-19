@@ -8,9 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.config import get_settings
-from app.models.base import Base
-from app.models.tenant import Tenant
-from app.models.user import User
+from app.models import Base  # noqa: F401 — registers all models on Base.metadata
 
 config = context.config
 if config.config_file_name is not None:
@@ -18,7 +16,6 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 settings = get_settings()
-# Sync URL for offline mode (no async driver)
 sync_url = settings.database_url.replace("+asyncpg", "")
 config.set_main_option("sqlalchemy.url", sync_url)
 

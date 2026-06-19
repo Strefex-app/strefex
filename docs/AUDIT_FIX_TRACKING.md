@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 6)  
+**Last updated:** 2026-05-20 (phase 7)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–6) | 36 |
+| Fixed (phase 1–7) | 40 |
 | Partially fixed | 5 |
-| Open / planned | 7+ |
+| Open / planned | 6+ |
 
 ---
 
@@ -64,7 +64,7 @@ npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 24 tests (phase 6)
+cd backend && DEBUG=true pytest tests/ -v   # expect 26 tests (phase 7)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,30 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 24 tests (phase 6)
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 21 tests with Postgres (phase 5) |
+| Backend pytest | **CI** — 26 tests with Postgres (phase 7) |
+
+---
+
+## Phase 7 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **C2** | Dual tenant model | Migration `003` migrates orphan rows + drops `tenants`; removed legacy API/ORM | `003_drop_tenants_table.py`, deleted tenant model/repo/routes |
+| **C2** | Legacy `/tenants` API | Router removed (404); frontend `tenantsApi` removed | `api/v1/__init__.py`, `api.js` |
+| **C2** | Deprecation docs | Updated completion status | `TENANT_DEPRECATION.md`, `backend/README.md` |
+| **TEST** | Regression guard | `test_tenant_deprecation.py` — 404 on `/tenants`, register still works | `test_tenant_deprecation.py` |
+
+Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied).
+
+---
+
+## Phase 6 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H5** | Billing subscriptions in memory | `company_subscriptions` table + repository; all billing endpoints + webhooks use Postgres | `models/subscription.py`, `repositories/subscription.py`, `services/billing_subscription.py`, `billing.py`, `002_company_subscriptions.py` |
+| **H5** | Billing schemas mixed with routes | Extracted `schemas/billing.py` | `schemas/billing.py` |
+| **H5** | Persistence untested | Default plan, trial, payment_failed webhook tests | `test_billing_persistence.py`, `test_billing_webhook.py` |
 
 ---
 
@@ -121,10 +144,10 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 24 tests (phase 6)
 
 | ID | Issue | Plan |
 |----|-------|------|
-| **C2** | Dual tenant model | Deprecate `tenants` table; company-only APIs |
+| ~~**C2**~~ | ~~Dual tenant model~~ | Done phase 7 — `companies` only; migration `003` |
 | **H1** | JWT in `localStorage` | httpOnly cookie session |
 | **H4** | Rate limit single-process only | Redis/slowapi for multi-worker; add email verification |
-| **H5** | Billing in memory | Postgres + Stripe webhooks as source of truth (webhook handler tested; persistence TBD) |
+| ~~**H5**~~ | ~~Billing in memory~~ | Done phase 6 — Postgres `company_subscriptions`; run `alembic upgrade head` on deploy |
 | **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
 | ~~**H8**~~ | ~~No ESLint in CI~~ | Done phase 4 — expand scope to full `src/` |
 | ~~**H9**~~ | ~~Backend integration gaps~~ | Tenant isolation + webhook tests done phase 5 |
@@ -151,13 +174,13 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 24 tests (phase 6)
 
 ## Changed files (uncommitted)
 
-**Phase 5:** `backend/tests/helpers.py`, `test_tenant_isolation.py`, `test_billing_webhook.py`, `src/store/rehydrateTenantStores.js`, `authStore.js`, `projectStore.js`, `docs/AUDIT_FIX_TRACKING.md`.
+**Phase 7:** `003_drop_tenants_table.py`, removed tenant model/API/schemas, `test_tenant_deprecation.py`, `TENANT_DEPRECATION.md`, `api.js`, `docs/AUDIT_FIX_TRACKING.md`.
 
 Suggested commit:
 
 ```
-test(audit): phase 5 — tenant isolation, webhook tests, rehydrate module
+refactor(tenant): phase 7 — drop legacy tenants table and API
 
-Add cross-company API integration tests, mocked Stripe webhook coverage,
-and extract tenant store rehydration from authStore.
+Migrate orphan tenant slugs to companies, drop tenants table, remove dead
+ORM/routes/frontend client, and add deprecation regression tests.
 ```

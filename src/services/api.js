@@ -136,15 +136,6 @@ export const usersApi = {
   delete: (id)             => api.delete(`/users/${id}`),
 }
 
-/* ── Tenant endpoints ────────────────────────────────────── */
-
-export const tenantsApi = {
-  list:   (params = {})    => api.get(`/tenants?${new URLSearchParams(params)}`),
-  get:    (id)             => api.get(`/tenants/${id}`),
-  create: (data)           => api.post('/tenants', data),
-  update: (id, data)       => api.patch(`/tenants/${id}`, data),
-}
-
 /* ── Project endpoints ───────────────────────────────────── */
 
 export const projectsApi = {
