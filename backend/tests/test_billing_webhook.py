@@ -5,19 +5,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.subscription import subscription_repository
 from tests.helpers import bearer, register_company_user
-
-
-@pytest.fixture(autouse=True)
-def clear_billing_memory():
-    from app.api.v1 import billing
-
-    billing._subscriptions.clear()
-    billing._stripe_customers.clear()
-    yield
-    billing._subscriptions.clear()
-    billing._stripe_customers.clear()
 
 
 @pytest.fixture
@@ -51,7 +42,7 @@ async def test_webhook_checkout_completed_upgrades_plan(
     client: AsyncClient,
     stripe_webhook_ready,
 ):
-    """checkout.session.completed sets tenant subscription plan from metadata."""
+    """checkout.session.completed persists plan upgrade in Postgres."""
     reg = await register_company_user(client, company_name=f"Billing Co {uuid.uuid4().hex[:6]}")
     tenant_id = reg["tenant"]["id"]
 
@@ -80,12 +71,18 @@ async def test_webhook_checkout_completed_upgrades_plan(
 async def test_webhook_subscription_deleted_downgrades_to_start(
     client: AsyncClient,
     stripe_webhook_ready,
+    db_session: AsyncSession,
 ):
-    """customer.subscription.deleted resets tenant to free start plan."""
+    """customer.subscription.deleted resets tenant to free start plan in DB."""
     reg = await register_company_user(client, company_name=f"Churn Co {uuid.uuid4().hex[:6]}")
     tenant_id = reg["tenant"]["id"]
 
-    stripe_webhook_ready._set_sub(tenant_id, plan_id="standard", status="active")
+    await subscription_repository.update(
+        db_session,
+        uuid.UUID(tenant_id),
+        plan_id="standard",
+        status="active",
+    )
 
     event = _webhook_payload(
         "customer.subscription.deleted",
@@ -105,6 +102,40 @@ async def test_webhook_subscription_deleted_downgrades_to_start(
     body = sub_resp.json()
     assert body["plan_id"] == "start"
     assert body["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_webhook_payment_failed_marks_past_due(
+    client: AsyncClient,
+    stripe_webhook_ready,
+    db_session: AsyncSession,
+):
+    """invoice.payment_failed looks up tenant by stripe_customer_id in DB."""
+    reg = await register_company_user(client, company_name=f"PastDue Co {uuid.uuid4().hex[:6]}")
+    tenant_id = uuid.UUID(reg["tenant"]["id"])
+    customer_id = "cus_test_pastdue"
+
+    await subscription_repository.update(
+        db_session,
+        tenant_id,
+        plan_id="basic",
+        status="active",
+        stripe_customer_id=customer_id,
+    )
+
+    event = _webhook_payload("invoice.payment_failed", {"customer": customer_id})
+    resp = await client.post(
+        "/api/v1/billing/webhook",
+        content=json.dumps(event).encode(),
+        headers={"stripe-signature": "test_sig"},
+    )
+    assert resp.status_code == 200
+
+    sub_resp = await client.get(
+        "/api/v1/billing/subscription",
+        headers=bearer(reg["access_token"]),
+    )
+    assert sub_resp.json()["status"] == "past_due"
 
 
 @pytest.mark.asyncio

@@ -3,18 +3,27 @@ Billing / Subscription endpoints — Stripe integration.
 
 4 tiers: start (free), basic ($10/mo), standard ($50/mo), premium ($200/mo).
 Handles: plans, subscriptions, checkout, portal, webhooks, customer creation.
+Subscription state is persisted in PostgreSQL (company_subscriptions).
 """
 import os
-import uuid
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, CurrentTenant, get_db
+from app.repositories.subscription import subscription_repository
+from app.schemas.billing import (
+    CheckoutRequest,
+    CheckoutResponse,
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+    PlanOut,
+    PortalResponse,
+    SubscriptionOut,
+)
+from app.services.billing_subscription import get_subscription_out, update_subscription
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -30,45 +39,6 @@ except ImportError:
     stripe = None
     STRIPE_WEBHOOK_SECRET = ""
 
-
-# ── Schemas ──────────────────────────────────────────────────
-
-class PlanOut(BaseModel):
-    id: str
-    name: str
-    price: float
-    interval: str
-    tier: int
-    features: list[str]
-
-class CheckoutRequest(BaseModel):
-    plan_id: str
-
-class CheckoutResponse(BaseModel):
-    session_id: str
-
-class CreateSubscriptionRequest(BaseModel):
-    plan_id: str
-    payment_method_id: str
-
-class CreateSubscriptionResponse(BaseModel):
-    subscription_id: str
-    status: str
-    client_secret: str | None = None
-
-class PortalResponse(BaseModel):
-    url: str
-
-class SubscriptionOut(BaseModel):
-    plan_id: str
-    status: str
-    current_period_end: str | None = None
-    cancel_at_period_end: bool = False
-    trial_ends_at: str | None = None
-
-
-# ── Plan definitions (4 tiers: start, basic, standard, premium) ─
-# Seller plans start from Free. Buyer plans start from Basic (different prices).
 
 PLANS = [
     PlanOut(id="start", name="Free (Seller)", price=0, interval="month", tier=0, features=[
@@ -97,45 +67,26 @@ STRIPE_PRICE_IDS: dict[str, str] = {
 }
 
 
-# ── In-memory subscription store (replace with DB table in production) ─
-
-_subscriptions: dict[str, dict] = {}  # tenant_id -> subscription data
-_stripe_customers: dict[str, str] = {}  # tenant_id -> stripe_customer_id
-
-
-def _get_sub(tenant_id: str) -> dict:
-    return _subscriptions.get(tenant_id, {
-        "plan_id": "start",
-        "status": "active",
-        "current_period_end": None,
-        "cancel_at_period_end": False,
-        "trial_ends_at": None,
-    })
-
-
-def _set_sub(tenant_id: str, **kwargs):
-    current = _get_sub(tenant_id)
-    current.update(kwargs)
-    _subscriptions[tenant_id] = current
-    logger.info(f"[Billing] Subscription updated for tenant {tenant_id}: {current}")
-
-
-async def _get_or_create_stripe_customer(tenant_id: str, email: str, name: str = None) -> str:
-    """Get or create a Stripe Customer mapped to a tenant."""
-    if tenant_id in _stripe_customers:
-        return _stripe_customers[tenant_id]
+async def _get_or_create_stripe_customer(
+    db: AsyncSession,
+    company_id,
+    email: str,
+    name: str | None = None,
+) -> str:
+    """Get or create a Stripe Customer mapped to a company; persist customer id."""
+    sub = await subscription_repository.get_or_create(db, company_id)
+    if sub.stripe_customer_id:
+        return sub.stripe_customer_id
     if not STRIPE_CONFIGURED:
         raise HTTPException(status_code=503, detail="Stripe not configured")
     customer = stripe.Customer.create(
         email=email,
         name=name or email,
-        metadata={"tenant_id": tenant_id},
+        metadata={"tenant_id": str(company_id)},
     )
-    _stripe_customers[tenant_id] = customer.id
+    await subscription_repository.update(db, company_id, stripe_customer_id=customer.id)
     return customer.id
 
-
-# ── Endpoints ────────────────────────────────────────────────
 
 @router.get("/plans", response_model=list[PlanOut])
 async def list_plans():
@@ -147,37 +98,34 @@ async def list_plans():
 async def get_subscription(
     current_user: CurrentUser = None,
     tenant: CurrentTenant = None,
+    db: AsyncSession = Depends(get_db),
 ):
     """Get current subscription for the authenticated tenant."""
-    sub = _get_sub(str(tenant.tenant_id))
-
-    # Check trial expiry
-    if sub.get("status") == "trialing" and sub.get("trial_ends_at"):
-        trial_end = datetime.fromisoformat(sub["trial_ends_at"])
-        if trial_end < datetime.now(timezone.utc):
-            _set_sub(str(tenant.tenant_id), plan_id="start", status="active", trial_ends_at=None)
-            sub = _get_sub(str(tenant.tenant_id))
-
-    return SubscriptionOut(**sub)
+    return await get_subscription_out(db, tenant.tenant_id)
 
 
 @router.post("/trial")
 async def start_trial(
     current_user: CurrentUser = None,
     tenant: CurrentTenant = None,
+    db: AsyncSession = Depends(get_db),
 ):
     """Start a 14-day free trial of premium features."""
-    tid = str(tenant.tenant_id)
-    current = _get_sub(tid)
-    if current.get("status") == "trialing":
+    sub = await subscription_repository.get_or_create(db, tenant.tenant_id)
+    if sub.status == "trialing":
         raise HTTPException(status_code=400, detail="Trial already active")
-    if current.get("plan_id") not in ("start", "free"):
+    if sub.plan_id not in ("start", "free"):
         raise HTTPException(status_code=400, detail="Already on a paid plan")
 
-    from datetime import timedelta
-    trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
-    _set_sub(tid, plan_id="premium", status="trialing", trial_ends_at=trial_end)
-    return {"status": "trialing", "trial_ends_at": trial_end}
+    trial_end = datetime.now(timezone.utc) + timedelta(days=14)
+    await update_subscription(
+        db,
+        tenant.tenant_id,
+        plan_id="premium",
+        status="trialing",
+        trial_ends_at=trial_end,
+    )
+    return {"status": "trialing", "trial_ends_at": trial_end.isoformat()}
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
@@ -185,6 +133,7 @@ async def create_checkout(
     payload: CheckoutRequest,
     current_user: CurrentUser = None,
     tenant: CurrentTenant = None,
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a Stripe Checkout Session for plan upgrade."""
     if not STRIPE_CONFIGURED:
@@ -196,8 +145,7 @@ async def create_checkout(
 
     tid = str(tenant.tenant_id)
     customer_id = await _get_or_create_stripe_customer(
-        tid, current_user.email,
-        current_user.full_name,
+        db, tenant.tenant_id, current_user.email, current_user.full_name,
     )
 
     try:
@@ -225,6 +173,7 @@ async def create_subscription(
     payload: CreateSubscriptionRequest,
     current_user: CurrentUser = None,
     tenant: CurrentTenant = None,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Create a Stripe subscription directly using a PaymentMethod ID.
@@ -239,19 +188,16 @@ async def create_subscription(
 
     tid = str(tenant.tenant_id)
     customer_id = await _get_or_create_stripe_customer(
-        tid, current_user.email, current_user.full_name,
+        db, tenant.tenant_id, current_user.email, current_user.full_name,
     )
 
     try:
-        # Attach the payment method to the customer
         stripe.PaymentMethod.attach(payload.payment_method_id, customer=customer_id)
-        # Set as default payment method
         stripe.Customer.modify(
             customer_id,
             invoice_settings={"default_payment_method": payload.payment_method_id},
         )
 
-        # Create the subscription
         subscription = stripe.Subscription.create(
             customer=customer_id,
             items=[{"price": price_id}],
@@ -263,15 +209,19 @@ async def create_subscription(
         client_secret = None
 
         if sub_status == "active":
-            # Payment succeeded immediately
-            _set_sub(tid, plan_id=payload.plan_id, status="active", trial_ends_at=None)
+            await update_subscription(
+                db,
+                tenant.tenant_id,
+                plan_id=payload.plan_id,
+                status="active",
+                trial_ends_at=None,
+                stripe_subscription_id=subscription.id,
+            )
         elif sub_status == "incomplete":
-            # Requires additional authentication (3D Secure / SCA)
             payment_intent = subscription.latest_invoice.payment_intent
             if payment_intent and payment_intent.status == "requires_action":
                 client_secret = payment_intent.client_secret
             else:
-                # Other incomplete reason
                 logger.warning(f"[Billing] Subscription incomplete for tenant {tid}: {payment_intent}")
 
         return CreateSubscriptionResponse(
@@ -291,25 +241,28 @@ async def create_subscription(
 async def create_portal(
     current_user: CurrentUser = None,
     tenant: CurrentTenant = None,
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a Stripe Customer Portal session for managing billing."""
     if not STRIPE_CONFIGURED:
         raise HTTPException(status_code=503, detail="Stripe is not configured")
 
-    tid = str(tenant.tenant_id)
-    customer_id = _stripe_customers.get(tid)
-    if not customer_id:
+    sub = await subscription_repository.get_or_create(db, tenant.tenant_id)
+    if not sub.stripe_customer_id:
         raise HTTPException(status_code=400, detail="No billing account found. Subscribe to a plan first.")
 
     session = stripe.billing_portal.Session.create(
-        customer=customer_id,
+        customer=sub.stripe_customer_id,
         return_url=os.getenv("FRONTEND_URL", "http://localhost:5173") + "/plans",
     )
     return PortalResponse(url=session.url)
 
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Stripe webhook handler — processes subscription lifecycle events.
     """
@@ -334,32 +287,56 @@ async def stripe_webhook(request: Request):
         tenant_id = data.get("metadata", {}).get("tenant_id")
         plan_id = data.get("metadata", {}).get("plan_id")
         if tenant_id and plan_id:
-            _set_sub(tenant_id, plan_id=plan_id, status="active", trial_ends_at=None)
+            await update_subscription(
+                db,
+                tenant_id,
+                plan_id=plan_id,
+                status="active",
+                trial_ends_at=None,
+            )
             logger.info(f"[Billing] Tenant {tenant_id} upgraded to {plan_id}")
 
     elif event_type == "customer.subscription.updated":
         tenant_id = data.get("metadata", {}).get("tenant_id")
-        status = data.get("status", "active")
+        sub_status = data.get("status", "active")
         cancel_at = data.get("cancel_at_period_end", False)
         period_end = data.get("current_period_end")
-        period_end_iso = datetime.fromtimestamp(period_end, tz=timezone.utc).isoformat() if period_end else None
+        period_end_dt = (
+            datetime.fromtimestamp(period_end, tz=timezone.utc) if period_end else None
+        )
         if tenant_id:
-            _set_sub(tenant_id, status=status, cancel_at_period_end=cancel_at, current_period_end=period_end_iso)
+            await update_subscription(
+                db,
+                tenant_id,
+                status=sub_status,
+                cancel_at_period_end=cancel_at,
+                current_period_end=period_end_dt,
+                stripe_subscription_id=data.get("id"),
+            )
 
     elif event_type == "customer.subscription.deleted":
         tenant_id = data.get("metadata", {}).get("tenant_id")
         if tenant_id:
-            _set_sub(tenant_id, plan_id="start", status="active", cancel_at_period_end=False,
-                     current_period_end=None, trial_ends_at=None)
+            await update_subscription(
+                db,
+                tenant_id,
+                plan_id="start",
+                status="active",
+                cancel_at_period_end=False,
+                current_period_end=None,
+                trial_ends_at=None,
+                stripe_subscription_id=None,
+            )
             logger.info(f"[Billing] Tenant {tenant_id} downgraded to start (subscription deleted)")
 
     elif event_type == "invoice.payment_failed":
         customer_id = data.get("customer")
-        # Find tenant by customer_id
-        for tid, cid in _stripe_customers.items():
-            if cid == customer_id:
-                _set_sub(tid, status="past_due")
-                logger.warning(f"[Billing] Tenant {tid} payment failed — marked past_due")
-                break
+        if customer_id:
+            sub = await subscription_repository.get_by_stripe_customer_id(db, customer_id)
+            if sub:
+                await update_subscription(db, sub.company_id, status="past_due")
+                logger.warning(
+                    f"[Billing] Tenant {sub.company_id} payment failed — marked past_due"
+                )
 
     return {"status": "ok"}

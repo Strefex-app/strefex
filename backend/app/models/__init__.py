@@ -7,6 +7,7 @@ from app.models.project import Project
 from app.models.asset import Asset
 from app.models.audit import Audit
 from app.models.rfq import Rfq, RfqLineItem
+from app.models.subscription import CompanySubscription
 
 __all__ = [
     "Base",
@@ -20,4 +21,5 @@ __all__ = [
     "Audit",
     "Rfq",
     "RfqLineItem",
+    "CompanySubscription",
 ]

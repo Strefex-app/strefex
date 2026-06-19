@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 5)  
+**Last updated:** 2026-05-20 (phase 6)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–5) | 33 |
+| Fixed (phase 1–6) | 36 |
 | Partially fixed | 5 |
-| Open / planned | 8+ |
+| Open / planned | 7+ |
 
 ---
 
@@ -64,7 +64,7 @@ npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 21 tests (phase 5)
+cd backend && DEBUG=true pytest tests/ -v   # expect 24 tests (phase 6)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,7 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 21 tests (phase 5)
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 74 tests with Postgres (phase 5) |
+| Backend pytest | **CI** — 21 tests with Postgres (phase 5) |
 
 ---
 

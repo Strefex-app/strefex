@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.asset import Asset
     from app.models.audit import Audit
     from app.models.rfq import Rfq
+    from app.models.subscription import CompanySubscription
 
 
 class Company(Base, UUIDMixin, TimestampMixin):
@@ -28,6 +29,12 @@ class Company(Base, UUIDMixin, TimestampMixin):
     assets: Mapped[list["Asset"]] = relationship("Asset", back_populates="company", lazy="selectin")
     audits: Mapped[list["Audit"]] = relationship("Audit", back_populates="company", lazy="selectin")
     rfqs: Mapped[list["Rfq"]] = relationship("Rfq", back_populates="company", lazy="selectin")
+    subscription: Mapped["CompanySubscription | None"] = relationship(
+        "CompanySubscription",
+        back_populates="company",
+        uselist=False,
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
         return f"<Company {self.slug}>"
