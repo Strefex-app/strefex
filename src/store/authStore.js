@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devWarn } from '../utils/devLog'
 import { getLegacyTenantIds, tenantKey } from '../utils/tenantStorage'
 import { isSuperadminEmail } from '../services/superadminAuth'
 
@@ -196,14 +197,16 @@ const rehydrateAllTenantStores = () => {
         }
       } catch { /* silent */ }
 
-    } catch { /* silent — defensive against import failures */ }
+    } catch (err) {
+      devWarn('tenant store rehydrate failed', err)
+    }
 
     /* Cross-device workspace sync (Supabase) — after local tenant rehydrate */
     try {
       const m = await import('../services/workspaceCloudSync')
       await m.bootstrapWorkspaceCloudSync()
-    } catch {
-      /* offline / init race */
+    } catch (err) {
+      devWarn('workspace cloud sync bootstrap skipped', err)
     }
   }, 0)
 }
@@ -260,7 +263,7 @@ export const useAuthStore = create((set, get) => ({
   logout: () => {
     import('../services/workspaceCloudSync')
       .then((m) => m.stopWorkspaceCloudSync())
-      .catch(() => {})
+      .catch((err) => devWarn('workspace cloud sync stop skipped', err))
     clear()
     set({
       isAuthenticated: false,

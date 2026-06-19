@@ -24,17 +24,22 @@ export default defineConfig({
     /* Split vendor libraries into separate cacheable chunks */
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-zustand': ['zustand'],
-          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
-          'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
-          'vendor-pdf': ['jspdf', 'html2canvas'],
-          'vendor-maps': ['react-simple-maps'],
-          'vendor-sentry': ['@sentry/react'],
-          'vendor-xlsx': ['xlsx'],
-          'vendor-ocr': ['tesseract.js', 'tesseract.js-core'],
-          'vendor-heic': ['heic2any'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-router') || /\/react-dom\//.test(id) || /\/react\//.test(id)) {
+              return 'vendor-react'
+            }
+            if (id.includes('zustand')) return 'vendor-zustand'
+            if (id.includes('firebase')) return 'vendor-firebase'
+            if (id.includes('@stripe')) return 'vendor-stripe'
+            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf'
+            if (id.includes('react-simple-maps') || id.includes('d3-geo')) return 'vendor-maps'
+            if (id.includes('@sentry')) return 'vendor-sentry'
+            if (id.includes('/xlsx/')) return 'vendor-xlsx'
+            if (id.includes('tesseract')) return 'vendor-ocr'
+            if (id.includes('heic2any')) return 'vendor-heic'
+          }
+          if (id.includes('/src/pages/auditPro/')) return 'audit-pro-pages'
         },
       },
     },

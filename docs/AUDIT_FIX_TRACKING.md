@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-06-17 (phase 2)  
+**Last updated:** 2026-05-20 (phase 4)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,9 +9,9 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1 + 2) | 22 |
+| Fixed (phase 1–4) | 28 |
 | Partially fixed | 5 |
-| Open / planned | 12+ |
+| Open / planned | 10+ |
 
 ---
 
@@ -59,8 +59,9 @@
 Run locally (agent shell timeouts prevented re-run here):
 
 ```bash
-npm test                    # expect 59 tests (56 + 3 superadminAuth)
-npm run build               # expect success
+npm test                    # expect 64+ tests
+npm run lint:ci             # scoped ESLint gate (phase 4)
+npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
 cd backend && DEBUG=true pytest tests/ -v
@@ -89,6 +90,18 @@ cd backend && DEBUG=true pytest tests/ -v
 
 ---
 
+## Phase 4 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H8** | No ESLint in CI | Flat ESLint 9 config + scoped `lint:ci` gate; removed noop `tsc` step | `eslint.config.js`, `scripts/lint-ci.mjs`, `ci.yml`, `package.json` |
+| **M6*** | Silent `.catch(() => {})` on auth bootstrap | `devWarn` in dev for tenant rehydrate + workspace sync + logout | `src/utils/devLog.js`, `authStore.js` |
+| **H6*** | Main chunk still large | Function-based `manualChunks`; Audit Pro pages → `audit-pro-pages` | `vite.config.js` |
+
+\*Partial — expand ESLint scope and replace remaining silent catches gradually.
+
+---
+
 ## Still open — plan
 
 ### Critical / High
@@ -99,8 +112,8 @@ cd backend && DEBUG=true pytest tests/ -v
 | **H1** | JWT in `localStorage` | httpOnly cookie session |
 | **H4** | Rate limit single-process only | Redis/slowapi for multi-worker; add email verification |
 | **H5** | Billing in memory | Postgres + Stripe webhooks as source of truth |
-| **H6** | Main chunk still ~1.1 MB | Route-level lazy loading; trim static store imports (M1) |
-| **H8** | No ESLint in CI | Add ESLint; fix/remove noop `tsc` step |
+| **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
+| ~~**H8**~~ | ~~No ESLint in CI~~ | Done phase 4 — expand scope to full `src/` |
 | **H9** | Backend integration gaps | Register success test, tenant isolation, webhook tests |
 | **H10** | Login UX for multi-company | ~~Frontend company slug field~~ done; Supabase multi-tenant UX TBD |
 | **npm** | `xlsx` vulnerability | Replace with maintained fork or server-side export (allowlist is temporary) |
@@ -110,8 +123,8 @@ cd backend && DEBUG=true pytest tests/ -v
 | ID | Issue | Plan |
 |----|-------|------|
 | **M1** | Redundant dynamic imports | Remove `import()` from stores also statically imported |
-| **M6** | Silent `.catch(() => {})` | Log + user feedback on critical paths |
-| **M8** | Thin integration tests | Audit Pro demo kit hook test |
+| **M6** | Silent `.catch(() => {})` | ~~Auth bootstrap devWarn~~ done; user feedback on critical UI paths |
+| ~~**M8**~~ | ~~Thin integration tests~~ | Demo kit hook test done phase 3 |
 | **M10** | No JWT refresh | Refresh endpoint + rotation |
 | **M12** | Vite esbuild deprecation | Migrate to oxc when stable |
 
@@ -125,13 +138,13 @@ cd backend && DEBUG=true pytest tests/ -v
 
 ## Changed files (uncommitted)
 
-**Phase 1 + 2:** 22 modified, 6 new — see `git status`.
+**Phase 4:** `eslint.config.js`, `scripts/lint-ci.mjs`, `src/utils/devLog.js`, `authStore.js`, `vite.config.js`, `ci.yml`, `package.json`, `docs/AUDIT_FIX_TRACKING.md`.
 
 Suggested commit:
 
 ```
-fix(security): audit remediation — auth, bundles, CI audit gate
+chore(audit): phase 4 — ESLint CI gate, dev logging, bundle split
 
-Require company on register, rate-limit auth, multi-company login hints,
-lazy xlsx loading, npm audit CI allowlist, and security test coverage.
+Replace noop tsc with scoped ESLint, add devWarn on auth bootstrap paths,
+and split Audit Pro pages into a dedicated Vite chunk.
 ```
