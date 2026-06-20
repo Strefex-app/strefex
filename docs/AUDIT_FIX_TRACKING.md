@@ -64,7 +64,7 @@ npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 44 tests (phase 10)
+cd backend && DEBUG=true pytest tests/ -v   # expect 43 tests (phase 10)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,7 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 44 tests (phase 10)
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 44 tests with Postgres + Redis (phase 10) |
+| Backend pytest | **CI** — 43 tests with Postgres + Redis (phase 10) |
 
 ---
 
@@ -86,7 +86,7 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 44 tests (phase 10)
 | **H4\*** | Register auto-login when verification required | `RegisterResponse` with `email_verification_pending`; no cookies until verified | `auth.py`, `schemas/auth.py` |
 | **H4\*** | Token never expired | `email_verification_sent_at` + enforce `EMAIL_VERIFICATION_EXPIRE_HOURS` | `005_*.py`, `email_verification.py` |
 | **OPS** | No go-live checklist | Comprehensive deployment + security audit doc | `docs/DEPLOYMENT_AUDIT.md` |
-| **TEST** | Verify flow coverage | `verifyEmail.test.js`, extended `test_email_verification.py` | +3 backend, +2 frontend tests |
+| **TEST** | Verify flow coverage | `verifyEmail.test.js`, extended `test_email_verification.py` | 67 frontend + 43 backend tests |
 
 \*SMTP delivery still DEBUG-only — use Supabase confirmation in production until SMTP is wired.
 

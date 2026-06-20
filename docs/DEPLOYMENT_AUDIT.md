@@ -33,7 +33,7 @@ STREFEX is a **Vite + React SPA** (Vercel or static host) with:
 | B2 | Frontend tests | `npm test` (expect **67** tests) | ☐ |
 | B3 | Frontend lint + build | `npm run lint:ci && npm run build` | ☐ |
 | B4 | npm audit (allowlisted) | `npm run audit:ci` | ☐ |
-| B5 | Backend tests | `cd backend && DEBUG=true pytest tests/ -v` (Postgres + Redis; expect **44+**) | ☐ |
+| B5 | Backend tests | `cd backend && DEBUG=true pytest tests/ -v` (Postgres + Redis; expect **43+**) | ☐ |
 | B6 | Route audit | `node scripts/route-audit.mjs` → 0 unresolved | ☐ |
 | B7 | DB migrations applied | `cd backend && alembic upgrade head` (through **005**) | ☐ |
 | B8 | Supabase migrations applied | All SQL in `supabase/migrations/` on remote project | ☐ |
