@@ -22,6 +22,7 @@ import { syncDomTheme } from './theme/syncDomTheme'
 import {
   Login,
   Register,
+  VerifyEmail,
   SubscriptionPlans,
   TeamManagement,
   Home,
@@ -318,6 +319,7 @@ function App() {
           {/* ── Public ────────────────────────────────────── */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* ── Core pages ────────────────────────────────── */}
           <Route path="/main-menu" element={<P><Home /></P>} />

@@ -19,6 +19,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Redis (optional — shared rate limits across workers) ───
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── FastAPI Backend ─────────────────────────────────────────
   backend:
     build:
@@ -41,6 +53,7 @@ services:
       STRIPE_PRICE_STANDARD: ${STRIPE_PRICE_STANDARD:-}
       STRIPE_PRICE_PREMIUM: ${STRIPE_PRICE_PREMIUM:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

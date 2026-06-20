@@ -639,6 +639,11 @@ const authService = {
       storeSession(response)
       return response
     } catch (err) {
+      if (err?.status === 403 && String(err.detail || err.message).toLowerCase().includes('verify')) {
+        const verifyErr = new Error(err.detail || 'Please verify your email before logging in.')
+        verifyErr.code = 'email_not_confirmed'
+        throw verifyErr
+      }
       if (err?.status === 404) {
         const configErr = new Error(
           env.IS_PROD
@@ -878,6 +883,19 @@ const authService = {
         company_name: company,
         selected_plan: selectedPlan,
       })
+      if (response?.email_verification_pending) {
+        analytics.track('user_register', {
+          method: isFirebaseConfigured ? 'firebase' : 'direct',
+          role: response.user?.role,
+          plan: selectedPlan,
+          awaitingConfirmation: true,
+        })
+        return {
+          user: response.user,
+          tenant: response.tenant,
+          emailConfirmationPending: true,
+        }
+      }
       storeSession(response)
       analytics.track('user_register', {
         method: isFirebaseConfigured ? 'firebase' : 'direct',
@@ -1030,7 +1048,16 @@ const authService = {
       await supabaseAuth.resendSignupConfirmation(normalizedEmail)
       return { sent: true }
     }
-    throw new Error('Email confirmation resend is only available with Supabase auth configuration.')
+    await authApi.resendVerification(normalizedEmail)
+    return { sent: true }
+  },
+
+  async verifyEmail(token) {
+    const trimmed = String(token || '').trim()
+    if (!trimmed) {
+      throw new Error('Verification token is missing.')
+    }
+    return authApi.verifyEmail(trimmed)
   },
 
   /**

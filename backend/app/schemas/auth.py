@@ -20,6 +20,15 @@ class LoginResponse(BaseModel):
     tenant: "TenantInResponse | None" = None
 
 
+class RegisterResponse(BaseModel):
+    """Register may complete immediately or wait for email verification."""
+    email_verification_pending: bool = False
+    access_token: str | None = None
+    token_type: str = "bearer"
+    user: "UserInResponse"
+    tenant: "TenantInResponse | None" = None
+
+
 # Avoid circular import by using forward refs or defining here
 class UserInResponse(BaseModel):
     id: str
@@ -52,3 +61,4 @@ class TenantInResponse(BaseModel):
 
 
 LoginResponse.model_rebuild()
+RegisterResponse.model_rebuild()

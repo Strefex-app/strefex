@@ -1,6 +1,6 @@
 # Audit Fix Tracking Report
 
-**Last updated:** 2026-05-20 (phase 9)  
+**Last updated:** 2026-05-20 (phase 10)  
 **Scope:** Self-audit findings — security, bundle size, CI, tests.
 
 ---
@@ -9,8 +9,8 @@
 
 | Status | Count |
 |--------|-------|
-| Fixed (phase 1–9) | 50 |
-| Partially fixed | 6 |
+| Fixed (phase 1–10) | 54 |
+| Partially fixed | 5 |
 | Open / planned | 4+ |
 
 ---
@@ -59,12 +59,12 @@
 Run locally (agent shell timeouts prevented re-run here):
 
 ```bash
-npm test                    # expect 65 tests
+npm test                    # expect 67 tests (phase 10)
 npm run lint:ci             # scoped ESLint gate (phase 4)
 npm run build               # expect success; audit-pro-pages chunk
 npm run audit:ci            # pass except allowlisted xlsx
 node scripts/route-audit.mjs  # 0 unresolved refs
-cd backend && DEBUG=true pytest tests/ -v   # expect 42 tests (phase 9; Redis tests skip without REDIS_URL)
+cd backend && DEBUG=true pytest tests/ -v   # expect 44 tests (phase 10)
 ```
 
 | Check | Last known result |
@@ -74,7 +74,23 @@ cd backend && DEBUG=true pytest tests/ -v   # expect 42 tests (phase 9; Redis te
 | Frontend tests | **PASS** — 56 tests (phase 1); +3 new |
 | npm audit (raw) | **FAIL** — `xlsx` (allowlisted in CI) |
 | npm audit:ci | **PASS** (with xlsx allowlist) |
-| Backend pytest | **CI** — 42 tests with Postgres + Redis (phase 9) |
+| Backend pytest | **CI** — 44 tests with Postgres + Redis (phase 10) |
+
+---
+
+## Phase 10 — Fixed
+
+| ID | Issue | Fix | Files |
+|----|-------|-----|-------|
+| **H4\*** | No frontend verify-email flow | `/verify-email` page; `authApi.verifyEmail` / `resendVerification`; Login resend uses backend | `VerifyEmail.jsx`, `api.js`, `authService.js`, `App.jsx` |
+| **H4\*** | Register auto-login when verification required | `RegisterResponse` with `email_verification_pending`; no cookies until verified | `auth.py`, `schemas/auth.py` |
+| **H4\*** | Token never expired | `email_verification_sent_at` + enforce `EMAIL_VERIFICATION_EXPIRE_HOURS` | `005_*.py`, `email_verification.py` |
+| **OPS** | No go-live checklist | Comprehensive deployment + security audit doc | `docs/DEPLOYMENT_AUDIT.md` |
+| **TEST** | Verify flow coverage | `verifyEmail.test.js`, extended `test_email_verification.py` | +3 backend, +2 frontend tests |
+
+\*SMTP delivery still DEBUG-only — use Supabase confirmation in production until SMTP is wired.
+
+Deploy: `alembic upgrade head` (applies **005**). Full go-live gate: `docs/DEPLOYMENT_AUDIT.md`.
 
 ---
 
@@ -174,7 +190,7 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 |----|-------|------|
 | ~~**C2**~~ | ~~Dual tenant model~~ | Done phase 7 — `companies` only; migration `003` |
 | ~~**H1**~~ | ~~JWT in `localStorage`~~ | Done phase 8 — httpOnly cookies; Bearer fallback retained |
-| ~~**H4**~~ | ~~Rate limit single-process only~~ | Done phase 9 — Redis backend + email verification (SMTP TBD) |
+| ~~**H4**~~ | ~~Rate limit single-process only~~ | Done phase 9–10 — Redis + verify UI (SMTP TBD) |
 | ~~**H5**~~ | ~~Billing in memory~~ | Done phase 6 — Postgres `company_subscriptions`; run `alembic upgrade head` on deploy |
 | **H6** | Main chunk still ~1.1 MB | ~~Audit Pro chunk split~~ done; trim static store imports (M1) |
 | ~~**H8**~~ | ~~No ESLint in CI~~ | Done phase 4 — expand scope to full `src/` |
@@ -200,15 +216,6 @@ Deploy: `cd backend && alembic upgrade head` (runs 002 + 003 if not yet applied)
 
 ---
 
-## Changed files (uncommitted)
+## Go-live
 
-**Phase 9:** `rate_limit_backends.py`, `rate_limit.py`, `email_verification.py`, `004_user_email_verification.py`, `auth.py`, `config.py`, `user.py`, `schemas/auth.py`, tests, `ci.yml`, `.env.example`, `docs/AUDIT_FIX_TRACKING.md`.
-
-Suggested commit:
-
-```
-feat(security): phase 9 — Redis rate limits and email verification
-
-Add optional Redis-backed auth rate limiting, email verification endpoints,
-and migration 004; CI runs Redis service for integration tests.
-```
+Use **[docs/DEPLOYMENT_AUDIT.md](./DEPLOYMENT_AUDIT.md)** as the official pre-production gate (security §5, functional §6, sign-off §12).

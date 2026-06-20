@@ -5,6 +5,7 @@ import { lazy } from 'react'
 
 export const Login = lazy(() => import('../pages/Login'))
 export const Register = lazy(() => import('../pages/Register'))
+export const VerifyEmail = lazy(() => import('../pages/VerifyEmail'))
 export const SubscriptionPlans = lazy(() => import('../pages/SubscriptionPlans'))
 export const TeamManagement = lazy(() => import('../pages/TeamManagement'))
 export const Home = lazy(() => import('../pages/Home'))

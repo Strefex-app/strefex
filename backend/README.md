@@ -35,9 +35,17 @@ alembic upgrade head
 
 - `POST /api/v1/auth/login` — Login (email, password, optional tenant_slug).
 - `POST /api/v1/auth/register` — Register (requires `company_name`; creator becomes admin).
-- `GET /api/v1/auth/me` — Current user (Bearer token).
+- `POST /api/v1/auth/verify-email` — Confirm email with token from verification link.
+- `POST /api/v1/auth/resend-verification` — Resend verification (rate-limited).
+- `POST /api/v1/auth/refresh` — Rotate httpOnly session cookies.
+- `POST /api/v1/auth/logout` — Clear auth cookies.
+- `GET /api/v1/auth/me` — Current user (Bearer token or cookie).
 - `GET/POST /api/v1/users` — List/create users (company-scoped; Admin).
 - `GET/PATCH/DELETE /api/v1/users/{id}` — User CRUD (Admin for write).
 - `GET/POST /api/v1/projects`, `/assets`, `/billing/*` — Company-scoped modules.
+
+Optional: set `REDIS_URL` for shared rate limits; `REQUIRE_EMAIL_VERIFICATION=true` after SMTP is configured.
+
+**Go-live checklist:** see [docs/DEPLOYMENT_AUDIT.md](../docs/DEPLOYMENT_AUDIT.md).
 
 All tenant-scoped data is isolated by `tenant_id` (company UUID) from the JWT.

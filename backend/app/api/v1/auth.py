@@ -18,6 +18,7 @@ from app.database import get_db
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
+    RegisterResponse,
     ResendVerificationRequest,
     UserInResponse,
     VerifyEmailRequest,
@@ -91,7 +92,7 @@ async def login(
     return _login_response(response, user, company, access_token, refresh_token)
 
 
-@router.post("/register", response_model=LoginResponse)
+@router.post("/register", response_model=RegisterResponse)
 async def register(
     payload: RegisterRequest,
     request: Request,
@@ -100,7 +101,7 @@ async def register(
 ):
     """
     Register a new user. Creates company if company_name is provided.
-    Returns JWT access token (auto-login).
+    When REQUIRE_EMAIL_VERIFICATION=true, returns pending state without session cookies.
     Default tier: 'start' (free).
     """
     await check_auth_rate_limit(request, "register")
@@ -147,8 +148,25 @@ async def register(
 
     await issue_verification_token(db, user)
 
+    user_response = auth_service.user_to_response(user)
+    tenant_response = auth_service.tenant_to_response(company) if company else None
+
+    if get_settings().require_email_verification:
+        return RegisterResponse(
+            email_verification_pending=True,
+            access_token=None,
+            user=user_response,
+            tenant=tenant_response,
+        )
+
     access_token, refresh_token = auth_service.create_tokens_for_user(user, company.slug)
-    return _login_response(response, user, company, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token)
+    return RegisterResponse(
+        email_verification_pending=False,
+        access_token=access_token,
+        user=user_response,
+        tenant=tenant_response,
+    )
 
 
 @router.post("/refresh", response_model=LoginResponse)
@@ -166,6 +184,12 @@ async def refresh_session(
     if not user:
         clear_auth_cookies(response)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+    if get_settings().require_email_verification and not is_email_verified(user):
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before signing in.",
+        )
 
     company = user.company
     company_slug = company.slug if company else None

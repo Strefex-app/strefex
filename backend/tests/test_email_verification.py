@@ -1,5 +1,6 @@
 """Email verification flow."""
 import uuid
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -20,6 +21,30 @@ async def test_register_marks_email_unverified(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_register_pending_when_verification_required(client: AsyncClient, monkeypatch):
+    monkeypatch.setenv("REQUIRE_EMAIL_VERIFICATION", "true")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    uid = uuid.uuid4().hex[:6]
+    payload = {
+        "full_name": "Pending User",
+        "email": f"pending-{uid}@example.com",
+        "password": "StrongPass1",
+        "company_name": f"Pending Co {uid}",
+    }
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["email_verification_pending"] is True
+    assert body["access_token"] is None
+    assert body["user"]["email_verified"] is False
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
 async def test_verify_email_marks_user_verified(client: AsyncClient, db_session: AsyncSession):
     reg = await register_company_user(client, company_name=f"Verify {uuid.uuid4().hex[:6]}")
     user_id = uuid.UUID(reg["user"]["id"])
@@ -32,6 +57,22 @@ async def test_verify_email_marks_user_verified(client: AsyncClient, db_session:
     resp = await client.post("/api/v1/auth/verify-email", json={"token": plain})
     assert resp.status_code == 200
     assert resp.json()["email_verified"] is True
+
+
+@pytest.mark.asyncio
+async def test_verify_email_rejects_expired_token(client: AsyncClient, db_session: AsyncSession):
+    reg = await register_company_user(client, company_name=f"Expired {uuid.uuid4().hex[:6]}")
+    user_id = uuid.UUID(reg["user"]["id"])
+
+    from app.repositories.user import user_repository
+
+    user = await user_repository.get_by_id(db_session, user_id, uuid.UUID(reg["tenant"]["id"]))
+    plain = await issue_verification_token(db_session, user)
+    user.email_verification_sent_at = datetime.now(timezone.utc) - timedelta(hours=48)
+    await db_session.flush()
+
+    resp = await client.post("/api/v1/auth/verify-email", json={"token": plain})
+    assert resp.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -61,12 +102,21 @@ async def test_login_blocked_when_verification_required(
 
     get_settings.cache_clear()
 
-    reg = await register_company_user(client, company_name=f"ReqVerify {uuid.uuid4().hex[:6]}")
+    uid = uuid.uuid4().hex[:6]
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "full_name": "Gate User",
+            "email": f"gate-{uid}@example.com",
+            "password": "StrongPass1",
+            "company_name": f"Gate Co {uid}",
+        },
+    )
     client.cookies.clear()
 
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": reg["user"]["email"], "password": "StrongPass1"},
+        json={"email": f"gate-{uid}@example.com", "password": "StrongPass1"},
     )
     assert login.status_code == 403
     assert "verify your email" in login.json()["detail"].lower()

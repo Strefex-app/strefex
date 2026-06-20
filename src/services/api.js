@@ -146,6 +146,12 @@ export const authApi = {
   logout: () => api.post('/auth/logout', {}),
 
   me: () => api.get('/auth/me'),
+
+  verifyEmail: (token) =>
+    api.post('/auth/verify-email', { token }, { skipAuth: true }),
+
+  resendVerification: (email) =>
+    api.post('/auth/resend-verification', { email }, { skipAuth: true }),
 }
 
 /* ── User endpoints ──────────────────────────────────────── */
