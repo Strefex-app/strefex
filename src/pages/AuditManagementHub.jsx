@@ -1,6 +1,7 @@
 import { useNavigate, Navigate, NavLink } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
+import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { useAuditProProgramAccess } from '../utils/auditProgramAccess'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 import './ProductionManagement.css'
@@ -117,16 +118,7 @@ export default function AuditManagementHub() {
     <AppLayout>
       <div className="production-page">
         <div className="production-header">
-          <a
-            className="production-back-link stx-click-feedback"
-            href="/management"
-            onClick={(e) => {
-              e.preventDefault()
-              navigate('/management')
-            }}
-          >
-            <Icon name="arrow-left" size={16} /> Back to Management
-          </a>
+          <ManagementBreadcrumb trail={[{ label: 'Audit management' }]} />
           <h1 className="production-title audit-mgmt-hub-title">Audit management</h1>
           <p className="production-subtitle audit-mgmt-hub-subtitle">
             Program home is the{' '}

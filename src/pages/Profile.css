@@ -307,6 +307,67 @@
   gap: 16px;
 }
 
+.prof-mdb-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.prof-mdb-section-head {
+  margin-bottom: 14px;
+}
+
+.prof-mdb-section-title {
+  margin: 0 0 6px;
+  font-size: var(--text-small, 14px);
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-primary);
+}
+
+.prof-mdb-section-sub {
+  margin: 0;
+  font-size: var(--text-caption, 12px);
+  color: var(--color-secondary);
+  line-height: 1.5;
+}
+
+.prof-mdb-loading {
+  margin: 16px 0 0;
+  font-size: var(--text-caption, 12px);
+  color: var(--color-secondary);
+}
+
+.prof-mdb-hub-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.prof-mdb-hub-desc {
+  margin: 0 0 4px;
+  font-size: var(--text-small, 13px);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-primary);
+  line-height: 1.4;
+}
+
+.prof-mdb-hub-sub {
+  margin: 0 0 10px;
+  font-size: var(--text-caption, 12px);
+  color: var(--color-secondary);
+  line-height: 1.45;
+}
+
+.prof-mdb-hub-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: var(--text-caption, 12px);
+  color: var(--color-secondary);
+}
+
 .prof-doc-template {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);

@@ -286,3 +286,172 @@ table.rfqi-volume-table td {
   font-weight: 700;
   color: var(--accent);
 }
+
+.rfqi-peri-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rfqi-peri-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-surface, #f8fafc);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rfqi-peri-card--on {
+  border-color: var(--input-focus);
+  background: var(--accent-light);
+}
+
+.rfqi-rate-breakdown {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light, var(--border-color));
+}
+
+.rfqi-db-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rfqi-file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rfqi-db-msg {
+  margin-top: 10px;
+  font-size: var(--text-small, 13px);
+}
+
+.rfqi-db-msg--ok {
+  color: var(--accent, #0d9488);
+}
+
+.rfqi-db-msg--err {
+  color: #c62828;
+}
+
+.rfqi-db-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+table.rfqi-db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small, 13px);
+}
+
+table.rfqi-db-table th,
+table.rfqi-db-table td {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-light, var(--border-color));
+  text-align: left;
+  vertical-align: top;
+}
+
+table.rfqi-db-table th {
+  font-weight: var(--font-semibold, 600);
+}
+
+.rfqi-pillar-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rfqi-pillar-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, var(--border-color));
+  background: var(--bg-surface, #f8fafc);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rfqi-pillar-tab--on {
+  border-color: var(--input-focus);
+  background: var(--accent-light);
+}
+
+.rfqi-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.rfqi-modal {
+  width: min(480px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-card, #fff);
+  border-radius: 10px;
+  border: 1px solid var(--border-light, var(--border-color));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.rfqi-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light, var(--border-color));
+}
+
+.rfqi-modal-close {
+  border: none;
+  background: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted, #64748b);
+}
+
+.rfqi-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.rfqi-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.rfqi-modal-delete {
+  margin-right: auto;
+  color: #c62828;
+}
+
+.rfqi-bucket-summary {
+  margin-top: 8px;
+}

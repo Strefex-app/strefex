@@ -8,6 +8,7 @@ import { LANGUAGES } from '../i18n/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
+import GlobalPageBreadcrumb from './shared/GlobalPageBreadcrumb'
 import './AppLayout.css'
 
 /*
@@ -292,6 +293,7 @@ export default function AppLayout({ children }) {
             </button>
           </div>
         )}
+        <GlobalPageBreadcrumb />
         {children}
       </main>
     </div>

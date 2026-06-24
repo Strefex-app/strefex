@@ -137,3 +137,156 @@ export function drawPmPdfFooter(pdf, w, pageH, pageLabel, printedByName) {
   pdf.setTextColor(180, 190, 220)
   pdf.text(pageLabel, w - 10, footerY + footerH / 2 + 1, { align: 'right' })
 }
+
+/** A4 content width at html2canvas scale 2 (~96 dpi). */
+export const PM_PDF_CAPTURE_WIDTH = {
+  portrait: 794,
+  landscape: 1123,
+}
+
+const FOOTER_GAP_MM = 5
+const SUBTITLE_CLEARANCE_MM = 5
+
+function sliceCanvasVertically(source, yPx, sliceHeightPx) {
+  const h = Math.max(0, Math.min(sliceHeightPx, source.height - yPx))
+  if (h <= 0) return null
+  const c = document.createElement('canvas')
+  c.width = source.width
+  c.height = h
+  const ctx = c.getContext('2d')
+  ctx.drawImage(source, 0, yPx, source.width, h, 0, 0, source.width, h)
+  return c
+}
+
+/**
+ * Multi-page STREFEX PDF from a DOM element (portrait or landscape A4).
+ * Splits tall content across pages instead of shrinking to one page.
+ */
+export async function exportHtmlToStrefexPdfPaged(element, opts) {
+  if (!element) throw new Error('Nothing to export')
+
+  const orientation = opts.orientation === 'l' ? 'l' : 'p'
+  const html2canvas = (await import('html2canvas')).default
+  const { default: jsPDF } = await import('jspdf')
+
+  const hidden = []
+  element.querySelectorAll('.ah-pdf-exclude, .pm-pdf-exclude').forEach((n) => {
+    hidden.push({ n, v: n.style.visibility })
+    n.style.visibility = 'hidden'
+  })
+
+  const layoutBackup = {
+    width: element.style.width,
+    maxWidth: element.style.maxWidth,
+    margin: element.style.margin,
+  }
+  const captureW = opts.captureWidthPx
+    ?? (orientation === 'l' ? PM_PDF_CAPTURE_WIDTH.landscape : PM_PDF_CAPTURE_WIDTH.portrait)
+  element.style.width = `${captureW}px`
+  element.style.maxWidth = `${captureW}px`
+  element.style.margin = '0 auto'
+  element.classList.add('pm-pdf-capture')
+
+  if (opts.beforeCapture) {
+    await opts.beforeCapture(element)
+  }
+
+  await new Promise((r) => setTimeout(r, 120))
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
+    x: 0,
+    y: 0,
+  })
+
+  element.classList.remove('pm-pdf-capture')
+  element.style.width = layoutBackup.width
+  element.style.maxWidth = layoutBackup.maxWidth
+  element.style.margin = layoutBackup.margin
+
+  hidden.forEach(({ n, v }) => {
+    n.style.visibility = v
+  })
+
+  if (opts.afterCapture) {
+    opts.afterCapture(element)
+  }
+
+  const logo = await loadStrefexLogoForPdf()
+
+  const measurePdf = new jsPDF(orientation, 'mm', 'a4')
+  const wMm = measurePdf.internal.pageSize.getWidth()
+  const pageHMm = measurePdf.internal.pageSize.getHeight()
+  const marginXMm = 8
+  const availWmm = wMm - 2 * marginXMm
+  const footerReserveMm = PM_PDF_FOOTER_H + FOOTER_GAP_MM
+
+  const scaledHmm = (canvas.height / canvas.width) * availWmm
+  const mmPerPx = scaledHmm / Math.max(1, canvas.height)
+
+  const longestSubtitle = `${opts.subtitle || ''}${opts.subtitle ? ' · ' : ''}continued (page 99)`
+  const h0 = drawPmPdfHeader(measurePdf, wMm, opts.title, logo)
+  const s0 = drawPmPdfSubtitleBar(measurePdf, wMm, h0, longestSubtitle)
+  const contentTopWorstMm = h0 + s0 + SUBTITLE_CLEARANCE_MM
+  const usableWorstMm = pageHMm - contentTopWorstMm - footerReserveMm - 1
+  const slicePxPlan = Math.max(1, Math.floor(usableWorstMm / mmPerPx))
+
+  const slicesPx = []
+  for (let y = 0; y < canvas.height; ) {
+    const sp = Math.min(slicePxPlan, canvas.height - y)
+    slicesPx.push(sp)
+    y += sp
+  }
+  if (slicesPx.length === 0) {
+    slicesPx.push(Math.max(1, canvas.height))
+  }
+  const totalPages = Math.max(1, slicesPx.length)
+
+  const pdf = new jsPDF(orientation, 'mm', 'a4')
+  let yPx = 0
+
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+    if (pageIndex > 0) {
+      pdf.addPage(orientation, 'a4')
+    }
+
+    const subtitle =
+      totalPages > 1 && pageIndex > 0
+        ? `${opts.subtitle || ''}${opts.subtitle ? ' · ' : ''}continued (page ${pageIndex + 1} of ${totalPages})`
+        : opts.subtitle || ''
+
+    const headerH = drawPmPdfHeader(pdf, wMm, opts.title, logo)
+    const subH = drawPmPdfSubtitleBar(pdf, wMm, headerH, subtitle)
+    const contentTop = headerH + subH + SUBTITLE_CLEARANCE_MM
+
+    const thisSlicePx = slicesPx[pageIndex]
+    const sliceHmm = thisSlicePx * mmPerPx
+
+    const slice = sliceCanvasVertically(canvas, yPx, thisSlicePx)
+    if (slice) {
+      pdf.setDrawColor(220, 225, 235)
+      pdf.setLineWidth(0.25)
+      pdf.roundedRect(marginXMm - 0.5, contentTop - 0.5, availWmm + 1, sliceHmm + 1, 0.5, 0.5, 'S')
+      pdf.addImage(slice.toDataURL('image/png'), 'PNG', marginXMm, contentTop, availWmm, sliceHmm)
+    }
+
+    drawPmPdfFooter(
+      pdf,
+      wMm,
+      pageHMm,
+      `Page ${pageIndex + 1} of ${totalPages}`,
+      opts.printedBy || 'Unknown',
+    )
+    yPx += thisSlicePx
+  }
+
+  pdf.save(opts.filename || 'report.pdf')
+}

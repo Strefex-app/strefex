@@ -7,13 +7,15 @@ import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './ManagementHub.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
+import ManagementDashboardMetrics from '../components/management/ManagementDashboardMetrics'
+import '../styles/managementShell.css'
 
 /* ── Management modules definition ─────────────────────── */
 const MANAGEMENT_MODULES = [
   {
     id: 'team',
     label: 'Team Management',
-    description: 'Invite and manage team members, assign roles, and control access permissions',
+    description: 'Team members, roles, and access permissions',
     path: '/team',
     icon: 'team',
     featureKey: 'teamManagement',
@@ -23,8 +25,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'hr-space',
     label: 'HR Space',
-    description:
-      'Workforce dashboards, qualifications, goals, performance dialogue, HR documents, training, onboarding, attendance, enterprise personnel, templates, and future job-board integrations',
+    description: 'Workforce dashboards, qualifications, goals, HR documents, and training',
     titleKey: 'management.module.hrSpace.title',
     descriptionKey: 'management.module.hrSpace.description',
     path: '/hr-space',
@@ -37,8 +38,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'forum',
     label: 'Forum',
-    description:
-      'Shared discussions and announcements for your organization — threaded forums and integrations coming soon',
+    description: 'Organization discussions and announcements',
     path: '/forum',
     icon: 'clipboard',
     featureKey: 'productionManagement',
@@ -48,15 +48,23 @@ const MANAGEMENT_MODULES = [
   {
     id: 'project',
     label: 'Project Management',
-    description: 'Create, track, and manage projects with tasks, Gantt charts, and resource allocation',
+    description: 'Projects, Gantt, portfolio, and budgets',
     path: '/project-management',
     icon: 'folder',
-    featureKey: null, // available for all plans
+    featureKey: null,
+  },
+  {
+    id: 'rfq',
+    label: 'RFQ',
+    description: 'Procurement register and RFQ Intelligence — estimates, formal RFQs, and traceability',
+    path: '/management/rfq',
+    icon: 'procurement',
+    featureKey: null,
   },
   {
     id: 'production',
     label: 'Production Management',
-    description: 'OEE, quality KPIs, floor layout, certifications, audit questionnaires, and system management',
+    description: 'OEE, quality KPIs, floor layout, and audit questionnaires',
     path: '/production',
     icon: 'production',
     featureKey: 'productionManagement',
@@ -65,7 +73,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'cost',
     label: 'Cost Management',
-    description: 'Cost calculator, BOM analysis, cost breakdown, scenario comparison, and target management',
+    description: 'Cost calculator, BOM, scenarios, and targets',
     path: '/cost-management',
     icon: 'cost',
     featureKey: 'costManagement',
@@ -74,7 +82,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'enterprise',
     label: 'Enterprise Management',
-    description: 'Cost categories, OPEX/CAPEX, personnel, financial analysis, risk management, and product calculation',
+    description: 'OPEX/CAPEX, personnel, financial analysis, and risk',
     path: '/enterprise',
     icon: 'enterprise',
     featureKey: 'enterpriseManagement',
@@ -83,7 +91,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'vendors',
     label: 'Vendor Master',
-    description: 'Create and maintain supplier master records, classifications, contact data, and status controls',
+    description: 'Supplier master records, contacts, and status',
     path: '/vendors',
     icon: 'vendors',
     featureKey: null,
@@ -91,8 +99,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'auditors-hub',
     label: 'Audit management',
-    description:
-      'Dashboard, new audit, audit plans, calendar & reminders, auditor and supplier registries, risk matrix, activity logs, and analytics',
+    description: 'Audit plans, registries, risk matrix, logs, and reports',
     path: '/management/auditors',
     icon: 'audit',
     featureKey: null,
@@ -102,7 +109,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'procurement',
     label: 'Procurement',
-    description: 'Purchase requisitions, purchase orders, multi-level approval workflows, and spend tracking',
+    description: 'Requisitions, POs, approvals, and traceability',
     path: '/procurement',
     icon: 'procurement',
     featureKey: 'procurement',
@@ -111,7 +118,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'contracts',
     label: 'Contract Management',
-    description: 'Contract tracking, renewal alerts, lifecycle management, and milestone monitoring',
+    description: 'Contract lifecycle, renewals, and milestones',
     path: '/contracts',
     icon: 'contracts',
     featureKey: 'contractManagement',
@@ -120,7 +127,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'spend',
     label: 'Spend Analysis',
-    description: 'Procurement spend by vendor, category, department, and time with visual analytics',
+    description: 'Spend by vendor, category, and time',
     path: '/spend-analysis',
     icon: 'cost',
     featureKey: 'spendAnalysis',
@@ -130,7 +137,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'compliance',
     label: 'Compliance & ESG',
-    description: 'ESG checklists, regulatory templates (ISO, GDPR, SOX, LkSG), and compliance tracking',
+    description: 'ESG checklists and regulatory templates',
     path: '/compliance',
     icon: 'compliance',
     featureKey: 'complianceEsg',
@@ -139,7 +146,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'erp',
     label: 'ERP Integrations',
-    description: 'Connect and sync with ERP systems for vendors, purchasing data, and transaction workflows',
+    description: 'ERP sync for vendors and purchasing',
     path: '/erp-integrations',
     icon: 'erp',
     featureKey: 'erpIntegrations',
@@ -149,7 +156,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'audit-logs',
     label: 'Audit Logs',
-    description: 'Review system events, user actions, and platform-level audit trails for compliance and controls',
+    description: 'System events and platform audit trails',
     path: '/audit-logs',
     icon: 'audit',
     featureKey: 'auditLogs',
@@ -159,7 +166,7 @@ const MANAGEMENT_MODULES = [
   {
     id: 'ai-insights',
     label: 'AI Insights',
-    description: 'Risk analysis, recommendations, Ops/finance/HR simulations; banner on this page or ?tab=operations',
+    description: 'Risk analysis, recommendations, and simulations',
     path: '/ai-insights',
     icon: 'ai',
     featureKey: 'aiInsights',
@@ -169,7 +176,7 @@ const MANAGEMENT_MODULES = [
 ]
 
 /* ── Icon/Lock helpers using centralised Icon component ── */
-const ModuleIcon = ({ icon }) => <Icon name={icon} size={28} />
+const ModuleIcon = ({ icon }) => <Icon name={icon} size={22} />
 const LockIcon = () => <Icon name="lock" size={16} className="mgmt-lock-icon" />
 
 /* ── Main component ─────────────────────────────────────── */
@@ -192,19 +199,16 @@ export default function ManagementHub() {
   return (
     <AppLayout>
       <div className="app-page">
-        <a
-          className="app-page-back-link stx-click-feedback"
-          href="/main-menu"
-          onClick={(e) => { e.preventDefault(); navigate(-1) }}
-        >
-          <Icon name="arrow-left" size={16} /> Back
-        </a>
         <div className="page-header">
           <h1 className="page-title">Management</h1>
-          <p className="page-subtitle">Access all management modules from one place</p>
+          <p className="page-subtitle">Dashboard, KPIs, and access to all management modules</p>
         </div>
 
+        <ManagementDashboardMetrics />
+
         <AiInsightsCtaStrip context="management" />
+
+        <h2 className="stx-text-section" style={{ margin: '0 0 8px' }}>Management tools</h2>
 
         <div className="mgmt-hub-grid">
           {visibleModules.map((mod) => {

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import useEnterpriseStore from '../store/enterpriseStore'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
+import { rfqIntelligenceUrl } from '../constants/rfqPaths'
 
 /** Surfaces RFQ Intelligence calculator tooling + aggregates rough monthly variable load on CAPEX. */
 export default function RfqIntelEnterpriseCapexBridge({ accentColor = '#34495e' }) {
@@ -102,7 +103,7 @@ export default function RfqIntelEnterpriseCapexBridge({ accentColor = '#34495e' 
         <button
           type="button"
           className="cost-page-rfq-btn-secondary"
-          onClick={() => navigate('/rfq-intelligence?tab=calculator')}
+          onClick={() => navigate(rfqIntelligenceUrl('tab=calculator'))}
         >
           Open RFQ calculator
         </button>

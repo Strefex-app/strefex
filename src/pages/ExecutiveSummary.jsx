@@ -13,6 +13,7 @@ import {
   augmentSupplierListForSuperadminPlatformView,
 } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { rfqIntelligenceUrl } from '../constants/rfqPaths'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
@@ -468,7 +469,7 @@ const ExecutiveSummary = () => {
                   className="exec-rfq-btn exec-rfq-btn--outline"
                   onClick={() =>
                     navigate(
-                      `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
+                      rfqIntelligenceUrl(`tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`),
                     )
                   }
                 >
@@ -696,7 +697,7 @@ const ExecutiveSummary = () => {
                 className="exec-multi-rfq-btn exec-multi-rfq-btn--outline"
                 onClick={() =>
                   navigate(
-                    `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`,
+                    rfqIntelligenceUrl(`tab=new&industryId=${encodeURIComponent(industryId || '')}&categoryId=${encodeURIComponent(categoryId || '')}`),
                   )
                 }
               >

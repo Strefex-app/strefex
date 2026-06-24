@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import useVendorStore from '../store/vendorStore'
@@ -10,6 +10,7 @@ import {
 } from '../services/supplierSellerRegistrySync'
 import { collectVendorMasterRowsFromAllTenants } from '../utils/superadminLocalPlatformAggregation'
 import './VendorManagement.css'
+import '../styles/managementShell.css'
 
 const STATUS_META = {
   active:           { label: 'Active',    color: '#27ae60', bg: 'rgba(46,204,113,.1)' },
@@ -43,6 +44,7 @@ const Stars = ({ value, max = 5 }) => {
  * ═══════════════════════════════════════════════════════ */
 export default function VendorManagement() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
@@ -53,7 +55,7 @@ export default function VendorManagement() {
   const approveVendor = useVendorStore((s) => s.approveVendor)
   const blockVendor = useVendorStore((s) => s.blockVendor)
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterIndustry, setFilterIndustry] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -190,7 +192,6 @@ export default function VendorManagement() {
         {/* Header */}
         <div className="vm-header">
           <div>
-            <button className="vm-back" onClick={() => navigate(-1)}>← Back</button>
             <h1 className="vm-title">Vendor Master Data</h1>
             <p className="vm-subtitle">Vendor Registry — Manage all sellers accounts, connections, and evaluation</p>
           </div>

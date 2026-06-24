@@ -12,6 +12,7 @@
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
 import { tenantKey } from '../utils/tenantStorage'
 import { useProjectStore } from '../store/projectStore'
+import { useProgramStore } from '../store/programStore'
 import useVendorStore from '../store/vendorStore'
 import useRfqStore from '../store/rfqStore'
 import useContractStore from '../store/contractStore'
@@ -287,6 +288,15 @@ function schedulePushKey(stateKey, immediate = false) {
 
 const SYNC_SPECS = [
   {
+    key: 'programs',
+    extract: () => ({ programs: useProgramStore.getState().programs || [] }),
+    apply: (p) => {
+      if (Array.isArray(p?.programs)) useProgramStore.setState({ programs: p.programs })
+    },
+    isEmpty: (p) => !Array.isArray(p?.programs) || p.programs.length === 0,
+    subscribe: (cb) => useProgramStore.subscribe(cb),
+  },
+  {
     key: 'projects',
     extract: () => ({ projects: useProjectStore.getState().projects || [] }),
     apply: (p) => {
@@ -334,17 +344,26 @@ const SYNC_SPECS = [
     key: 'procurement',
     extract: () => {
       const s = useProcurementStore.getState()
-      return { requisitions: s.requisitions || [], purchaseOrders: s.purchaseOrders || [] }
+      return {
+        requisitions: s.requisitions || [],
+        purchaseOrders: s.purchaseOrders || [],
+        opportunities: s.opportunities || [],
+        quotations: s.quotations || [],
+      }
     },
     apply: (p) => {
       const next = {}
       if (Array.isArray(p?.requisitions)) next.requisitions = p.requisitions
       if (Array.isArray(p?.purchaseOrders)) next.purchaseOrders = p.purchaseOrders
+      if (Array.isArray(p?.opportunities)) next.opportunities = p.opportunities
+      if (Array.isArray(p?.quotations)) next.quotations = p.quotations
       if (Object.keys(next).length) useProcurementStore.setState(next)
     },
     isEmpty: (p) =>
       (!Array.isArray(p?.requisitions) || p.requisitions.length === 0) &&
-      (!Array.isArray(p?.purchaseOrders) || p.purchaseOrders.length === 0),
+      (!Array.isArray(p?.purchaseOrders) || p.purchaseOrders.length === 0) &&
+      (!Array.isArray(p?.opportunities) || p.opportunities.length === 0) &&
+      (!Array.isArray(p?.quotations) || p.quotations.length === 0),
     subscribe: (cb) => useProcurementStore.subscribe(cb),
   },
   {

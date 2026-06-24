@@ -2,6 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { filterByCompanyRole, canEdit as guardCanEdit } from '../utils/companyGuard'
+import { applyMonitoringPatch, MONITORING_CADENCE } from '../utils/pmEscalation'
+import {
+  currentYear,
+  formatStandaloneProjectNumber,
+  nextSeqFromNumbers,
+  standaloneProjectNumberPattern,
+} from '../utils/pmNumbering'
 
 import { devWarn } from '../utils/devLog'
 
@@ -39,32 +46,91 @@ const addDays = (dateStr, days) => {
 
 /* Seed data removed for production — projects start empty */
 
+function defaultCostControl(budget = 0) {
+  return {
+    baselineBudget: budget,
+    baselineLockedAt: null,
+    baselineLockedBy: null,
+    contingencyPct: 10,
+    approvedChanges: 0,
+    otherActuals: 0,
+  }
+}
+
+function defaultMonitoring() {
+  return {
+    baseCadence: MONITORING_CADENCE.MONTHLY,
+    effectiveCadence: MONITORING_CADENCE.MONTHLY,
+    escalationLevel: 0,
+    escalationReason: '',
+    escalatedAt: null,
+    lastReviewAt: null,
+    nextReviewDue: null,
+  }
+}
+
+function enrichProject(project, patch = {}) {
+  const merged = { ...project, ...patch }
+  return { ...merged, ...applyMonitoringPatch(merged) }
+}
+
+function isAdminRole() {
+  const role = getUserRole()
+  return role === 'admin' || role === 'superadmin'
+}
+
 export const useProjectStore = create(
   persist(
     (set, get) => ({
       projects: [],
 
+      allocateNextProjectNumber: () => {
+        const year = currentYear()
+        const seq = nextSeqFromNumbers(get().projects, standaloneProjectNumberPattern, year, 'projectNumber')
+        return formatStandaloneProjectNumber(year, seq)
+      },
+
       addProject: (projectData) => {
         const id = 'proj-' + Date.now()
         const now = new Date().toISOString().slice(0, 10)
-        const newProject = {
+        const budget = projectData.budget || 0
+        let projectNumber = projectData.projectNumber || ''
+
+        if (!projectNumber) {
+          projectNumber = get().allocateNextProjectNumber()
+        }
+
+        const base = {
           id,
           name: projectData.name || 'New Project',
-          budget: projectData.budget || 0,
+          budget,
           currency: projectData.currency || 'USD',
+          programId: null,
+          projectNumber,
+          stage: projectData.stage || 'charter',
+          sponsor: projectData.sponsor || '',
           createdAt: now,
           createdBy: projectData.createdBy || getUserId(),
           _createdBy: getUserId(),
           tasks: [],
           revisions: [{ id: 'rev-' + Date.now(), date: now, note: 'Project created', snapshot: null }],
           resources: projectData.resources || [],
-          /* Falcon-style PPM: portfolio health, tags, KPIs / benefits, risk register */
           portfolioRag: projectData.portfolioRag || 'green',
           tags: Array.isArray(projectData.tags) ? projectData.tags : [],
           benefitNote: projectData.benefitNote || '',
           kpis: Array.isArray(projectData.kpis) ? projectData.kpis : [],
           risks: Array.isArray(projectData.risks) ? projectData.risks : [],
+          costControl: projectData.costControl || defaultCostControl(budget),
+          monitoring: projectData.monitoring || defaultMonitoring(),
+          links: {
+            opportunityIds: [],
+            quotationIds: [],
+            procurementIds: [],
+            contractIds: [],
+            ...(projectData.links || {}),
+          },
         }
+        const newProject = enrichProject(base)
         set((state) => ({ projects: [...state.projects, newProject] }))
         syncProjectsCloudNow()
         return id
@@ -72,9 +138,73 @@ export const useProjectStore = create(
 
       updateProject: (projectId, updates) => {
         set((state) => ({
-          projects: state.projects.map((p) => p.id === projectId ? { ...p, ...updates } : p),
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p
+            const merged = { ...p, ...updates }
+            if (updates.risks || updates.portfolioRag) {
+              return enrichProject(merged)
+            }
+            return merged
+          }),
         }))
         syncProjectsCloudNow()
+      },
+
+      appendProjectLink: (projectId, field, entityId) => {
+        if (!projectId || !entityId) return
+        const project = get().projects.find((p) => p.id === projectId)
+        if (!project) return
+        const current = project.links?.[field] || []
+        if (current.includes(entityId)) return
+        get().updateProject(projectId, {
+          links: {
+            ...(project.links || {}),
+            [field]: [...current, entityId],
+          },
+        })
+      },
+
+      lockCostBaseline: (projectId) => {
+        const project = get().projects.find((p) => p.id === projectId)
+        if (!project) return false
+        const now = new Date().toISOString().slice(0, 10)
+        const baseline = project.costControl?.baselineBudget ?? project.budget ?? 0
+        get().updateProject(projectId, {
+          stage: project.stage === 'charter' || project.stage === 'idea' ? 'baseline' : project.stage,
+          costControl: {
+            ...(project.costControl || defaultCostControl(baseline)),
+            baselineBudget: baseline,
+            baselineLockedAt: now,
+            baselineLockedBy: getUserId(),
+          },
+        })
+        return true
+      },
+
+      unlockCostBaseline: (projectId) => {
+        if (!isAdminRole()) return false
+        const project = get().projects.find((p) => p.id === projectId)
+        if (!project?.costControl?.baselineLockedAt) return false
+        get().updateProject(projectId, {
+          costControl: {
+            ...(project.costControl || {}),
+            baselineLockedAt: null,
+            baselineLockedBy: null,
+          },
+        })
+        return true
+      },
+
+      recordProjectReview: (projectId) => {
+        const project = get().projects.find((p) => p.id === projectId)
+        if (!project) return false
+        const now = new Date().toISOString().slice(0, 10)
+        const patched = enrichProject({
+          ...project,
+          monitoring: { ...(project.monitoring || {}), lastReviewAt: now },
+        })
+        get().updateProject(projectId, { monitoring: patched.monitoring })
+        return true
       },
 
       deleteProject: (projectId) => {

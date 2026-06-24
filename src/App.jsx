@@ -17,6 +17,7 @@ import IndustryGuard from './components/IndustryGuard'
 import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
 import { useSettingsStore } from './store/settingsStore'
 import { syncDomTheme } from './theme/syncDomTheme'
+import RfqIntelligenceRedirect from './pages/RfqIntelligenceRedirect'
 
 /* ── Code-split pages (see routes/lazyPages.js) ──────────── */
 import {
@@ -61,6 +62,10 @@ import {
   AuditProPrintReport,
   ProjectManagement,
   ProjectDetail,
+  ProjectCommandCenter,
+  NewProjectPage,
+  NewProcurementOpportunityPage,
+  RfqManagementHub,
   EquipmentSupplierRequest,
   ServiceList,
   AuditRequest,
@@ -130,6 +135,7 @@ import {
   AuditorExecutiveSummary,
   ProductIndustryLanding,
   ProductSubcategoryPage,
+  MachineDbCataloguePage,
   ProductExecutiveSummary,
   RawMaterialsLanding,
   RawMaterialsCategory,
@@ -346,7 +352,6 @@ function App() {
           <Route path="/dashboard/supplier" element={<P><SupplierWorkspace /></P>} />
           <Route path="/service-provider-dashboard" element={<AccountType allowed={['service_provider']}><ServiceProviderDashboard /></AccountType>} />
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
-          <Route path="/rfq-intelligence" element={<P><RfqIntelligencePage /></P>} />
 
           {/* ── Vendor Management ────────────────────────── */}
           <Route path="/vendors" element={<P><VendorManagement /></P>} />
@@ -404,7 +409,16 @@ function App() {
 
           {/* ── Projects ──────────────────────────────────── */}
           <Route path="/project-management" element={<P><ProjectManagement /></P>} />
+          <Route path="/project-management/new-project" element={<P><NewProjectPage /></P>} />
+          <Route path="/project-management/new-program" element={<Navigate to="/project-management/new-project" replace />} />
+          <Route path="/project-management/program/:programId" element={<Navigate to="/project-management?view=portfolio" replace />} />
+          <Route path="/project-management/project/:projectId/control" element={<P><ProjectCommandCenter /></P>} />
           <Route path="/project-management/project/:projectId" element={<P><ProjectDetail /></P>} />
+          <Route path="/procurement/new-opportunity" element={<P><NewProcurementOpportunityPage /></P>} />
+          <Route path="/management/rfq" element={<P><RfqManagementHub /></P>} />
+          <Route path="/management/rfq/new" element={<P><NewProcurementOpportunityPage /></P>} />
+          <Route path="/management/rfq/intelligence" element={<P><RfqIntelligencePage /></P>} />
+          <Route path="/rfq-intelligence" element={<P><RfqIntelligenceRedirect /></P>} />
 
           {/* ── Services & suppliers ──────────────────────── */}
           <Route path="/equipment-request" element={<P><EquipmentSupplierRequest /></P>} />
@@ -418,6 +432,7 @@ function App() {
 
           {/* ── Profile ───────────────────────────────────── */}
           <Route path="/profile" element={<P><Profile /></P>} />
+          <Route path="/profile/machine-intelligence/:catalogueId" element={<SuperAdmin><MachineDbCataloguePage /></SuperAdmin>} />
           <Route path="/profile/calendar" element={<P><ProfileCalendar /></P>} />
           <Route path="/request-service" element={<P><ServiceList /></P>} />
           <Route path="/add-supplier" element={<P><AddSupplier /></P>} />

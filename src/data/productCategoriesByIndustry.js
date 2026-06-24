@@ -114,6 +114,7 @@ export const PRODUCT_CATEGORIES_BY_INDUSTRY = {
         { id: 'sheet-metal', name: 'Sheet Metal Fabrication', description: 'Machine enclosures, guards, frames, cabinets' },
         { id: 'welding', name: 'Welding', description: 'Steel frames, machine bases, structural weldments' },
         { id: '3d-printing-metal', name: '3D Printing (Metal)', description: 'Tool inserts, conformal cooling, prototypes' },
+        { id: 'automation', name: 'Automation & Robotics', description: 'Industrial robots, cobots, AMRs, automation integrators, servo components' },
       ],
     },
     {

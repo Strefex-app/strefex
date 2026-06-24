@@ -12,6 +12,7 @@ import {
   augmentSupplierListForSuperadminPlatformView,
 } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { rfqIntelligenceUrl } from '../constants/rfqPaths'
 import '../styles/app-page.css'
 import './EquipmentSupplierRequest.css'
 
@@ -412,7 +413,7 @@ const EquipmentSupplierRequest = () => {
                     categories.find((cat) => cat.id === formData.categoryId)?.name ||
                     ''
                   navigate(
-                    `/rfq-intelligence?tab=new&industryId=${encodeURIComponent(industryId || qIndustry)}&customer=${encodeURIComponent(formData.companyName || '')}&part=${encodeURIComponent(partHint)}`,
+                    rfqIntelligenceUrl(`tab=new&industryId=${encodeURIComponent(industryId || qIndustry)}&customer=${encodeURIComponent(formData.companyName || '')}&part=${encodeURIComponent(partHint)}`),
                   )
                 }}
               >

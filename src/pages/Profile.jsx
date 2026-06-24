@@ -1,9 +1,8 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
-import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
 import { getPlanById, getEffectiveLimits } from '../services/stripeService'
 import { isSupabaseConfigured } from '../config/supabase'
@@ -31,6 +30,10 @@ import {
 } from '../utils/ocrImageNormalize'
 import '../styles/app-page.css'
 import './Profile.css'
+
+const MachineIntelligenceDocsSection = lazy(
+  () => import('../components/machineDb/MachineIntelligenceDocsSection'),
+)
 
 /**
  * Rough quality score — lets us compare OCR runs across rotations without another model.
@@ -220,27 +223,6 @@ const parseBusinessCard = (rawText) => {
 
 /* ── Standard form fields per document type ─────────────────── */
 const STANDARD_FORMS = {
-  rfq: {
-    title: 'Request for Quotation (RFQ)',
-    fields: [
-      { key: 'rfqNumber', label: 'RFQ Number', type: 'text', placeholder: 'RFQ-2026-001' },
-      { key: 'date', label: 'Date', type: 'date' },
-      { key: 'dueDate', label: 'Response Due Date', type: 'date' },
-      { key: 'buyerCompany', label: 'Buyer Company', type: 'text', placeholder: 'Your Company Name' },
-      { key: 'buyerContact', label: 'Buyer Contact Person', type: 'text', placeholder: 'Full Name' },
-      { key: 'buyerEmail', label: 'Buyer Email', type: 'email', placeholder: 'buyer@company.com' },
-      { key: 'supplierCompany', label: 'Supplier Company', type: 'text', placeholder: 'Supplier Name' },
-      { key: 'supplierContact', label: 'Supplier Contact', type: 'text', placeholder: 'Full Name' },
-      { key: 'itemDescription', label: 'Item / Service Description', type: 'textarea', placeholder: 'Describe required items or services...' },
-      { key: 'quantity', label: 'Quantity', type: 'text', placeholder: 'e.g. 1,000 pcs' },
-      { key: 'deliveryTerms', label: 'Delivery Terms (Incoterms)', type: 'text', placeholder: 'e.g. FOB, CIF, DDP' },
-      { key: 'deliveryDate', label: 'Required Delivery Date', type: 'date' },
-      { key: 'paymentTerms', label: 'Payment Terms', type: 'text', placeholder: 'e.g. Net 30, LC at sight' },
-      { key: 'technicalReqs', label: 'Technical Requirements', type: 'textarea', placeholder: 'Specifications, drawings, standards...' },
-      { key: 'qualityReqs', label: 'Quality Requirements', type: 'text', placeholder: 'e.g. ISO 9001, IATF 16949' },
-      { key: 'notes', label: 'Additional Notes', type: 'textarea', placeholder: 'Any other requirements...' },
-    ],
-  },
   quotation: {
     title: 'Quotation / Invoice',
     fields: [
@@ -328,7 +310,6 @@ const STANDARD_FORMS = {
 
 /* ── Default document templates ─────────────────────────────── */
 const DEFAULT_TEMPLATES = [
-  { id: 'rfq', name: 'Request for Quotation (RFQ)', icon: 'doc', color: '#00d4ff' },
   { id: 'quotation', name: 'Quotation / Invoice', icon: 'invoice', color: '#16a085' },
   { id: 'pr', name: 'Purchasing Request', icon: 'cart', color: '#e67e22' },
   { id: 'po', name: 'Purchasing Order', icon: 'order', color: '#8e44ad' },
@@ -382,11 +363,6 @@ const Icon = ({ name, size = 20, stroke = 'currentColor' }) => {
 const DOCS_KEY = 'strefex-profile-docs'
 const CONTACTS_KEY = 'strefex-profile-contacts'
 
-function formatEurQuote(n) {
-  if (typeof n !== 'number' || Number.isNaN(n)) return '—'
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
-}
-
 function normalizeCompanyProfileAttachments(raw) {
   if (!Array.isArray(raw)) return []
   return raw
@@ -433,9 +409,6 @@ const Profile = () => {
   const limits = getEffectiveLimits(planId, accountType)
   const isAtLeastStandard = useTier(TIERS.STANDARD)
 
-  const rfqQuotes = useRfqIntelligenceStore((s) => s.quotes)
-  const rfqQuotesPreview = useMemo(() => rfqQuotes.slice(0, 8), [rfqQuotes])
-
   // Docs & contacts are visible from Standard+ plan (or superadmin)
   const canSeeDocs = isAtLeastStandard || isSuperAdmin
   const canSeeContacts = isAtLeastStandard || isSuperAdmin
@@ -448,7 +421,10 @@ const Profile = () => {
   const [documents, setDocuments] = useState(() => {
     try {
       const raw = localStorage.getItem(tenantKey(DOCS_KEY))
-      if (raw) return JSON.parse(raw)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed.filter((d) => d.id !== 'rfq') : parsed
+      }
     } catch { /* silent */ }
     return DEFAULT_TEMPLATES.map((t) => ({ ...t, files: [], savedForms: [] }))
   })
@@ -1145,11 +1121,6 @@ const Profile = () => {
                   Add Supplier
                   <span className="prof-action-arrow">›</span>
                 </button>
-                <button className="prof-action-btn" onClick={() => navigate('/rfq-intelligence?tab=new')}>
-                  <span className="prof-action-icon" style={{ background: '#ede7f6', color: '#5e35b1' }}><Icon name="doc" /></span>
-                  RFQ Intelligence
-                  <span className="prof-action-arrow">›</span>
-                </button>
                 <button className="prof-action-btn prof-action-primary" onClick={() => navigate('/request-service')}>
                   <span className="prof-action-icon"><Icon name="service" /></span>
                   {tr('profile.requestService')}
@@ -1250,51 +1221,6 @@ const Profile = () => {
           setTenant={setTenant}
         />
 
-        {/* ── RFQ Intelligence — quotes from costing wizard ───── */}
-        <div className="prof-card">
-          <div className="prof-company-header">
-            <div>
-              <h3 className="prof-card-title">RFQ Intelligence · Quotes</h3>
-              <p className="prof-card-subtitle">
-                Saved manufacturing estimates from the wizard. Calculator outputs and tooling tie through to Enterprise Management → CAPEX.
-              </p>
-            </div>
-            <div className="prof-company-actions">
-              <button type="button" className="prof-btn-primary" onClick={() => navigate('/rfq-intelligence?tab=new')}>
-                New RFQ
-              </button>
-              <button type="button" className="prof-btn-outline" onClick={() => navigate('/rfq-intelligence?tab=quotes')}>
-                All quotes
-              </button>
-            </div>
-          </div>
-          {rfqQuotesPreview.length === 0 ? (
-            <p className="prof-card-subtitle" style={{ marginTop: 4, marginBottom: 0 }}>
-              No saved quotes yet. Open RFQ Intelligence from equipment flows or notifications to build an estimate.
-            </p>
-          ) : (
-            <div className="prof-info-grid" style={{ marginTop: 12 }}>
-              {rfqQuotesPreview.map((q) => (
-                <div key={q.id} className="prof-info-item full" style={{ paddingBottom: 10, borderBottom: '1px solid #eceff1' }}>
-                  <span className="prof-info-label">{q.quoteNo || q.id}</span>
-                  <span className="prof-info-value" style={{ display: 'block', fontWeight: 600 }}>
-                    {q.partName} · {q.customer}
-                  </span>
-                  <span className="prof-info-value" style={{ display: 'block', fontSize: 13, color: '#546e7a', marginTop: 4 }}>
-                    {[q.process, q.material].filter(Boolean).join(' · ')}
-                  </span>
-                  <span className="prof-info-value" style={{ display: 'block', fontSize: 13, marginTop: 6 }}>
-                    Subtotal {formatEurQuote(q.subtotalEUR)} · Tooling {formatEurQuote(q.toolingEUR)}
-                    {q.savedAt && (
-                      <span style={{ color: '#90a4ae', marginLeft: 8 }}>{new Date(q.savedAt).toLocaleString()}</span>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* ── Documentation Widget (Standard+ only) ──────────── */}
         {canSeeDocs ? (
         <div className="prof-docs-scan-wrap">
@@ -1375,6 +1301,12 @@ const Profile = () => {
               </div>
             ))}
           </div>
+
+          {isSuperAdmin && (
+            <Suspense fallback={<p className="prof-mdb-loading">Loading machine databases…</p>}>
+              <MachineIntelligenceDocsSection />
+            </Suspense>
+          )}
 
           <input type="file" ref={fileRef} style={{ display: 'none' }} onChange={handleFileChange} />
         </div>

@@ -1,11 +1,19 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
+import { useProgramStore } from '../store/programStore'
+import { useProjectStore } from '../store/projectStore'
 import useProcurementStore from '../store/procurementStore'
+import useVendorStore from '../store/vendorStore'
 import useAuditStore from '../store/auditStore'
+import ProcurementTracePanel, { ReferenceId } from '../components/pm/ProcurementRegisterTable'
+import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
+import { buildProcurementTraceRows } from '../utils/pmTraceability'
 import { filterByCompanyRole, canApprove as guardCanApprove } from '../utils/companyGuard'
 import './ProcurementDashboard.css'
+import '../styles/projectControl.css'
+import '../styles/managementShell.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 import { useTranslation } from '../i18n/useTranslation'
 
@@ -32,12 +40,70 @@ const fmtCurrency = (v, c = 'USD') => new Intl.NumberFormat('en-US', { style: 'c
 export default function ProcurementDashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const userName = user?.name || user?.email || 'User'
   const role = useAuthStore((s) => s.role)
 
   const rawRequisitions = useProcurementStore((s) => s.requisitions)
   const rawPurchaseOrders = useProcurementStore((s) => s.purchaseOrders)
+  const opportunities = useProcurementStore((s) => s.opportunities)
+  const quotations = useProcurementStore((s) => s.quotations)
+  const programs = useProgramStore((s) => s.programs)
+  const storeProjects = useProjectStore((s) => s.projects)
+  const getProgramById = useProgramStore((s) => s.getProgramById)
+  const getProjectById = useProjectStore((s) => s.getProjectById)
+  const vendors = useVendorStore((s) => s.vendors)
+
+  const projects = useMemo(
+    () => useProjectStore.getState().getSafeProjects(),
+    [storeProjects],
+  )
+
+  const urlProjectId = searchParams.get('projectId') || null
+  const urlProgramId = searchParams.get('programId') || null
+  const urlTab = searchParams.get('tab') || 'overview'
+  const urlSearch = searchParams.get('search') || ''
+
+  const traceRows = useMemo(
+    () => buildProcurementTraceRows({
+      opportunities,
+      quotations,
+      purchaseOrders: rawPurchaseOrders,
+      programs,
+      projects,
+      vendors,
+      programId: urlProgramId,
+      projectId: urlProjectId,
+    }),
+    [opportunities, quotations, rawPurchaseOrders, programs, projects, vendors, urlProgramId, urlProjectId],
+  )
+
+  const scopeProject = urlProjectId ? getProjectById(urlProjectId) : null
+  const scopeProgram = urlProgramId
+    ? getProgramById(urlProgramId)
+    : (scopeProject?.programId ? getProgramById(scopeProject.programId) : null)
+
+  const traceScope = useMemo(() => {
+    if (urlProjectId && scopeProject) {
+      return {
+        type: 'project',
+        label: `${scopeProject.projectNumber || scopeProject.name}${scopeProgram ? ` · ${scopeProgram.programNumber}` : ''}`,
+        shortLabel: scopeProject.projectNumber || 'Project',
+        projectId: scopeProject.id,
+        programId: scopeProgram?.id || scopeProject.programId,
+      }
+    }
+    if (urlProgramId && scopeProgram) {
+      return {
+        type: 'program',
+        label: scopeProgram.programNumber,
+        shortLabel: scopeProgram.programNumber,
+        programId: scopeProgram.id,
+      }
+    }
+    return { type: 'company', label: 'Company-wide' }
+  }, [urlProjectId, urlProgramId, scopeProject, scopeProgram])
 
   // Role-based data filtering: users see only own PRs/POs, managers see department, admin sees all company
   const requisitions = useMemo(() => filterByCompanyRole(rawRequisitions, { creatorField: 'requester', departmentField: 'department' }), [rawRequisitions])
@@ -52,9 +118,9 @@ export default function ProcurementDashboard() {
   const createPO = useProcurementStore((s) => s.createPO)
   const addAuditLog = useAuditStore((s) => s.addLog)
 
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(urlTab)
   const [statusFilter, setStatusFilter] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(urlSearch)
   const [feedback, setFeedback] = useState(null)
   const [approvalModal, setApprovalModal] = useState(null)
   const [approvalNotes, setApprovalNotes] = useState('')
@@ -62,6 +128,30 @@ export default function ProcurementDashboard() {
   const [newPR, setNewPR] = useState({ title: '', description: '', category: 'Raw Materials', priority: 'medium', currency: 'USD', vendorName: '', items: [{ description: '', qty: 1, unit: 'pcs', unitPrice: 0 }] })
 
   const flash = (msg) => { setFeedback({ text: msg, type: 'success' }); setTimeout(() => setFeedback(null), 3000) }
+
+  useEffect(() => {
+    setTab(urlTab)
+  }, [urlTab])
+
+  useEffect(() => {
+    setSearch(urlSearch)
+  }, [urlSearch])
+
+  const setDashboardTab = (nextTab) => {
+    setTab(nextTab)
+    setStatusFilter('all')
+    const params = new URLSearchParams(searchParams)
+    if (nextTab === 'overview') params.delete('tab')
+    else params.set('tab', nextTab)
+    setSearchParams(params, { replace: true })
+  }
+
+  const clearTraceScope = () => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('projectId')
+    params.delete('programId')
+    setSearchParams(params, { replace: true })
+  }
 
   const stats = useMemo(() => ({
     totalPRs: requisitions.length,
@@ -117,9 +207,16 @@ export default function ProcurementDashboard() {
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
+    { id: 'traceability', label: `Traceability (${traceRows.length})` },
     { id: 'requisitions', label: `Requisitions (${requisitions.length})` },
     { id: 'purchase-orders', label: `Purchase Orders (${purchaseOrders.length})` },
     { id: 'approvals', label: `Approvals (${stats.pendingPRs + stats.pendingPOs})` },
+  ]
+
+  const tabTrailLabel = TABS.find((tb) => tb.id === tab)?.label || 'Overview'
+  const breadcrumbTrail = [
+    { label: 'Procurement', to: '/procurement' },
+    ...(tab !== 'overview' ? [{ label: tabTrailLabel }] : [{ label: 'Overview' }]),
   ]
 
   const renderKPIs = () => (
@@ -170,6 +267,25 @@ export default function ProcurementDashboard() {
           <span className="proc-item-amount">{fmtCurrency(item.totalAmount, item.currency)}</span>
         </div>
         <div className="proc-item-title">{item.title}</div>
+        {(item.type === 'po' || item.programNumber || item.projectNumber || item.quotationNumber) && (
+          <div className="proc-ref-strip">
+            {item.programNumber ? (
+              <span><span className="proc-ref-label">Program</span><ReferenceId>{item.programNumber}</ReferenceId></span>
+            ) : null}
+            {item.projectNumber ? (
+              <span><span className="proc-ref-label">Project</span><ReferenceId>{item.projectNumber}</ReferenceId></span>
+            ) : null}
+            {item.opportunityNumber ? (
+              <span><span className="proc-ref-label">OPP</span><ReferenceId>{item.opportunityNumber}</ReferenceId></span>
+            ) : null}
+            {item.quotationNumber ? (
+              <span><span className="proc-ref-label">QUO</span><ReferenceId>{item.quotationNumber}</ReferenceId></span>
+            ) : null}
+            {item.supplierQuotationRef ? (
+              <span><span className="proc-ref-label">Supplier quote #</span><ReferenceId>{item.supplierQuotationRef}</ReferenceId></span>
+            ) : null}
+          </div>
+        )}
         <div className="proc-item-meta">
           <span>{item.requester}</span>
           <span>{item.department}</span>
@@ -218,11 +334,12 @@ export default function ProcurementDashboard() {
 
         <div className="proc-header">
           <div>
-            <button className="proc-back" onClick={() => navigate(-1)}>← Back</button>
+            <ManagementBreadcrumb trail={breadcrumbTrail} />
             <h1 className="proc-title">Procurement Management</h1>
             <p className="proc-subtitle">Multi-level approval workflows — Requisitions, Purchase Orders & Spend Tracking</p>
           </div>
           <div className="proc-header-actions">
+            <button type="button" className="proc-btn blue" onClick={() => navigate('/procurement/new-opportunity')}>+ Project opportunity</button>
             <button className="proc-btn primary" onClick={() => setShowNewPR(true)}>+ New Requisition</button>
           </div>
         </div>
@@ -268,7 +385,16 @@ export default function ProcurementDashboard() {
         )}
 
         <div className="proc-tabs">
-          {TABS.map((tb) => <button key={tb.id} className={`proc-tab ${tab === tb.id ? 'active' : ''}`} onClick={() => { setTab(tb.id); setStatusFilter('all') }}>{tb.label}</button>)}
+          {TABS.map((tb) => (
+            <button
+              key={tb.id}
+              type="button"
+              className={`proc-tab ${tab === tb.id ? 'active' : ''}`}
+              onClick={() => setDashboardTab(tb.id)}
+            >
+              {tb.label}
+            </button>
+          ))}
         </div>
 
         {tab !== 'overview' && (
@@ -296,6 +422,29 @@ export default function ProcurementDashboard() {
               <h4>Recent Purchase Orders</h4>
               {purchaseOrders.slice(0, 5).map(renderItemRow)}
             </div>
+          </div>
+        )}
+
+        {tab === 'traceability' && (
+          <div className="proc-card">
+            {(urlProjectId || urlProgramId) ? (
+              <div className="pch-scope-banner">
+                Filtered view
+                {' — '}
+                {traceScope.label}
+                {' '}
+                <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={clearTraceScope}>
+                  Show all
+                </button>
+              </div>
+            ) : null}
+            <ProcurementTracePanel
+              rows={traceRows}
+              title="Procurement traceability register"
+              description="Procurement database — link records to projects from Project Management via dropdown."
+              exportFilename="procurement-traceability.csv"
+              emptyMessage="No project-linked procurement yet. Create RFQ or link from project control."
+            />
           </div>
         )}
 

@@ -6,6 +6,31 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { canEdit as guardCanEdit, isAuditor as guardIsAuditor } from '../utils/companyGuard'
+import {
+  currentYear,
+  formatOpportunityNumber,
+  formatRfqNumber,
+  formatQuotationNumber,
+  formatPONumber,
+  nextSeqFromNumbers,
+  opportunityNumberPattern,
+  rfqNumberPattern,
+  quotationNumberPattern,
+  poNumberPattern,
+} from '../utils/pmNumbering'
+import { useProjectStore } from './projectStore'
+import { useProgramStore } from './programStore'
+import { devWarn } from '../utils/devLog'
+import { ensureVendorFromProcurement } from '../utils/vendorLinkage'
+
+function syncProcurementCloudNow() {
+  if (typeof window === 'undefined') return
+  import('../services/workspaceCloudSync').then((m) => {
+    if (typeof m.notifyWorkspaceKeyDirty === 'function') {
+      m.notifyWorkspaceKeyDirty('procurement', true)
+    }
+  }).catch((err) => devWarn('procurement sync notify skipped', err))
+}
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -31,13 +56,90 @@ function filterByRole(items) {
 
 /* Seed data removed for production — PRs and POs start empty */
 
+function resolveProjectContext(projectId, overrides = {}) {
+  if (!projectId) return { ...overrides }
+  const project = useProjectStore.getState().getProjectById(projectId)
+  if (!project) return { ...overrides }
+  const program = project.programId
+    ? useProgramStore.getState().getProgramById(project.programId)
+    : null
+  return {
+    projectId,
+    projectNumber: overrides.projectNumber || project.projectNumber || '',
+    programId: overrides.programId || project.programId || null,
+    programNumber: overrides.programNumber || program?.programNumber || '',
+    currency: overrides.currency || project.currency || 'USD',
+  }
+}
+
+function allocateNextPONumber(purchaseOrders) {
+  const year = currentYear()
+  const seq = nextSeqFromNumbers(purchaseOrders, poNumberPattern, year, 'id')
+  return formatPONumber(year, seq)
+}
+
 const useProcurementStore = create(
   persist(
     (set, get) => ({
       requisitions: [],
       purchaseOrders: [],
+      opportunities: [],
+      quotations: [],
 
-      /* ── Getters ─────────────────────────────── */
+      getOpportunityById: (id) => get().opportunities.find((o) => o.id === id),
+      getQuotationById: (id) => get().quotations.find((q) => q.id === id),
+
+      updateQuotation: (quotationId, updates) => {
+        set((s) => ({
+          quotations: s.quotations.map((q) =>
+            q.id === quotationId ? { ...q, ...updates } : q,
+          ),
+        }))
+        syncProcurementCloudNow()
+      },
+
+      updateOpportunity: (opportunityId, updates) => {
+        set((s) => ({
+          opportunities: s.opportunities.map((o) =>
+            o.id === opportunityId ? { ...o, ...updates } : o,
+          ),
+        }))
+        syncProcurementCloudNow()
+      },
+
+      updatePurchaseOrder: (poId, updates) => {
+        set((s) => ({
+          purchaseOrders: s.purchaseOrders.map((po) =>
+            po.id === poId ? { ...po, ...updates, updatedAt: new Date().toISOString() } : po,
+          ),
+        }))
+        syncProcurementCloudNow()
+      },
+      getOpportunitiesForProject: (projectId) =>
+        get().opportunities.filter((o) => o.projectId === projectId),
+      getQuotationsForProject: (projectId) =>
+        get().quotations.filter((q) => q.projectId === projectId),
+
+      getCommittedForProject: (projectId) => {
+        const signedQuotes = get().quotations.filter(
+          (q) => q.projectId === projectId && q.status === 'signed' && !q.linkedPOId,
+        )
+        const openPOs = get().purchaseOrders.filter(
+          (po) =>
+            po.projectId === projectId &&
+            po.status !== 'rejected' &&
+            po.status !== 'draft',
+        )
+        const quoteSum = signedQuotes.reduce((s, q) => s + (q.amount || 0), 0)
+        const poSum = openPOs.reduce((s, po) => s + (po.totalAmount || 0), 0)
+        return {
+          quoteSum,
+          poSum,
+          total: quoteSum + poSum,
+          signedQuotes,
+          openPOs,
+        }
+      },
       getAllPRs: () => get().requisitions,
       getAllPOs: () => get().purchaseOrders,
       getPRById: (id) => get().requisitions.find((r) => r.id === id),
@@ -94,6 +196,193 @@ const useProcurementStore = create(
           totalSpend: pos.filter((o) => o.status === 'approved' || o.status === 'completed').reduce((s, o) => s + o.totalAmount, 0),
           avgProcessingDays: 3.2,
         }
+      },
+
+      /* ── Opportunity / Quotation (Phase 1) ─── */
+      createOpportunity: (data) => {
+        const ctx = resolveProjectContext(data.projectId, data)
+        const year = currentYear()
+        const seq = nextSeqFromNumbers(get().opportunities, opportunityNumberPattern, year, 'opportunityNumber')
+        const rfqSeq = nextSeqFromNumbers(get().opportunities, rfqNumberPattern, year, 'rfqNumber')
+        const opportunityNumber = formatOpportunityNumber(year, seq)
+        const rfqNumber = formatRfqNumber(year, rfqSeq)
+        const opp = {
+          id: `opp-${Date.now()}`,
+          opportunityNumber,
+          rfqNumber,
+          projectId: ctx.projectId || null,
+          projectNumber: ctx.projectNumber || '',
+          programId: ctx.programId || null,
+          programNumber: ctx.programNumber || '',
+          title: data.title || 'New RFQ',
+          description: data.description || '',
+          category: data.category || '',
+          estimatedValue: data.estimatedValue ?? 0,
+          currency: ctx.currency || data.currency || 'USD',
+          status: 'open',
+          quotationIds: [],
+          createdAt: new Date().toISOString(),
+          _createdBy: getUserId(),
+        }
+        set((s) => ({ opportunities: [opp, ...s.opportunities] }))
+        if (ctx.projectId) {
+          useProjectStore.getState().appendProjectLink(ctx.projectId, 'opportunityIds', opp.id)
+        }
+        syncProcurementCloudNow()
+        return opp.id
+      },
+
+      addQuotation: (opportunityId, data) => {
+        const opp = get().getOpportunityById(opportunityId)
+        if (!opp) return null
+        const year = currentYear()
+        const seq = nextSeqFromNumbers(get().quotations, quotationNumberPattern, year, 'quotationNumber')
+        const quo = {
+          id: `quo-${Date.now()}`,
+          quotationNumber: formatQuotationNumber(year, seq),
+          opportunityId,
+          opportunityNumber: opp.opportunityNumber || '',
+          projectId: opp.projectId,
+          projectNumber: opp.projectNumber,
+          programId: opp.programId,
+          programNumber: opp.programNumber || '',
+          vendor: data.vendor || '',
+          vendorId: data.vendorId || '',
+          vendorNumber: data.vendorNumber || '',
+          supplierQuotationRef: data.supplierQuotationRef || '',
+          amount: data.amount ?? 0,
+          currency: data.currency || opp.currency || 'USD',
+          status: data.status || 'received',
+          signedAt: null,
+          signedBy: '',
+          linkedPOId: null,
+          linkedContractId: null,
+          attachments: data.attachments || [],
+          createdAt: new Date().toISOString(),
+          _createdBy: getUserId(),
+        }
+
+        if (quo.vendor) {
+          const vendorLink = ensureVendorFromProcurement(quo.vendor, {
+            source: 'procurement',
+            refType: 'quotation',
+            refId: quo.id,
+            refLabel: quo.quotationNumber,
+            projectId: opp.projectId,
+            programId: opp.programId,
+          })
+          if (vendorLink) {
+            quo.vendorId = vendorLink.vendorId
+            quo.vendorNumber = vendorLink.vendorNumber
+            quo.vendor = vendorLink.vendorName
+          }
+        }
+        set((s) => ({
+          quotations: [quo, ...s.quotations],
+          opportunities: s.opportunities.map((o) =>
+            o.id === opportunityId
+              ? { ...o, quotationIds: [...(o.quotationIds || []), quo.id] }
+              : o,
+          ),
+        }))
+        if (opp.projectId) {
+          useProjectStore.getState().appendProjectLink(opp.projectId, 'quotationIds', quo.id)
+        }
+        syncProcurementCloudNow()
+        return quo.id
+      },
+
+      signQuotation: (quotationId, signedBy = '') => {
+        const q = get().getQuotationById(quotationId)
+        if (!q || q.status === 'signed') return false
+        const now = new Date().toISOString()
+        set((s) => ({
+          quotations: s.quotations.map((row) =>
+            row.id === quotationId
+              ? { ...row, status: 'signed', signedAt: now, signedBy: signedBy || getUserId() }
+              : row,
+          ),
+        }))
+        syncProcurementCloudNow()
+        return true
+      },
+
+      createPOFromQuotation: (quotationId) => {
+        const q = get().getQuotationById(quotationId)
+        if (!q || q.status !== 'signed' || q.linkedPOId) return null
+        const opp = get().getOpportunityById(q.opportunityId)
+        const poId = allocateNextPONumber(get().purchaseOrders)
+        let vendorId = q.vendorId || ''
+        let vendorNumber = q.vendorNumber || ''
+        if (q.vendor && !vendorId) {
+          const vendorLink = ensureVendorFromProcurement(q.vendor, {
+            source: 'procurement',
+            refType: 'purchase_order',
+            refId: poId,
+            refLabel: poId,
+            projectId: q.projectId,
+            programId: q.programId,
+          })
+          if (vendorLink) {
+            vendorId = vendorLink.vendorId
+            vendorNumber = vendorLink.vendorNumber
+          }
+        }
+        const po = {
+          id: poId,
+          type: 'po',
+          title: `PO from ${q.quotationNumber}`,
+          description: `Purchase order from signed quotation ${q.quotationNumber}${q.supplierQuotationRef ? ` (vendor ref ${q.supplierQuotationRef})` : ''}.`,
+          requester: getUserId(),
+          department: 'Procurement',
+          category: 'General',
+          priority: 'medium',
+          currency: q.currency,
+          items: [{
+            id: `li-${Date.now()}`,
+            description: q.vendor || 'Quoted items',
+            qty: 1,
+            unit: 'lot',
+            unitPrice: q.amount,
+            total: q.amount,
+          }],
+          totalAmount: q.amount,
+          vendorId,
+          vendorNumber,
+          vendorName: q.vendor,
+          projectId: q.projectId,
+          projectNumber: q.projectNumber,
+          programId: q.programId,
+          programNumber: q.programNumber || '',
+          opportunityId: q.opportunityId,
+          opportunityNumber: q.opportunityNumber || opp?.opportunityNumber || '',
+          quotationId: q.id,
+          quotationNumber: q.quotationNumber,
+          supplierQuotationRef: q.supplierQuotationRef || '',
+          status: 'pending_manager',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvalChain: [
+            { level: 'requester', approver: getUserId(), status: 'approved', date: new Date().toISOString(), notes: '' },
+            { level: 'manager', approver: '', status: 'pending', date: '', notes: '' },
+          ],
+          linkedPRId: null,
+          receivingStatus: 'not_received',
+          receivedQty: 0,
+          invoiceStatus: 'none',
+          _createdBy: getUserId(),
+        }
+        set((s) => ({
+          purchaseOrders: [po, ...s.purchaseOrders],
+          quotations: s.quotations.map((row) =>
+            row.id === quotationId ? { ...row, linkedPOId: poId } : row,
+          ),
+        }))
+        if (q.projectId) {
+          useProjectStore.getState().appendProjectLink(q.projectId, 'procurementIds', poId)
+        }
+        syncProcurementCloudNow()
+        return poId
       },
 
       /* ── PR Actions ─────────────────────────── */
@@ -174,7 +463,7 @@ const useProcurementStore = create(
       createPOFromPR: (prId) => {
         const pr = get().getPRById(prId)
         if (!pr || pr.status !== 'approved') return null
-        const poId = `PO-2026-${String(get().purchaseOrders.length + 4).padStart(4, '0')}`
+        const poId = allocateNextPONumber(get().purchaseOrders)
         const po = {
           id: poId, type: 'po', title: pr.title,
           description: `Purchase order from approved ${prId}.`,
@@ -200,9 +489,12 @@ const useProcurementStore = create(
       },
 
       createPO: (data) => {
+        const ctx = resolveProjectContext(data.projectId, data)
         const po = {
-          id: `PO-2026-${String(get().purchaseOrders.length + 4).padStart(4, '0')}`,
-          type: 'po', ...data,
+          id: allocateNextPONumber(get().purchaseOrders),
+          type: 'po',
+          ...data,
+          ...ctx,
           _createdBy: getUserId(),
           status: 'pending_manager',
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

@@ -10,6 +10,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { tenantKey } from '../utils/tenantStorage'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
+import { rfqIntelligenceUrl } from '../constants/rfqPaths'
 import '../styles/app-page.css'
 import './Notifications.css'
 
@@ -390,14 +391,14 @@ export default function Notifications() {
                   onClick={() => {
                     markQiIncomingRead(r.id)
                     navigate(
-                      `/rfq-intelligence?tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`,
+                      rfqIntelligenceUrl(`tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`),
                     )
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       markQiIncomingRead(r.id)
                       navigate(
-                        `/rfq-intelligence?tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`,
+                        rfqIntelligenceUrl(`tab=new&part=${encodeURIComponent(r.part)}&customer=${encodeURIComponent(r.company)}&qtyProd=${encodeURIComponent(String(r.qty))}`),
                       )
                     }
                   }}
@@ -422,7 +423,7 @@ export default function Notifications() {
               type="button"
               className="notif-task-btn notif-task-btn-success"
               style={{ marginTop: 8 }}
-              onClick={() => navigate('/rfq-intelligence?tab=incoming')}
+              onClick={() => navigate(rfqIntelligenceUrl('tab=incoming'))}
             >
               Open inbox
             </button>

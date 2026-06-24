@@ -945,6 +945,85 @@
   margin-bottom: 2px;
 }
 
+.pm-portfolio-shell.pm-pdf-capture {
+  overflow: visible;
+  padding: 16px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.pm-portfolio-shell.pm-pdf-capture .app-page-card {
+  break-inside: avoid;
+}
+
+.pm-pdf-rag-snapshot {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary, #1a1a2e);
+  white-space: nowrap;
+}
+
+.pm-portfolio-pdf-modal {
+  max-width: 440px;
+}
+
+.pm-portfolio-pdf-modal-lead {
+  margin: 0 0 16px;
+  color: var(--color-secondary);
+  line-height: 1.5;
+}
+
+.pm-portfolio-pdf-orientation {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pm-portfolio-pdf-orientation-legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.pm-portfolio-pdf-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light, var(--gc-border, #e2e8f0));
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pm-portfolio-pdf-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pm-portfolio-pdf-option--active {
+  border-color: var(--accent-blue, #2563eb);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.pm-portfolio-pdf-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.pm-portfolio-pdf-option-desc {
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
 .pm-portfolio-kpi-grid,
 .pm-metric-grid {
   display: grid;

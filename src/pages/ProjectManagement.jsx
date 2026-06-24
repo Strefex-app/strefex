@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { useProjectStore } from '../store/projectStore'
 import { useAuthStore } from '../store/authStore'
 import { useLimit } from '../services/featureFlags'
@@ -9,6 +10,8 @@ import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './ProgramManagement.css'
 import './ProjectManagement.css'
+import '../styles/projectControl.css'
+import '../styles/managementShell.css'
 
 /* ═══════════════════════════════════════════════════════
  *  CONSTANTS
@@ -61,6 +64,8 @@ import {
   drawPmPdfSubtitleBar,
   addPmPdfCanvasFit,
   drawPmPdfFooter,
+  exportHtmlToStrefexPdfPaged,
+  PM_PDF_CAPTURE_WIDTH,
 } from '../utils/pmPdfExport'
 
 /* ═══════════════════════════════════════════════════════
@@ -69,6 +74,8 @@ import {
 const ProjectManagement = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const viewFromQuery = searchParams.get('view')
   const ganttRef = useRef(null)
   const fitWrapRef = useRef(null)
   const taskListRef = useRef(null)
@@ -107,7 +114,7 @@ const ProjectManagement = () => {
   const projectLimit = useLimit('maxProjects', projects.length)
 
   /* ── UI State ─────────────────────────────────────── */
-  const [view, setView] = useState('timeline') // timeline | table | portfolio (Falcon-style PPM rollup)
+  const [view, setView] = useState(viewFromQuery === 'portfolio' ? 'portfolio' : 'timeline') // timeline | table | portfolio
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id || null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [taskListOpen, setTaskListOpen] = useState(true)
@@ -128,6 +135,16 @@ const ProjectManagement = () => {
   const [showFalconTags, setShowFalconTags] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [pmExportFeedback, setPmExportFeedback] = useState('')
+  const [showPortfolioPdfModal, setShowPortfolioPdfModal] = useState(false)
+  const [portfolioPdfOrientation, setPortfolioPdfOrientation] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('pm-portfolio-pdf-orientation')
+      return saved === 'l' ? 'l' : 'p'
+    } catch {
+      return 'p'
+    }
+  })
+  const [portfolioPdfExporting, setPortfolioPdfExporting] = useState(false)
   const [revisionNote, setRevisionNote] = useState('')
   const [newResourceName, setNewResourceName] = useState('')
   const [contextMenu, setContextMenu] = useState(null)
@@ -572,7 +589,76 @@ const ProjectManagement = () => {
     setFitState({ scale: Math.min(sx, sy, 1), contentW: fullW, contentH: fullH })
   }, [fitState])
 
+  const runPortfolioPdfExport = useCallback(async (orientation) => {
+    setPmExportFeedback('')
+    setPortfolioPdfExporting(true)
+    const printedBy = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
+    const el = portfolioExportRef.current
+    if (!el) {
+      setPmExportFeedback('Nothing to export.')
+      setPortfolioPdfExporting(false)
+      setTimeout(() => setPmExportFeedback(''), 4000)
+      return
+    }
+
+    const ragSnapshots = []
+    let narrativeWasOpen = false
+    let narrativeEl = null
+
+    try {
+      const s = portfolioExecutiveSummary
+      await exportHtmlToStrefexPdfPaged(el, {
+        orientation,
+        captureWidthPx: orientation === 'l'
+          ? PM_PDF_CAPTURE_WIDTH.landscape
+          : PM_PDF_CAPTURE_WIDTH.portrait,
+        title: 'Portfolio executive summary',
+        subtitle: `Roll-up as of ${s.reportDate} · ${s.projectCount} project${s.projectCount === 1 ? '' : 's'} · On track ${s.ragGreen} · Watch ${s.ragAmber} · At risk ${s.ragRed}`,
+        filename: 'portfolio-executive-summary.pdf',
+        printedBy,
+        beforeCapture: (root) => {
+          narrativeEl = root.querySelector('details.pm-portfolio-narrative-details')
+          narrativeWasOpen = narrativeEl ? narrativeEl.open : false
+          if (narrativeEl) narrativeEl.open = true
+          root.querySelectorAll('.pm-portfolio-table-rag').forEach((select) => {
+            const opt = select.options[select.selectedIndex]
+            const span = document.createElement('span')
+            span.className = 'pm-pdf-rag-snapshot'
+            span.textContent = opt?.text || 'On track'
+            ragSnapshots.push({ select, span })
+            select.style.display = 'none'
+            select.parentNode?.insertBefore(span, select)
+          })
+        },
+        afterCapture: () => {
+          ragSnapshots.forEach(({ select, span }) => {
+            select.style.display = ''
+            span.remove()
+          })
+          if (narrativeEl && !narrativeWasOpen) narrativeEl.open = false
+        },
+      })
+      try {
+        sessionStorage.setItem('pm-portfolio-pdf-orientation', orientation)
+      } catch { /* ignore */ }
+      setShowPortfolioPdfModal(false)
+      setPmExportFeedback('PDF saved.')
+      setTimeout(() => setPmExportFeedback(''), 4000)
+    } catch (err) {
+      console.error('Portfolio PDF export:', err)
+      setPmExportFeedback('Could not create PDF.')
+      setTimeout(() => setPmExportFeedback(''), 5000)
+    } finally {
+      setPortfolioPdfExporting(false)
+    }
+  }, [portfolioExecutiveSummary, currentUser])
+
   const handleExportPDF = useCallback(async () => {
+    if (view === 'portfolio') {
+      setShowPortfolioPdfModal(true)
+      return
+    }
+
     setPmExportFeedback('')
     const printedBy = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
     const html2canvas = (await import('html2canvas')).default
@@ -583,60 +669,6 @@ const ProjectManagement = () => {
     }
 
     try {
-      if (view === 'portfolio') {
-        const el = portfolioExportRef.current
-        if (!el) {
-          setPmExportFeedback('Nothing to export.')
-          setTimeout(() => setPmExportFeedback(''), 4000)
-          return
-        }
-        const hidden = []
-        el.querySelectorAll('.pm-pdf-exclude').forEach((n) => {
-          hidden.push({ n, v: n.style.visibility })
-          n.style.visibility = 'hidden'
-        })
-        const det = el.querySelector('details.pm-portfolio-narrative-details')
-        const wasOpen = det ? det.open : false
-        if (det) det.open = true
-        await new Promise((r) => setTimeout(r, 80))
-        const canvas = await html2canvas(el, {
-          scale: 2,
-          useCORS: true,
-          width: el.scrollWidth,
-          height: el.scrollHeight,
-          windowWidth: el.scrollWidth,
-          windowHeight: el.scrollHeight,
-          scrollX: 0,
-          scrollY: 0,
-          x: 0,
-          y: 0,
-        })
-        hidden.forEach(({ n, v }) => {
-          n.style.visibility = v
-        })
-        if (det && !wasOpen) det.open = false
-
-        const logo = await loadStrefexLogoForPdf()
-        const pdf = new jsPDF('l', 'mm', 'a4')
-        const w = pdf.internal.pageSize.getWidth()
-        const pageH = pdf.internal.pageSize.getHeight()
-        const s = portfolioExecutiveSummary
-        const headerH = drawPmPdfHeader(pdf, w, 'Portfolio executive summary', logo)
-        const subH = drawPmPdfSubtitleBar(
-          pdf,
-          w,
-          headerH,
-          `Roll-up as of ${s.reportDate} · ${s.projectCount} project${s.projectCount === 1 ? '' : 's'} · On track ${s.ragGreen} · Watch ${s.ragAmber} · At risk ${s.ragRed}`,
-        )
-        const contentTop = headerH + subH + 2
-        addPmPdfCanvasFit(pdf, canvas, w, pageH, contentTop)
-        drawPmPdfFooter(pdf, w, pageH, 'Page 1 of 1', printedBy)
-        pdf.save('portfolio-executive-summary.pdf')
-        setPmExportFeedback('PDF saved.')
-        setTimeout(() => setPmExportFeedback(''), 4000)
-        return
-      }
-
       if (view === 'table') {
         const el = tableExportRef.current
         if (!el) {
@@ -753,7 +785,6 @@ const ProjectManagement = () => {
   }, [
     view,
     fitState,
-    portfolioExecutiveSummary,
     stats,
     selectedProject,
     currentUser,
@@ -834,10 +865,8 @@ const ProjectManagement = () => {
         {/* ── Top bar (platform-aligned) ───────────────── */}
         <div className="gc-topbar">
           <div className="gc-topbar-inner gc-topbar-inner--layout">
+            <ManagementBreadcrumb trail={[{ label: 'Project Management' }]} />
             <div className="gc-topbar-row gc-topbar-row--primary">
-              <button type="button" className="gc-back" onClick={() => navigate(-1)} aria-label="Back">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
-              </button>
               <div className="gc-topbar-heading">
                 <h1 className="gc-title">Project Management</h1>
                 <div className="gc-view-tabs" role="tablist" aria-label="Schedule view">
@@ -1140,6 +1169,7 @@ const ProjectManagement = () => {
                       <thead>
                         <tr>
                           <th>RAG</th>
+                          <th>Project #</th>
                           <th>Project</th>
                           <th>Tags</th>
                           <th>Tasks</th>
@@ -1149,13 +1179,13 @@ const ProjectManagement = () => {
                           <th>Spent</th>
                           <th>Open risks</th>
                           <th>KPIs (≥85%)</th>
-                          <th />
+                          <th className="pm-pdf-exclude">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {portfolioRows.length === 0 && (
                           <tr>
-                            <td colSpan={11} className="app-page-list-empty">
+                            <td colSpan={12} className="app-page-list-empty">
                               No projects yet. Create one from + Project.
                             </td>
                           </tr>
@@ -1177,6 +1207,7 @@ const ProjectManagement = () => {
                                   ))}
                                 </select>
                               </td>
+                              <td><code className="pcc-ref-id">{p.projectNumber || '—'}</code></td>
                               <td>
                                 <span className="gc-ws-dot" style={{ background: row.color }} />
                                 <strong>{p.name}</strong>
@@ -1194,7 +1225,14 @@ const ProjectManagement = () => {
                                 ) : null}
                               </td>
                               <td>{row.kpiLabel}</td>
-                              <td>
+                              <td className="pm-pdf-exclude">
+                                <button
+                                  type="button"
+                                  className="app-page-btn-outline app-page-btn-sm"
+                                  onClick={() => navigate(`/project-management/project/${p.id}/control`)}
+                                >
+                                  Control
+                                </button>
                                 <button
                                   type="button"
                                   className="app-page-btn-primary app-page-btn-sm"
@@ -1639,6 +1677,62 @@ const ProjectManagement = () => {
         )}
 
         {/* Add Project */}
+        {showPortfolioPdfModal && (
+          <div className="pm-modal-overlay" onClick={() => !portfolioPdfExporting && setShowPortfolioPdfModal(false)}>
+            <div className="pm-modal pm-modal--platform pm-portfolio-pdf-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pm-portfolio-pdf-title">
+              <h3 id="pm-portfolio-pdf-title">Save portfolio report as PDF</h3>
+              <p className="app-page-body pm-portfolio-pdf-modal-lead">
+                Choose page orientation. The report spans multiple pages at full width — nothing is shrunk to fit one page.
+              </p>
+              <fieldset className="pm-portfolio-pdf-orientation">
+                <legend className="pm-portfolio-pdf-orientation-legend">Page layout</legend>
+                <label className={`pm-portfolio-pdf-option${portfolioPdfOrientation === 'p' ? ' pm-portfolio-pdf-option--active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="portfolio-pdf-orientation"
+                    value="p"
+                    checked={portfolioPdfOrientation === 'p'}
+                    onChange={() => setPortfolioPdfOrientation('p')}
+                    disabled={portfolioPdfExporting}
+                  />
+                  <span className="pm-portfolio-pdf-option-title">Portrait (vertical)</span>
+                  <span className="pm-portfolio-pdf-option-desc">Best for executive summary and narrative sections.</span>
+                </label>
+                <label className={`pm-portfolio-pdf-option${portfolioPdfOrientation === 'l' ? ' pm-portfolio-pdf-option--active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="portfolio-pdf-orientation"
+                    value="l"
+                    checked={portfolioPdfOrientation === 'l'}
+                    onChange={() => setPortfolioPdfOrientation('l')}
+                    disabled={portfolioPdfExporting}
+                  />
+                  <span className="pm-portfolio-pdf-option-title">Landscape (horizontal)</span>
+                  <span className="pm-portfolio-pdf-option-desc">Best for the project register table with many columns.</span>
+                </label>
+              </fieldset>
+              <div className="pm-modal-buttons pm-modal-buttons--platform">
+                <button
+                  type="button"
+                  className="pm-btn-secondary"
+                  onClick={() => setShowPortfolioPdfModal(false)}
+                  disabled={portfolioPdfExporting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="pm-btn-primary"
+                  onClick={() => runPortfolioPdfExport(portfolioPdfOrientation)}
+                  disabled={portfolioPdfExporting}
+                >
+                  {portfolioPdfExporting ? 'Generating…' : 'Download PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showAddProject && (
           <div className="pm-modal-overlay" onClick={() => setShowAddProject(false)}>
             <div className="pm-modal" onClick={(e) => e.stopPropagation()}>

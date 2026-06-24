@@ -1,16 +1,10 @@
 /** RFQ Intelligence — materials, processes & costing (derived from rfq_system_1 prototype). */
 
-export const RFQI_MATERIALS = [
-  { id: 'pp', cat: 'plastic', name: 'PP — Polypropylene', grade: 'Homopolymer', density: 0.91, price: 1.8 },
-  { id: 'abs', cat: 'plastic', name: 'ABS', grade: 'General purpose', density: 1.05, price: 2.6 },
-  { id: 'pa66gf30', cat: 'plastic', name: 'PA66 GF30', grade: '30% glass-filled', density: 1.37, price: 5.8 },
-  { id: 'pc', cat: 'plastic', name: 'PC — Polycarbonate', grade: 'Clear/Opaque', density: 1.2, price: 5.2 },
-  { id: 'al6061', cat: 'aluminium', name: 'Al 6061-T6', grade: 'T6 temper', density: 2.7, price: 3.2 },
-  { id: 'al7075', cat: 'aluminium', name: 'Al 7075-T6', grade: 'T6 temper', density: 2.81, price: 6.8 },
-  { id: 'steel4140', cat: 'steel', name: '4140 / 42CrMo4', grade: 'Alloy steel', density: 7.85, price: 2.2 },
-  { id: 'sus316l', cat: 'stainless', name: 'SUS316L / 1.4404', grade: 'Low carbon', density: 7.98, price: 8.2 },
-  { id: 'cf-pa', cat: 'composite', name: 'Carbon Fibre PA12', grade: 'CF reinforced', density: 1.1, price: 45 },
-]
+import { RFQI_SEED_MATERIALS } from './rfqEquipmentSeed'
+import { calcThreeBucketCost } from '../utils/rfqCostEngine'
+
+/** Default material list — tenant store may override at runtime. */
+export const RFQI_MATERIALS = RFQI_SEED_MATERIALS
 
 export const RFQI_PROCESSES = {
   imm: {
@@ -98,50 +92,72 @@ export const DEFAULT_INCOMING_RFQS = [
 const LABOUR_RATE_DEFAULT = 35
 
 /**
- * Same structure as rfq_system_1.html `calcPartCost`.
+ * Three-bucket part cost — Material | Process | Personnel.
  */
-export function calcPartCost({ proc, mat, weightG, tolMult, finishMult, qty, complexity = 'medium' }) {
+export function calcPartCost({
+  proc,
+  mat,
+  weightG,
+  tolMult,
+  finishMult,
+  qty,
+  complexity = 'medium',
+  processRates = null,
+  personnelRates = null,
+  /** @deprecated use processRates + personnelRates */
+  equipmentRates = null,
+  marginPct = 25,
+}) {
   const p = RFQI_PROCESSES[proc] || RFQI_PROCESSES.imm
-  const compMult = p.complexMult[complexity] || 1.5
 
-  const matCostPerPart = (weightG / 1000) * mat.price * 1.15
-  const cycleH = (p.cycleBase * compMult * tolMult) / 60
-  const machineLabour = cycleH * (p.machineRate + LABOUR_RATE_DEFAULT)
-  const overhead = cycleH * LABOUR_RATE_DEFAULT * 1.8
+  const legacyProcess = equipmentRates
+    ? {
+        machineRateEUR: equipmentRates.baseMachineRateEUR ?? equipmentRates.machineRateEUR,
+        peripheralRateEUR: equipmentRates.peripheralRateEUR ?? 0,
+        energyRateEUR: equipmentRates.energyRateEUR ?? 0,
+        processRateEUR: equipmentRates.machineRateEUR,
+        setupTimeH: equipmentRates.setupTimeH,
+        cycleFactor: equipmentRates.cycleFactor,
+      }
+    : processRates
 
-  let toolingAmort = 0
-  if (proc === 'imm') {
-    const toolCost = 35000 + compMult * 15000 + (tolMult > 1.5 ? 15000 : 0)
-    toolingAmort = toolCost / 1_000_000
-  } else if (proc === 'casting') {
-    toolingAmort = 80000 / 500000
-  } else if (proc === 'press') {
-    toolingAmort = 25000 / 2_000_000
-  }
+  const legacyPersonnel = equipmentRates
+    ? {
+        cycleLabourRateEUR: Number(equipmentRates.labourEURh ?? LABOUR_RATE_DEFAULT) * 0.33,
+        setupLabourEUR: Number(equipmentRates.labourEURh ?? LABOUR_RATE_DEFAULT) * 1.5,
+        overheadPct: equipmentRates.overheadPct ?? 180,
+      }
+    : personnelRates
 
-  const setup = (p.setupTime * (p.machineRate + LABOUR_RATE_DEFAULT)) / Math.max(qty, 100)
-  const costBase = matCostPerPart + machineLabour + overhead + toolingAmort + setup
-  const costWithFinish = costBase * finishMult
-  const margin = costWithFinish * 0.25
-  const unitPrice = costWithFinish + margin
+  const result = calcThreeBucketCost({
+    proc,
+    mat,
+    weightG,
+    tolMult,
+    finishMult,
+    qty,
+    complexity,
+    processDef: p,
+    processRates: legacyProcess,
+    personnelRates: legacyPersonnel,
+    marginPct,
+  })
 
   return {
-    material: matCostPerPart,
-    machining: machineLabour,
-    overhead,
-    tooling: toolingAmort,
-    setup,
-    finishing: costBase * (finishMult - 1),
-    margin,
-    total: unitPrice,
-    toolingMouldEUR:
-      proc === 'imm'
-        ? 35000 + compMult * 15000 + (tolMult > 1.5 ? 15000 : 0)
-        : proc === 'casting'
-          ? 80000
-          : proc === 'press'
-            ? 25000
-            : 0,
+    material: result.material,
+    process: result.process.total,
+    personnel: result.personnel.total,
+    buckets: result.buckets,
+    bucketRows: result.bucketRows,
+    machining: result.process.machineCycle + result.process.peripheralCycle + result.process.energyCycle,
+    overhead: result.personnel.overhead,
+    tooling: result.process.tooling,
+    setup: result.process.setup + result.personnel.setupLabour,
+    finishing: result.finishing,
+    margin: result.marginAmount,
+    total: result.total,
+    toolingMouldEUR: result.toolingMouldEUR,
+    detail: result,
   }
 }
 
@@ -156,77 +172,4 @@ export function finishFactor(finKey) {
   return FIN_MAP[finKey] ?? 1
 }
 
-/**
- * Standalone calculator (matches `calcQuick` core from rfq_system_1.html).
- */
-export function runRfqIntelQuickCalc(input) {
-  const {
-    procId = 'imm',
-    materialId = 'pp',
-    complexity = 1.5,
-    weightG = 120,
-    tol = 1,
-    finish = 1,
-    vol = 10000,
-    machineRate,
-    labourRate = 35,
-    overheadPct = 180,
-    tooling = 45000,
-    toolShots = 1_000_000,
-    marginPct = 25,
-  } = input
-
-  const p = RFQI_PROCESSES[procId] || RFQI_PROCESSES.imm
-  const mr = machineRate ?? p.machineRate
-  const mat = RFQI_MATERIALS.find((m) => m.id === materialId) || RFQI_MATERIALS[0]
-
-  const matCost = (weightG / 1000) * mat.price * 1.15
-  const cycleH = (p.cycleBase * complexity * tol) / 60
-  const machCost = cycleH * (mr + labourRate)
-  const ovhCost = cycleH * labourRate * (overheadPct / 100)
-  const setupCost = (p.setupTime * (mr + labourRate)) / vol
-  const toolAmort = tooling / toolShots
-  const finCost = (matCost + machCost + ovhCost) * (finish - 1)
-  const preMargin = matCost + machCost + ovhCost + setupCost + toolAmort + finCost
-  const margin = marginPct / 100
-  const unitPrice = preMargin / (1 - margin)
-
-  const rows = [
-    { label: 'Material', value: matCost, color: '#4fc3f7' },
-    { label: 'Machining time', value: machCost, color: '#00d4ff' },
-    { label: 'Overhead', value: ovhCost, color: '#b060ff' },
-    { label: 'Tooling amort.', value: toolAmort, color: '#ff6d00' },
-    { label: 'Setup cost', value: setupCost, color: '#ffab00' },
-    { label: 'Finishing', value: finCost, color: '#00e676' },
-  ]
-
-  const volumes = [50, 100, 500, 1000, 5000, 10000, 50000, 100000]
-  const volumePrices = volumes.map((v) => {
-    const sc = (p.setupTime * (mr + labourRate)) / v
-    const t =
-      matCost +
-      cycleH * (mr + labourRate) +
-      ovhCost +
-      sc +
-      toolAmort +
-      finCost
-    return { vol: v, unit: t / (1 - margin) }
-  })
-
-  return {
-    process: p.name,
-    material: mat.name,
-    preMargin,
-    unitPrice,
-    rows,
-    volumePrices,
-    meta: {
-      machineRateUsed: mr,
-      labourRate,
-      toolingEUR: tooling,
-      toolShots,
-      overheadPct,
-      marginPct,
-    },
-  }
-}
+export { runRfqIntelQuickCalc } from '../utils/rfqCostEngine'

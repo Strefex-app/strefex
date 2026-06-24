@@ -496,3 +496,36 @@ a.app-page-btn-secondary {
     align-items: center;
   }
 }
+
+/* Platform navigation standard: path address (breadcrumbs) — hide legacy arrow-back links */
+.app-page-back-link,
+[class$="-back-link"],
+.std-back,
+.metrics-back,
+.cert-back,
+.floor-back,
+.wco-back,
+.erp-back,
+.ctr-back,
+.sa-back,
+.comp-back,
+.aud-back,
+.ai-back,
+.tpl-back,
+.sysmgmt-back,
+.epc-back,
+.audit-q-back,
+.ed-back-link,
+.cost-mgmt-back-link,
+.production-back-link,
+.enterprise-back-link,
+.industry-hub-back-link,
+.excal-back,
+.history-back,
+.qm-back-link,
+.hrdoc-back-link,
+.eg-back-link,
+.mgmt-nav-back,
+.vd-back {
+  display: none !important;
+}
