@@ -1,0 +1,15 @@
+<scroll-view class="schedule-week" scroll-x enable-flex>
+  <view
+    wx:for="{{weekDates}}"
+    wx:key="date"
+    class="schedule-week__day {{selectedDate === item.date ? 'schedule-week__day--active' : ''}} {{item.isToday ? 'schedule-week__day--today' : ''}}"
+    data-date="{{item.date}}"
+    bindtap="onSelectDay"
+  >
+    <text class="schedule-week__label">{{item.dayLabel}}</text>
+    <text class="schedule-week__num">{{item.dayNum}}</text>
+    <view wx:if="{{sessionCounts[item.date] > 0}}" class="schedule-week__dot">
+      {{sessionCounts[item.date]}}
+    </view>
+  </view>
+</scroll-view>
