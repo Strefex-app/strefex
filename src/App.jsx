@@ -168,6 +168,7 @@ import {
   TemplateLibrary,
   AuditLogs,
   NotFoundPage,
+  PitchBookDemo,
 } from './routes/lazyPages'
 
 function RouteLoadingFallback() {
@@ -326,6 +327,7 @@ function App() {
           <Route path="/login" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/pitchbook" element={<PitchBookDemo />} />
 
           {/* ── Core pages ────────────────────────────────── */}
           <Route path="/main-menu" element={<P><Home /></P>} />

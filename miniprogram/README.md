@@ -26,6 +26,8 @@ backend/app/api/v1/football_training.py   # REST API
 
 ## Quick start (WeChat DevTools)
 
+**Web preview:** run the STREFEX frontend (`npm run dev`) and open [`/pitchbook`](http://localhost:5173/pitchbook) for an interactive browser demo of the mini program UI.
+
 1. Install [WeChat Developer Tools](https://developers.weixin.qq.com/miniprogram/en/dev/devtools/download.html).
 2. Open the `miniprogram/` folder as a mini program project.
 3. Set your AppID in `project.config.json` (`appid` field) or use test AppID.
