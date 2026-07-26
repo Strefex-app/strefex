@@ -544,14 +544,6 @@ export default function AuditProConduct() {
       <div className="ap-card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ minWidth: 0 }}>
-            <button
-              type="button"
-              onClick={() => navigate('/management/auditors/plans')}
-              className="ap-text-secondary stx-click-feedback"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--text-caption)', marginBottom: 5, padding: 0 }}
-            >
-              ← Back
-            </button>
             <div className="stx-text-wrap stx-text-section" style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary)' }}>
               {conduct.title}
             </div>

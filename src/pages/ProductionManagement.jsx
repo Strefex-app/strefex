@@ -110,13 +110,6 @@ const ProductionManagement = () => {
       <div className="production-page">
         {/* Header */}
         <div className="production-header">
-          <a 
-            className="production-back-link stx-click-feedback" 
-            href="/management" 
-            onClick={(e) => { e.preventDefault(); navigate(-1) }}
-          >
-            <Icon name="arrow-left" size={16} /> Back
-          </a>
           <h1 className="production-title">{t('production.title')}</h1>
           <p className="production-subtitle">{t('production.subtitle')}</p>
         </div>

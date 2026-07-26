@@ -143,9 +143,6 @@ export default function ForgeClubDocumentPage() {
     <AppLayout>
       <div className="headcount-page forge-club-doc-page">
         <div className="headcount-header forge-club-doc-header no-print">
-          <button type="button" className="headcount-back-link stx-click-feedback" onClick={() => navigate(FORGE_PATHS.hub)}>
-            <Icon name="arrow-left" size={16} /> {t('forge.clubDoc.back', 'Back to Forge')}
-          </button>
           <h1 className="headcount-title">{title}</h1>
           <p className="headcount-subtitle">
             {t(

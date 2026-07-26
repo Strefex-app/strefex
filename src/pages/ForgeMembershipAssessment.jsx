@@ -387,8 +387,6 @@ export default function ForgeMembershipAssessment() {
         subtitle={t('forge.membershipSubtitle', 'Nomination through final decision — auto-saves in this browser')}
         tab={shellTab}
         onTab={setShellTab}
-        hubBackHref={forgeSpacePath()}
-        hubBackLabel={t('forge.backToForge', 'Back to Forge')}
       >
         {shellTab === 'assess' && (
           <div className="forge-msel">

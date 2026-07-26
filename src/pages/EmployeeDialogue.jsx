@@ -93,9 +93,6 @@ const EmployeeDialogue = () => {
     <AppLayout>
       <div className="ed-page">
         <div className="ed-header">
-          <Link className="ed-back-link" to={hrSpacePath()}>
-            ← {t('hrSpace.backToHrHub', 'HR Space')}
-          </Link>
           <h1 className="ed-title">Employee Dialogue & Reviews</h1>
           <p className="ed-subtitle">Yearly performance reviews and development discussions</p>
         </div>

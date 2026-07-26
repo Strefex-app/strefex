@@ -406,4 +406,42 @@ textarea {
   font-family: inherit;
 }
 
+/* Platform: hide legacy arrow “back to previous page” links (breadcrumbs replace these) */
+.hr-mod-back,
+.app-page-back-link,
+[class$="-back-link"],
+[class$="-app-back"],
+.audit-pro-app-back,
+.saad-back,
+.rc-back,
+.back-button-wrapper,
+.std-back,
+.metrics-back,
+.cert-back,
+.floor-back,
+.wco-back,
+.erp-back,
+.ctr-back,
+.sa-back,
+.comp-back,
+.aud-back,
+.ai-back,
+.tpl-back,
+.sysmgmt-back,
+.epc-back,
+.audit-q-back,
+.history-back,
+.qm-back-link,
+.hrdoc-back-link,
+.eg-back-link,
+.excal-back,
+.fs-back,
+.ppa-back,
+.hr-emp-prof-back,
+.exec-summary-back,
+.mgmt-nav-back,
+.vd-back {
+  display: none !important;
+}
+
 /* Shell / card normalisation: `src/styles/platform-rfq-shell.css` (imported last in main.jsx) */

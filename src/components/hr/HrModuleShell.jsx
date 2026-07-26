@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-import { hrSpacePath } from '../../constants/hrSpaceRoutes'
 import { useTranslation } from '../../i18n/useTranslation'
 import './HrModuleShell.css'
 
@@ -24,9 +22,6 @@ export function HrModuleShell({
   return (
     <div className="hr-mod">
       <div className="hr-mod-header">
-        <Link to={hrSpacePath()} className="hr-mod-back stx-click-feedback">
-          ← {t('hrSpace.backToHrHub', 'Back to HR Space')}
-        </Link>
         <h1 className="hr-mod-title">{title}</h1>
         {subtitle && <p className="hr-mod-sub">{subtitle}</p>}
         <nav className="hr-mod-tabs" aria-label="Module sections">

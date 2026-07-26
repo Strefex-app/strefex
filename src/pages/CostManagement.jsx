@@ -44,13 +44,6 @@ const CostManagement = () => {
       <div className="cost-mgmt-page">
         {/* Header */}
         <div className="cost-mgmt-header">
-          <a 
-            className="cost-mgmt-back-link stx-click-feedback" 
-            href="/management" 
-            onClick={(e) => { e.preventDefault(); navigate(-1) }}
-          >
-            <Icon name="arrow-left" size={16} /> Back
-          </a>
           <h1 className="cost-mgmt-title">{t('cost.title')}</h1>
           <p className="cost-mgmt-subtitle">{t('cost.subtitle')}</p>
         </div>

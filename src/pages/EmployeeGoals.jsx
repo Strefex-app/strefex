@@ -95,7 +95,6 @@ const EmployeeGoals = () => {
         {(tab === 'track' || tab === 'manage') && (
           <>
         <div className="eg-header" style={{ paddingTop: 0 }}>
-          <Link className="eg-back-link" to={hrSpacePath()}>← {t('hrSpace.backToHrHub', 'HR Space')}</Link>
           {selectedEmployee && (
             <p className="eg-subtitle">
               <Link to={hrSpacePath(`employees/${selectedEmployee}`)}>{getEmployeeLabel(selectedEmployee)}</Link>

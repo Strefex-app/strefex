@@ -48,13 +48,6 @@ const EnterpriseManagement = () => {
       <div className="enterprise-page">
         {/* Header */}
         <div className="enterprise-header">
-          <a 
-            className="enterprise-back-link stx-click-feedback" 
-            href="/management" 
-            onClick={(e) => { e.preventDefault(); navigate(-1) }}
-          >
-            <Icon name="arrow-left" size={16} /> Back
-          </a>
           <h1 className="enterprise-title">{t('enterprise.title')}</h1>
           <p className="enterprise-subtitle">{t('enterprise.subtitle')}</p>
         </div>

@@ -16,15 +16,14 @@ import '../styles/managementShell.css'
 /* ═══════════════════════════════════════════════════════
  *  CONSTANTS
  * ═══════════════════════════════════════════════════════ */
-const DAY_W = 32                // pixels per day column (must match --gc-day-w in task grid CSS)
 const ROW_H = 34                // pixels per task row
 /** Default visible task rows in the Gantt body when the project has fewer tasks (no viewport fill). */
-const DEFAULT_GANTT_VISIBLE_ROWS = 10
+const DEFAULT_GANTT_VISIBLE_ROWS = 12
 const HANDLE_W = 6              // drag handle width (px)
 const PROJECT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-const STATUS_COLORS = { complete: '#27ae60', 'in-progress': '#2563eb', 'not-started': '#94a3b8' }
+const STATUS_COLORS = { complete: '#16a34a', 'in-progress': '#2563eb', 'not-started': '#64748b' }
+const STATUS_BAR_CLASS = { complete: 'gc-bar-body--complete', 'in-progress': 'gc-bar-body--in-progress', 'not-started': 'gc-bar-body--planned' }
 const DEP_LABELS = { FS: 'Finish → Start', SS: 'Start → Start' }
-const MS_PER_DAY = 24 * 60 * 60 * 1000
 const RAG_OPTIONS = [
   { value: 'green', label: 'On track' },
   { value: 'amber', label: 'Watch' },
@@ -48,9 +47,6 @@ function fmtShortDate(d) {
   const dt = new Date(d)
   return `${dt.getDate()} ${dt.toLocaleString('en', { month: 'short' })}`
 }
-function fmtMonthYear(d) {
-  return d.toLocaleString('en', { month: 'short', year: 'numeric' })
-}
 function ragDotClass(rag) {
   const r = String(rag || 'green').toLowerCase()
   if (r === 'red') return 'gc-rag gc-rag--red'
@@ -67,6 +63,19 @@ import {
   exportHtmlToStrefexPdfPaged,
   PM_PDF_CAPTURE_WIDTH,
 } from '../utils/pmPdfExport'
+import {
+  GANTT_SCALES,
+  getGanttScale,
+  buildDateRange,
+  buildGridColumns,
+  buildHeaderGroups,
+  extendDateRangeToFillWidth,
+  dateToPx as scaleDateToPx,
+  pxToDate as scalePxToDate,
+  pxDeltaToDays,
+  timelineWidthPx,
+  minBarWidthPx,
+} from '../utils/ganttTimelineScale'
 
 /* ═══════════════════════════════════════════════════════
  *  MAIN COMPONENT
@@ -116,8 +125,7 @@ const ProjectManagement = () => {
   /* ── UI State ─────────────────────────────────────── */
   const [view, setView] = useState(viewFromQuery === 'portfolio' ? 'portfolio' : 'timeline') // timeline | table | portfolio
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id || null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [taskListOpen, setTaskListOpen] = useState(true)
+  const [timeScale, setTimeScale] = useState('week') // day | week | month | year
   const [expandedPhases, setExpandedPhases] = useState({ t4: true })
 
   const [showFilter, setShowFilter] = useState(false)
@@ -150,6 +158,7 @@ const ProjectManagement = () => {
   const [contextMenu, setContextMenu] = useState(null)
   const [editTaskProjectId, setEditTaskProjectId] = useState(null)
   const [fitState, setFitState] = useState(null) // null = normal, { scale, contentW, contentH } = fitted
+  const [timelineViewportW, setTimelineViewportW] = useState(0)
   const [, forceRender] = useState(0)
 
   /* Predecessor selector state (controlled — avoids DOM getElementById bugs) */
@@ -325,55 +334,46 @@ const ProjectManagement = () => {
     }
   }, [projects, getProjectStats])
 
-  /* ── Date range for timeline ─────────────────────── */
+  /* ── Date range & timeline scale ─────────────────── */
+  const scaleConfig = getGanttScale(timeScale)
+  const pxPerDay = scaleConfig.pxPerDay
+
   const dateRange = useMemo(() => {
-    let min = null, max = null
-    allTasksFlat.forEach((t) => {
-      ;[t.startDate, t.endDate, t.baselineStart, t.baselineEnd].filter(Boolean).forEach((d) => {
-        if (!min || d < min) min = d
-        if (!max || d > max) max = d
-      })
-    })
-    if (!min) min = new Date().toISOString().slice(0, 10)
-    if (!max) max = min
-    // Add padding
-    const s = new Date(min); s.setDate(s.getDate() - 3)
-    const e = new Date(max); e.setDate(e.getDate() + 10)
-    return { min: s.toISOString().slice(0, 10), max: e.toISOString().slice(0, 10), minMs: s.getTime(), maxMs: e.getTime() }
-  }, [allTasksFlat])
+    const base = buildDateRange(allTasksFlat, timeScale)
+    if (view !== 'timeline' || timelineViewportW <= 0) return base
+    return extendDateRangeToFillWidth(base, timeScale, pxPerDay, timelineViewportW)
+  }, [allTasksFlat, timeScale, timelineViewportW, view, pxPerDay])
 
-  const days = useMemo(() => {
-    const d = []; const s = new Date(dateRange.min); const e = new Date(dateRange.max)
-    for (let t = new Date(s); t <= e; t.setDate(t.getDate() + 1)) d.push(new Date(t))
-    return d
-  }, [dateRange.min, dateRange.max])
+  const gridColumns = useMemo(
+    () => buildGridColumns(timeScale, dateRange.min, dateRange.max, pxPerDay),
+    [timeScale, dateRange.min, dateRange.max, pxPerDay],
+  )
 
-  const timelineWidth = days.length * DAY_W
+  const headerGroups = useMemo(
+    () => buildHeaderGroups(timeScale, gridColumns, dateRange.minMs, pxPerDay),
+    [timeScale, gridColumns, dateRange.minMs, pxPerDay],
+  )
+
+  const timelineWidth = useMemo(
+    () => timelineWidthPx(dateRange.minMs, dateRange.maxMs, pxPerDay),
+    [dateRange.minMs, dateRange.maxMs, pxPerDay],
+  )
 
   /* ── Pixel helpers ───────────────────────────────── */
-  const dateToPx = useCallback((dateStr) => {
-    if (!dateStr) return 0
-    return Math.round(((new Date(dateStr).getTime() - dateRange.minMs) / MS_PER_DAY) * DAY_W)
-  }, [dateRange.minMs])
+  const dateToPx = useCallback(
+    (dateStr) => scaleDateToPx(dateStr, dateRange.minMs, pxPerDay),
+    [dateRange.minMs, pxPerDay],
+  )
 
-  const pxToDate = useCallback((px) => {
-    const ms = dateRange.minMs + (px / DAY_W) * MS_PER_DAY
-    return new Date(ms).toISOString().slice(0, 10)
-  }, [dateRange.minMs])
+  const pxToDate = useCallback(
+    (px) => scalePxToDate(px, dateRange.minMs, pxPerDay),
+    [dateRange.minMs, pxPerDay],
+  )
+
+  const minBarW = minBarWidthPx(pxPerDay, timeScale)
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayPx = dateToPx(todayStr)
-
-  /* ── Month headers ───────────────────────────────── */
-  const monthHeaders = useMemo(() => {
-    const months = []; let cur = null
-    days.forEach((d, i) => {
-      const key = `${d.getFullYear()}-${d.getMonth()}`
-      if (key !== cur) { months.push({ label: fmtMonthYear(d), startIdx: i, days: 1 }); cur = key }
-      else months[months.length - 1].days++
-    })
-    return months
-  }, [days])
 
   const taskGridBodyPx = allTasksFlat.length * ROW_H
   /** Task list + calendar share the same row count: minimum DEFAULT_GANTT_VISIBLE_ROWS empty slots; grows with each added task past that. */
@@ -382,9 +382,24 @@ const ProjectManagement = () => {
   const ganttTmBodyHeightPx = displayedTaskRowCount * ROW_H
   const ganttRowLineCount = Math.max(1, displayedTaskRowCount)
 
-  /* ── Scroll sync ─────────────────────────────────── */
+  useEffect(() => {
+    if (view !== 'timeline') return undefined
+    const el = timelineRef.current
+    if (!el) return undefined
+    const measure = () => setTimelineViewportW(el.clientWidth || 0)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [view, timeScale, selectedProjectId, allTasksFlat.length])
+
+  /* ── Scroll sync (name rail ↔ timeline) ────────────── */
   const syncScroll = useCallback((src) => {
-    if (src === 'tasks' && taskListRef.current && timelineRef.current) {
+    if (src === 'names' && taskListRef.current && timelineRef.current) {
       timelineRef.current.scrollTop = taskListRef.current.scrollTop
     } else if (src === 'timeline' && taskListRef.current && timelineRef.current) {
       taskListRef.current.scrollTop = timelineRef.current.scrollTop
@@ -416,7 +431,7 @@ const ProjectManagement = () => {
     const onUp = () => {
       if (!dragRef.current) return
       const dr = dragRef.current
-      const daysDelta = Math.round(dr.dx / DAY_W)
+      const daysDelta = pxDeltaToDays(dr.dx, pxPerDay, scaleConfig.snapDays)
       const pid = dr.projectId
       if (daysDelta !== 0) {
         if (dr.mode === 'move') {
@@ -435,7 +450,7 @@ const ProjectManagement = () => {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-  }, [updateTask, addDays])
+  }, [updateTask, addDays, pxPerDay, scaleConfig.snapDays])
 
   /* ── Dependency arrow paths (SVG) ────────────────── */
   const arrowPaths = useMemo(() => {
@@ -449,7 +464,7 @@ const ProjectManagement = () => {
         if (!pred) return
 
         const fromLeft = dateToPx(pred.startDate)
-        const fromRight = dateToPx(pred.endDate) + DAY_W
+        const fromRight = dateToPx(pred.endDate) + minBarW
         const toLeft = dateToPx(task.startDate)
         const fromY = fromIdx * ROW_H + ROW_H / 2
         const toY = toIdx * ROW_H + ROW_H / 2
@@ -472,7 +487,7 @@ const ProjectManagement = () => {
       })
     })
     return paths
-  }, [allTasksFlat, taskRowMap, dateToPx])
+  }, [allTasksFlat, taskRowMap, dateToPx, minBarW])
 
   /* ── Get predecessor label for task table ─────────── */
   const getPredLabel = (task) => {
@@ -578,8 +593,8 @@ const ProjectManagement = () => {
     const availH = wrap?.clientHeight || gantt.clientHeight
 
     /* Full content dimensions */
-    const taskListW = taskListRef.current?.offsetWidth || 0
-    const fullW = taskListW + 28 + timeline.scrollWidth
+    const nameRailW = taskListRef.current?.offsetWidth || 148
+    const fullW = nameRailW + timeline.scrollWidth
     const fullH = Math.max(timeline.scrollHeight, gantt.scrollHeight)
 
     if (fullW <= availW && fullH <= availH) return // already fits
@@ -718,7 +733,6 @@ const ProjectManagement = () => {
 
       const el = ganttRef.current
       const timeline = timelineRef.current
-      const tasklist = taskListRef.current
       const fitWrap = fitWrapRef.current
 
       const saved = []
@@ -731,14 +745,13 @@ const ProjectManagement = () => {
 
       const fullTimelineW = timeline ? timeline.scrollWidth : timelineWidth
       const fullTimelineH = timeline ? timeline.scrollHeight : allTasksFlat.length * ROW_H + 60
-      const taskListW = tasklist ? tasklist.offsetWidth : 420
-      const fullW = taskListW + 28 + fullTimelineW
-      const fullH = Math.max(fullTimelineH, tasklist ? tasklist.scrollHeight : fullTimelineH)
+      const nameRailW = taskListRef.current?.offsetWidth || 148
+      const fullW = nameRailW + fullTimelineW
+      const fullH = fullTimelineH
 
       expand(fitWrap, { overflow: 'visible', width: `${fullW}px`, height: `${fullH}px`, maxHeight: 'none' })
       expand(el, { overflow: 'visible', width: `${fullW}px`, height: `${fullH}px`, maxHeight: 'none', flex: 'none' })
       expand(timeline, { overflow: 'visible', width: `${fullTimelineW}px`, height: `${fullTimelineH}px`, maxHeight: 'none', flex: 'none' })
-      expand(tasklist, { overflow: 'visible', height: `${fullH}px`, maxHeight: 'none' })
 
       await new Promise((r) => setTimeout(r, 100))
 
@@ -803,17 +816,18 @@ const ProjectManagement = () => {
     const dr = dragRef.current
     const isDragging = dr && dr.taskId === task.id
     let left = dateToPx(task.startDate)
-    let width = Math.max(DAY_W, dateToPx(task.endDate) - dateToPx(task.startDate) + DAY_W)
+    let width = Math.max(minBarW, dateToPx(task.endDate) - dateToPx(task.startDate) + minBarW)
 
     if (isDragging) {
       const dx = dr.dx || 0
       if (dr.mode === 'move') { left += dx }
-      else if (dr.mode === 'resize-end') { width = Math.max(DAY_W, width + dx) }
-      else if (dr.mode === 'resize-start') { left += dx; width = Math.max(DAY_W, width - dx) }
+      else if (dr.mode === 'resize-end') { width = Math.max(minBarW, width + dx) }
+      else if (dr.mode === 'resize-start') { left += dx; width = Math.max(minBarW, width - dx) }
     }
 
     const pct = task.progressPercent ?? 0
-    const barColor = STATUS_COLORS[task.status] || color
+    const statusKey = task.status || 'not-started'
+    const barStatusClass = STATUS_BAR_CLASS[statusKey] || STATUS_BAR_CLASS['not-started']
     const isPhase = task._isPhase
     const pid = projectId || selectedProjectId
 
@@ -829,7 +843,7 @@ const ProjectManagement = () => {
         {showBaseline && task.baselineStart && task.baselineEnd && (
           <div
             className="gc-bar-baseline"
-            style={{ left: dateToPx(task.baselineStart), width: Math.max(DAY_W, dateToPx(task.baselineEnd) - dateToPx(task.baselineStart) + DAY_W) }}
+            style={{ left: dateToPx(task.baselineStart), width: Math.max(minBarW, dateToPx(task.baselineEnd) - dateToPx(task.baselineStart) + minBarW) }}
           />
         )}
         {/* Main bar */}
@@ -840,14 +854,20 @@ const ProjectManagement = () => {
           {/* Left resize handle */}
           <div className="gc-bar-handle gc-bar-handle-l" onMouseDown={(e) => handleBarMouseDown(e, task, pid, 'resize-start')} />
           {/* Bar body — drag to move */}
-          <div className="gc-bar-body" onMouseDown={(e) => handleBarMouseDown(e, task, pid, 'move')} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
-            <div className="gc-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
-            <div className="gc-bar-remaining" style={{ width: `${100 - pct}%` }} />
+          <div className={`gc-bar-body ${barStatusClass}`} onMouseDown={(e) => handleBarMouseDown(e, task, pid, 'move')} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+            {statusKey === 'in-progress' && pct > 0 && pct < 100 ? (
+              <>
+                <div className="gc-bar-fill" style={{ width: `${pct}%` }} />
+                <div className="gc-bar-remaining" style={{ width: `${100 - pct}%` }} />
+              </>
+            ) : null}
           </div>
           {/* Right resize handle */}
           <div className="gc-bar-handle gc-bar-handle-r" onMouseDown={(e) => handleBarMouseDown(e, task, pid, 'resize-end')} />
           {/* Label */}
-          <span className="gc-bar-label">{pct > 0 ? `${pct}%` : ''}</span>
+          <span className="gc-bar-label" title={task.name}>
+            {width > 48 ? task.name : ''}{pct > 0 ? (width > 72 ? ` · ${pct}%` : ` ${pct}%`) : ''}
+          </span>
         </div>
       </div>
     )
@@ -862,177 +882,116 @@ const ProjectManagement = () => {
   return (
     <AppLayout>
       <div className="gc-page" onClick={handleCloseContextMenu}>
-        {/* ── Top bar (platform-aligned) ───────────────── */}
-        <div className="gc-topbar">
-          <div className="gc-topbar-inner gc-topbar-inner--layout">
-            <ManagementBreadcrumb trail={[{ label: 'Project Management' }]} />
-            <div className="gc-topbar-row gc-topbar-row--primary">
-              <div className="gc-topbar-heading">
-                <h1 className="gc-title">Project Management</h1>
-                <div className="gc-view-tabs" role="tablist" aria-label="Schedule view">
-                  <button type="button" role="tab" aria-selected={view === 'timeline'} className={`gc-vtab ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>Gantt Chart</button>
-                  <button type="button" role="tab" aria-selected={view === 'table'} className={`gc-vtab ${view === 'table' ? 'active' : ''}`} onClick={() => setView('table')}>Table</button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={view === 'portfolio'}
-                    className={`gc-vtab ${view === 'portfolio' ? 'active' : ''}`}
-                    onClick={() => setView('portfolio')}
-                    title="Portfolio executive summary and project register"
-                  >
-                    Portfolio
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="gc-topbar-toolbar" aria-label="Project actions">
-              <div className="gc-topbar-toolbar-left">
-                {selectedProjectId ? (
-                  <div className="gc-toolbar-cluster gc-toolbar-cluster--stretch">
-                    <span className="gc-toolbar-cluster-label">Workspace</span>
-                    <div className="gc-toolbar-group gc-toolbar-group--wrap">
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowRevisions(true)}>Revisions</button>
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowResources(true)}>Resources</button>
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => { setBaseline(selectedProjectId); setShowBaseline(true) }}>Baseline</button>
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowBaseline(!showBaseline)}>{showBaseline ? 'Hide BL' : 'Show BL'}</button>
-                      <span className="gc-toolbar-sep" aria-hidden />
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconKpis(true)} title="Effects, benefits, and KPI tracking">
-                        KPIs &amp; benefits
-                      </button>
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconRisks(true)} title="Risk register and red-flag escalation">
-                        Risks
-                      </button>
-                      <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => setShowFalconTags(true)} title="Portfolio tags">
-                        Tags
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="gc-toolbar-cluster">
-                  <span className="gc-toolbar-cluster-label">View</span>
-                  <div className="gc-toolbar-group">
-                    <button type="button" className={`app-page-btn-outline app-page-btn-sm gc-toolbar-btn ${showFilter ? 'gc-toolbar-btn--active' : ''}`} onClick={() => setShowFilter(!showFilter)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                      Filter
-                    </button>
-                    <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={handleExportPDF}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
-                      Save PDF
-                    </button>
-                    <button type="button" className={`app-page-btn-outline app-page-btn-sm gc-toolbar-btn ${fitState ? 'gc-toolbar-btn--active' : ''}`} onClick={handleFitToggle} title={fitState ? 'Reset zoom to normal' : 'Fit entire project in one screen'}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                        {fitState
-                          ? <><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></>
-                          : <><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></>
-                        }
-                      </svg>
-                      {fitState ? 'Reset Zoom' : 'Fit to Screen'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="gc-toolbar-cluster gc-toolbar-cluster--cta">
-                <span className="gc-toolbar-cluster-label">Add</span>
-                <div className="gc-toolbar-group">
-                  <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn" onClick={() => projectLimit.allowed ? setShowAddProject(true) : alert(`Project limit reached (${projectLimit.limit}).`)}>
-                    + Project{projectLimit.limit !== Infinity ? ` (${projectLimit.remaining})` : ''}
-                  </button>
-                  <button type="button" className="app-page-btn-primary gc-toolbar-btn-primary" onClick={() => setShowAddTask(true)}>+ New Task</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Filter Row ───────────────────────────────── */}
-        {showFilter && (
-          <div className="gc-filter-shell">
-            <div className="gc-filter-row">
-              <label>{t('pmFilter.statusLabel')} <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">{t('pmFilter.all')}</option><option value="not-started">{t('pmFilter.task.not-started')}</option><option value="in-progress">{t('pmFilter.task.in-progress')}</option><option value="complete">{t('pmFilter.task.complete')}</option></select></label>
-              <label>{t('pmFilter.assigneeLabel')} <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">{t('pmFilter.all')}</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
-            </div>
-          </div>
-        )}
-
         {pmExportFeedback ? (
           <div className="gc-pm-export-feedback app-page-alert app-page-alert--success" role="status">
             {pmExportFeedback}
           </div>
         ) : null}
 
-        {/* ── Project KPI strip — Gantt/Table only (Portfolio has its own pulse) ─ */}
-        {stats && selectedProject && view !== 'portfolio' && (
-          <div className="gc-stats-shell">
-          <div className="gc-stats-bar">
-            <div className="gc-stat"><span className="gc-stat-n">{stats.totalTasks}</span> Tasks</div>
-            <div className="gc-stat gc-stat-green"><span className="gc-stat-n">{stats.completedTasks}</span> Done</div>
-            <div className="gc-stat gc-stat-blue"><span className="gc-stat-n">{stats.avgProgress}%</span> Progress</div>
-            <div className="gc-stat"><span className="gc-stat-n">{selectedProject.currency} {stats.budget.toLocaleString()}</span> Budget</div>
-            <div className="gc-stat gc-stat-orange"><span className="gc-stat-n">{selectedProject.currency} {stats.totalCost.toLocaleString()}</span> Spent</div>
-            <div className={`gc-stat ${stats.budgetRemaining < 0 ? 'gc-stat-red' : 'gc-stat-green'}`}>
-              <span className="gc-stat-n">{selectedProject.currency} {stats.budgetRemaining.toLocaleString()}</span> Remaining
-            </div>
-            {stats.openRisks > 0 && (
-              <div className={`gc-stat ${stats.escalatedRisks > 0 ? 'gc-stat-red' : 'gc-stat-orange'}`}>
-                <span className="gc-stat-n">{stats.openRisks}</span> Open risks{stats.escalatedRisks > 0 ? ` · ${stats.escalatedRisks} escalated` : ''}
-              </div>
-            )}
-          </div>
-          </div>
-        )}
-
-        {/* ── Body — workbench = workspaces + chart in one widget ─ */}
         <div className="gc-body">
           <div className="gc-pm-workbench">
-          {/* Sidebar */}
-          <aside className={`gc-sidebar ${sidebarOpen ? '' : 'gc-sidebar-collapsed'}`}>
-            <button className="gc-sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {sidebarOpen ? <path d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/> : <path d="M13 5l7 7-7 7M6 5l7 7-7 7"/>}
-              </svg>
-            </button>
-            {sidebarOpen && (
-              <>
-                <div className="gc-ws-title">
-                  Workspaces
-                  <span className="gc-ws-badge">{projects.length}{projectLimit.limit !== Infinity ? `/${projectLimit.limit}` : ''}</span>
-                </div>
-                <button className={`gc-ws-item ${!selectedProjectId ? 'active' : ''}`} onClick={() => setSelectedProjectId(null)}>
-                  <span className="gc-ws-dot" style={{ background: '#94a3b8' }} />All Projects
-                </button>
-                {projects.map((p, i) => (
-                  <div key={p.id} className={`gc-ws-item ${selectedProjectId === p.id ? 'active' : ''}`}>
-                    <span className={ragDotClass(p.portfolioRag)} title="Portfolio health (RAG)" aria-hidden />
-                    <button type="button" className="gc-ws-select" onClick={() => setSelectedProjectId(p.id)}>
-                      <span className="gc-ws-dot" style={{ background: PROJECT_COLORS[i % PROJECT_COLORS.length] }} />
-                      <span className="gc-ws-name">{p.name}</span>
-                      <span className="gc-ws-count">{flattenTasks(p.tasks).length}</span>
-                    </button>
-                    <select
-                      className="gc-ws-rag-select"
-                      aria-label={`RAG status for ${p.name}`}
-                      value={p.portfolioRag || 'green'}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        e.stopPropagation()
-                        updateProject(p.id, { portfolioRag: e.target.value })
-                      }}
-                    >
-                      {RAG_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                    <button type="button" className="gc-ws-del" onClick={(e) => { e.stopPropagation(); handleDeleteProject(p.id) }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                    </button>
+            {/* ── Single compact control widget ─────────────── */}
+            <div className="gc-pm-control">
+              <div className="gc-pm-control-head">
+                <div className="gc-pm-control-head-left">
+                  <ManagementBreadcrumb trail={[{ label: 'Project Management' }]} />
+                  <div className="gc-pm-title-row">
+                    <h1 className="gc-title">Project Management</h1>
+                    <div className="gc-view-tabs" role="tablist" aria-label="Schedule view">
+                      <button type="button" role="tab" aria-selected={view === 'timeline'} className={`gc-vtab ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>Gantt</button>
+                      <button type="button" role="tab" aria-selected={view === 'table'} className={`gc-vtab ${view === 'table' ? 'active' : ''}`} onClick={() => setView('table')}>Table</button>
+                      <button type="button" role="tab" aria-selected={view === 'portfolio'} className={`gc-vtab ${view === 'portfolio' ? 'active' : ''}`} onClick={() => setView('portfolio')}>Portfolio</button>
+                    </div>
                   </div>
-                ))}
-              </>
-            )}
-          </aside>
+                </div>
+                <div className="gc-pm-control-head-actions">
+                  <button type="button" className="app-page-btn-outline app-page-btn-sm gc-toolbar-btn gc-pm-add-btn" onClick={() => projectLimit.allowed ? setShowAddProject(true) : alert(`Project limit reached (${projectLimit.limit}).`)}>
+                    + Project{projectLimit.limit !== Infinity ? ` (${projectLimit.remaining})` : ''}
+                  </button>
+                  <button type="button" className="app-page-btn-primary app-page-btn-sm gc-toolbar-btn gc-pm-add-btn" onClick={() => setShowAddTask(true)}>+ Task</button>
+                </div>
+              </div>
+
+              <div className="gc-project-strip">
+                <div className="gc-project-strip-scroll">
+                  <button type="button" className={`gc-project-chip ${!selectedProjectId ? 'active' : ''}`} onClick={() => setSelectedProjectId(null)}>
+                    <span className="gc-ws-dot" style={{ background: '#94a3b8' }} />
+                    All
+                  </button>
+                  {projects.map((p, i) => (
+                    <div key={p.id} className={`gc-project-chip-wrap ${selectedProjectId === p.id ? 'active' : ''}`}>
+                      <button type="button" className="gc-project-chip" onClick={() => setSelectedProjectId(p.id)}>
+                        <span className={ragDotClass(p.portfolioRag)} title="RAG" aria-hidden />
+                        <span className="gc-ws-dot" style={{ background: PROJECT_COLORS[i % PROJECT_COLORS.length] }} />
+                        <span className="gc-project-chip-name">{p.name}</span>
+                        <span className="gc-ws-count">{flattenTasks(p.tasks).length}</span>
+                      </button>
+                      <select className="gc-ws-rag-select gc-ws-rag-select--chip" aria-label={`RAG for ${p.name}`} value={p.portfolioRag || 'green'} onClick={(e) => e.stopPropagation()} onChange={(e) => updateProject(p.id, { portfolioRag: e.target.value })}>
+                        {RAG_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                      </select>
+                      <button type="button" className="gc-ws-del gc-ws-del--chip" onClick={() => handleDeleteProject(p.id)} aria-label={`Delete ${p.name}`}>×</button>
+                    </div>
+                  ))}
+                  <span className="gc-ws-badge gc-ws-badge--inline">{projects.length}{projectLimit.limit !== Infinity ? `/${projectLimit.limit}` : ''}</span>
+                </div>
+              </div>
+
+              <div className="gc-pm-control-bar">
+                {selectedProjectId ? (
+                  <div className="gc-pm-control-section gc-pm-control-section--tools">
+                    <div className="gc-toolbar-group gc-toolbar-group--wrap gc-toolbar-group--dense">
+                      <button type="button" className="gc-chip-btn" onClick={() => setShowRevisions(true)}>Revisions</button>
+                      <button type="button" className="gc-chip-btn" onClick={() => setShowResources(true)}>Resources</button>
+                      <button type="button" className="gc-chip-btn" onClick={() => { setBaseline(selectedProjectId); setShowBaseline(true) }}>Baseline</button>
+                      <button type="button" className={`gc-chip-btn ${showBaseline ? 'active' : ''}`} onClick={() => setShowBaseline(!showBaseline)}>{showBaseline ? 'Hide BL' : 'Show BL'}</button>
+                      <button type="button" className="gc-chip-btn" onClick={() => setShowFalconKpis(true)}>KPIs</button>
+                      <button type="button" className="gc-chip-btn" onClick={() => setShowFalconRisks(true)}>Risks</button>
+                      <button type="button" className="gc-chip-btn" onClick={() => setShowFalconTags(true)}>Tags</button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {view === 'timeline' && (
+                  <div className="gc-pm-control-section">
+                    <div className="gc-scale-tabs" role="tablist" aria-label="Timeline scale">
+                      {Object.values(GANTT_SCALES).map((s) => (
+                        <button key={s.id} type="button" role="tab" aria-selected={timeScale === s.id} className={`gc-scale-tab ${timeScale === s.id ? 'active' : ''}`} onClick={() => setTimeScale(s.id)}>{s.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="gc-pm-control-section gc-pm-control-section--view">
+                  <button type="button" className={`gc-chip-btn gc-chip-btn--icon ${showFilter ? 'active' : ''}`} onClick={() => setShowFilter(!showFilter)} title="Filter">Filter</button>
+                  <button type="button" className="gc-chip-btn gc-chip-btn--icon" onClick={handleExportPDF} title="Save PDF">PDF</button>
+                  {view === 'timeline' && (
+                    <button type="button" className={`gc-chip-btn gc-chip-btn--icon ${fitState ? 'active' : ''}`} onClick={handleFitToggle} title={fitState ? 'Reset zoom' : 'Fit to screen'}>{fitState ? 'Reset' : 'Fit'}</button>
+                  )}
+                </div>
+
+                {stats && selectedProject && view !== 'portfolio' && (
+                  <div className="gc-pm-control-section gc-pm-control-section--stats">
+                    <div className="gc-stats-inline">
+                      <span className="gc-stats-inline-item"><strong>{stats.totalTasks}</strong> tasks</span>
+                      <span className="gc-stats-inline-item gc-stat-green"><strong>{stats.completedTasks}</strong> done</span>
+                      <span className="gc-stats-inline-item gc-stat-blue"><strong>{stats.avgProgress}%</strong></span>
+                      <span className="gc-stats-inline-item"><strong>{selectedProject.currency} {(stats.budget / 1000).toFixed(0)}k</strong> budget</span>
+                      <span className="gc-stats-inline-item gc-stat-orange"><strong>{selectedProject.currency} {(stats.totalCost / 1000).toFixed(0)}k</strong> spent</span>
+                      <span className={`gc-stats-inline-item ${stats.budgetRemaining < 0 ? 'gc-stat-red' : 'gc-stat-green'}`}>
+                        <strong>{selectedProject.currency} {(stats.budgetRemaining / 1000).toFixed(0)}k</strong> left
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {showFilter && (
+                <div className="gc-filter-row gc-filter-row--inline">
+                  <label>{t('pmFilter.statusLabel')} <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">{t('pmFilter.all')}</option><option value="not-started">{t('pmFilter.task.not-started')}</option><option value="in-progress">{t('pmFilter.task.in-progress')}</option><option value="complete">{t('pmFilter.task.complete')}</option></select></label>
+                  <label>{t('pmFilter.assigneeLabel')} <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}><option value="">{t('pmFilter.all')}</option>{assignees.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+                </div>
+              )}
+            </div>
 
           {/* Main Area */}
           <main className={`gc-main${view === 'portfolio' ? ' gc-main--portfolio' : ''}`}>
@@ -1285,7 +1244,7 @@ const ProjectManagement = () => {
             {view === 'timeline' && (
               <div className={`gc-fit-wrapper ${fitState ? 'gc-fit-active' : ''}`} ref={fitWrapRef}>
                 <div
-                  className={`gc-gantt ${fitState ? 'gc-gantt-fitted' : ''}`}
+                  className={`gc-gantt gc-gantt--${timeScale} ${fitState ? 'gc-gantt-fitted' : ''}`}
                   ref={ganttRef}
                   style={fitState ? {
                     transform: `scale(${fitState.scale})`,
@@ -1294,103 +1253,74 @@ const ProjectManagement = () => {
                     height: fitState.contentH,
                   } : {}}
                 >
-                  {/* Toggle task list panel */}
-                  <button className="gc-tasklist-toggle" onClick={() => setTaskListOpen(!taskListOpen)} title={taskListOpen ? 'Collapse task list' : 'Expand task list'}>
-                    {taskListOpen ? '◁' : '▷'}
-                  </button>
-
-                {/* Task list (left panel) */}
-                {taskListOpen && (
-                  <div className="gc-tasklist">
-                    <div className="gc-tl-scroll" ref={taskListRef} onScroll={() => syncScroll('tasks')}>
-                      <div className="gc-tl-header">
-                        <span className="gc-tl-h-num">#</span>
-                        <span className="gc-tl-h-name">Task Name</span>
-                        <span className="gc-tl-h-dur">Dur.</span>
-                        <span className="gc-tl-h-date">Start</span>
-                        <span className="gc-tl-h-date">Finish</span>
-                        <span className="gc-tl-h-pred">Pred.</span>
+                {/* Slim task name rail (no full task grid) */}
+                <div className="gc-gantt-names">
+                  <div className="gc-gantt-names-head">Task</div>
+                  <div className="gc-gantt-names-scroll" ref={taskListRef} onScroll={() => syncScroll('names')}>
+                    {allTasksFlat.map((t, i) => (
+                      <div
+                        key={t.id}
+                        className={`gc-gantt-name-row ${t._isPhase ? 'gc-gantt-name-row--phase' : ''} ${t._isChild ? 'gc-gantt-name-row--child' : ''}`}
+                        style={{ height: ROW_H }}
+                        onDoubleClick={() => handleEditTaskOpen(t)}
+                        onContextMenu={(e) => handleContextMenu(e, t)}
+                        title={t.name}
+                      >
+                        {t._isPhase && (
+                          <button type="button" className="gc-expand-btn" onClick={() => togglePhase(t.id)}>
+                            {expandedPhases[t.id] ? '▼' : '▶'}
+                          </button>
+                        )}
+                        <span className="gc-gantt-name-text">{t.name}</span>
                       </div>
-                      <div className="gc-tl-body-wrap">
-                        <div className="gc-tl-rows">
-                          {allTasksFlat.map((t, i) => (
-                            <div
-                              key={t.id}
-                              className={`gc-tl-row ${t._isPhase ? 'gc-tl-phase' : ''} ${t._isChild ? 'gc-tl-child' : ''}`}
-                              style={{ height: ROW_H }}
-                              onDoubleClick={() => handleEditTaskOpen(t)}
-                              onContextMenu={(e) => handleContextMenu(e, t)}
-                            >
-                              <span className="gc-tl-num">{i + 1}</span>
-                              <span className="gc-tl-name">
-                                {t._isPhase && <button className="gc-expand-btn" onClick={() => togglePhase(t.id)}>{expandedPhases[t.id] ? '▼' : '▶'}</button>}
-                                {t._isChild && <span className="gc-indent" />}
-                                {t.name}
-                              </span>
-                              <span className="gc-tl-dur">{calcDuration(t.startDate, t.endDate)}d</span>
-                              <span className="gc-tl-date">{fmtShortDate(t.startDate)}</span>
-                              <span className="gc-tl-date">{fmtShortDate(t.endDate)}</span>
-                              <span className="gc-tl-pred">{getPredLabel(t)}</span>
-                            </div>
-                          ))}
-                          {paddedEmptyTaskRows > 0
-                            ? Array.from({ length: paddedEmptyTaskRows }, (_, i) => (
-                                <div
-                                  key={`tl-empty-${i}`}
-                                  className="gc-tl-row gc-tl-row--placeholder"
-                                  style={{ height: ROW_H }}
-                                  aria-hidden
-                                >
-                                  <span className="gc-tl-num" />
-                                  <span className="gc-tl-name" />
-                                  <span className="gc-tl-dur" />
-                                  <span className="gc-tl-date" />
-                                  <span className="gc-tl-date" />
-                                  <span className="gc-tl-pred" />
-                                </div>
-                              ))
-                            : null}
-                        </div>
-                      </div>
-                    </div>
+                    ))}
+                    {paddedEmptyTaskRows > 0
+                      ? Array.from({ length: paddedEmptyTaskRows }, (_, i) => (
+                          <div key={`nm-empty-${i}`} className="gc-gantt-name-row gc-gantt-name-row--empty" style={{ height: ROW_H }} aria-hidden />
+                        ))
+                      : null}
                   </div>
-                )}
+                </div>
 
-                {/* Timeline (right panel) */}
-                <div className="gc-timeline" ref={timelineRef} onScroll={() => syncScroll('timeline')}>
-                  {/* Month headers */}
-                  <div className="gc-tm-months" style={{ width: timelineWidth }}>
-                    {monthHeaders.map((m, i) => (
-                      <div key={i} className="gc-tm-month" style={{ width: m.days * DAY_W }}>{m.label}</div>
+                {/* Timeline */}
+                <div className={`gc-timeline gc-timeline--${timeScale}`} ref={timelineRef} onScroll={() => syncScroll('timeline')}>
+                  <div className="gc-tm-months" style={{ width: Math.max(timelineWidth, timelineViewportW || 0) }}>
+                    {headerGroups.map((m) => (
+                      <div key={m.key} className="gc-tm-month" style={{ width: m.width }}>{m.label}</div>
                     ))}
                   </div>
-                  {/* Day headers */}
-                  <div className="gc-tm-days" style={{ width: timelineWidth }}>
-                    {days.map((d, i) => {
-                      const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                      const isToday = d.toISOString().slice(0, 10) === todayStr
-                      return <div key={i} className={`gc-tm-day ${isWeekend ? 'gc-tm-weekend' : ''} ${isToday ? 'gc-tm-today' : ''}`} style={{ width: DAY_W }}>{d.getDate()}</div>
-                    })}
+                  <div className="gc-tm-days" style={{ width: Math.max(timelineWidth, timelineViewportW || 0) }}>
+                    {gridColumns.map((c) => (
+                      <div
+                        key={c.key}
+                        className={`gc-tm-day ${c.isWeekend ? 'gc-tm-weekend' : ''} ${c.isToday ? 'gc-tm-today' : ''}`}
+                        style={{ width: c.width }}
+                        title={c.sub || c.label}
+                      >
+                        <span className="gc-tm-day-main">{c.label}</span>
+                        {c.sub && timeScale === 'week' ? (
+                          <span className="gc-tm-day-sub">{c.sub}</span>
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
-                  {/* Bars area */}
-                  <div className="gc-tm-body" style={{ width: timelineWidth, height: ganttTmBodyHeightPx }}>
-                    {/* Grid lines */}
-                    {days.map((d, i) => {
-                      const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                      return <div key={i} className={`gc-tm-gridline ${isWeekend ? 'gc-tm-gl-weekend' : ''}`} style={{ left: i * DAY_W, width: DAY_W, height: '100%' }} />
-                    })}
-                    {/* Row separators (match task list; extend through padded area) */}
+                  <div className="gc-tm-body" style={{ width: Math.max(timelineWidth, timelineViewportW || 0), height: ganttTmBodyHeightPx }}>
+                    {gridColumns.map((c) => (
+                      <div
+                        key={`gl-${c.key}`}
+                        className={`gc-tm-gridline ${c.isWeekend ? 'gc-tm-gl-weekend' : ''}`}
+                        style={{ left: c.left, width: c.width, height: '100%' }}
+                      />
+                    ))}
                     {Array.from({ length: ganttRowLineCount }, (_, i) => (
                       <div key={i} className="gc-tm-rowline" style={{ top: (i + 1) * ROW_H }} />
                     ))}
-                    {/* Today line */}
                     {todayPx > 0 && todayPx < timelineWidth && (
-                      <div className="gc-today-line" style={{ left: todayPx + DAY_W / 2 }}>
+                      <div className="gc-today-line" style={{ left: todayPx + minBarW / 2 }}>
                         <span className="gc-today-label">Today</span>
                       </div>
                     )}
-                    {/* Dependency arrows (SVG) */}
-                    <svg className="gc-arrows-svg" width={timelineWidth} height={taskGridBodyPx} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                    <svg className="gc-arrows-svg" width={Math.max(timelineWidth, timelineViewportW || 0)} height={taskGridBodyPx} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
                       <defs>
                         <marker id="arrowFS" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e74c3c" /></marker>
                         <marker id="arrowSS" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f39c12" /></marker>
@@ -1399,7 +1329,6 @@ const ProjectManagement = () => {
                         <path key={a.key} d={a.d} fill="none" stroke={a.type === 'FS' ? '#e74c3c' : '#f39c12'} strokeWidth="1.5" markerEnd={`url(#arrow${a.type})`} opacity="0.7" />
                       ))}
                     </svg>
-                    {/* Gantt bars */}
                     {allTasksFlat.map((t, i) => renderGanttBar(t, i, pid, projColor))}
                   </div>
                 </div>
@@ -1409,12 +1338,12 @@ const ProjectManagement = () => {
 
             {/* Legend */}
             {view === 'timeline' && (
-              <div className="gc-legend">
-                <span className="gc-legend-item"><span className="gc-legend-box" style={{ background: '#27ae60' }} /> Complete</span>
-                <span className="gc-legend-item"><span className="gc-legend-box" style={{ background: '#2563eb' }} /> In Progress</span>
-                <span className="gc-legend-item"><span className="gc-legend-box" style={{ background: '#94a3b8' }} /> Not Started</span>
-                <span className="gc-legend-item"><span className="gc-legend-line" style={{ background: '#e74c3c' }} /><svg width="8" height="8" style={{ marginLeft: -4 }}><path d="M0,0 L8,4 L0,8 Z" fill="#e74c3c" /></svg> FS Dependency</span>
-                <span className="gc-legend-item"><span className="gc-legend-line" style={{ background: '#f39c12' }} /><svg width="8" height="8" style={{ marginLeft: -4 }}><path d="M0,0 L8,4 L0,8 Z" fill="#f39c12" /></svg> SS Dependency</span>
+              <div className="gc-legend gc-legend--compact">
+                <span className="gc-legend-item"><span className="gc-legend-box gc-legend-planned" /> Planned</span>
+                <span className="gc-legend-item"><span className="gc-legend-box gc-legend-progress" /> In progress</span>
+                <span className="gc-legend-item"><span className="gc-legend-box gc-legend-complete" /> Complete</span>
+                <span className="gc-legend-item"><span className="gc-legend-line" style={{ background: '#e74c3c' }} /> FS</span>
+                <span className="gc-legend-item"><span className="gc-legend-line" style={{ background: '#f39c12' }} /> SS</span>
                 {showBaseline && <span className="gc-legend-item"><span className="gc-legend-box gc-legend-bl" /> Baseline</span>}
               </div>
             )}

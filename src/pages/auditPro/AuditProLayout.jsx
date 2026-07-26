@@ -106,9 +106,6 @@ export default function AuditProLayout() {
         <div className="audit-pro-app-shell">
           <div className="audit-pro-app-head-row">
             <div style={{ minWidth: 0 }}>
-              <NavLink to="/management/auditors/dashboard" className="audit-pro-app-back stx-click-feedback">
-                ← Audit dashboard
-              </NavLink>
               <h1 className="audit-pro-app-title stx-text-wrap">{title}</h1>
               <p className="audit-pro-app-meta">
                 {new Date().toLocaleDateString('en-US', {

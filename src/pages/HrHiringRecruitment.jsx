@@ -377,11 +377,6 @@ export default function HrHiringRecruitment() {
         tab={tab}
         onTab={setTab}
         tabs={hiringTabs}
-        extra={
-          <Link to={hrSpacePath()} className="hr-mod-back" style={{ marginLeft: 'auto' }}>
-            {t('hrSpace.backToHrHub', 'HR Space')}
-          </Link>
-        }
       >
         {tab === 'plan' && (
           <>

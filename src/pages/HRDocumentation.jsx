@@ -148,9 +148,6 @@ const HRDocumentation = () => {
     <AppLayout>
       <div className="hrdoc-page">
         <div className="hrdoc-header">
-          <Link className="hrdoc-back-link" to={hrSpacePath()}>
-            ← {t('hrSpace.backToHrHub', 'HR Space')}
-          </Link>
           {filterEmployeeId && (
             <p className="hrdoc-subtitle" style={{ marginTop: 8 }}>
               <Link to={hrSpacePath(`employees/${filterEmployeeId}`)}>{getEmployeeLabel(filterEmployeeId)}</Link>

@@ -80,13 +80,6 @@ const HeadcountManagement = () => {
       <div className="headcount-page">
         {/* Header */}
         <div className="headcount-header">
-          <button
-            type="button"
-            className="headcount-back-link stx-click-feedback"
-            onClick={() => navigate('/management')}
-          >
-            <Icon name="arrow-left" size={16} /> {t('hrSpace.backToManagement')}
-          </button>
           <h1 className="headcount-title">{t('hrSpace.title')}</h1>
           <p className="headcount-subtitle">{t('hrSpace.subtitle')}</p>
         </div>

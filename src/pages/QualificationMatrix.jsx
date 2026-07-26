@@ -251,16 +251,6 @@ export default function QualificationMatrix() {
     <AppLayout>
       <div className="qm-page" onClick={() => setActivePopover(null)}>
         <header className="qm-header">
-          <a
-            className="qm-back-link"
-            href={hrSpacePath()}
-            onClick={(e) => {
-              e.preventDefault()
-              navigate(hrSpacePath())
-            }}
-          >
-            ← {t('qualificationMatrix.backToHrSpace')}
-          </a>
           <h1 className="qm-title">
             {t('qualificationMatrix.title', 'Qualification Matrix')}
           </h1>

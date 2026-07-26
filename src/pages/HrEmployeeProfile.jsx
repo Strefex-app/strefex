@@ -29,7 +29,6 @@ export default function HrEmployeeProfile() {
       <AppLayout>
         <div className="hr-emp-prof">
           <p>{t('hrSpace.employeeNotFound', 'Employee not found.')}</p>
-          <Link to={hrSpacePath()}>{t('hrSpace.backToHrHub', 'Back to HR Space')}</Link>
         </div>
       </AppLayout>
     )
@@ -38,9 +37,6 @@ export default function HrEmployeeProfile() {
   return (
     <AppLayout>
       <div className="hr-emp-prof">
-        <button type="button" className="hr-emp-prof-back stx-click-feedback" onClick={() => navigate(hrSpacePath())}>
-          ← {t('hrSpace.backToHrHub', 'Back to HR Space')}
-        </button>
         <header className="hr-emp-prof-head">
           <div>
             <h1 className="hr-emp-prof-name">{employee.name}</h1>

@@ -126,7 +126,6 @@ const AuditQuestionnaire = () => {
         <div className="audit-q-page">
           <div className="audit-q-header">
             <p>Questionnaire not found for audit type: {auditType}</p>
-            <button type="button" onClick={() => navigate(-1)}>← Back</button>
           </div>
         </div>
       </AppLayout>
@@ -137,9 +136,6 @@ const AuditQuestionnaire = () => {
     <AppLayout>
       <div className="audit-q-page">
         <div className="audit-q-header">
-          <button type="button" className="audit-q-back" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
           <div className="audit-q-header-content">
             <div>
               <h1 className="audit-q-title">{questionnaire.name}</h1>
