@@ -10,6 +10,7 @@
  * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain).
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
+import { isDemoModeActive } from '../config/demoAccount'
 import { tenantKey } from '../utils/tenantStorage'
 import { useProjectStore } from '../store/projectStore'
 import { useProgramStore } from '../store/programStore'
@@ -142,6 +143,7 @@ export function notifyProfileContactsDirty() {
  * @param {string} stateKey — must match a SYNC_SPECS key (e.g. 'projects', 'vendors')
  */
 export function notifyWorkspaceKeyDirty(stateKey, immediate = false) {
+  if (isDemoModeActive()) return
   schedulePushKey(stateKey, immediate)
 }
 
@@ -717,6 +719,7 @@ export function stopWorkspaceCloudSync() {
  */
 export async function bootstrapWorkspaceCloudSync() {
   if (typeof window === 'undefined') return
+  if (isDemoModeActive()) return
   if (!isSupabaseConfigured) return
 
   const companyId = await getCompanyId()

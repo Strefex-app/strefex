@@ -17,6 +17,20 @@ import { allocateNextBuyerSequence, formatBuyerRef } from '../utils/buyerRequest
 import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
 
+const deliverOsBatch = (batch, readerEmail, role) => {
+  void import('../services/pushNotificationService')
+    .then(({ deliverOsNotificationsForBatch }) => {
+      deliverOsNotificationsForBatch(batch, readerEmail, role)
+    })
+    .catch(() => {})
+}
+
+const syncOsNotifications = () => {
+  void import('../services/pushNotificationService')
+    .then(({ syncOsNotificationsForCurrentUser }) => syncOsNotificationsForCurrentUser())
+    .catch(() => {})
+}
+
 const STORAGE_KEY = 'strefex-service-requests'
 const NOTIF_KEY = 'strefex-service-notifications'
 const GLOBAL_NOTIF_KEY = 'strefex-service-notifications-global'
@@ -708,6 +722,7 @@ export const useServiceRequestStore = create((set, get) => ({
     void persistRequestRecordToDatabase(request)
     void persistNotificationBatchToDatabase(notifBatch)
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
+    void deliverOsBatch(notifBatch, email, getUserRole())
     return request
   },
 
@@ -771,6 +786,7 @@ export const useServiceRequestStore = create((set, get) => ({
     void persistRequestRecordToDatabase(updatedRequest)
     void persistNotificationBatchToDatabase(notifsToAdd)
     set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobalNotifs })
+    void deliverOsBatch(notifsToAdd, req?.email, getUserRole())
   },
 
   /**
@@ -838,6 +854,7 @@ export const useServiceRequestStore = create((set, get) => ({
       void persistRequestRecordToDatabase(nextReq)
       void persistNotificationBatchToDatabase(lifecycleNotifs)
       set({ requests: updated, notifications: updatedNotifs, globalNotifications: updatedGlobal })
+      void deliverOsBatch(lifecycleNotifs, nextReq?.email, getUserRole())
       return
     }
     void persistRequestRecordToDatabase(nextReq)
@@ -913,6 +930,20 @@ export const useServiceRequestStore = create((set, get) => ({
     })
   },
 
+  /** Append notifications (admin pipeline + targeted user alerts). */
+  pushNotificationBatch: (batch = []) => {
+    const rows = Array.isArray(batch) ? batch.filter(Boolean) : []
+    if (rows.length === 0) return
+    const updatedNotifs = [...rows, ...get().notifications]
+    save(NOTIF_KEY, updatedNotifs)
+    const globalRows = rows.filter((n) => normalizeEmail(n?.targetEmail))
+    const updatedGlobal = dedupeById([...globalRows, ...(get().globalNotifications || [])])
+    saveGlobal(updatedGlobal)
+    void persistNotificationBatchToDatabase(rows)
+    set({ notifications: updatedNotifs, globalNotifications: updatedGlobal })
+    void deliverOsBatch(rows, getUserId(), getUserRole())
+  },
+
   /** Append a platform-scoped notification visible to the target user (e.g. feature grants). */
   pushGlobalPlatformNotification: ({ targetEmail, title, message, type = 'platform' }) => {
     const normalizedTarget = normalizeEmail(targetEmail)
@@ -935,6 +966,7 @@ export const useServiceRequestStore = create((set, get) => ({
     const next = dedupeById([row, ...(get().globalNotifications || [])])
     saveGlobal(next)
     set({ globalNotifications: next })
+    void deliverOsBatch([row], normalizedTarget, getUserRole())
   },
 
   refreshFromDatabase: async () => {
@@ -1001,6 +1033,7 @@ export const useServiceRequestStore = create((set, get) => ({
           globalNotifications: loadGlobal(),
           lastRefreshedAt: new Date().toISOString(),
         })
+        void syncOsNotifications()
       } finally {
         set({ isRefreshing: false })
         _refreshDbInFlight = null
@@ -1013,7 +1046,11 @@ export const useServiceRequestStore = create((set, get) => ({
   startRefreshSequence: () => {
     const run = () => {
       get().refreshFromStorage()
-      get().refreshFromDatabase().catch(() => {})
+      get().refreshFromDatabase()
+        .catch(() => {})
+        .finally(() => {
+          void syncOsNotifications()
+        })
     }
 
     const armPollingTimer = () => {

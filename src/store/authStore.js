@@ -36,6 +36,7 @@ const persist = (state) => {
         expiresAt: state.expiresAt,
         user: state.user,
         tenant: state.tenant,
+        sessionMode: state.sessionMode || 'live',
       })
     )
   } catch {
@@ -66,19 +67,22 @@ export const useAuthStore = create((set, get) => ({
   /** Tenant/company from backend. */
   tenant: stored?.tenant ?? null, // { id, name, slug }
 
+  /** `live` = Supabase/backend session; `demo` = isolated presentation sandbox. */
+  sessionMode: stored?.sessionMode ?? 'live',
+
   /**
    * Login — stores the full session, then rehydrates all tenant-scoped stores
    * so that the new user's data (not the previous user's) is loaded.
-   * @param {{ role, token, expiresAt, user?, tenant? }} session
+   * @param {{ role, token, expiresAt, user?, tenant?, sessionMode? }} session
    */
-  login: ({ role = 'user', token = null, expiresAt = null, user = null, tenant = null } = {}) => {
+  login: ({ role = 'user', token = null, expiresAt = null, user = null, tenant = null, sessionMode = 'live' } = {}) => {
     // Final enforcement: superadmin role requires verified STREFEX email
     let safeRole = role
     if (safeRole === 'superadmin' && !isSuperadminEmail(user?.email)) {
       safeRole = 'admin'
     }
     const safeToken = AUTH_USE_COOKIES ? null : token
-    const next = { isAuthenticated: true, role: safeRole, token: safeToken, expiresAt, user, tenant }
+    const next = { isAuthenticated: true, role: safeRole, token: safeToken, expiresAt, user, tenant, sessionMode }
     persist(next)
     set(next)
     scheduleRehydrateTenantStores(get)
@@ -103,6 +107,9 @@ export const useAuthStore = create((set, get) => ({
   /** Logout — clears session and rehydrates stores to 'guest' (empty) state. */
   logout: () => {
     stopWorkspaceCloudSyncOnLogout()
+    import('../config/demoAccount')
+      .then((m) => m.revokeDemoAccessSession())
+      .catch(() => {})
     clear()
     set({
       isAuthenticated: false,
@@ -111,6 +118,7 @@ export const useAuthStore = create((set, get) => ({
       expiresAt: null,
       user: null,
       tenant: null,
+      sessionMode: 'live',
     })
     // Rehydrate all stores — now tenantId becomes 'guest', so the stores
     // will load empty/default data instead of the previous user's data.
@@ -118,6 +126,8 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /* ── convenience helpers ───────────────────────────────── */
+  isDemoSession: () => get().sessionMode === 'demo',
+  isLiveSession: () => get().sessionMode !== 'demo',
   isSuperAdmin: () => get().role === 'superadmin',
   isAdmin: () => get().role === 'admin' || get().role === 'superadmin',
   isManager: () => ['manager', 'admin', 'superadmin'].includes(get().role),

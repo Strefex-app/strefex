@@ -69,6 +69,10 @@ export function getTenantId() {
   const session = getAuthSession()
   if (!session) return 'guest'
 
+  if (session.sessionMode === 'demo' && session.tenant?.id) {
+    return String(session.tenant.id).toLowerCase().replace(/[^a-z0-9._\-]/g, '')
+  }
+
   const { user, tenant } = session
 
   // Priority 1: explicit tenant/company ID from backend

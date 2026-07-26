@@ -23,6 +23,7 @@ import {
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
+import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
 import {
   isHeicLike,
   normalizeImageForOcr,
@@ -405,6 +406,8 @@ const Profile = () => {
   const accountType = useSubscriptionStore((s) => s.accountType)
   const status = useSubscriptionStore((s) => s.status)
   const trialEndsAt = useSubscriptionStore((s) => s.trialEndsAt)
+  const hasFeature = useSubscriptionStore((s) => s.hasFeature)
+  const canUseTemplates = hasFeature('templateLibrary') || isSuperAdmin
   const plan = getPlanById(planId)
   const limits = getEffectiveLimits(planId, accountType)
   const isAtLeastStandard = useTier(TIERS.STANDARD)
@@ -1121,6 +1124,13 @@ const Profile = () => {
                   Add Supplier
                   <span className="prof-action-arrow">›</span>
                 </button>
+                {canUseTemplates && (
+                  <button className="prof-action-btn" onClick={() => navigate('/templates')}>
+                    <span className="prof-action-icon" style={{ background: '#f3e5f5', color: '#8e44ad' }}><Icon name="templates" /></span>
+                    Templates
+                    <span className="prof-action-arrow">›</span>
+                  </button>
+                )}
                 <button className="prof-action-btn prof-action-primary" onClick={() => navigate('/request-service')}>
                   <span className="prof-action-icon"><Icon name="service" /></span>
                   {tr('profile.requestService')}
@@ -1557,6 +1567,8 @@ const Profile = () => {
             </div>
           </div>
 
+          {isSuperAdmin && <ProfilePlatformRegistries />}
+
           {contacts.length === 0 ? (
             <div className="prof-contacts-empty">
               <Icon name="contact" size={40} />
@@ -1726,7 +1738,7 @@ const Profile = () => {
                     <select className="prof-form-input" value={contactForm.type} onChange={(e) => setContactForm({ ...contactForm, type: e.target.value })}>
                       <option value="Supplier">Supplier</option>
                       <option value="Customer">Customer</option>
-                      <option value="Partner">Partner</option>
+                      <option value="Manufacturer">Manufacturer</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>

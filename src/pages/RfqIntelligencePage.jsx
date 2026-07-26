@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
+import { RFQ_PROCUREMENT_NEW_PATH, RFQ_INTELLIGENCE_PATH, SOURCING_CLUSTER_PATH } from '../constants/rfqPaths'
+import { MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
 import '../styles/app-page.css'
 import '../styles/rfq-intelligence.css'
 import {
@@ -331,11 +333,15 @@ export default function RfqIntelligencePage() {
   return (
     <AppLayout>
       <div className="app-page rfqi-scope">
-        <ManagementBreadcrumb trail={[{ label: 'RFQ', to: '/management/rfq' }, { label: 'Intelligence' }]} />
+        <ManagementBreadcrumb trail={[
+          { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
+          { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
+          { label: 'Intelligence' },
+        ]} />
         <p className="app-page-subtitle" style={{ marginTop: 4 }}>
           Manufacturing quotation flow{prefilledFromIndustry}
           {' · '}
-          <button type="button" className="pcc-fact-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => navigate('/management/rfq/new')}>
+          <button type="button" className="pcc-fact-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => navigate(RFQ_PROCUREMENT_NEW_PATH)}>
             Create procurement RFQ
           </button>
         </p>

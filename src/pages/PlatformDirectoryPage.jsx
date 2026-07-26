@@ -36,6 +36,7 @@ function buildPayload(form) {
     phone: trimOrNull(form.phone),
     website: trimOrNull(form.website),
     source_ref: trimOrNull(form.source_ref),
+    registry_source: 'manual',
     metadata: {},
   }
 }
@@ -173,10 +174,16 @@ export default function PlatformDirectoryPage() {
     setFeedback('')
     try {
       if (editingId) {
+        const prev = rows.find((x) => x.id === editingId)
         const updateBody = { ...payload }
         delete updateBody.metadata
+        const registry_source =
+          prev?.registry_source === 'spreadsheet_import' || prev?.registry_source === 'web_signup'
+            ? prev.registry_source
+            : updateBody.registry_source
         await platformDirectoryContactsService.update(editingId, {
           ...updateBody,
+          registry_source,
           updated_at: new Date().toISOString(),
         })
       } else {
@@ -221,15 +228,15 @@ export default function PlatformDirectoryPage() {
   return (
     <AppLayout>
       <div className="app-page buyer-directory-page">
-        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/procurement')}>
-          ← Back to Buyers
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/profile')}>
+          ← Contact list
         </button>
 
         <div className="app-page-card">
           <h2 className="app-page-title">Buyer directory</h2>
           <p className="app-page-subtitle">
-            B2B contacts: legacy Plastic &amp; Stamping PDFs plus <strong>Company list (2025) for platform.pdf</strong>{' '}
-            (tooling, equipment, materials, engineering, etc.). <strong>Superadmin only.</strong> Confidential.
+            B2B contacts: legacy Plastic &amp; Stamping PDFs, company lists, and{' '}
+            <strong>new web signups</strong> (synced automatically). <strong>Superadmin only.</strong> Confidential.
           </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>

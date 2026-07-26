@@ -210,7 +210,7 @@ export default function SupplierDashboard() {
       <AppLayout>
         <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-            ← Partners
+          ← Manufacturers
           </button>
           {isSuperAdmin && (
             <div className="app-page-card app-page-callout" style={{ marginBottom: 16 }}>
@@ -278,7 +278,7 @@ export default function SupplierDashboard() {
       <AppLayout>
         <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-            ← Partners
+          ← Manufacturers
           </button>
           <div className="app-page-card">
             <h2 className="app-page-title">Supplier Dashboard</h2>
@@ -294,7 +294,7 @@ export default function SupplierDashboard() {
       <AppLayout>
         <div className="app-page">
           <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-            ← Partners
+          ← Manufacturers
           </button>
           <div className="app-page-card">
             <h2 className="app-page-title">Supplier Dashboard</h2>
@@ -326,7 +326,7 @@ export default function SupplierDashboard() {
     <AppLayout>
       <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-          ← Partners
+          ← Manufacturers
         </button>
 
         {isSuperAdmin && (

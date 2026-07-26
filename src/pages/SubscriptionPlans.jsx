@@ -10,6 +10,9 @@ import { analytics } from '../services/analytics'
 import { isStripeConfigured } from '../config/stripe'
 import env from '../config/env'
 import { syncSubscriptionFromSupabase } from '../services/stripeService'
+import PlansHeaderPlanSummary from '../components/plans/PlansHeaderPlanSummary'
+import PlansHistoryButton from '../components/plans/PlansHistoryButton'
+import PlansServiceSection from '../components/plans/PlansServiceSection'
 import './SubscriptionPlans.css'
 
 const MAX_VISIBLE_FEATURES = 5
@@ -35,6 +38,12 @@ export default function SubscriptionPlans() {
   const isCompanyAdmin = role === 'admin' || isSuperAdmin
   const stripeLive = isStripeConfigured
   const showLocalPlanCatalog = !stripeLive && env.IS_DEV
+  const myDomain = getCompanyDomain(user?.email)
+  const planHistory = isSuperAdmin
+    ? transactions
+    : isCompanyAdmin && myDomain
+      ? transactions.filter((tx) => (tx.companyDomain || getCompanyDomain(tx.userEmail)) === myDomain)
+      : transactions.filter((tx) => tx.userEmail === user?.email)
 
   const [billingPeriod, setBillingPeriod] = useState(storedBilling || BILLING_PERIODS.MONTHLY)
 
@@ -214,19 +223,33 @@ export default function SubscriptionPlans() {
       <div className="app-page sp-page">
         {/* Header */}
         <div className="app-page-card sp-header-card">
-          <h2 className="app-page-title">Plans & Pricing</h2>
-          <p className="app-page-subtitle">
-            {stripeLive
-              ? 'Active billing is managed through Stripe plans below.'
-              : 'Choose the plan that fits your business. Upgrade or downgrade at any time.'}
-          </p>
-          {(showLocalPlanCatalog || stripeLive) && (
-            <div className="sp-billing-selector">
-              <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.MONTHLY ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.MONTHLY)}>Monthly</button>
-              <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.ANNUAL ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.ANNUAL)}>Yearly <span className="sp-billing-badge">Save 15%</span></button>
-              <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.TRIENNIAL ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.TRIENNIAL)}>3-Year <span className="sp-billing-badge best">Save 25%</span></button>
+          <div className="sp-header-layout">
+            <div className="sp-header-main min-width-0">
+              <h2 className="app-page-title">Plans & Pricing</h2>
+              <p className="app-page-subtitle stx-text-wrap">
+                {stripeLive
+                  ? 'Active billing is managed through Stripe plans below.'
+                  : 'Choose the plan that fits your business. Upgrade or downgrade at any time.'}
+              </p>
+              {(showLocalPlanCatalog || stripeLive) && (
+                <div className="sp-billing-selector">
+                  <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.MONTHLY ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.MONTHLY)}>Monthly</button>
+                  <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.ANNUAL ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.ANNUAL)}>Yearly <span className="sp-billing-badge">Save 15%</span></button>
+                  <button className={`sp-billing-opt ${billingPeriod === BILLING_PERIODS.TRIENNIAL ? 'active' : ''}`} onClick={() => handleBillingChange(BILLING_PERIODS.TRIENNIAL)}>3-Year <span className="sp-billing-badge best">Save 25%</span></button>
+                </div>
+              )}
             </div>
-          )}
+            <div className="sp-header-aside">
+              <PlansHeaderPlanSummary
+                currentPlanId={currentPlan}
+                status={subStatus}
+                billingPeriod={billingPeriod}
+                accountType={accountType}
+                stripeLive={stripeLive}
+              />
+              <PlansHistoryButton transactions={planHistory} />
+            </div>
+          </div>
         </div>
 
         {error && <div className="sp-alert">{error}</div>}
@@ -420,6 +443,8 @@ export default function SubscriptionPlans() {
             <button className="sp-btn sp-btn-secondary" onClick={handleManageBilling}>Manage Billing & Invoices</button>
           </div>
         )}
+
+        <PlansServiceSection />
       </div>
 
       {/* ── "Learn More" modal ── */}

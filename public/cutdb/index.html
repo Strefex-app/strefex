@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CutDB — redirect</title>
+  <script>
+    (function () {
+      var target = '/profile/machine-intelligence/cutdb'
+
+      function isCutDbProfilePath(pathname) {
+        return pathname === target || pathname.indexOf(target + '/') === 0
+      }
+
+      function redirect(win) {
+        if (!win || isCutDbProfilePath(win.location.pathname || '')) return
+        win.location.replace(target)
+      }
+
+      try {
+        if (window.top && window.top !== window.self) {
+          redirect(window.top)
+          return
+        }
+      } catch (e) {
+        // fall through
+      }
+
+      redirect(window)
+    })()
+  </script>
+</head>
+<body>
+  <p>Redirecting to CutDB…</p>
+  <p><a href="/profile/machine-intelligence/cutdb">Open CutDB</a></p>
+</body>
+</html>

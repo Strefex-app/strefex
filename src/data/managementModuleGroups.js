@@ -1,0 +1,280 @@
+import { managementModulePath, getModuleSlug, managementClusterPath, MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
+
+/**
+ * Management hub modules grouped into six operational clusters.
+ * Canonical paths live under /management/{cluster}/{module}/…
+ */
+export const MANAGEMENT_MODULES = [
+  {
+    id: 'team',
+    label: 'Team Management',
+    description: 'Team members, roles, and access permissions',
+    path: managementModulePath('people', 'team'),
+    legacyPath: '/team',
+    icon: 'team',
+    featureKey: 'teamManagement',
+    planLabel: 'Basic',
+    minRole: 'admin',
+    clusterId: 'people',
+  },
+  {
+    id: 'hr-space',
+    label: 'HR Space',
+    description: 'Workforce dashboards, qualifications, goals, HR documents, and training',
+    titleKey: 'management.module.hrSpace.title',
+    descriptionKey: 'management.module.hrSpace.description',
+    path: managementModulePath('people', 'hr-space'),
+    legacyPath: '/hr-space',
+    icon: 'profile',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    minRole: 'manager',
+    clusterId: 'people',
+  },
+  {
+    id: 'forum',
+    label: 'Forum',
+    description: 'Organization discussions and announcements',
+    path: managementModulePath('people', 'forum'),
+    legacyPath: '/forum',
+    icon: 'clipboard',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    minRole: 'manager',
+    clusterId: 'people',
+  },
+  {
+    id: 'sourcing',
+    label: 'Sourcing workspace',
+    description: 'RFQ Intelligence, procurement register, requisitions, POs, approvals, and traceability',
+    path: managementModulePath('sourcing', 'workspace'),
+    icon: 'procurement',
+    featureKey: null,
+    clusterId: 'sourcing',
+  },
+  {
+    id: 'vendors',
+    label: 'Vendor Master',
+    description: 'Supplier master records, contacts, and status',
+    path: managementModulePath('sourcing', 'vendors'),
+    legacyPath: '/vendors',
+    icon: 'vendors',
+    featureKey: null,
+    clusterId: 'sourcing',
+  },
+  {
+    id: 'procurement',
+    label: 'Procurement',
+    description: 'Requisitions, POs, approvals, and traceability',
+    path: managementModulePath('sourcing', 'procurement'),
+    legacyPath: '/procurement',
+    icon: 'procurement',
+    featureKey: 'procurement',
+    planLabel: 'Enterprise',
+    clusterId: 'sourcing',
+  },
+  {
+    id: 'auditors-hub',
+    label: 'Audit management',
+    description: 'Audit plans, registries, risk matrix, logs, and reports',
+    path: managementModulePath('contracts-compliance', 'auditors'),
+    legacyPath: '/management/auditors',
+    icon: 'audit',
+    featureKey: null,
+    planLabel: 'Enterprise',
+    auditorHubOnly: true,
+    clusterId: 'contracts-compliance',
+  },
+  {
+    id: 'contracts',
+    label: 'Contract Management',
+    description: 'Contract lifecycle, renewals, and milestones',
+    path: managementModulePath('contracts-compliance', 'contracts'),
+    legacyPath: '/contracts',
+    icon: 'contracts',
+    featureKey: 'contractManagement',
+    planLabel: 'Enterprise',
+    clusterId: 'contracts-compliance',
+  },
+  {
+    id: 'compliance',
+    label: 'Compliance & ESG',
+    description: 'ESG checklists and regulatory templates',
+    path: managementModulePath('contracts-compliance', 'compliance'),
+    legacyPath: '/compliance',
+    icon: 'compliance',
+    featureKey: 'complianceEsg',
+    planLabel: 'Enterprise',
+    clusterId: 'contracts-compliance',
+  },
+  {
+    id: 'audit-logs',
+    label: 'System Activity Log',
+    description: 'System events and platform audit trails',
+    path: managementModulePath('contracts-compliance', 'activity-log'),
+    legacyPath: '/audit-logs',
+    icon: 'audit',
+    featureKey: 'auditLogs',
+    planLabel: 'Enterprise',
+    minRole: 'admin',
+    clusterId: 'contracts-compliance',
+  },
+  {
+    id: 'enterprise',
+    label: 'Multi-Site Management',
+    description: 'OPEX/CAPEX, personnel, financial analysis, and risk across sites',
+    path: managementModulePath('finance', 'enterprise'),
+    legacyPath: '/enterprise',
+    icon: 'enterprise',
+    featureKey: 'enterpriseManagement',
+    planLabel: 'Enterprise',
+    clusterId: 'finance',
+  },
+  {
+    id: 'cost',
+    label: 'Cost Management',
+    description: 'Cost calculator, BOM, scenarios, and targets',
+    path: managementModulePath('finance', 'cost'),
+    legacyPath: '/cost-management',
+    icon: 'cost',
+    featureKey: 'costManagement',
+    planLabel: 'Premium',
+    clusterId: 'finance',
+  },
+  {
+    id: 'spend',
+    label: 'Spend Analysis',
+    description: 'Spend by vendor, category, and time',
+    path: managementModulePath('finance', 'spend-analysis'),
+    legacyPath: '/spend-analysis',
+    icon: 'cost',
+    featureKey: 'spendAnalysis',
+    planLabel: 'Enterprise',
+    minRole: 'manager',
+    clusterId: 'finance',
+  },
+  {
+    id: 'project',
+    label: 'Project Management',
+    description: 'Projects, Gantt, portfolio, and budgets',
+    path: managementModulePath('ops', 'projects'),
+    legacyPath: '/project-management',
+    icon: 'folder',
+    featureKey: null,
+    clusterId: 'ops',
+  },
+  {
+    id: 'production',
+    label: 'Production Management',
+    description: 'OEE, quality KPIs, floor layout, and audit questionnaires',
+    path: managementModulePath('ops', 'production'),
+    legacyPath: '/production',
+    icon: 'production',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    clusterId: 'ops',
+  },
+  {
+    id: 'erp',
+    label: 'ERP Integrations',
+    description: 'ERP sync for vendors and purchasing',
+    path: managementModulePath('platform', 'erp'),
+    legacyPath: '/erp-integrations',
+    icon: 'erp',
+    featureKey: 'erpIntegrations',
+    planLabel: 'Enterprise',
+    minRole: 'admin',
+    clusterId: 'platform',
+  },
+  {
+    id: 'ai-insights',
+    label: 'AI Insights',
+    description: 'Risk analysis, recommendations, and simulations',
+    path: managementModulePath('platform', 'ai-insights'),
+    legacyPath: '/ai-insights',
+    icon: 'ai',
+    featureKey: 'aiInsights',
+    planLabel: 'Enterprise',
+    minRole: 'manager',
+    clusterId: 'platform',
+  },
+]
+
+/** @type {ManagementModuleCluster[]} */
+export const MANAGEMENT_MODULE_CLUSTERS = [
+  {
+    id: 'people',
+    label: 'People',
+    description: 'Team access, HR, and internal collaboration',
+    icon: 'team',
+    color: '#2980b9',
+    path: managementClusterPath('people'),
+  },
+  {
+    id: 'sourcing',
+    label: 'Sourcing',
+    description: 'RFQ, procurement, and supplier master data',
+    icon: 'procurement',
+    color: '#8e44ad',
+    path: managementClusterPath('sourcing'),
+  },
+  {
+    id: 'contracts-compliance',
+    label: 'Contracts & Compliance',
+    description: 'Audits, contracts, ESG, and platform activity',
+    icon: 'contracts',
+    color: '#16a085',
+    path: managementClusterPath('contracts-compliance'),
+  },
+  {
+    id: 'finance',
+    label: 'Finance',
+    description: 'Multi-site costs, spend analysis, and financial planning',
+    icon: 'cost',
+    color: '#c9a84c',
+    path: managementClusterPath('finance'),
+  },
+  {
+    id: 'ops',
+    label: 'Ops',
+    description: 'Projects and production operations',
+    icon: 'production',
+    color: '#e67e22',
+    path: managementClusterPath('ops'),
+  },
+  {
+    id: 'platform',
+    label: 'Platform',
+    description: 'Integrations and intelligence',
+    icon: 'erp',
+    color: '#1b2a4a',
+    path: managementClusterPath('platform'),
+  },
+].map((cluster) => ({
+  ...cluster,
+  modules: MANAGEMENT_MODULES.filter((mod) => mod.clusterId === cluster.id),
+}))
+
+export function getManagementCluster(clusterId) {
+  return MANAGEMENT_MODULE_CLUSTERS.find((c) => c.id === clusterId) || null
+}
+
+export function moduleMatchesSearch(mod, query, t) {
+  if (!query.trim()) return true
+  const q = query.trim().toLowerCase()
+  const title = (mod.titleKey ? t(mod.titleKey) : mod.label).toLowerCase()
+  const desc = (mod.descriptionKey ? t(mod.descriptionKey) : mod.description || '').toLowerCase()
+  const cluster = MANAGEMENT_MODULE_CLUSTERS.find((c) => c.id === mod.clusterId)
+  const clusterText = `${cluster?.label || ''} ${cluster?.description || ''}`.toLowerCase()
+  return title.includes(q) || desc.includes(q) || clusterText.includes(q)
+}
+
+export function getModuleByPath(pathname) {
+  for (const mod of MANAGEMENT_MODULES) {
+    if (pathname === mod.path || pathname.startsWith(`${mod.path}/`)) return mod
+    if (mod.legacyPath && (pathname === mod.legacyPath || pathname.startsWith(`${mod.legacyPath}/`))) {
+      return mod
+    }
+  }
+  return null
+}

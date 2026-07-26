@@ -92,7 +92,7 @@ export default function SupplierWorkspace() {
     <AppLayout>
       <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-          ← Partners
+          ← Manufacturers
         </button>
         <div className="app-page-card">
           <h2 className="app-page-title">{t('supplierWorkspace.title')}</h2>

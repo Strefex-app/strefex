@@ -8,6 +8,7 @@ from app.models.asset import Asset
 from app.models.audit import Audit
 from app.models.rfq import Rfq, RfqLineItem
 from app.models.subscription import CompanySubscription
+from app.models.stripe_webhook_event import StripeWebhookEvent
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "Rfq",
     "RfqLineItem",
     "CompanySubscription",
+    "StripeWebhookEvent",
 ]

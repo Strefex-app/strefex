@@ -9,8 +9,15 @@ import ErrorBoundary from './components/ErrorBoundary'
 import AnalyticsProvider from './components/AnalyticsProvider'
 import UpgradePrompt from './components/UpgradePrompt'
 import PWAUpdateBanner from './components/PWAUpdateBanner'
+import PwaNotificationPrompt from './components/PwaNotificationPrompt'
 import AppLayout from './components/AppLayout'
 import authService from './services/authService'
+import {
+  getNotificationPermission,
+  isPushNotificationsEnabled,
+  shouldOfferPwaNotificationPrompt,
+  syncPushSubscription,
+} from './services/pushNotificationService'
 import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
@@ -18,6 +25,8 @@ import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
 import { useSettingsStore } from './store/settingsStore'
 import { syncDomTheme } from './theme/syncDomTheme'
 import RfqIntelligenceRedirect from './pages/RfqIntelligenceRedirect'
+import LegacyCutDbRedirect from './routes/LegacyCutDbRedirect'
+import { managementLegacyRedirectRoutes } from './routes/managementLegacyRedirectRoutes'
 
 /* ── Code-split pages (see routes/lazyPages.js) ──────────── */
 import {
@@ -46,6 +55,7 @@ import {
   AddSupplier,
   AdminApproval,
   ManagementHub,
+  ManagementClusterPage,
   AuditManagementHub,
   AuditProgramGate,
   AuditProLayout,
@@ -141,7 +151,6 @@ import {
   RawMaterialsCategory,
   MaterialSuppliers,
   SellerDashboard,
-  BuyerDashboard,
   ServiceProviderDashboard,
   RfqComparison,
   RfqIntelligencePage,
@@ -287,11 +296,16 @@ function App() {
     if (!sessionChecked) return undefined
     if (isAuthenticated) {
       startRequestRefresh()
+      if (isPushNotificationsEnabled() && getNotificationPermission() === 'granted') {
+        syncPushSubscription().catch(() => {})
+      }
       return () => stopRequestRefresh()
     }
     stopRequestRefresh()
     return undefined
   }, [isAuthenticated, sessionChecked, startRequestRefresh, stopRequestRefresh])
+
+  const showPushPrompt = isAuthenticated && shouldOfferPwaNotificationPrompt()
 
   // While verifying the session, show a minimal loading screen
   // to prevent flash of login page or unauthorized protected content
@@ -318,6 +332,7 @@ function App() {
     <ErrorBoundary>
       <PWAUpdateBanner />
       <Router>
+        {showPushPrompt && <PwaNotificationPrompt />}
         <WorkspaceSyncOnNavigate />
         <AnalyticsProvider>
         <Suspense fallback={<RouteLoadingFallback />}>
@@ -334,14 +349,14 @@ function App() {
           <Route path="/notifications" element={<P><Notifications /></P>} />
           <Route path="/payment" element={<P><Payment /></P>} />
           <Route path="/plans" element={<P><SubscriptionPlans /></P>} />
-          <Route path="/team" element={<PlanGate feature="teamManagement" planName="Basic" requiredRole="admin"><TeamManagement /></PlanGate>} />
+          <Route path="/management/people/team" element={<PlanGate feature="teamManagement" planName="Basic" requiredRole="admin"><TeamManagement /></PlanGate>} />
           <Route path="/resources" element={<P><Resources /></P>} />
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
           <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
-          <Route path="/buyer-dashboard" element={<AccountType allowed={['buyer']}><BuyerDashboard /></AccountType>} />
+          <Route path="/buyer-dashboard" element={<Navigate to="/dashboard/buyer?tab=track" replace />} />
           <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />
           <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
           <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
@@ -354,8 +369,8 @@ function App() {
           <Route path="/rfq-comparison/:rfqId" element={<P><RfqComparison /></P>} />
 
           {/* ── Vendor Management ────────────────────────── */}
-          <Route path="/vendors" element={<P><VendorManagement /></P>} />
-          <Route path="/vendors/:vendorId" element={<P><VendorDetail /></P>} />
+          <Route path="/management/sourcing/vendors" element={<P><VendorManagement /></P>} />
+          <Route path="/management/sourcing/vendors/:vendorId" element={<P><VendorDetail /></P>} />
           <Route path="/suppliers/:supplierId" element={<P><SupplierProfilePage /></P>} />
           <Route path="/supplier-dashboard" element={<P><SupplierDashboard /></P>} />
           <Route path="/admin/supplier-governance" element={<SuperAdmin><SupplierGovernanceAdmin /></SuperAdmin>} />
@@ -388,8 +403,8 @@ function App() {
 
           {/* ── Management Hub ────────────────────────────── */}
           <Route path="/management" element={<P><ManagementHub /></P>} />
-          <Route path="/forum" element={<P><Forum /></P>} />
-          <Route path="/management/auditors" element={<P><AuditProgramGate /></P>}>
+          <Route path="/management/people/forum" element={<P><Forum /></P>} />
+          <Route path="/management/contracts-compliance/auditors" element={<P><AuditProgramGate /></P>}>
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="overview" element={<AuditManagementHub />} />
@@ -408,16 +423,15 @@ function App() {
           </Route>
 
           {/* ── Projects ──────────────────────────────────── */}
-          <Route path="/project-management" element={<P><ProjectManagement /></P>} />
-          <Route path="/project-management/new-project" element={<P><NewProjectPage /></P>} />
-          <Route path="/project-management/new-program" element={<Navigate to="/project-management/new-project" replace />} />
-          <Route path="/project-management/program/:programId" element={<Navigate to="/project-management?view=portfolio" replace />} />
-          <Route path="/project-management/project/:projectId/control" element={<P><ProjectCommandCenter /></P>} />
-          <Route path="/project-management/project/:projectId" element={<P><ProjectDetail /></P>} />
-          <Route path="/procurement/new-opportunity" element={<P><NewProcurementOpportunityPage /></P>} />
-          <Route path="/management/rfq" element={<P><RfqManagementHub /></P>} />
-          <Route path="/management/rfq/new" element={<P><NewProcurementOpportunityPage /></P>} />
-          <Route path="/management/rfq/intelligence" element={<P><RfqIntelligencePage /></P>} />
+          <Route path="/management/ops/projects" element={<P><ProjectManagement /></P>} />
+          <Route path="/management/ops/projects/new-project" element={<P><NewProjectPage /></P>} />
+          <Route path="/management/ops/projects/new-program" element={<Navigate to="/management/ops/projects/new-project" replace />} />
+          <Route path="/management/ops/projects/program/:programId" element={<Navigate to="/management/ops/projects?view=portfolio" replace />} />
+          <Route path="/management/ops/projects/project/:projectId/control" element={<P><ProjectCommandCenter /></P>} />
+          <Route path="/management/ops/projects/project/:projectId" element={<P><ProjectDetail /></P>} />
+          <Route path="/management/sourcing/register/new" element={<P><NewProcurementOpportunityPage /></P>} />
+          <Route path="/management/sourcing/workspace" element={<P><RfqManagementHub /></P>} />
+          <Route path="/management/sourcing/intelligence" element={<P><RfqIntelligencePage /></P>} />
           <Route path="/rfq-intelligence" element={<P><RfqIntelligenceRedirect /></P>} />
 
           {/* ── Services & suppliers ──────────────────────── */}
@@ -432,6 +446,8 @@ function App() {
 
           {/* ── Profile ───────────────────────────────────── */}
           <Route path="/profile" element={<P><Profile /></P>} />
+          <Route path="/cutdb" element={<LegacyCutDbRedirect />} />
+          <Route path="/cutdb/*" element={<LegacyCutDbRedirect />} />
           <Route path="/profile/machine-intelligence/:catalogueId" element={<SuperAdmin><MachineDbCataloguePage /></SuperAdmin>} />
           <Route path="/profile/calendar" element={<P><ProfileCalendar /></P>} />
           <Route path="/request-service" element={<P><ServiceList /></P>} />
@@ -457,61 +473,61 @@ function App() {
           <Route path="/admin-dashboard/account/:companyId" element={<SuperAdmin><SuperAdminAccountDetailPage /></SuperAdmin>} />
 
           {/* ── Cost Management (Premium only) ────────────── */}
-          <Route path="/cost-management" element={<PlanGate feature="costManagement" planName="Premium"><CostManagement /></PlanGate>} />
-          <Route path="/cost-management/calculator" element={<PlanGate feature="costManagement" planName="Premium"><CostCalculator /></PlanGate>} />
-          <Route path="/cost-management/bom" element={<PlanGate feature="costManagement" planName="Premium"><CostCalculator /></PlanGate>} />
-          <Route path="/cost-management/breakdown" element={<PlanGate feature="costManagement" planName="Premium"><CostBreakdown /></PlanGate>} />
-          <Route path="/cost-management/comparison" element={<PlanGate feature="costManagement" planName="Premium"><CostBreakdown /></PlanGate>} />
-          <Route path="/cost-management/scenarios" element={<PlanGate feature="costManagement" planName="Premium"><CostScenarios /></PlanGate>} />
-          <Route path="/cost-management/targets" element={<PlanGate feature="costManagement" planName="Premium"><CostTargets /></PlanGate>} />
+          <Route path="/management/finance/cost" element={<PlanGate feature="costManagement" planName="Premium"><CostManagement /></PlanGate>} />
+          <Route path="/management/finance/cost/calculator" element={<PlanGate feature="costManagement" planName="Premium"><CostCalculator /></PlanGate>} />
+          <Route path="/management/finance/cost/bom" element={<PlanGate feature="costManagement" planName="Premium"><CostCalculator /></PlanGate>} />
+          <Route path="/management/finance/cost/breakdown" element={<PlanGate feature="costManagement" planName="Premium"><CostBreakdown /></PlanGate>} />
+          <Route path="/management/finance/cost/comparison" element={<PlanGate feature="costManagement" planName="Premium"><CostBreakdown /></PlanGate>} />
+          <Route path="/management/finance/cost/scenarios" element={<PlanGate feature="costManagement" planName="Premium"><CostScenarios /></PlanGate>} />
+          <Route path="/management/finance/cost/targets" element={<PlanGate feature="costManagement" planName="Premium"><CostTargets /></PlanGate>} />
 
-          {/* ── Enterprise Management (Enterprise plan only) ── */}
-          <Route path="/enterprise" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseManagement /></PlanGate>} />
-          <Route path="/enterprise/fixed-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseFixedCosts /></PlanGate>} />
-          <Route path="/enterprise/variable-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseVariableCosts /></PlanGate>} />
-          <Route path="/enterprise/semi-variable-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseSemiVariableCosts /></PlanGate>} />
-          <Route path="/enterprise/direct-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseDirectCosts /></PlanGate>} />
-          <Route path="/enterprise/indirect-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseIndirectCosts /></PlanGate>} />
-          <Route path="/enterprise/opex" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseOpex /></PlanGate>} />
-          <Route path="/enterprise/capex" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseCapex /></PlanGate>} />
-          <Route path="/enterprise/personnel" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterprisePersonnel /></PlanGate>} />
-          <Route path="/enterprise/financial" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseFinancial /></PlanGate>} />
-          <Route path="/enterprise/exceptional" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseExceptional /></PlanGate>} />
-          <Route path="/enterprise/risk" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseRisk /></PlanGate>} />
-          <Route path="/enterprise/product-calculation" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseProductCalc /></PlanGate>} />
+          {/* ── Multi-Site Management (Enterprise plan only) ── */}
+          <Route path="/management/finance/enterprise" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseManagement /></PlanGate>} />
+          <Route path="/management/finance/enterprise/fixed-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseFixedCosts /></PlanGate>} />
+          <Route path="/management/finance/enterprise/variable-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseVariableCosts /></PlanGate>} />
+          <Route path="/management/finance/enterprise/semi-variable-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseSemiVariableCosts /></PlanGate>} />
+          <Route path="/management/finance/enterprise/direct-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseDirectCosts /></PlanGate>} />
+          <Route path="/management/finance/enterprise/indirect-costs" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseIndirectCosts /></PlanGate>} />
+          <Route path="/management/finance/enterprise/opex" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseOpex /></PlanGate>} />
+          <Route path="/management/finance/enterprise/capex" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseCapex /></PlanGate>} />
+          <Route path="/management/finance/enterprise/personnel" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterprisePersonnel /></PlanGate>} />
+          <Route path="/management/finance/enterprise/financial" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseFinancial /></PlanGate>} />
+          <Route path="/management/finance/enterprise/exceptional" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseExceptional /></PlanGate>} />
+          <Route path="/management/finance/enterprise/risk" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseRisk /></PlanGate>} />
+          <Route path="/management/finance/enterprise/product-calculation" element={<PlanGate feature="enterpriseManagement" planName="Enterprise"><EnterpriseProductCalc /></PlanGate>} />
 
           {/* ── Production Management (Premium only) ────────── */}
-          <Route path="/production" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionManagement /></PlanGate>} />
-          <Route path="/production/5s" element={<PlanGate feature="productionManagement" planName="Premium"><Production5S /></PlanGate>} />
-          <Route path="/production/iso9001" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionISO9001 /></PlanGate>} />
-          <Route path="/production/iatf16949" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionIATF16949 /></PlanGate>} />
-          <Route path="/production/vda63" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionVDA63 /></PlanGate>} />
-          <Route path="/production/oee" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionOEE /></PlanGate>} />
-          <Route path="/production/downtime" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionDowntime /></PlanGate>} />
-          <Route path="/production/scrap" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionScrap /></PlanGate>} />
-          <Route path="/production/output" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionOutput /></PlanGate>} />
-          <Route path="/production/quality-kpis" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionQualityKPIs /></PlanGate>} />
-          <Route path="/production/process-audit" element={<PlanGate feature="auditManagement" planName="Premium"><ProductionProcessAudit /></PlanGate>} />
-          <Route path="/production/audit-history" element={<PlanGate feature="auditManagement" planName="Premium"><ProductionAuditHistory /></PlanGate>} />
-          <Route path="/production/floor-layout" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionFloorLayout /></PlanGate>} />
-          <Route path="/production/certifications" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionCertifications /></PlanGate>} />
-          <Route path="/production/audit-questionnaire" element={<PlanGate feature="auditManagement" planName="Premium"><AuditQuestionnaire /></PlanGate>} />
-          <Route path="/production/workcenter-output" element={<PlanGate feature="productionManagement" planName="Premium"><WorkCenterOutput /></PlanGate>} />
-          <Route path="/production/system-management" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagement /></PlanGate>} />
-          <Route path="/production/system/:systemId" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagementPage /></PlanGate>} />
+          <Route path="/management/ops/production" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionManagement /></PlanGate>} />
+          <Route path="/management/ops/production/5s" element={<PlanGate feature="productionManagement" planName="Premium"><Production5S /></PlanGate>} />
+          <Route path="/management/ops/production/iso9001" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionISO9001 /></PlanGate>} />
+          <Route path="/management/ops/production/iatf16949" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionIATF16949 /></PlanGate>} />
+          <Route path="/management/ops/production/vda63" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionVDA63 /></PlanGate>} />
+          <Route path="/management/ops/production/oee" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionOEE /></PlanGate>} />
+          <Route path="/management/ops/production/downtime" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionDowntime /></PlanGate>} />
+          <Route path="/management/ops/production/scrap" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionScrap /></PlanGate>} />
+          <Route path="/management/ops/production/output" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionOutput /></PlanGate>} />
+          <Route path="/management/ops/production/quality-kpis" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionQualityKPIs /></PlanGate>} />
+          <Route path="/management/ops/production/process-audit" element={<PlanGate feature="auditManagement" planName="Premium"><ProductionProcessAudit /></PlanGate>} />
+          <Route path="/management/ops/production/audit-history" element={<PlanGate feature="auditManagement" planName="Premium"><ProductionAuditHistory /></PlanGate>} />
+          <Route path="/management/ops/production/floor-layout" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionFloorLayout /></PlanGate>} />
+          <Route path="/management/ops/production/certifications" element={<PlanGate feature="productionManagement" planName="Premium"><ProductionCertifications /></PlanGate>} />
+          <Route path="/management/ops/production/audit-questionnaire" element={<PlanGate feature="auditManagement" planName="Premium"><AuditQuestionnaire /></PlanGate>} />
+          <Route path="/management/ops/production/workcenter-output" element={<PlanGate feature="productionManagement" planName="Premium"><WorkCenterOutput /></PlanGate>} />
+          <Route path="/management/ops/production/system-management" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagement /></PlanGate>} />
+          <Route path="/management/ops/production/system/:systemId" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagementPage /></PlanGate>} />
 
-          {/* ── HR Space (Management hub; legacy /production/headcount → redirect) ─ */}
-          <Route path="/hr-space" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
-          <Route path="/hr-space/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
-          <Route path="/hr-space/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />
-          <Route path="/hr-space/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeDialogue /></PlanGate>} />
-          <Route path="/hr-space/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HRDocumentation /></PlanGate>} />
-          <Route path="/hr-space/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrTrainingModule /></PlanGate>} />
-          <Route path="/hr-space/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrWorkforceModule /></PlanGate>} />
-          <Route path="/hr-space/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrOnboardingModule /></PlanGate>} />
-          <Route path="/hr-space/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrAttendanceModule /></PlanGate>} />
-          <Route path="/hr-space/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrHiringRecruitment /></PlanGate>} />
-          <Route path="/hr-space/employees/:employeeId" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrEmployeeProfile /></PlanGate>} />
+          {/* ── HR Space ───────────────────────────────────── */}
+          <Route path="/management/people/hr-space" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
+          <Route path="/management/people/hr-space/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
+          <Route path="/management/people/hr-space/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />
+          <Route path="/management/people/hr-space/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeDialogue /></PlanGate>} />
+          <Route path="/management/people/hr-space/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HRDocumentation /></PlanGate>} />
+          <Route path="/management/people/hr-space/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrTrainingModule /></PlanGate>} />
+          <Route path="/management/people/hr-space/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrWorkforceModule /></PlanGate>} />
+          <Route path="/management/people/hr-space/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrOnboardingModule /></PlanGate>} />
+          <Route path="/management/people/hr-space/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrAttendanceModule /></PlanGate>} />
+          <Route path="/management/people/hr-space/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrHiringRecruitment /></PlanGate>} />
+          <Route path="/management/people/hr-space/employees/:employeeId" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HrEmployeeProfile /></PlanGate>} />
 
           {/* Forge — superadmin only (community hub & onboarding tools) */}
           <Route path={FORGE_PATHS.membershipOnboarding} element={<SuperAdmin><ForgeMembershipAssessment /></SuperAdmin>} />
@@ -519,26 +535,31 @@ function App() {
           <Route path={FORGE_PATHS.projects} element={<SuperAdmin><ForgeProjects /></SuperAdmin>} />
           <Route path={FORGE_PATH_CLUB_DOC} element={<SuperAdmin><ForgeClubDocumentPage /></SuperAdmin>} />
 
-          <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space" /></PlanGate>} />
-          <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/qualification-matrix" /></PlanGate>} />
-          <Route path="/production/headcount/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/goals" /></PlanGate>} />
-          <Route path="/production/headcount/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/dialogue" /></PlanGate>} />
-          <Route path="/production/headcount/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/hr-docs" /></PlanGate>} />
-          <Route path="/production/headcount/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/training" /></PlanGate>} />
-          <Route path="/production/headcount/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/workforce" /></PlanGate>} />
-          <Route path="/production/headcount/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/onboarding" /></PlanGate>} />
-          <Route path="/production/headcount/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/attendance" /></PlanGate>} />
-          <Route path="/production/headcount/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/hr-space/hiring" /></PlanGate>} />
+          <Route path="/production/headcount" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space" /></PlanGate>} />
+          <Route path="/production/headcount/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/qualification-matrix" /></PlanGate>} />
+          <Route path="/production/headcount/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/goals" /></PlanGate>} />
+          <Route path="/production/headcount/dialogue" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/dialogue" /></PlanGate>} />
+          <Route path="/production/headcount/hr-docs" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/hr-docs" /></PlanGate>} />
+          <Route path="/production/headcount/training" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/training" /></PlanGate>} />
+          <Route path="/production/headcount/workforce" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/workforce" /></PlanGate>} />
+          <Route path="/production/headcount/onboarding" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/onboarding" /></PlanGate>} />
+          <Route path="/production/headcount/attendance" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/attendance" /></PlanGate>} />
+          <Route path="/production/headcount/hiring" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><LegacyHrRedirect to="/management/people/hr-space/hiring" /></PlanGate>} />
 
           {/* ── Buyer Features (company-isolated, role-guarded) ── */}
-          <Route path="/procurement" element={<PlanGate feature="procurement" planName="Enterprise"><ProcurementDashboard /></PlanGate>} />
-          <Route path="/contracts" element={<PlanGate feature="contractManagement" planName="Enterprise"><ContractDashboard /></PlanGate>} />
-          <Route path="/spend-analysis" element={<PlanGate feature="spendAnalysis" planName="Enterprise" requiredRole="manager"><SpendAnalysis /></PlanGate>} />
-          <Route path="/compliance" element={<PlanGate feature="complianceEsg" planName="Enterprise"><ComplianceDashboard /></PlanGate>} />
-          <Route path="/ai-insights" element={<PlanGate feature="aiInsights" planName="Enterprise" requiredRole="manager"><AIInsights /></PlanGate>} />
-          <Route path="/erp-integrations" element={<PlanGate feature="erpIntegrations" planName="Enterprise" requiredRole="admin"><ERPIntegrations /></PlanGate>} />
+          <Route path="/management/sourcing/procurement" element={<PlanGate feature="procurement" planName="Enterprise"><ProcurementDashboard /></PlanGate>} />
+          <Route path="/management/contracts-compliance/contracts" element={<PlanGate feature="contractManagement" planName="Enterprise"><ContractDashboard /></PlanGate>} />
+          <Route path="/management/finance/spend-analysis" element={<PlanGate feature="spendAnalysis" planName="Enterprise" requiredRole="manager"><SpendAnalysis /></PlanGate>} />
+          <Route path="/management/contracts-compliance/compliance" element={<PlanGate feature="complianceEsg" planName="Enterprise"><ComplianceDashboard /></PlanGate>} />
+          <Route path="/management/platform/ai-insights" element={<PlanGate feature="aiInsights" planName="Enterprise" requiredRole="manager"><AIInsights /></PlanGate>} />
+          <Route path="/management/platform/erp" element={<PlanGate feature="erpIntegrations" planName="Enterprise" requiredRole="admin"><ERPIntegrations /></PlanGate>} />
+          <Route path="/management/contracts-compliance/activity-log" element={<PlanGate feature="auditLogs" planName="Enterprise" requiredRole="admin"><AuditLogs /></PlanGate>} />
+
           <Route path="/templates" element={<PlanGate feature="templateLibrary" planName="Enterprise"><TemplateLibrary /></PlanGate>} />
-          <Route path="/audit-logs" element={<PlanGate feature="auditLogs" planName="Enterprise" requiredRole="admin"><AuditLogs /></PlanGate>} />
+
+          {managementLegacyRedirectRoutes()}
+
+          <Route path="/management/:clusterId" element={<P><ManagementClusterPage /></P>} />
 
           {/* ── Catch-all ─────────────────────────────────── */}
           <Route path="/" element={<Navigate to={isAuthenticated ? "/main-menu" : "/login"} />} />

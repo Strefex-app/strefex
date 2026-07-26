@@ -1,134 +1,132 @@
-import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
-import Icon from '../../components/Icon'
 import { useAuthStore } from '../../store/authStore'
 import { useSubscriptionStore } from '../../services/featureFlags'
+import { useIndustryStore } from '../../store/industryStore'
+import HubIndustryRegistration, { HubServiceProviderNotice } from '../../components/hubs/HubIndustryRegistration'
+import HubToolsSection from '../../components/hubs/HubToolsSection'
+import HubToolCard from '../../components/hubs/HubToolCard'
 import '../../styles/app-page.css'
 import './HubPages.css'
 
+const ICON = {
+  rfq: { background: 'rgba(0, 212, 255,.1)', color: '#00d4ff' },
+  profile: { background: 'rgba(46,125,50,.12)', color: '#2e7d32' },
+  overview: { background: 'rgba(25,42,86,.1)', color: '#192a56' },
+  services: { background: 'rgba(230,81,0,.12)', color: '#e65100' },
+  provider: { background: 'rgba(155,89,182,.12)', color: '#8e44ad' },
+}
+
 /**
- * Single entry for suppliers (sellers) and service providers:
- * RFQ workspace, supplier profile dashboard, service delivery, and seller overview.
+ * Manufacturer hub — suppliers register industries first; service providers use service categories.
  */
 export default function PartnerHub() {
   const role = useAuthStore((s) => s.role)
   const accountType = useSubscriptionStore((s) => s.accountType)
+  const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
+
   const isSuperAdmin = role === 'superadmin'
-  const isServiceProvider = accountType === 'service_provider' || isSuperAdmin
+  const isServiceProvider = accountType === 'service_provider' && !isSuperAdmin
+  const isSeller = accountType === 'seller' || isSuperAdmin
+  const hasIndustries = isSuperAdmin || selectedIndustries.length > 0
+
+  const toolsUnlocked = isServiceProvider || hasIndustries
 
   return (
     <AppLayout>
       <div className="app-page hub-landing">
         <div className="app-page-card">
-          <h1 className="hub-landing__title">Partners</h1>
-          <p className="hub-landing__subtitle">
-            Suppliers and service providers — RFQs, profiles, and service delivery in one place.
+          <h1 className="hub-landing__title">Manufacturers</h1>
+          <p className="hub-landing__subtitle stx-text-wrap">
+            {isServiceProvider
+              ? 'Register your service categories, then manage incoming work and track orders you place.'
+              : 'Register the industries you serve, then manage your profile, RFQs, and service delivery.'}
           </p>
         </div>
 
-        <div className="app-page-card">
-          <h2 className="hub-landing__section-label">Platform services (any account)</h2>
-          <p className="hub-landing__subtitle" style={{ marginTop: 0, marginBottom: 16 }}>
-            Order STREFEX services and track your requests — you do not need a service-provider registration to place an order.
-          </p>
-          <div className="hub-landing__grid">
-            <Link to="/service-hub" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
-                <Icon name="service-requests" size={22} />
-              </span>
-              <h3 className="hub-landing__card-title">Browse &amp; order services</h3>
-              <p className="hub-landing__card-desc">
-                Open the service hub, pick a category, and submit a service request (same flow as buyers).
-              </p>
-            </Link>
-            <Link to="/service-requests" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(46,125,50,.12)', color: '#2e7d32' }}>
-                <Icon name="check-square" size={22} />
-              </span>
-              <h3 className="hub-landing__card-title">My service requests</h3>
-              <p className="hub-landing__card-desc">
-                See service orders placed by your account (submitted as buyer or seller).
-              </p>
-            </Link>
-          </div>
-        </div>
-
-        <div className="app-page-card">
-          <h2 className="hub-landing__section-label">Supplier (seller)</h2>
-          <div className="hub-landing__grid">
-            <Link to="/dashboard/supplier" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(0, 212, 255,.1)', color: '#00d4ff' }}>
-                <Icon name="document" size={22} />
-              </span>
-              <h3 className="hub-landing__card-title">Supplier workspace</h3>
-              <p className="hub-landing__card-desc">
-                Choose membership, respond to RFQ invitations, and view notifications.
-              </p>
-            </Link>
-            <Link to="/supplier-dashboard" className="hub-landing__card stx-click-feedback">
-              <span className="hub-landing__card-icon" style={{ background: 'rgba(46,125,50,.12)', color: '#2e7d32' }}>
-                <Icon name="vendors" size={22} />
-              </span>
-              <h3 className="hub-landing__card-title">Supplier profile &amp; catalog</h3>
-              <p className="hub-landing__card-desc">
-                Company profile, products, certifications — what buyers see in search.
-              </p>
-            </Link>
-            {(accountType === 'seller' || isSuperAdmin) && (
-              <Link to="/seller-dashboard" className="hub-landing__card stx-click-feedback">
-                <span className="hub-landing__card-icon" style={{ background: 'rgba(25,42,86,.1)', color: '#192a56' }}>
-                  <Icon name="management" size={22} />
-                </span>
-                <h3 className="hub-landing__card-title">Seller dashboard</h3>
-                <p className="hub-landing__card-desc">
-                  Overview for seller accounts — RFQs received, awards, and activity.
-                </p>
-              </Link>
-            )}
-          </div>
-        </div>
-
-        <div className="app-page-card">
-          <h2 className="hub-landing__section-label">Service provider</h2>
-          <div className="hub-landing__grid">
-            {isServiceProvider && (
-              <>
-                <Link to="/service-requests" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(230,81,0,.12)', color: '#e65100' }}>
-                    <Icon name="service-requests" size={22} />
-                  </span>
-                  <h3 className="hub-landing__card-title">Service request management</h3>
-                  <p className="hub-landing__card-desc">
-                    Full queue: assign, update status, and notes for incoming work (admin/manager tools when applicable).
-                  </p>
-                </Link>
-                <Link to="/service-provider-dashboard" className="hub-landing__card stx-click-feedback">
-                  <span className="hub-landing__card-icon" style={{ background: 'rgba(155,89,182,.12)', color: '#8e44ad' }}>
-                    <Icon name="management" size={22} />
-                  </span>
-                  <h3 className="hub-landing__card-title">Service provider dashboard</h3>
-                  <p className="hub-landing__card-desc">
-                    Summary of assignments, status, and provider metrics.
-                  </p>
-                </Link>
-              </>
-            )}
-            {!isServiceProvider && !isSuperAdmin && (
-              <p className="app-page-subtitle" style={{ margin: 0 }}>
-                Service provider tools appear here when your account type includes service delivery.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {isSuperAdmin && accountType !== 'seller' && accountType !== 'service_provider' && (
-          <div className="app-page-card app-page-callout">
-            <p className="app-page-body" style={{ margin: 0 }}>
-              Superadmin: use <strong>Supplier workspace</strong> and <strong>Supplier profile</strong> above with a supplier
-              membership or <code style={{ fontSize: 12 }}>supplierId</code> on the profile dashboard URL.
-            </p>
-          </div>
+        {isServiceProvider ? (
+          <HubServiceProviderNotice />
+        ) : (
+          <HubIndustryRegistration audience="seller" />
         )}
+
+        <HubToolsSection
+          hasAccess={toolsUnlocked}
+          hint={
+            isServiceProvider
+              ? 'Respond to assignments, keep your provider profile current, and track any orders you submit.'
+              : 'Your day-to-day workspace — RFQs, public profile, and platform services in one place.'
+          }
+        >
+          {isSeller && (
+            <div className="hub-tools-group">
+              <h3 className="hub-tools-group__label">Supplier workspace</h3>
+              <div className="hub-landing__grid">
+                <HubToolCard
+                  to="/dashboard/supplier"
+                  icon="document"
+                  iconStyle={ICON.rfq}
+                  title="RFQ inbox"
+                  description="See invitations, respond to buyer RFQs, and check notifications."
+                />
+                <HubToolCard
+                  to="/supplier-dashboard"
+                  icon="vendors"
+                  iconStyle={ICON.profile}
+                  title="Company profile & catalog"
+                  description="Update what buyers see — company info, products, certifications, and equipment."
+                />
+                {(accountType === 'seller' || isSuperAdmin) && (
+                  <HubToolCard
+                    to="/seller-dashboard"
+                    icon="management"
+                    iconStyle={ICON.overview}
+                    title="Activity overview"
+                    description="Summary of RFQs received, awards, and recent seller activity."
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="hub-tools-group">
+            <h3 className="hub-tools-group__label">Platform services</h3>
+            <div className="hub-landing__grid">
+              <HubToolCard
+                to="/service-hub"
+                icon="service-requests"
+                iconStyle={ICON.services}
+                title="Order a service"
+                description="Browse STREFEX services and submit a request — same flow as buyers."
+              />
+              <HubToolCard
+                to="/service-requests"
+                icon="check-square"
+                iconStyle={ICON.profile}
+                title="Service requests"
+                description={
+                  isServiceProvider
+                    ? 'Manage incoming assignments, update status, and track orders you placed.'
+                    : 'Track service orders submitted by your account.'
+                }
+              />
+            </div>
+          </div>
+
+          {isServiceProvider && (
+            <div className="hub-tools-group">
+              <h3 className="hub-tools-group__label">Service delivery</h3>
+              <div className="hub-landing__grid">
+                <HubToolCard
+                  to="/service-provider-dashboard"
+                  icon="management"
+                  iconStyle={ICON.provider}
+                  title="Provider dashboard"
+                  description="Assignments, metrics, and status overview for your service business."
+                />
+              </div>
+            </div>
+          )}
+        </HubToolsSection>
       </div>
     </AppLayout>
   )

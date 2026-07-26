@@ -24,9 +24,25 @@ const getStoredLang = () => {
   }
 }
 
+const getStoredPush = () => {
+  try {
+    const raw = localStorage.getItem('strefex-push-notifications')
+    if (raw === null) return true
+    return raw === 'true'
+  } catch {
+    return true
+  }
+}
+
 export const useSettingsStore = create((set) => ({
   theme: getStoredTheme(),
   language: getStoredLang(),
+  pushNotifications: getStoredPush(),
+
+  setPushNotifications: (enabled) => {
+    try { localStorage.setItem('strefex-push-notifications', enabled ? 'true' : 'false') } catch {}
+    set({ pushNotifications: enabled })
+  },
 
   setTheme: (theme) => {
     const t = normalizeTheme(theme)

@@ -1,12 +1,39 @@
+import { useState } from 'react'
 import AppLayout from '../components/AppLayout'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
 import { LANGUAGES } from '../i18n/languages'
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getNotificationPermission,
+  isPushSupported,
+  isStandalonePwa,
+} from '../services/pushNotificationService'
 import './Settings.css'
 
 export default function Settings() {
-  const { theme, toggleTheme, language, setLanguage } = useSettingsStore()
+  const { theme, toggleTheme, language, setLanguage, pushNotifications, setPushNotifications } = useSettingsStore()
   const { t } = useTranslation()
+  const [pushBusy, setPushBusy] = useState(false)
+  const pushPermission = getNotificationPermission()
+  const pushSupported = isPushSupported()
+
+  const handleTogglePush = async () => {
+    if (!pushSupported || pushBusy) return
+    setPushBusy(true)
+    try {
+      if (pushNotifications) {
+        await disablePushNotifications()
+        setPushNotifications(false)
+      } else {
+        const result = await enablePushNotifications()
+        setPushNotifications(result === 'granted')
+      }
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   return (
     <AppLayout>
@@ -139,9 +166,24 @@ export default function Settings() {
                   </div>
                   <div>
                     <div className="settings-item-label">{t('settings.pushNotif')}</div>
+                    <div className="settings-item-desc stx-text-wrap">
+                      {!pushSupported
+                        ? 'Not supported in this browser.'
+                        : pushPermission === 'denied'
+                          ? 'Blocked in browser settings — allow notifications for STREFEX.'
+                          : isStandalonePwa()
+                            ? 'Home screen / desktop app alerts for incoming requests and assignments.'
+                            : 'Alerts when the app is installed or running in the background.'}
+                    </div>
                   </div>
                 </div>
-                <button type="button" className="settings-toggle on" aria-label="Toggle push notifications">
+                <button
+                  type="button"
+                  className={`settings-toggle ${pushNotifications && pushPermission === 'granted' ? 'on' : ''}`}
+                  onClick={handleTogglePush}
+                  disabled={!pushSupported || pushPermission === 'denied' || pushBusy}
+                  aria-label="Toggle push notifications"
+                >
                   <span className="settings-toggle-knob" />
                 </button>
               </div>

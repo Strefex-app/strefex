@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, CurrentTenant, get_db
 from app.repositories.subscription import subscription_repository
+from app.repositories.stripe_webhook import stripe_webhook_repository
 from app.schemas.billing import (
     CheckoutRequest,
     CheckoutResponse,
@@ -281,7 +282,16 @@ async def stripe_webhook(
 
     event_type = event["type"]
     data = event["data"]["object"]
-    logger.info(f"[Billing] Webhook: {event_type}")
+    event_id = event.get("id")
+    logger.info(f"[Billing] Webhook: {event_type} ({event_id})")
+
+    if event_id:
+        should_process = await stripe_webhook_repository.claim_event(
+            db, event_id, event_type
+        )
+        if not should_process:
+            logger.info(f"[Billing] Duplicate webhook ignored: {event_id}")
+            return {"status": "duplicate"}
 
     if event_type == "checkout.session.completed":
         tenant_id = data.get("metadata", {}).get("tenant_id")

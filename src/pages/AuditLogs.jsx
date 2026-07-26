@@ -46,7 +46,7 @@ export default function AuditLogs() {
         <div className="aud-header">
           <div>
             <button className="aud-back" onClick={() => navigate(-1)}>← Back</button>
-            <h1 className="aud-title">System Audit Logs</h1>
+            <h1 className="aud-title">System Activity Log</h1>
             <p className="aud-subtitle">{isSuperAdmin ? 'Platform-wide' : companyName} activity tracking — who did what, when, and where</p>
             {!isSuperAdmin && <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'rgba(0, 212, 255,.08)', color: '#00d4ff' }}>Company: {companyName} — data isolated per organization</span>}
           </div>

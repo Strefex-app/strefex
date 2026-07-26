@@ -150,6 +150,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
 
     try {
       const m = await import('../services/workspaceCloudSync')
+      if (getAuthState()?.sessionMode === 'demo') return
       await m.bootstrapWorkspaceCloudSync()
     } catch (err) {
       devWarn('workspace cloud sync bootstrap skipped', err)

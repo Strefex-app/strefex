@@ -465,13 +465,15 @@ export default function RegisteredSuppliersPage() {
       />
 
       <div className="app-page buyer-directory-page">
-        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/procurement')}>
-          ← Back to Buyers
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/profile')}>
+          ← Contact list
         </button>
 
         <div className="app-page-card">
           <h2 className="app-page-title">Supplier directory</h2>
-          <p className="app-page-subtitle">Registered supplier contacts.</p>
+          <p className="app-page-subtitle">
+            Registered supplier contacts — imports, manual entries, and <strong>new manufacturer web signups</strong> (synced automatically).
+          </p>
           <div className="app-page-toolbar">
             <span className="app-page-chip">Rows: {sorted.length}</span>
             <div className="app-page-toolbar-actions">

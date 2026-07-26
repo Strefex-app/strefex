@@ -561,6 +561,20 @@ const authService = {
    */
   async loginWithEmail(email, password, tenantSlug = null) {
     const normalizedEmail = normalizeEmail(email)
+
+    const { matchDemoProfile, isDemoLoginEnabled, isDemoEmail, verifyDemoAccessCode } = await import('../config/demoAccount')
+    if (isDemoLoginEnabled() && isDemoEmail(normalizedEmail) && !verifyDemoAccessCode(password)) {
+      const err = new Error('Invalid demo access code.')
+      err.code = 'demo_access_denied'
+      throw err
+    }
+    const demoProfile = matchDemoProfile(normalizedEmail, password)
+    if (demoProfile) {
+      const { enterDemoAccount } = await import('./demoAccountService')
+      await enterDemoAccount(demoProfile)
+      return { demo: true, profile: demoProfile }
+    }
+
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       let signInResult

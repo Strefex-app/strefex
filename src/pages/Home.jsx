@@ -143,7 +143,7 @@ export default function Home() {
           <div className="home-dash-grid">
             {[
               { label: 'Seller Dashboard', path: '/seller-dashboard', color: '#00d4ff', bg: 'rgba(0, 212, 255,.06)', border: 'rgba(0, 212, 255,.2)', desc: 'View all seller data, received RFQs, responses' },
-              { label: 'Buyer Dashboard', path: '/buyer-dashboard', color: '#2e7d32', bg: 'rgba(46,125,50,.06)', border: 'rgba(46,125,50,.2)', desc: 'View all buyer data, sent RFQs, comparisons' },
+              { label: 'Buyer Workspace', path: '/dashboard/buyer', color: '#2e7d32', bg: 'rgba(46,125,50,.06)', border: 'rgba(46,125,50,.2)', desc: 'Search suppliers, send RFQs, and track responses' },
               { label: 'Service Provider Dashboard', path: '/service-provider-dashboard', color: '#e65100', bg: 'rgba(230,81,0,.06)', border: 'rgba(230,81,0,.2)', desc: 'View all service requests and provider activity' },
             ].map((d) => (
               <button
@@ -179,7 +179,7 @@ export default function Home() {
             {(() => {
               const dashMap = {
                 seller: { label: 'Seller Dashboard', path: '/seller-dashboard', color: '#00d4ff', bg: 'rgba(0, 212, 255,.06)', border: 'rgba(0, 212, 255,.2)', desc: `${receivedRfqStats.pending} RFQs pending response · ${receivedRfqStats.awarded} awarded · ${projectsTotal} projects` },
-                buyer: { label: 'Buyer Dashboard', path: '/buyer-dashboard', color: '#2e7d32', bg: 'rgba(46,125,50,.06)', border: 'rgba(46,125,50,.2)', desc: `${rfqStats.sent} RFQs sent · ${rfqStats.responses} responses · ${projectsTotal} projects` },
+                buyer: { label: 'Buyer Workspace', path: '/dashboard/buyer', color: '#2e7d32', bg: 'rgba(46,125,50,.06)', border: 'rgba(46,125,50,.2)', desc: 'Search suppliers, send RFQs, and track responses' },
                 service_provider: { label: 'Service Provider Dashboard', path: '/service-provider-dashboard', color: '#e65100', bg: 'rgba(230,81,0,.06)', border: 'rgba(230,81,0,.2)', desc: `${projectsTotal} projects · Manage service requests` },
               }
               const dashboards = accountTypes

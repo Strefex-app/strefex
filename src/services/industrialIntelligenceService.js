@@ -88,6 +88,20 @@ const industrialIntelligenceService = {
     }
   },
 
+  /** Lightweight batch fetch for buyer discover cards (avoids N×4 round-trips). */
+  async getSuppliersBasicByIds(supplierIds = []) {
+    if (!isSupabaseConfigured) return []
+    const unique = [...new Set((supplierIds || []).map((id) => String(id || '').trim()).filter(Boolean))]
+    if (unique.length === 0) return []
+    const rows = await suppliersService
+      .list(null, {
+        filters: [['id', 'in', toInFilter(unique)]],
+        limit: Math.min(unique.length, 100),
+      })
+      .catch(() => [])
+    return Array.isArray(rows) ? rows : []
+  },
+
   async resolveGlobalSupplierId(vendorId) {
     if (!vendorId) return null
     const rows = await suppliersService.list(null, {

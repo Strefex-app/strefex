@@ -11,9 +11,19 @@ const UPDATE_INTERVAL_MS = 60 * 60 * 1000
 
 let _registration = null
 let _onUpdate = null
+let _readyPromise = null
 
 export function onSWUpdate(callback) {
   _onUpdate = callback
+}
+
+export async function getServiceWorkerRegistration() {
+  if (!('serviceWorker' in navigator)) return null
+  if (_registration?.active) return _registration
+  if (_readyPromise) return _readyPromise
+  _readyPromise = navigator.serviceWorker.ready.catch(() => null)
+  _registration = await _readyPromise
+  return _registration
 }
 
 export async function registerServiceWorker() {

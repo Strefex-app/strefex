@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { enterDemoAccount } from '../services/demoAccountService'
+import {
+  isDemoLoginEnabled,
+  isDemoAccessGranted,
+  grantDemoAccessSession,
+  verifyDemoAccessCode,
+  DEMO_QUICK_EMAIL,
+} from '../config/demoAccount'
 import { useTranslation } from '../i18n/useTranslation'
 import authService from '../services/authService'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
@@ -34,6 +42,8 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false)
   const [companySlug, setCompanySlug] = useState('')
   const [showCompanySlug, setShowCompanySlug] = useState(false)
+  const [demoAccessCode, setDemoAccessCode] = useState('')
+  const [demoUnlocked, setDemoUnlocked] = useState(() => isDemoAccessGranted())
 
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -88,7 +98,41 @@ const Login = () => {
     }
   }
 
-  /* ── Main login handler ──────────────────────────────────── */
+  const handleUnlockDemo = () => {
+    setError('')
+    setInfo('')
+    if (!verifyDemoAccessCode(demoAccessCode)) {
+      setError('Invalid demo access code.')
+      setDemoUnlocked(false)
+      return
+    }
+    grantDemoAccessSession()
+    setDemoUnlocked(true)
+    setInfo('Demo unlocked for this browser session. Choose Buyer or Manufacturer below.')
+  }
+
+  const handleDemoStart = async (profile) => {
+    setError('')
+    setInfo('')
+    if (!demoUnlocked && !verifyDemoAccessCode(demoAccessCode)) {
+      setError('Enter a valid demo access code before starting the demo.')
+      return
+    }
+    if (!demoUnlocked) {
+      grantDemoAccessSession()
+      setDemoUnlocked(true)
+    }
+    setLoading(true)
+    try {
+      await enterDemoAccount(profile)
+      navigate('/main-menu')
+    } catch (err) {
+      setError(getReadableErrorMessage(err, 'Could not start demo session.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -117,6 +161,8 @@ const Login = () => {
       if (shouldPromptCompanySlug(msg)) {
         setShowCompanySlug(true)
         setError(msg)
+      } else if (err.code === 'demo_access_denied') {
+        setError('Invalid demo access code.')
       } else if (err.code === 'email_not_confirmed' || msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
         setError('Please verify your email before logging in.')
         setCanResendConfirmation(true)
@@ -251,6 +297,72 @@ const Login = () => {
               Sign Up
             </Link>
           </div>
+
+          {isDemoLoginEnabled() && (
+            <div className="login-superadmin-access">
+              <p className="login-superadmin-hint stx-text-wrap" style={{ marginBottom: 8, maxWidth: '40ch', textAlign: 'center' }}>
+                Presentation demo — local sample data only. Requires an access code from STREFEX.
+              </p>
+
+              {!demoUnlocked ? (
+                <div className="login-demo-unlock">
+                  <label htmlFor="demoAccessCode" className="login-demo-unlock__label">
+                    Demo access code
+                  </label>
+                  <div className="login-demo-unlock__row">
+                    <input
+                      id="demoAccessCode"
+                      type="password"
+                      className="login-demo-unlock__input"
+                      value={demoAccessCode}
+                      onChange={(e) => setDemoAccessCode(e.target.value)}
+                      placeholder="Enter code"
+                      autoComplete="off"
+                      disabled={loading}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleUnlockDemo()
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="login-superadmin-btn"
+                      disabled={loading || !demoAccessCode.trim()}
+                      onClick={handleUnlockDemo}
+                    >
+                      Unlock demo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="login-demo-actions">
+                    <button
+                      type="button"
+                      className="login-superadmin-btn"
+                      disabled={loading}
+                      onClick={() => void handleDemoStart('buyer')}
+                    >
+                      Try demo as Buyer
+                    </button>
+                    <button
+                      type="button"
+                      className="login-superadmin-btn login-superadmin-btn--outline"
+                      disabled={loading}
+                      onClick={() => void handleDemoStart('seller')}
+                    >
+                      Try demo as Manufacturer
+                    </button>
+                  </div>
+                  <p className="login-superadmin-hint stx-text-wrap">
+                    Or sign in with <strong>{DEMO_QUICK_EMAIL}</strong> and the same access code as the password.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
         </div>
       </div>

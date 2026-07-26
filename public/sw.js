@@ -11,7 +11,7 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v3'
+const CACHE_VERSION = 'strefex-v6'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 
@@ -268,13 +268,19 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/'
+  const rawUrl = event.notification.data?.url || '/notifications'
+  const targetUrl = rawUrl.startsWith('http') ? rawUrl : new URL(rawUrl, self.location.origin).href
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clients) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
-        if (client.url.includes(url) && 'focus' in client) return client.focus()
+        if ('focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl)
+          }
+          return client.focus()
+        }
       }
-      return self.clients.openWindow(url)
+      return self.clients.openWindow(targetUrl)
     })
   )
 })

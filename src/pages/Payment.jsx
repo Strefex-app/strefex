@@ -6,116 +6,9 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useTransactionStore, getCompanyDomain } from '../store/transactionStore'
 import { useAuthStore } from '../store/authStore'
 import stripeService, { PLANS, getPlanPrice, getBillingLabel } from '../services/stripeService'
+import { SERVICE_CATALOG } from '../data/serviceCatalog'
 import '../styles/app-page.css'
 import './Payment.css'
-
-// Service/Product catalog - will be connected to database later
-const SERVICE_CATALOG = [
-  { 
-    id: 'supplier-selection',
-    category: 'Supplier Services',
-    name: 'Supplier Selection Package',
-    description: 'Complete supplier evaluation and selection service',
-    price: 2500,
-    currency: 'USD',
-  },
-  { 
-    id: 'supplier-audit',
-    category: 'Supplier Services',
-    name: 'Supplier Audit',
-    description: 'On-site supplier quality audit',
-    price: 3500,
-    currency: 'USD',
-  },
-  { 
-    id: 'rfq-management',
-    category: 'Supplier Services',
-    name: 'RFQ Management',
-    description: 'Full RFQ process management',
-    price: 1500,
-    currency: 'USD',
-  },
-  { 
-    id: 'production-followup',
-    category: 'Supplier Services',
-    name: 'Production Follow Up',
-    description: 'On-site production monitoring and quality control',
-    price: 2800,
-    currency: 'USD',
-  },
-  { 
-    id: 'equipment-acceptance',
-    category: 'Supplier Services',
-    name: 'Equipment Acceptance',
-    description: 'Equipment inspection, testing and acceptance verification',
-    price: 4500,
-    currency: 'USD',
-  },
-  { 
-    id: 'shipment-acceptance',
-    category: 'Supplier Services',
-    name: 'Shipment Acceptance',
-    description: 'Shipment inspection, documentation and acceptance',
-    price: 1800,
-    currency: 'USD',
-  },
-  { 
-    id: 'project-basic',
-    category: 'Project Management',
-    name: 'Project Management - Basic',
-    description: 'Basic project oversight and reporting',
-    price: 5000,
-    currency: 'USD',
-  },
-  { 
-    id: 'project-standard',
-    category: 'Project Management',
-    name: 'Project Management - Standard',
-    description: 'Standard project management with regular reporting',
-    price: 9500,
-    currency: 'USD',
-  },
-  { 
-    id: 'project-premium',
-    category: 'Project Management',
-    name: 'Project Management - Premium',
-    description: 'Full project management with dedicated team',
-    price: 15000,
-    currency: 'USD',
-  },
-  { 
-    id: 'consulting-hourly',
-    category: 'Consulting',
-    name: 'Consulting - Hourly',
-    description: 'Expert consulting per hour',
-    price: 250,
-    currency: 'USD',
-  },
-  { 
-    id: 'consulting-daily',
-    category: 'Consulting',
-    name: 'Consulting - Daily Rate',
-    description: 'Full day consulting service',
-    price: 1800,
-    currency: 'USD',
-  },
-  { 
-    id: 'subscription-monthly',
-    category: 'Subscription',
-    name: 'Platform Subscription - Monthly',
-    description: 'Full platform access per month',
-    price: 499,
-    currency: 'USD',
-  },
-  { 
-    id: 'subscription-annual',
-    category: 'Subscription',
-    name: 'Platform Subscription - Annual',
-    description: 'Full platform access per year (2 months free)',
-    price: 4990,
-    currency: 'USD',
-  },
-]
 
 // Payment methods configuration
 const PAYMENT_METHODS = [
@@ -219,6 +112,13 @@ export default function Payment() {
   const checkoutPlan = checkoutPlanId ? PLANS.find((p) => p.id === checkoutPlanId) : null
   const checkoutTxId = searchParams.get('txId') // When admin pays for an approved user request
   const [planPaymentSubmitted, setPlanPaymentSubmitted] = useState(false)
+
+  // Plan checkout only — general payments moved to Plans page
+  useEffect(() => {
+    if (!checkoutPlanId && !checkoutTxId) {
+      navigate('/plans', { replace: true })
+    }
+  }, [checkoutPlanId, checkoutTxId, navigate])
 
   // Sync subscription on mount
   useEffect(() => {

@@ -17,6 +17,14 @@ import { create } from 'zustand'
 import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, transactionsService } from '../services/supabaseService'
 
+const pushServiceNotificationBatch = (batch) => {
+  void import('./serviceRequestStore')
+    .then(({ useServiceRequestStore }) => {
+      useServiceRequestStore.getState().pushNotificationBatch(batch)
+    })
+    .catch(() => {})
+}
+
 const STORAGE_KEY = 'strefex-transactions'
 
 const loadTransactions = () => {
@@ -253,8 +261,58 @@ export const useTransactionStore = create((set, get) => ({
         : tx
     )
     persistAndSync(updated)
+    const tx = updated.find((t) => t.id === txId) || null
     set({ transactions: updated })
-    return updated.find((tx) => tx.id === txId) || null
+
+    if (tx?.type === 'service_payment') {
+      const requesterEmail = String(tx.userEmail || '').toLowerCase()
+      const assignee = String(assigneeEmail || '').toLowerCase()
+      const serviceLabel = tx.service || 'Platform service'
+      pushServiceNotificationBatch([
+        {
+          id: `SNOTIF-${Date.now()}-asg`,
+          type: 'platform_service_assigned',
+          requestId: tx.id,
+          transactionId: tx.id,
+          title: 'Platform service task assigned to you',
+          message: `Task ${tx.id} (${serviceLabel}) from ${tx.companyName || requesterEmail} has been assigned to you.`,
+          fromEmail: assignerEmail,
+          targetEmail: assignee,
+          read: false,
+          readBy: [],
+          createdAt: new Date().toISOString(),
+        },
+        ...(requesterEmail && requesterEmail !== assignee
+          ? [{
+              id: `SNOTIF-${Date.now()}-req`,
+              type: 'platform_service_assignment_updated',
+              requestId: tx.id,
+              transactionId: tx.id,
+              title: 'Your service request has been assigned',
+              message: `Request ${tx.id} is now assigned to ${assigneeName || assignee}.`,
+              fromEmail: assignerEmail,
+              targetEmail: requesterEmail,
+              read: false,
+              readBy: [],
+              createdAt: new Date().toISOString(),
+            }]
+          : []),
+        {
+          id: `SNOTIF-${Date.now()}-pipe`,
+          type: 'platform_service_pipeline_updated',
+          requestId: tx.id,
+          transactionId: tx.id,
+          title: 'Service task assigned in pipeline',
+          message: `${tx.id} assigned to ${assigneeName || assignee}.`,
+          fromEmail: assignerEmail,
+          read: false,
+          readBy: [],
+          createdAt: new Date().toISOString(),
+        },
+      ])
+    }
+
+    return tx
   },
 
   updateTaskStatus: (txId, taskStatus) => {
@@ -269,14 +327,135 @@ export const useTransactionStore = create((set, get) => ({
       tx.id === txId ? { ...tx, taskStatus, updatedAt: new Date().toISOString() } : tx
     )
     persistAndSync(updated)
+    const tx = updated.find((t) => t.id === txId) || null
     set({ transactions: updated })
-    return updated.find((tx) => tx.id === txId) || null
+
+    if (tx?.type === 'service_payment') {
+      const requesterEmail = String(tx.userEmail || '').toLowerCase()
+      const assigneeEmail = String(tx.assignedTo || '').toLowerCase()
+      const actorEmail = userId
+      const statusLabel = String(taskStatus || '').replace(/_/g, ' ')
+      const batch = []
+      if (requesterEmail) {
+        batch.push({
+          id: `SNOTIF-${Date.now()}-req-st`,
+          type: 'platform_service_status_updated',
+          requestId: tx.id,
+          transactionId: tx.id,
+          title: `Service request ${tx.id} updated`,
+          message: `Your request is now ${statusLabel}.`,
+          fromEmail: actorEmail,
+          targetEmail: requesterEmail,
+          read: false,
+          readBy: [],
+          createdAt: new Date().toISOString(),
+        })
+      }
+      if (assigneeEmail && assigneeEmail !== requesterEmail) {
+        batch.push({
+          id: `SNOTIF-${Date.now()}-asg-st`,
+          type: 'platform_service_status_updated_assignee',
+          requestId: tx.id,
+          transactionId: tx.id,
+          title: `Assigned task ${tx.id} updated`,
+          message: `Task status is now ${statusLabel}.`,
+          fromEmail: actorEmail,
+          targetEmail: assigneeEmail,
+          read: false,
+          readBy: [],
+          createdAt: new Date().toISOString(),
+        })
+      }
+      batch.push({
+        id: `SNOTIF-${Date.now()}-pipe-st`,
+        type: 'platform_service_pipeline_updated',
+        requestId: tx.id,
+        transactionId: tx.id,
+        title: 'Service pipeline status updated',
+        message: `${tx.id} → ${statusLabel}.`,
+        fromEmail: actorEmail,
+        read: false,
+        readBy: [],
+        createdAt: new Date().toISOString(),
+      })
+      pushServiceNotificationBatch(batch)
+    }
+
+    return tx
   },
 
   getUnassignedServiceTasks: () =>
     get().transactions.filter(
       (tx) => tx.type === 'service_payment' && (!tx.taskStatus || tx.taskStatus === 'unassigned')
     ),
+
+  /**
+   * Submit a platform service quote request from Plans page.
+   * Creates an unassigned service_payment task and notifies requester + superadmin pipeline.
+   */
+  submitPlatformServiceRequest: ({
+    services = [],
+    userEmail,
+    companyName,
+    contactName,
+    accountType,
+  }) => {
+    const names = services.map((s) => s.name)
+    const total = services.reduce((sum, s) => sum + (Number(s.price) || 0), 0)
+    const tx = get().addTransaction({
+      type: 'service_payment',
+      service: names.join('; '),
+      amount: total,
+      method: 'quote_request',
+      status: 'requested',
+      userEmail: userEmail || 'unknown',
+      companyName: companyName || '',
+      contactName: contactName || '',
+      accountType: accountType || 'seller',
+      serviceItems: services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        price: s.price,
+      })),
+      requestSource: 'plans-platform-services',
+      requestedBy: userEmail,
+    })
+
+    const serviceSummary = names.join(', ')
+    pushServiceNotificationBatch([
+      {
+        id: `SNOTIF-${Date.now()}-adm`,
+        type: 'new_platform_service_request',
+        requestId: tx.id,
+        transactionId: tx.id,
+        title: `Platform service request from ${companyName || contactName || userEmail}`,
+        message: `${services.length} service(s): ${serviceSummary}. Awaiting superadmin assignment.`,
+        fromEmail: userEmail,
+        fromName: contactName,
+        fromCompany: companyName,
+        priority: 'Normal',
+        read: false,
+        readBy: [],
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: `SNOTIF-${Date.now()}-req`,
+        type: 'platform_service_submitted',
+        requestId: tx.id,
+        transactionId: tx.id,
+        title: 'Your service request has been submitted',
+        message: `Request ${tx.id} for ${serviceSummary} was sent to STREFEX and is awaiting assignment.`,
+        fromEmail: userEmail,
+        targetEmail: String(userEmail || '').toLowerCase(),
+        read: false,
+        readBy: [],
+        createdAt: new Date().toISOString(),
+      },
+    ])
+
+    return tx
+  },
 
   getAssignedTasks: (email) =>
     get().transactions.filter(

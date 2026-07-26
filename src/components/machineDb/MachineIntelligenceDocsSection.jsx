@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { METAL_MACHINE_CATALOGUES } from '../../data/machineDbCatalogs'
-import MachineDbHubCard from './MachineDbHubCard'
+import { MACHINE_DB_CATALOG_META } from '../../data/machineDbCatalogMeta'
+import IntelligenceDbHubCard from './IntelligenceDbHubCard'
 
 /** Superadmin-only machine intelligence catalogues inside Profile → Documentation. */
 export default function MachineIntelligenceDocsSection() {
@@ -12,12 +12,12 @@ export default function MachineIntelligenceDocsSection() {
       <div className="prof-mdb-section-head">
         <h4 className="prof-mdb-section-title">Machine Intelligence Databases</h4>
         <p className="prof-mdb-section-sub">
-          STREFEX reference catalogues — suppliers, models, compare and benchmark tools for EDM, CNC turning, automation and injection molding.
+          STREFEX reference catalogues — cutting tools, EDM, CNC turning, automation and injection molding suppliers, models, compare and benchmark tools.
         </p>
       </div>
       <div className="prof-docs-grid">
-        {METAL_MACHINE_CATALOGUES.map((cat) => (
-          <MachineDbHubCard
+        {MACHINE_DB_CATALOG_META.map((cat) => (
+          <IntelligenceDbHubCard
             key={cat.id}
             catalog={cat}
             onOpen={() => openCatalogue(cat.routeSlug)}

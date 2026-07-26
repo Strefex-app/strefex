@@ -239,6 +239,64 @@
   color: var(--color-muted);
 }
 
+.login-demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-demo-unlock {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.login-demo-unlock__label {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.login-demo-unlock__row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.login-demo-unlock__input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: var(--text-small);
+  background: var(--bg-card);
+  color: var(--color-primary);
+}
+
+.login-demo-unlock__input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.login-superadmin-btn--outline {
+  color: var(--color-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.login-superadmin-btn--outline:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.06);
+  border-color: var(--accent);
+  color: var(--color-primary);
+}
+
 /* ── 2FA Verification Modal ──────────────────────────────── */
 
 .login-2fa-overlay {

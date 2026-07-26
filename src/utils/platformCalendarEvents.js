@@ -119,7 +119,7 @@ export function collectPlatformCalendarEvents({
         title: r.title || 'RFQ',
         detail: 'Sent RFQ deadline',
         color: '#2e7d32',
-        href: '/buyer-dashboard',
+        href: '/dashboard/buyer?tab=track',
       })
     }
   })

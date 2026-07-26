@@ -351,6 +351,10 @@
   font-weight: var(--font-medium, 500);
   color: var(--color-primary);
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .prof-mdb-hub-sub {
@@ -358,6 +362,10 @@
   font-size: var(--text-caption, 12px);
   color: var(--color-secondary);
   line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .prof-mdb-hub-meta {
@@ -538,6 +546,63 @@
 /* ── Contact List Widget ─────────────────────── */
 .prof-contacts-card {
   margin-bottom: 20px;
+}
+
+.prof-platform-registries {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(142, 68, 173, 0.22);
+  background: rgba(142, 68, 173, 0.05);
+}
+
+.prof-platform-registries__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.prof-platform-registries__title {
+  margin: 0 0 4px;
+  font-size: var(--text-subheading);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.prof-platform-registries__hint {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--color-secondary);
+  line-height: var(--leading-snug);
+}
+
+.prof-platform-registries__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prof-platform-registries__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--color-primary);
+  font-size: var(--text-small);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.prof-platform-registries__link:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
 }
 
 .prof-contacts-header {

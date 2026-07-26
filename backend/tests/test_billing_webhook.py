@@ -33,8 +33,11 @@ def stripe_webhook_ready(monkeypatch):
     return billing_mod
 
 
-def _webhook_payload(event_type: str, obj: dict) -> dict:
-    return {"type": event_type, "data": {"object": obj}}
+def _webhook_payload(event_type: str, obj: dict, event_id: str | None = None) -> dict:
+    payload = {"type": event_type, "data": {"object": obj}}
+    if event_id:
+        payload["id"] = event_id
+    return payload
 
 
 @pytest.mark.asyncio
@@ -49,6 +52,7 @@ async def test_webhook_checkout_completed_upgrades_plan(
     event = _webhook_payload(
         "checkout.session.completed",
         {"metadata": {"tenant_id": tenant_id, "plan_id": "premium"}},
+        event_id="evt_test_checkout_1",
     )
     resp = await client.post(
         "/api/v1/billing/webhook",
@@ -136,6 +140,31 @@ async def test_webhook_payment_failed_marks_past_due(
         headers=bearer(reg["access_token"]),
     )
     assert sub_resp.json()["status"] == "past_due"
+
+
+@pytest.mark.asyncio
+async def test_webhook_duplicate_event_is_idempotent(
+    client: AsyncClient,
+    stripe_webhook_ready,
+):
+    """Same Stripe event id delivered twice processes only once."""
+    reg = await register_company_user(client, company_name=f"Dup Co {uuid.uuid4().hex[:6]}")
+    tenant_id = reg["tenant"]["id"]
+    event = _webhook_payload(
+        "checkout.session.completed",
+        {"metadata": {"tenant_id": tenant_id, "plan_id": "basic"}},
+        event_id="evt_test_dup_1",
+    )
+    body = json.dumps(event).encode()
+    headers = {"stripe-signature": "test_sig"}
+
+    first = await client.post("/api/v1/billing/webhook", content=body, headers=headers)
+    second = await client.post("/api/v1/billing/webhook", content=body, headers=headers)
+
+    assert first.status_code == 200
+    assert first.json() == {"status": "ok"}
+    assert second.status_code == 200
+    assert second.json() == {"status": "duplicate"}
 
 
 @pytest.mark.asyncio

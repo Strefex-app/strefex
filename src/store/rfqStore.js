@@ -84,6 +84,8 @@ const toDbRfqPayload = (rfq) => ({
 
 const persistRfqsToDatabase = async (rfqs) => {
   if (!isSupabaseConfigured) return
+  const { isDemoModeActive } = await import('../config/demoAccount')
+  if (isDemoModeActive()) return
   const companyId = getAuthCompanyId()
   if (!companyId) return
   const rows = Array.isArray(rfqs) ? rfqs : []

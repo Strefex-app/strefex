@@ -212,7 +212,7 @@ const GRANTABLE_FEATURES = [
   { key: 'messenger',             label: 'Messenger',              tier: 3, tierLabel: 'Premium' },
   { key: 'profileContacts',       label: 'Profile Contacts',       tier: 3, tierLabel: 'Premium' },
   // Enterprise-tier features (grantable to lower-plan accounts)
-  { key: 'enterpriseManagement',  label: 'Enterprise Management',  tier: 4, tierLabel: 'Enterprise' },
+  { key: 'enterpriseManagement',  label: 'Multi-Site Management',  tier: 4, tierLabel: 'Enterprise' },
   { key: 'auditProProgram',         label: 'Audit Program (Management hub)', tier: 4, tierLabel: 'Enterprise' },
   { key: 'fullCompanyVisibility', label: 'Full Company Visibility', tier: 4, tierLabel: 'Enterprise' },
   { key: 'procurement',           label: 'Procurement',            tier: 4, tierLabel: 'Enterprise' },
@@ -222,7 +222,7 @@ const GRANTABLE_FEATURES = [
   { key: 'aiInsights',            label: 'AI Insights',            tier: 4, tierLabel: 'Enterprise' },
   { key: 'erpIntegrations',       label: 'ERP Integrations',       tier: 4, tierLabel: 'Enterprise' },
   { key: 'templateLibrary',       label: 'Template Library',       tier: 4, tierLabel: 'Enterprise' },
-  { key: 'auditLogs',             label: 'System Audit Logs',      tier: 4, tierLabel: 'Enterprise' },
+  { key: 'auditLogs',             label: 'System Activity Log',    tier: 4, tierLabel: 'Enterprise' },
 ]
 
 /* Period options for feature grants */

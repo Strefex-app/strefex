@@ -11,6 +11,7 @@
 import { create } from 'zustand'
 import { useAccountRegistry } from './accountRegistry'
 import { tenantKey } from '../utils/tenantStorage'
+import { isDemoModeActive } from '../config/demoAccount'
 import { isSupabaseConfigured, profilesService, companiesService } from '../services/supabaseService'
 
 const IND_BASE = 'strefex-selected-industries'
@@ -64,6 +65,7 @@ const save = (baseKey, value) => {
 
 /** Persist selected industries/categories to Supabase profile/company metadata (best-effort). */
 const syncToSupabase = async (industries, categories) => {
+  if (isDemoModeActive()) return
   if (!isSupabaseConfigured) return
   try {
     const profile = await profilesService.getMyProfile()
@@ -182,6 +184,7 @@ export const useIndustryStore = create((set, get) => ({
    * Called after login/session restore to keep cross-device state consistent.
    */
   hydrateFromDatabase: async () => {
+    if (isDemoModeActive()) return
     if (!isSupabaseConfigured) return
     try {
       const profile = await profilesService.getMyProfile()

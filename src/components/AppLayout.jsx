@@ -9,6 +9,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
 import Icon from './Icon'
 import GlobalPageBreadcrumb from './shared/GlobalPageBreadcrumb'
+import DemoModeBanner from './DemoModeBanner'
 import './AppLayout.css'
 
 /*
@@ -26,17 +27,15 @@ const SIDEBAR_NAV = [
   { id: 'calendar', tKey: 'nav.calendar', path: '/calendar', icon: 'calendar' },
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
-  /* Hubs: Buyers, Partners (seller + SP), Admin */
+  /* Hubs: Buyers, Manufacturers (seller + SP), Admin */
   { id: 'procurement-hub', label: 'Buyers', path: '/hub/procurement', icon: 'package' },
-  { id: 'partner-hub', label: 'Partners', path: '/hub/partner', icon: 'vendors', supplierSide: true },
+  { id: 'partner-hub', label: 'Manufacturers', path: '/hub/partner', icon: 'vendors', supplierSide: true },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
   { id: 'notifications', tKey: 'nav.notifications', path: '/notifications', icon: 'notifications' },
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },
-  { id: 'ai-insights', label: 'AI Insights', path: '/ai-insights', icon: 'ai', requiredPlan: 'aiInsights', minRole: 'manager' },
-  { id: 'templates', label: 'Templates', path: '/templates', icon: 'templates', requiredPlan: 'templateLibrary' },
+  { id: 'ai-insights', label: 'AI Insights', path: '/management/platform/ai-insights', icon: 'ai', requiredPlan: 'aiInsights', minRole: 'manager' },
   { id: 'governance-hub', label: 'Admin', path: '/hub/governance', icon: 'shield', minRole: 'admin' },
-  { id: 'payment', tKey: 'nav.payment', path: '/payment', icon: 'card' },
   { id: 'plans', tKey: 'nav.plans', path: '/plans', icon: 'plan' },
   { id: 'settings', tKey: 'nav.settings', path: '/settings', icon: 'settings' },
 ]
@@ -48,6 +47,8 @@ export default function AppLayout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
   const logout = useAuthStore((state) => state.logout)
+  const sessionMode = useAuthStore((state) => state.sessionMode)
+  const isDemoSession = sessionMode === 'demo'
   const role = useAuthStore((state) => state.role)
   const hasRole = useAuthStore((state) => state.hasRole)
   const user = useAuthStore((state) => state.user)
@@ -191,8 +192,10 @@ export default function AppLayout({ children }) {
                   location.pathname.startsWith('/cost-management') ||
                   location.pathname.startsWith('/enterprise')
                 )) ||
-                (item.id === 'templates' && location.pathname.startsWith('/templates')) ||
-                (item.id === 'ai-insights' && location.pathname.startsWith('/ai-insights')) ||
+                (item.id === 'ai-insights' && (
+                  location.pathname.startsWith('/management/platform/ai-insights') ||
+                  location.pathname.startsWith('/ai-insights')
+                )) ||
                 (item.id === 'calendar' && location.pathname === '/calendar')
               return (
                 <button
@@ -277,7 +280,8 @@ export default function AppLayout({ children }) {
       </aside>
       <main className="app-main">
         {/* Preview session countdown banner */}
-        {previewTimeLeft !== null && previewTimeLeft > 0 && (
+        {isDemoSession && <DemoModeBanner onExit={handleLogout} />}
+        {previewTimeLeft !== null && previewTimeLeft > 0 && !isDemoSession && (
           <div className={`preview-timer-banner ${previewTimeLeft <= 60 ? 'preview-timer-urgent' : ''}`}>
             <Icon name="clock" size={16} />
             <span>

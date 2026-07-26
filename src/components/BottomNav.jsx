@@ -32,7 +32,7 @@ const BottomNav = () => {
       core.push({ id: 'buyer-ws', label: 'Buyers', icon: 'package', path: '/hub/procurement' })
     }
     if (showSupplierWs) {
-      core.push({ id: 'supplier-ws', label: 'Partners', icon: 'vendors', path: '/hub/partner' })
+      core.push({ id: 'supplier-ws', label: 'Manufacturers', icon: 'vendors', path: '/hub/partner' })
     }
     core.push(
       { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },

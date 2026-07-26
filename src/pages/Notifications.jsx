@@ -648,7 +648,7 @@ export default function Notifications() {
               <span className="notif-badge">{unassignedTasks.length} pending</span>
             </h3>
             <p className="notif-section-sub">
-              Clients have paid for these services. Assign each task to a STREFEX team member to fulfil the request.
+              Platform service and paid service tasks awaiting assignment. Assign each task to a STREFEX team member.
             </p>
             <div className="notif-task-list">
               {unassignedTasks.map((tx) => (
@@ -665,7 +665,9 @@ export default function Notifications() {
                     <span className="notif-dot">·</span>
                     <span>{tx.date ? new Date(tx.date).toLocaleDateString() : ''}</span>
                     <span className="notif-dot">·</span>
-                    <span className={`notif-task-pay-status ${tx.status}`}>{tx.status === 'paid' ? 'Paid' : tx.status === 'pending' ? 'Payment Pending' : tx.status}</span>
+                    <span className={`notif-task-pay-status ${tx.status}`}>
+                      {tx.status === 'paid' ? 'Paid' : tx.status === 'requested' ? 'Quote requested' : tx.status === 'pending' ? 'Payment pending' : tx.status || '—'}
+                    </span>
                   </div>
 
                   {assigningTxId === tx.id ? (

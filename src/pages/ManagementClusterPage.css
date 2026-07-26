@@ -1,0 +1,70 @@
+.mgmt-cluster-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mgmt-cluster-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.mgmt-cluster-hero__main {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.mgmt-cluster-hero__icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.mgmt-cluster-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mgmt-cluster-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  min-width: 0;
+}
+
+.mgmt-cluster-stat__value {
+  display: block;
+  font-size: var(--text-section);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.mgmt-cluster-stat__label {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-caption);
+  color: var(--color-secondary);
+}
+
+.mgmt-cluster-module-count {
+  margin-left: 8px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-regular);
+  color: var(--color-secondary);
+}
+
+@media (max-width: 640px) {
+  .mgmt-cluster-stats {
+    grid-template-columns: 1fr;
+  }
+}
