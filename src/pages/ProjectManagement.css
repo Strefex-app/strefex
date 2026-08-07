@@ -1184,6 +1184,36 @@
 }
 .pm-portfolio-report { margin-bottom: 20px; }
 
+.pm-portfolio-at-risk {
+  margin-top: 12px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.pm-portfolio-exec-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  margin-top: 12px;
+  align-items: start;
+}
+
+.pm-portfolio-exec-col {
+  margin-top: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+  min-width: 0;
+}
+
+.pm-portfolio-exec-body {
+  font-size: var(--text-small, 13px);
+  line-height: 1.45;
+}
+
+.pm-portfolio-register {
+  margin-bottom: 20px;
+}
+
 /* Match HR hub cards (.headcount-card): soft lift + hairline border */
 .pm-portfolio-shell .app-page-card.pm-portfolio-report {
   border: 1px solid var(--border-light);
@@ -1272,19 +1302,141 @@
 }
 
 .pm-portfolio-pulse-heading {
-  margin-top: 20px;
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+.pm-portfolio-report.pm-pdf-capture {
+  overflow: visible;
+  padding: 12px 14px;
+  background: #fff;
+  box-sizing: border-box;
+  color: #1a1a2e;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-pdf-exclude {
+  display: none !important;
+}
+
+.pm-portfolio-report.pm-pdf-capture .app-page-title {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-report-meta {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-narrative-details {
+  margin-top: 10px;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-narrative-summary {
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-narrative-summary::after {
+  display: none;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-narrative {
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 0 10px 10px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .app-page-section-label,
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-pulse-heading {
+  font-size: 10px;
+  margin-top: 10px;
   margin-bottom: 2px;
 }
 
-.pm-portfolio-shell.pm-pdf-capture {
-  overflow: visible;
-  padding: 16px;
-  background: #fff;
-  box-sizing: border-box;
+.pm-portfolio-report.pm-pdf-capture .pm-metric-tile {
+  min-height: 0;
+  padding: 6px 4px;
+  border-radius: 8px;
+  box-shadow: none;
+  gap: 2px;
 }
 
-.pm-portfolio-shell.pm-pdf-capture .app-page-card {
-  break-inside: avoid;
+.pm-portfolio-report.pm-pdf-capture .pm-metric-tile-value {
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-metric-tile-label {
+  font-size: 8px;
+  letter-spacing: 0.03em;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-bullet-list,
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-benefit-list {
+  font-size: 10px;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-benefit-list li {
+  padding: 4px 0;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-benefit-name {
+  font-size: 8px;
+  margin-bottom: 2px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-benefit-text {
+  font-size: 10px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .app-page-section-value {
+  font-size: 10px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-at-risk {
+  margin-top: 8px;
+}
+
+.pm-portfolio-report.pm-pdf-capture .pm-portfolio-exec-columns {
+  margin-top: 8px;
+  gap: 12px;
+}
+
+/* Portrait PDF — stacked KPI grid (4 columns) */
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--portrait .pm-portfolio-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--portrait .pm-metric-tile-value {
+  font-size: 14px;
+}
+
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--portrait .pm-portfolio-exec-columns {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* Landscape PDF — wide KPI row (6 columns) + side-by-side detail */
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--landscape .pm-portfolio-kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--landscape .pm-metric-tile-value {
+  font-size: 16px;
+}
+
+.pm-portfolio-report.pm-pdf-capture.pm-pdf-capture--landscape .pm-portfolio-exec-columns {
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
 .pm-pdf-rag-snapshot {
@@ -1358,9 +1510,9 @@
 .pm-portfolio-kpi-grid,
 .pm-metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
-  gap: 12px;
-  margin-top: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .pm-metric-tile,
@@ -1369,16 +1521,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 96px;
+  gap: 3px;
+  min-height: 76px;
   box-sizing: border-box;
   background: var(--bg-card, var(--bg-card));
   border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 16px 12px;
+  border-radius: 10px;
+  padding: 12px 8px;
   text-align: center;
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.15s;
+  min-width: 0;
 }
 .pm-metric-tile:hover,
 .pm-portfolio-stat:hover {
@@ -1387,20 +1540,23 @@
 
 .pm-metric-tile-value,
 .pm-portfolio-stat-val {
-  font-size: 28px;
+  font-size: var(--text-heading, 22px);
   font-weight: var(--font-semibold);
   color: var(--color-primary, #1a1a2e);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 .pm-metric-tile-label,
 .pm-portfolio-stat-label {
-  font-size: 12px;
+  font-size: var(--text-caption, 11px);
   font-weight: 600;
   color: var(--color-secondary, #666);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 0;
+  line-height: 1.25;
 }
 
 .pm-metric-tile--green .pm-metric-tile-value,
@@ -1559,6 +1715,9 @@
   .gc-ws-rag-select { max-width: 64px; font-size: 9px; }
   .pm-portfolio-kpi-grid,
   .pm-metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pm-portfolio-exec-columns {
+    grid-template-columns: 1fr;
   }
 }

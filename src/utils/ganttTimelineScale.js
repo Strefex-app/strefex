@@ -49,7 +49,7 @@ function getISOWeekInfo(d) {
 }
 
 function formatISOWeekLabel(week) {
-  return `W${String(week).padStart(2, '0')}`
+  return `CW${String(week).padStart(2, '0')}`
 }
 
 function startOfMonth(d) {
@@ -233,8 +233,9 @@ export function buildHeaderGroups(scaleId, gridCols, minMs, pxPerDay) {
     let cur = null
     gridCols.forEach((c) => {
       const yearKey = String(c.isoYear ?? parseDate(c.key.replace('w-', '')).getFullYear())
+      const groupLabel = `${yearKey} · CW`
       if (yearKey !== cur) {
-        groups.push({ label: yearKey, width: c.width, key: yearKey })
+        groups.push({ label: groupLabel, width: c.width, key: yearKey })
         cur = yearKey
       } else {
         groups[groups.length - 1].width += c.width

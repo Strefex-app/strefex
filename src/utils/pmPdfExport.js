@@ -290,3 +290,83 @@ export async function exportHtmlToStrefexPdfPaged(element, opts) {
 
   pdf.save(opts.filename || 'report.pdf')
 }
+
+/**
+ * Single-page STREFEX PDF — scales captured content to fit one A4 page (portrait or landscape).
+ * Intended for compact executive summaries with orientation-specific CSS layout.
+ */
+export async function exportHtmlToStrefexPdfOnePage(element, opts) {
+  if (!element) throw new Error('Nothing to export')
+
+  const orientation = opts.orientation === 'l' ? 'l' : 'p'
+  const html2canvas = (await import('html2canvas')).default
+  const { default: jsPDF } = await import('jspdf')
+
+  const hidden = []
+  element.querySelectorAll('.ah-pdf-exclude, .pm-pdf-exclude').forEach((n) => {
+    hidden.push({ n, v: n.style.visibility })
+    n.style.visibility = 'hidden'
+  })
+
+  const layoutBackup = {
+    width: element.style.width,
+    maxWidth: element.style.maxWidth,
+    margin: element.style.margin,
+  }
+  const captureW = opts.captureWidthPx
+    ?? (orientation === 'l' ? PM_PDF_CAPTURE_WIDTH.landscape : PM_PDF_CAPTURE_WIDTH.portrait)
+
+  element.style.width = `${captureW}px`
+  element.style.maxWidth = `${captureW}px`
+  element.style.margin = '0 auto'
+  element.classList.add('pm-pdf-capture')
+  element.classList.remove('pm-pdf-capture--portrait', 'pm-pdf-capture--landscape')
+  element.classList.add(orientation === 'l' ? 'pm-pdf-capture--landscape' : 'pm-pdf-capture--portrait')
+
+  if (opts.beforeCapture) {
+    await opts.beforeCapture(element)
+  }
+
+  await new Promise((r) => setTimeout(r, 120))
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
+    x: 0,
+    y: 0,
+  })
+
+  element.classList.remove('pm-pdf-capture', 'pm-pdf-capture--portrait', 'pm-pdf-capture--landscape')
+  element.style.width = layoutBackup.width
+  element.style.maxWidth = layoutBackup.maxWidth
+  element.style.margin = layoutBackup.margin
+
+  hidden.forEach(({ n, v }) => {
+    n.style.visibility = v
+  })
+
+  if (opts.afterCapture) {
+    opts.afterCapture(element)
+  }
+
+  const logo = await loadStrefexLogoForPdf()
+  const pdf = new jsPDF(orientation, 'mm', 'a4')
+  const wMm = pdf.internal.pageSize.getWidth()
+  const pageHMm = pdf.internal.pageSize.getHeight()
+
+  const headerH = drawPmPdfHeader(pdf, wMm, opts.title, logo)
+  const subH = drawPmPdfSubtitleBar(pdf, wMm, headerH, opts.subtitle || '')
+  const contentTop = headerH + subH + SUBTITLE_CLEARANCE_MM
+
+  addPmPdfCanvasFit(pdf, canvas, wMm, pageHMm, contentTop)
+  drawPmPdfFooter(pdf, wMm, pageHMm, 'Page 1 of 1', opts.printedBy || 'Unknown')
+
+  pdf.save(opts.filename || 'report.pdf')
+}

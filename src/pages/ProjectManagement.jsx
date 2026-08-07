@@ -60,7 +60,7 @@ import {
   drawPmPdfSubtitleBar,
   addPmPdfCanvasFit,
   drawPmPdfFooter,
-  exportHtmlToStrefexPdfPaged,
+  exportHtmlToStrefexPdfOnePage,
   PM_PDF_CAPTURE_WIDTH,
 } from '../utils/pmPdfExport'
 import {
@@ -91,6 +91,7 @@ const ProjectManagement = () => {
   const timelineRef = useRef(null)
   const dragRef = useRef(null)
   const portfolioExportRef = useRef(null)
+  const portfolioSummaryExportRef = useRef(null)
   const tableExportRef = useRef(null)
   const storeProjects = useProjectStore((s) => s.projects)
   const _addProject = useProjectStore((s) => s.addProject)
@@ -608,7 +609,7 @@ const ProjectManagement = () => {
     setPmExportFeedback('')
     setPortfolioPdfExporting(true)
     const printedBy = currentUser?.name || currentUser?.companyName || currentUser?.email || 'Unknown'
-    const el = portfolioExportRef.current
+    const el = portfolioSummaryExportRef.current
     if (!el) {
       setPmExportFeedback('Nothing to export.')
       setPortfolioPdfExporting(false)
@@ -616,13 +617,12 @@ const ProjectManagement = () => {
       return
     }
 
-    const ragSnapshots = []
     let narrativeWasOpen = false
     let narrativeEl = null
 
     try {
       const s = portfolioExecutiveSummary
-      await exportHtmlToStrefexPdfPaged(el, {
+      await exportHtmlToStrefexPdfOnePage(el, {
         orientation,
         captureWidthPx: orientation === 'l'
           ? PM_PDF_CAPTURE_WIDTH.landscape
@@ -635,21 +635,8 @@ const ProjectManagement = () => {
           narrativeEl = root.querySelector('details.pm-portfolio-narrative-details')
           narrativeWasOpen = narrativeEl ? narrativeEl.open : false
           if (narrativeEl) narrativeEl.open = true
-          root.querySelectorAll('.pm-portfolio-table-rag').forEach((select) => {
-            const opt = select.options[select.selectedIndex]
-            const span = document.createElement('span')
-            span.className = 'pm-pdf-rag-snapshot'
-            span.textContent = opt?.text || 'On track'
-            ragSnapshots.push({ select, span })
-            select.style.display = 'none'
-            select.parentNode?.insertBefore(span, select)
-          })
         },
         afterCapture: () => {
-          ragSnapshots.forEach(({ select, span }) => {
-            select.style.display = ''
-            span.remove()
-          })
           if (narrativeEl && !narrativeWasOpen) narrativeEl.open = false
         },
       })
@@ -997,7 +984,7 @@ const ProjectManagement = () => {
           <main className={`gc-main${view === 'portfolio' ? ' gc-main--portfolio' : ''}`}>
             {view === 'portfolio' && (
               <div ref={portfolioExportRef} className="pm-portfolio-shell app-page">
-                <div className="app-page-card pm-portfolio-report">
+                <div ref={portfolioSummaryExportRef} className="app-page-card pm-portfolio-report">
                   <div className="pm-portfolio-report-header">
                     <div className="pm-portfolio-report-intro">
                       <h2 className="app-page-title">Portfolio executive summary</h2>
@@ -1075,50 +1062,52 @@ const ProjectManagement = () => {
                   </div>
 
                   {portfolioExecutiveSummary.atRiskNames.length > 0 && (
-                    <div className="app-page-section" style={{ marginTop: 8 }}>
+                    <div className="app-page-section pm-portfolio-at-risk">
                       <div className="app-page-section-label">Projects at risk (RAG red)</div>
                       <p className="app-page-section-value">{portfolioExecutiveSummary.atRiskNames.join(' · ')}</p>
                     </div>
                   )}
 
-                  <div className="app-page-section" style={{ marginTop: 8 }}>
-                    <div className="app-page-section-label">Risk &amp; escalation highlights</div>
-                    {portfolioExecutiveSummary.riskHotList.length === 0 ? (
-                      <p className="app-page-body">No high-severity or escalated open risks logged.</p>
-                    ) : (
-                      <ul className="pm-portfolio-bullet-list">
-                        {portfolioExecutiveSummary.riskHotList.map((r, idx) => (
-                          <li key={`${r.project}-${idx}`}>
-                            <strong>{r.project}</strong> — {r.title}
-                            <span className="pm-portfolio-meta">
-                              {' '}
-                              ({r.severity}
-                              {r.escalated ? ', escalated' : ''})
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                  <div className="pm-portfolio-exec-columns">
+                    <div className="app-page-section pm-portfolio-exec-col">
+                      <div className="app-page-section-label">Risk &amp; escalation highlights</div>
+                      {portfolioExecutiveSummary.riskHotList.length === 0 ? (
+                        <p className="app-page-body pm-portfolio-exec-body">No high-severity or escalated open risks logged.</p>
+                      ) : (
+                        <ul className="pm-portfolio-bullet-list">
+                          {portfolioExecutiveSummary.riskHotList.map((r, idx) => (
+                            <li key={`${r.project}-${idx}`}>
+                              <strong>{r.project}</strong> — {r.title}
+                              <span className="pm-portfolio-meta">
+                                {' '}
+                                ({r.severity}
+                                {r.escalated ? ', escalated' : ''})
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
 
-                  <div className="app-page-section" style={{ marginTop: 8, borderBottom: 'none', paddingBottom: 0 }}>
-                    <div className="app-page-section-label">Strategic benefits (per project)</div>
-                    {portfolioExecutiveSummary.benefitLines.length === 0 ? (
-                      <p className="app-page-body">Add narrative under KPIs &amp; benefits for each project to surface outcomes here.</p>
-                    ) : (
-                      <ul className="pm-portfolio-benefit-list">
-                        {portfolioExecutiveSummary.benefitLines.map((b) => (
-                          <li key={b.name}>
-                            <span className="pm-portfolio-benefit-name">{b.name}</span>
-                            <span className="pm-portfolio-benefit-text">{b.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <div className="app-page-section pm-portfolio-exec-col pm-portfolio-exec-col--benefits">
+                      <div className="app-page-section-label">Strategic benefits (per project)</div>
+                      {portfolioExecutiveSummary.benefitLines.length === 0 ? (
+                        <p className="app-page-body pm-portfolio-exec-body">Add narrative under KPIs &amp; benefits for each project to surface outcomes here.</p>
+                      ) : (
+                        <ul className="pm-portfolio-benefit-list">
+                          {portfolioExecutiveSummary.benefitLines.map((b) => (
+                            <li key={b.name}>
+                              <span className="pm-portfolio-benefit-name">{b.name}</span>
+                              <span className="pm-portfolio-benefit-text">{b.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="app-page-card">
+                <div className="app-page-card pm-portfolio-register">
                   <h3 className="app-page-section-heading">Project register</h3>
                   <p className="app-page-subtitle" style={{ marginTop: -4 }}>
                     Traffic-light status, tags, delivery, finance, risks, and KPI snapshot. Use actions to open the Gantt for detail scheduling.
@@ -1611,7 +1600,7 @@ const ProjectManagement = () => {
             <div className="pm-modal pm-modal--platform pm-portfolio-pdf-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pm-portfolio-pdf-title">
               <h3 id="pm-portfolio-pdf-title">Save portfolio report as PDF</h3>
               <p className="app-page-body pm-portfolio-pdf-modal-lead">
-                Choose page orientation. The report spans multiple pages at full width — nothing is shrunk to fit one page.
+                Choose page orientation for a one-page executive summary. Layout and indicator sizing adjust automatically to fit a single A4 page.
               </p>
               <fieldset className="pm-portfolio-pdf-orientation">
                 <legend className="pm-portfolio-pdf-orientation-legend">Page layout</legend>
@@ -1625,7 +1614,7 @@ const ProjectManagement = () => {
                     disabled={portfolioPdfExporting}
                   />
                   <span className="pm-portfolio-pdf-option-title">Portrait (vertical)</span>
-                  <span className="pm-portfolio-pdf-option-desc">Best for executive summary and narrative sections.</span>
+                  <span className="pm-portfolio-pdf-option-desc">Compact KPI grid and stacked narrative — best for board packs.</span>
                 </label>
                 <label className={`pm-portfolio-pdf-option${portfolioPdfOrientation === 'l' ? ' pm-portfolio-pdf-option--active' : ''}`}>
                   <input
@@ -1637,7 +1626,7 @@ const ProjectManagement = () => {
                     disabled={portfolioPdfExporting}
                   />
                   <span className="pm-portfolio-pdf-option-title">Landscape (horizontal)</span>
-                  <span className="pm-portfolio-pdf-option-desc">Best for the project register table with many columns.</span>
+                  <span className="pm-portfolio-pdf-option-desc">Wide KPI row and two-column risks/benefits — best for executive briefings.</span>
                 </label>
               </fieldset>
               <div className="pm-modal-buttons pm-modal-buttons--platform">
