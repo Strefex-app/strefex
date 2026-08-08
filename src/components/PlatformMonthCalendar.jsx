@@ -99,14 +99,28 @@ export default function PlatformMonthCalendar({
                 >
                   <span className="platform-cal__daynum">{day}</span>
                   {list.length > 0 && (
-                    <span className="platform-cal__dots" aria-hidden>
-                      {list.slice(0, 4).map((ev) => (
-                        <span
-                          key={ev.id}
-                          className="platform-cal__dot"
-                          style={{ background: ev.color || 'var(--color-primary)' }}
-                        />
+                    <span className="platform-cal__events" aria-hidden={compact}>
+                      {(compact ? list.slice(0, 4) : list.slice(0, 3)).map((ev) => (
+                        compact ? (
+                          <span
+                            key={ev.id}
+                            className="platform-cal__dot"
+                            style={{ background: ev.color || 'var(--color-primary)' }}
+                          />
+                        ) : (
+                          <span
+                            key={ev.id}
+                            className="platform-cal__chip"
+                            style={{ background: ev.color || 'var(--color-primary)' }}
+                            title={ev.title}
+                          >
+                            {ev.title}
+                          </span>
+                        )
                       ))}
+                      {!compact && list.length > 3 ? (
+                        <span className="platform-cal__more">+{list.length - 3} more</span>
+                      ) : null}
                     </span>
                   )}
                 </button>

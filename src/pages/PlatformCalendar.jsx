@@ -2,10 +2,32 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import PlatformYearCalendar from '../components/PlatformYearCalendar'
+import PlatformMonthCalendar from '../components/PlatformMonthCalendar'
+import PlatformWeekCalendar from '../components/PlatformWeekCalendar'
+import PlatformDayView from '../components/PlatformDayView'
 import { usePlatformCalendarYearEvents } from '../hooks/usePlatformCalendarEvents'
 import { useMyCalendarStore } from '../store/myCalendarStore'
 import { isPersonalCalendarEvent, normalizeDateStr } from '../utils/platformCalendarEvents'
+import {
+  isoTodayLocal,
+  addDaysIso,
+  addMonthsIso,
+  isoYear,
+  isoMonth0,
+  formatDayLong,
+  formatMonthYear,
+  formatWeekRange,
+  formatShortDate,
+  weekDateKeys,
+} from '../utils/calendarViewUtils'
 import './PlatformCalendar.css'
+
+const VIEW_MODES = [
+  { id: 'month', label: 'Month' },
+  { id: 'week', label: 'Week' },
+  { id: 'day', label: 'Day' },
+  { id: 'year', label: 'Year' },
+]
 
 const LEGEND = [
   { type: 'task', label: 'Project task', color: '#00d4ff' },
@@ -14,42 +36,21 @@ const LEGEND = [
   { type: 'service_request', label: 'Service request', color: '#e65100' },
   { type: 'onboarding', label: 'HR onboarding', color: '#6a1b9a' },
   { type: 'exhibition', label: 'Trade fair / expo', color: '#e67e22' },
-  { type: 'ai_contract', label: 'Contract end (AI Insights)', color: '#4527a0' },
-  { type: 'nda_contract', label: 'NDA — review / re-sign', color: '#ad1457' },
-  { type: 'contract_renewal', label: 'Contract renewal', color: '#7e57c2' },
-  { type: 'contract_milestone', label: 'Contract milestone', color: '#283593' },
-  { type: 'hr_doc_expiry', label: 'HR document expiry', color: '#7b1fa2' },
-  { type: 'nda_hr_doc', label: 'NDA / policy (HR doc)', color: '#c2185b' },
-  { type: 'training_expiry', label: 'Training / cert expiry', color: '#00838f' },
-  { type: 'hr_goal', label: 'HR goal due', color: '#5e35b1' },
   { type: 'personal_event', label: 'Your event', color: '#1565c0' },
   { type: 'personal_reminder', label: 'Your reminder', color: '#ef6c00' },
   { type: 'personal_meeting', label: 'Your meeting', color: '#5d4037' },
 ]
 
-function isoTodayLocal() {
-  const n = new Date()
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
-}
-
-function shortListDate(iso) {
-  try {
-    const d = new Date(`${iso}T12:00:00`)
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  } catch {
-    return iso
-  }
-}
-
 export default function PlatformCalendar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [selectedDate, setSelectedDate] = useState(() => isoTodayLocal())
+  const todayIso = isoTodayLocal()
+
+  const [viewMode, setViewMode] = useState('month')
+  const [focusDate, setFocusDate] = useState(() => todayIso)
+  const [selectedDate, setSelectedDate] = useState(() => todayIso)
 
   const titleInputRef = useRef(null)
-
   const [entryModalOpen, setEntryModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [draftKind, setDraftKind] = useState('event')
@@ -63,6 +64,30 @@ export default function PlatformCalendar() {
   const removeEntry = useMyCalendarStore((s) => s.removeEntry)
   const calendarEntries = useMyCalendarStore((s) => s.entries)
 
+  const year = isoYear(focusDate)
+  const month0 = isoMonth0(focusDate)
+
+  const weekCrossYear = useMemo(() => {
+    if (viewMode !== 'week') return null
+    const years = new Set(weekDateKeys(focusDate).map(isoYear))
+    if (years.size <= 1) return null
+    return [...years].find((y) => y !== year) ?? null
+  }, [viewMode, focusDate, year])
+
+  const { eventsByDate: primaryEventsByDate, flatEvents: primaryFlatEvents } = usePlatformCalendarYearEvents(year)
+  const { eventsByDate: crossYearEventsByDate } = usePlatformCalendarYearEvents(weekCrossYear ?? year)
+
+  const eventsByDate = useMemo(() => {
+    if (!weekCrossYear) return primaryEventsByDate
+    const merged = { ...primaryEventsByDate }
+    Object.entries(crossYearEventsByDate).forEach(([k, list]) => {
+      merged[k] = [...(merged[k] || []), ...list]
+    })
+    return merged
+  }, [weekCrossYear, primaryEventsByDate, crossYearEventsByDate])
+
+  const flatEvents = primaryFlatEvents
+
   const closePersonalModal = useCallback(() => {
     setEntryModalOpen(false)
     setEditingId(null)
@@ -75,6 +100,7 @@ export default function PlatformCalendar() {
 
   const openNewPersonalModal = useCallback((dateKey) => {
     const d = normalizeDateStr(dateKey) || dateKey
+    setFocusDate(d)
     setSelectedDate(d)
     setEditingId(null)
     setDraftKind('event')
@@ -87,7 +113,8 @@ export default function PlatformCalendar() {
   }, [])
 
   const openEditPersonalModal = useCallback((entry) => {
-    const d = normalizeDateStr(entry.date) || isoTodayLocal()
+    const d = normalizeDateStr(entry.date) || todayIso
+    setFocusDate(d)
     setSelectedDate(d)
     setEditingId(entry.id)
     const k = entry.kind === 'reminder' || entry.kind === 'meeting' ? entry.kind : 'event'
@@ -98,13 +125,19 @@ export default function PlatformCalendar() {
     setDraftDate(d)
     setEntryModalOpen(true)
     requestAnimationFrame(() => titleInputRef.current?.focus())
+  }, [todayIso])
+
+  const handleSelectDate = useCallback((dateKey) => {
+    const d = normalizeDateStr(dateKey) || dateKey
+    setFocusDate(d)
+    setSelectedDate(d)
   }, [])
 
   useEffect(() => {
     const fd = location.state?.focusDate
     if (typeof fd !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fd)) return
-    const yFocus = Number(fd.slice(0, 4))
-    if (!Number.isNaN(yFocus)) setYear(yFocus)
+    setFocusDate(fd)
+    setSelectedDate(fd)
     openNewPersonalModal(fd)
     navigate('.', { replace: true, state: null })
   }, [location.state, navigate, openNewPersonalModal])
@@ -118,23 +151,84 @@ export default function PlatformCalendar() {
     return () => window.removeEventListener('keydown', onKey)
   }, [entryModalOpen, closePersonalModal])
 
-  const { eventsByDate, flatEvents } = usePlatformCalendarYearEvents(year)
+  const selectedDayEvents = useMemo(
+    () => eventsByDate[selectedDate] || [],
+    [eventsByDate, selectedDate],
+  )
 
-  const todayIso = isoTodayLocal()
   const upcomingList = useMemo(() => {
     const yearEnd = `${year}-12-31`
     const yearStart = `${year}-01-01`
     const from = todayIso > yearStart ? todayIso : yearStart
     const keys = Object.keys(eventsByDate).filter((k) => k >= from && k <= yearEnd).sort()
-    /** @type {Array<{ dateKey: string, ev: import('../utils/platformCalendarEvents').PlatformCalendarEvent }>} */
     const rows = []
     keys.forEach((k) => {
       ;(eventsByDate[k] || []).forEach((ev) => {
         rows.push({ dateKey: k, ev })
       })
     })
-    return rows
+    return rows.slice(0, 40)
   }, [eventsByDate, year, todayIso])
+
+  const periodLabel = useMemo(() => {
+    if (viewMode === 'year') return String(year)
+    if (viewMode === 'month') return formatMonthYear(focusDate)
+    if (viewMode === 'week') return formatWeekRange(focusDate)
+    return formatDayLong(focusDate)
+  }, [viewMode, year, focusDate])
+
+  const goToday = () => {
+    setFocusDate(todayIso)
+    setSelectedDate(todayIso)
+  }
+
+  const goPrev = () => {
+    if (viewMode === 'year') {
+      const d = `${year - 1}-06-15`
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    if (viewMode === 'month') {
+      const d = addMonthsIso(focusDate, -1)
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    if (viewMode === 'week') {
+      const d = addDaysIso(focusDate, -7)
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    const d = addDaysIso(focusDate, -1)
+    setFocusDate(d)
+    setSelectedDate(d)
+  }
+
+  const goNext = () => {
+    if (viewMode === 'year') {
+      const d = `${year + 1}-06-15`
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    if (viewMode === 'month') {
+      const d = addMonthsIso(focusDate, 1)
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    if (viewMode === 'week') {
+      const d = addDaysIso(focusDate, 7)
+      setFocusDate(d)
+      setSelectedDate(d)
+      return
+    }
+    const d = addDaysIso(focusDate, 1)
+    setFocusDate(d)
+    setSelectedDate(d)
+  }
 
   const handleSavePersonal = (e) => {
     e.preventDefault()
@@ -165,34 +259,42 @@ export default function PlatformCalendar() {
     setDraftTime('')
     setDraftKind('event')
     setDraftDate(d)
+    setFocusDate(d)
     setSelectedDate(d)
   }
 
-  const goPrevYear = () => setYear((y) => y - 1)
-  const goNextYear = () => setYear((y) => y + 1)
+  const handleEventAction = useCallback((ev, dateKey) => {
+    if (dateKey) handleSelectDate(dateKey)
+    const personal = isPersonalCalendarEvent(ev)
+    if (personal) {
+      const entry = calendarEntries.find((en) => en.id === ev.id)
+      if (entry) openEditPersonalModal(entry)
+      return
+    }
+    if (ev.href) navigate(ev.href)
+  }, [calendarEntries, handleSelectDate, navigate, openEditPersonalModal])
 
-  const renderEventRow = ({ dateKey, ev }) => {
+  const renderAgendaItem = ({ dateKey, ev }) => {
     const personal = isPersonalCalendarEvent(ev)
     const entry = personal ? calendarEntries.find((en) => en.id === ev.id) : null
     return (
-      <li key={`${dateKey}-${ev.id}`} className="platform-calendar-page__li platform-calendar-page__li--upcoming">
+      <li key={`${dateKey}-${ev.id}`} className="platform-calendar-page__li">
         <span className="platform-calendar-page__li-dot" style={{ background: ev.color }} />
-        <div>
+        <div className="platform-calendar-page__li-body">
           <div className="platform-calendar-page__upcoming-when">
-            {shortListDate(dateKey)}
+            {formatShortDate(dateKey)}
             {dateKey === todayIso ? <span className="platform-calendar-page__badge-today">Today</span> : null}
           </div>
-          <div className="platform-calendar-page__li-title">{ev.title}</div>
+          <button
+            type="button"
+            className="platform-calendar-page__li-title platform-calendar-page__li-title--btn"
+            onClick={() => handleEventAction(ev, dateKey)}
+          >
+            {ev.title}
+          </button>
           {ev.detail ? <div className="platform-calendar-page__li-detail">{ev.detail}</div> : null}
           {ev.meta ? <div className="platform-calendar-page__li-meta">{ev.meta}</div> : null}
           <div className="platform-calendar-page__li-actions platform-calendar-page__li-actions--tight">
-            <button
-              type="button"
-              className="platform-calendar-page__li-go platform-calendar-page__li-go--small"
-              onClick={() => setSelectedDate(dateKey)}
-            >
-              Day
-            </button>
             {personal && entry ? (
               <>
                 <button type="button" className="platform-calendar-page__li-go platform-calendar-page__li-go--small" onClick={() => openEditPersonalModal(entry)}>
@@ -225,42 +327,141 @@ export default function PlatformCalendar() {
     <AppLayout>
       <div className="platform-calendar-page">
         <header className="platform-calendar-page__head">
-          <h1 className="platform-calendar-page__title">Calendar</h1>
-          <p className="platform-calendar-page__sub">
-            <strong>What it shows:</strong> one calendar year of platform items (tasks, RFQs, HR, trade fairs, contracts, NDAs, and similar) plus your own events, reminders, and meetings.
-            {' '}
-            <strong>How to use:</strong> click a day to add or edit an entry; use ‹ › to change year; colored dots are explained in the legend under the grid; the right column lists today through year-end (scroll the list if needed). Trade fairs follow industries you set in{' '}
-            <Link to="/settings">settings</Link>.
-          </p>
+          <div className="platform-calendar-page__head-row">
+            <div>
+              <h1 className="platform-calendar-page__title">Calendar</h1>
+              <p className="platform-calendar-page__sub">
+                Platform deadlines, HR dates, trade fairs, contracts, and your personal events in one place.
+              </p>
+            </div>
+            <button type="button" className="platform-calendar-page__btn-primary" onClick={() => openNewPersonalModal(selectedDate)}>
+              + New event
+            </button>
+          </div>
+
+          <div className="platform-calendar-page__toolbar">
+            <div className="platform-calendar-page__toolbar-nav">
+              <button type="button" className="platform-calendar-page__today-btn" onClick={goToday}>
+                Today
+              </button>
+              <button type="button" className="platform-calendar-page__nav-btn" onClick={goPrev} aria-label="Previous period">
+                ‹
+              </button>
+              <button type="button" className="platform-calendar-page__nav-btn" onClick={goNext} aria-label="Next period">
+                ›
+              </button>
+              <h2 className="platform-calendar-page__period">{periodLabel}</h2>
+            </div>
+            <div className="platform-calendar-page__view-tabs" role="tablist" aria-label="Calendar view">
+              {VIEW_MODES.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === v.id}
+                  className={`platform-calendar-page__view-tab${viewMode === v.id ? ' platform-calendar-page__view-tab--active' : ''}`}
+                  onClick={() => setViewMode(v.id)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </header>
 
         <div className="platform-calendar-page__layout">
           <div className="platform-calendar-page__main">
             <div className="platform-calendar-page__calendar-surface">
               <div className="platform-calendar-page__calendar-row">
-                <div className="platform-calendar-page__year-wrap">
-                  <PlatformYearCalendar
-                    year={year}
-                    eventsByDate={eventsByDate}
-                    selectedDate={selectedDate}
-                    onSelectDate={openNewPersonalModal}
-                    onPrevYear={goPrevYear}
-                    onNextYear={goNextYear}
-                  />
+                <div className="platform-calendar-page__view-wrap">
+                  {viewMode === 'month' && (
+                    <PlatformMonthCalendar
+                      year={year}
+                      month={month0}
+                      eventsByDate={eventsByDate}
+                      selectedDate={selectedDate}
+                      onSelectDate={handleSelectDate}
+                      onDoubleClickDate={openNewPersonalModal}
+                      onPrevMonth={() => {
+                        const d = addMonthsIso(focusDate, -1)
+                        setFocusDate(d)
+                        setSelectedDate(d)
+                      }}
+                      onNextMonth={() => {
+                        const d = addMonthsIso(focusDate, 1)
+                        setFocusDate(d)
+                        setSelectedDate(d)
+                      }}
+                    />
+                  )}
+                  {viewMode === 'week' && (
+                    <PlatformWeekCalendar
+                      focusDate={focusDate}
+                      eventsByDate={eventsByDate}
+                      selectedDate={selectedDate}
+                      onSelectDate={handleSelectDate}
+                      onEventClick={(ev, key) => handleEventAction(ev, key)}
+                    />
+                  )}
+                  {viewMode === 'day' && (
+                    <PlatformDayView
+                      dateKey={selectedDate}
+                      events={selectedDayEvents}
+                      onEventClick={(ev) => handleEventAction(ev, selectedDate)}
+                    />
+                  )}
+                  {viewMode === 'year' && (
+                    <PlatformYearCalendar
+                      year={year}
+                      eventsByDate={eventsByDate}
+                      selectedDate={selectedDate}
+                      onSelectDate={(d) => {
+                        handleSelectDate(d)
+                        setViewMode('day')
+                      }}
+                      onPrevYear={() => {
+                        const d = `${year - 1}-06-15`
+                        setFocusDate(d)
+                        setSelectedDate(d)
+                      }}
+                      onNextYear={() => {
+                        const d = `${year + 1}-06-15`
+                        setFocusDate(d)
+                        setSelectedDate(d)
+                      }}
+                    />
+                  )}
                 </div>
 
                 <aside className="platform-calendar-page__side">
-                  <h2 className="platform-calendar-page__side-title">Today &amp; upcoming</h2>
-                  <p className="platform-calendar-page__side-sub">In {year}, from today through year-end.</p>
-                  <p className="platform-calendar-page__selected-line">
-                    Selected: <strong>{selectedDate}</strong>
-                  </p>
+                  <div className="platform-calendar-page__side-head">
+                    <h2 className="platform-calendar-page__side-title">Agenda</h2>
+                    <button
+                      type="button"
+                      className="platform-calendar-page__side-add"
+                      onClick={() => openNewPersonalModal(selectedDate)}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  <p className="platform-calendar-page__selected-line">{formatDayLong(selectedDate)}</p>
 
                   <div className="platform-calendar-page__side-scroll">
-                    {upcomingList.length === 0 ? (
-                      <p className="platform-calendar-page__empty">No items from today onward in this year.</p>
+                    {selectedDayEvents.length === 0 ? (
+                      <p className="platform-calendar-page__empty">No items on this day.</p>
                     ) : (
-                      <ul className="platform-calendar-page__list platform-calendar-page__list--upcoming">{upcomingList.map(renderEventRow)}</ul>
+                      <ul className="platform-calendar-page__list">
+                        {selectedDayEvents.map((ev) => renderAgendaItem({ dateKey: selectedDate, ev }))}
+                      </ul>
+                    )}
+
+                    <h3 className="platform-calendar-page__side-subheading">Upcoming</h3>
+                    {upcomingList.length === 0 ? (
+                      <p className="platform-calendar-page__empty">Nothing upcoming in {year}.</p>
+                    ) : (
+                      <ul className="platform-calendar-page__list platform-calendar-page__list--upcoming">
+                        {upcomingList.map(renderAgendaItem)}
+                      </ul>
                     )}
                   </div>
 
@@ -280,17 +481,13 @@ export default function PlatformCalendar() {
                   ))}
                 </div>
                 <p className="platform-calendar-page__hint">
-                  <Link to="/profile/calendar">Trade fair directory</Link>
+                  Double-click a day in month view to add an event quickly.
                   {' · '}
-                  <Link to="/ai-insights">AI Insights</Link>
+                  <Link to="/profile/calendar">Trade fairs</Link>
                   {' · '}
-                  <button type="button" className="platform-calendar-page__linkish" onClick={() => navigate('/contracts')}>
-                    Contracts
-                  </button>
+                  <Link to="/project-management">Projects</Link>
                   {' · '}
-                  <button type="button" className="platform-calendar-page__linkish" onClick={() => navigate('/project-management')}>
-                    Project management
-                  </button>
+                  <Link to="/contracts">Contracts</Link>
                 </p>
               </div>
             </div>
@@ -322,7 +519,7 @@ export default function PlatformCalendar() {
               </div>
               <form className="platform-cal-modal__form" onSubmit={handleSavePersonal}>
                 <div className="platform-calendar-page__field">
-                  <label htmlFor="pcal-modal-name">Name</label>
+                  <label htmlFor="pcal-modal-name">Title</label>
                   <input
                     ref={titleInputRef}
                     id="pcal-modal-name"
@@ -330,20 +527,31 @@ export default function PlatformCalendar() {
                     className="platform-calendar-page__input"
                     value={draftTitle}
                     onChange={(e) => setDraftTitle(e.target.value)}
-                    placeholder="Title or short name"
+                    placeholder="Meeting, deadline, reminder…"
                     autoComplete="off"
                   />
                 </div>
-                <div className="platform-calendar-page__field">
-                  <label htmlFor="pcal-modal-time">Time (optional)</label>
-                  <input
-                    id="pcal-modal-time"
-                    type="text"
-                    className="platform-calendar-page__input"
-                    value={draftTime}
-                    onChange={(e) => setDraftTime(e.target.value)}
-                    placeholder="e.g. 14:00 or Morning"
-                  />
+                <div className="platform-calendar-page__field-row">
+                  <div className="platform-calendar-page__field">
+                    <label htmlFor="pcal-modal-date">Date</label>
+                    <input
+                      id="pcal-modal-date"
+                      type="date"
+                      className="platform-calendar-page__input"
+                      value={draftDate}
+                      onChange={(e) => setDraftDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="platform-calendar-page__field">
+                    <label htmlFor="pcal-modal-time">Time (optional)</label>
+                    <input
+                      id="pcal-modal-time"
+                      type="time"
+                      className="platform-calendar-page__input"
+                      value={draftTime}
+                      onChange={(e) => setDraftTime(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="platform-calendar-page__field">
                   <label htmlFor="pcal-modal-kind">Type</label>
@@ -359,16 +567,6 @@ export default function PlatformCalendar() {
                   </select>
                 </div>
                 <div className="platform-calendar-page__field">
-                  <label htmlFor="pcal-modal-date">Date</label>
-                  <input
-                    id="pcal-modal-date"
-                    type="date"
-                    className="platform-calendar-page__input"
-                    value={draftDate}
-                    onChange={(e) => setDraftDate(e.target.value)}
-                  />
-                </div>
-                <div className="platform-calendar-page__field">
                   <label htmlFor="pcal-modal-notes">Notes (optional)</label>
                   <textarea
                     id="pcal-modal-notes"
@@ -376,7 +574,7 @@ export default function PlatformCalendar() {
                     value={draftDetail}
                     onChange={(e) => setDraftDetail(e.target.value)}
                     rows={4}
-                    placeholder="Extra details, links, or reminders…"
+                    placeholder="Location, attendees, links…"
                   />
                 </div>
                 <div className="platform-cal-modal__actions">

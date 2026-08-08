@@ -1,0 +1,113 @@
+.platform-cal-day {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #e8e8e8);
+  border-radius: 12px;
+  padding: 16px 18px 20px;
+  min-height: 420px;
+  box-sizing: border-box;
+}
+
+.platform-cal-day__head {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light, #eee);
+}
+
+.platform-cal-day__title {
+  margin: 0 0 4px;
+  font-size: var(--text-section, 18px);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.platform-cal-day__count {
+  margin: 0;
+  font-size: var(--text-small, 13px);
+  color: var(--color-secondary);
+}
+
+.platform-cal-day__empty {
+  margin: 24px 0 0;
+  font-size: var(--text-body, 14px);
+  color: var(--color-secondary);
+  line-height: 1.5;
+}
+
+.platform-cal-day__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.platform-cal-day__section-label {
+  margin: 0 0 8px;
+  font-size: var(--text-caption, 11px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.platform-cal-day__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-cal-day__event {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-light, #e8e8e8);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-surface, #f8fafc);
+  cursor: pointer;
+  font: inherit;
+}
+
+.platform-cal-day__event:hover {
+  border-color: var(--accent);
+  background: var(--bg-card, #fff);
+}
+
+.platform-cal-day__event--timed {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: start;
+}
+
+.platform-cal-day__event-time {
+  font-size: var(--text-small, 12px);
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.platform-cal-day__event-title {
+  display: block;
+  font-size: var(--text-body, 14px);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.platform-cal-day__event-detail,
+.platform-cal-day__event-meta {
+  display: block;
+  font-size: var(--text-small, 12px);
+  color: var(--color-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.platform-cal-day__event--timed .platform-cal-day__event-title {
+  grid-column: 2;
+}
+
+.platform-cal-day__event--timed .platform-cal-day__event-detail,
+.platform-cal-day__event--timed .platform-cal-day__event-meta {
+  grid-column: 2;
+}

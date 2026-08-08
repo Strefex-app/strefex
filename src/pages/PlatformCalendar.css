@@ -6,7 +6,103 @@
 }
 
 .platform-calendar-page__head {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.platform-calendar-page__head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.platform-calendar-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #e8e8e8);
+  border-radius: 12px;
+}
+
+.platform-calendar-page__toolbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.platform-calendar-page__today-btn {
+  padding: 6px 12px;
+  font-size: var(--text-small, 13px);
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #ccc);
+  background: var(--bg-surface, #f5f5f7);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.platform-calendar-page__today-btn:hover {
+  border-color: var(--accent);
+}
+
+.platform-calendar-page__nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #ddd);
+  background: var(--bg-surface, #f5f5f7);
+  color: var(--color-primary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.platform-calendar-page__nav-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-light, rgba(37, 99, 235, 0.06));
+}
+
+.platform-calendar-page__period {
+  margin: 0;
+  font-size: var(--text-section, 17px);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  min-width: 0;
+}
+
+.platform-calendar-page__view-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-surface, #f0f0f4);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.platform-calendar-page__view-tab {
+  padding: 6px 12px;
+  font-size: var(--text-small, 13px);
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-secondary);
+  cursor: pointer;
+}
+
+.platform-calendar-page__view-tab--active {
+  background: var(--bg-card, #fff);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .platform-calendar-page__title {
@@ -75,6 +171,7 @@
   }
 }
 
+.platform-calendar-page__view-wrap,
 .platform-calendar-page__year-wrap {
   min-width: 0;
   min-height: 0;
@@ -84,7 +181,7 @@
   overflow-y: visible;
 }
 
-.platform-calendar-page__year-wrap .platform-cal-year {
+.platform-calendar-page__view-wrap .platform-cal-year {
   flex: 0 0 auto;
   height: auto;
   box-sizing: border-box;
@@ -173,11 +270,43 @@
   padding: 8px 0;
 }
 
+.platform-calendar-page__side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .platform-calendar-page__side-title {
-  margin: 0 0 6px 0;
+  margin: 0;
   font-size: 15px;
   font-weight: var(--font-semibold);
   color: var(--color-primary, #1a1a2e);
+}
+
+.platform-calendar-page__side-add {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #ccc);
+  background: var(--bg-surface, #f5f5f7);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.platform-calendar-page__side-add:hover {
+  border-color: var(--accent);
+}
+
+.platform-calendar-page__side-subheading {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-secondary);
 }
 
 .platform-calendar-page__side-sub {
@@ -274,10 +403,41 @@
   flex-shrink: 0;
 }
 
+.platform-calendar-page__li-body {
+  min-width: 0;
+  flex: 1;
+}
+
 .platform-calendar-page__li-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-primary, #1a1a2e);
+}
+
+.platform-calendar-page__li-title--btn {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+}
+
+.platform-calendar-page__li-title--btn:hover {
+  color: var(--accent);
+}
+
+.platform-calendar-page__field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .platform-calendar-page__field-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .platform-calendar-page__li-detail,

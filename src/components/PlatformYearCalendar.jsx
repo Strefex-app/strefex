@@ -68,7 +68,7 @@ export default function PlatformYearCalendar({
           ›
         </button>
       </div>
-      <p className="platform-cal-year__hint">Click a day — add or edit your entry.</p>
+      <p className="platform-cal-year__hint">Click a day to open day view.</p>
       <div className="platform-cal-year__grid-12">
         {monthsWeeks.map((block, mi) => (
           <div key={`m-${year}-${mi}`} className="platform-cal-year__mini">
