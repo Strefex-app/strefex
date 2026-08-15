@@ -95,8 +95,8 @@ export function useManagementClusterStats() {
         { label: 'Avg OEE', value: avgOee != null ? `${avgOee}%` : '—' },
       ],
       platform: [
+        { label: 'Platform audits', value: (auditProAudits || []).filter((a) => a.industry === 'Platform / SaaS' || a.standard === 'STREFEX Platform Security Audit').length },
         { label: 'Audit program', value: auditProAudits?.length || 0 },
-        { label: 'Cost scenarios', value: useCostStore.getState().scenarios?.length || 0 },
         { label: 'Integrations', value: 'ERP' },
       ],
     }

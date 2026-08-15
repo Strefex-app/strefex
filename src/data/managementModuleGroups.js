@@ -175,6 +175,17 @@ export const MANAGEMENT_MODULES = [
     clusterId: 'ops',
   },
   {
+    id: 'platform-security-audit',
+    label: 'Platform Security Audit',
+    description: 'Whole-platform cybersecurity assessment for STREFEX deployment',
+    path: managementModulePath('platform', 'security-audit'),
+    icon: 'audit',
+    featureKey: 'auditProProgram',
+    planLabel: 'Enterprise',
+    minRole: 'admin',
+    clusterId: 'platform',
+  },
+  {
     id: 'erp',
     label: 'ERP Integrations',
     description: 'ERP sync for vendors and purchasing',
