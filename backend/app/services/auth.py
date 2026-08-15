@@ -92,22 +92,34 @@ class AuthService:
             extra={"tenant_slug": payload.get("tenant_slug")},
         )
 
-    def create_refresh_token_for_user(self, user: User, company_slug: str | None = None) -> str:
+    def create_refresh_token_for_user(
+        self, user: User, company_slug: str | None = None, jti: str | None = None
+    ) -> str:
         payload = self.build_token_payload(user, company_slug)
+        extra = {"tenant_slug": payload.get("tenant_slug")}
+        if jti:
+            extra["jti"] = jti
         return create_refresh_token(
             subject=payload["sub"],
             tenant_id=payload["tenant_id"],
             role=payload["role"],
-            extra={"tenant_slug": payload.get("tenant_slug")},
+            extra=extra,
         )
 
     def create_tokens_for_user(
         self, user: User, company_slug: str | None = None
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, str]:
+        jti = uuid.uuid4().hex
         return (
             self.create_token_for_user(user, company_slug),
-            self.create_refresh_token_for_user(user, company_slug),
+            self.create_refresh_token_for_user(user, company_slug, jti=jti),
+            jti,
         )
+
+    async def persist_refresh_jti(self, session: AsyncSession, user: User, jti: str | None) -> None:
+        user.refresh_token_jti = jti
+        session.add(user)
+        await session.flush()
 
     def token_to_context(self, token: str) -> TenantContext | None:
         payload = decode_token(token)
@@ -149,7 +161,24 @@ class AuthService:
         payload = decode_token(token)
         if not payload or payload.get("type") != "refresh":
             return None
-        return await self.get_user_from_payload(session, payload)
+        user = await self.get_user_from_payload(session, payload)
+        if not user:
+            return None
+        token_jti = payload.get("jti")
+        if not token_jti or token_jti != user.refresh_token_jti:
+            return None
+        return user
+
+    async def revoke_refresh_token(self, session: AsyncSession, token: str) -> None:
+        payload = decode_token(token)
+        if not payload or payload.get("type") != "refresh":
+            return
+        user = await self.get_user_from_payload(session, payload)
+        if not user:
+            return
+        user.refresh_token_jti = None
+        session.add(user)
+        await session.flush()
 
     @staticmethod
     def user_to_response(user: User) -> UserInResponse:

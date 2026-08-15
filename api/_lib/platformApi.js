@@ -27,9 +27,24 @@ function getAllowedOrigins(req) {
   return new Set([...envOrigins, ...appUrl, ...vercelUrl, ...devOrigins])
 }
 
-export function assertAllowedOrigin(req) {
+/** True when the caller sent a Bearer token, API key, or cron secret. */
+export function hasRequestCredential(req) {
+  const auth = String(req.headers.authorization || '')
+  const apiKey = String(req.headers['x-api-key'] || '')
+  const cron = String(req.headers['x-cron-secret'] || '')
+  return auth.startsWith('Bearer ') || apiKey.length > 0 || cron.length > 0
+}
+
+/**
+ * Browser requests must match the allowlist.
+ * Non-browser callers (no Origin) must present a credential unless explicitly allowed
+ * (Stripe webhooks).
+ */
+export function assertAllowedOrigin(req, { allowUnauthenticatedNoOrigin = false } = {}) {
   const origin = req.headers.origin
-  if (!origin) return true
+  if (!origin) {
+    return allowUnauthenticatedNoOrigin || hasRequestCredential(req)
+  }
   return getAllowedOrigins(req).has(origin)
 }
 
@@ -44,10 +59,24 @@ export function setApiHeaders(req, res, methods = 'GET,POST,OPTIONS') {
   res.setHeader('Cache-Control', 'no-store')
 }
 
+export function getBearerToken(req) {
+  const authHeader = String(req.headers.authorization || '')
+  return authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+}
+
+/** Anon-key client scoped to the caller's JWT so RLS applies. */
+export function supabaseForRequest(req) {
+  const token = getBearerToken(req)
+  if (!supabaseUrl || !supabaseAnonKey || !token) return null
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  })
+}
+
 export async function requireAuthUser(req) {
   if (!supabasePublic) return null
-  const authHeader = req.headers.authorization || ''
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const token = getBearerToken(req)
   if (!token) return null
   const { data, error } = await supabasePublic.auth.getUser(token)
   if (error || !data?.user) return null

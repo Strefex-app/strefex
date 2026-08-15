@@ -36,15 +36,16 @@ function loadForumCounts() {
 export function useManagementClusterStats() {
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const employees = useHrSpaceStore((s) => s.employees)
-  const vendorStats = useVendorStore((s) => s.getVendorStats)()
+  const vendors = useVendorStore((s) => s.vendors)
   const opportunities = useProcurementStore((s) => s.opportunities)
   const purchaseOrders = useProcurementStore((s) => s.purchaseOrders)
   const projects = useProjectStore((s) => s.projects)
-  const contracts = useContractStore((s) => s.getSafeContracts)()
-  const auditLogs = useAuditStore((s) => s.getSafeLogs)()
+  const contracts = useContractStore((s) => s.contracts)
+  const auditLogs = useAuditStore((s) => s.logs)
   const auditProAudits = useAuditProStore((s) => s.audits)
-  const enterpriseSummary = useEnterpriseStore((s) => s.getEnterpriseSummary)()
+  const enterpriseProducts = useEnterpriseStore((s) => s.products)
   const costProducts = useCostStore((s) => s.products)
+  const costScenarios = useCostStore((s) => s.scenarios)
   const oeeData = useProductionStore((s) => s.oeeData)
   const rfqQuotes = useRfqIntelligenceStore((s) => s.quotes)
 
@@ -54,11 +55,15 @@ export function useManagementClusterStats() {
       0,
     )
     const forum = loadForumCounts()
+    const vendorList = Array.isArray(vendors) ? vendors : []
+    const contractList = useContractStore.getState().getSafeContracts()
+    const logList = useAuditStore.getState().getSafeLogs()
+    const enterpriseSummary = useEnterpriseStore.getState().getEnterpriseSummary()
     const activeProjects = projects.filter(
       (p) => p.stage !== 'closed' && p.status !== 'archived',
     ).length
-    const activeContracts = contracts.filter((c) => c.status === 'active').length
-    const expiringContracts = contracts.filter((c) => {
+    const activeContracts = contractList.filter((c) => c.status === 'active').length
+    const expiringContracts = contractList.filter((c) => {
       if (c.status === 'terminated' || c.status === 'expired' || !c.endDate) return false
       const days = Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))
       return days <= 90
@@ -75,14 +80,14 @@ export function useManagementClusterStats() {
         { label: 'Forum posts', value: forum.announcements + forum.lessons },
       ],
       sourcing: [
-        { label: 'Vendors', value: vendorStats.total },
+        { label: 'Vendors', value: vendorList.length },
         { label: 'Open OPP', value: openOpps },
         { label: 'Saved quotes', value: rfqQuotes?.length || 0 },
       ],
       'contracts-compliance': [
         { label: 'Active contracts', value: activeContracts },
         { label: 'Expiring (90d)', value: expiringContracts },
-        { label: 'Activity events', value: auditLogs.length },
+        { label: 'Activity events', value: logList.length },
       ],
       finance: [
         { label: 'Monthly OPEX', value: `$${Math.round(enterpriseSummary.totalOpex || 0).toLocaleString()}` },
@@ -96,22 +101,23 @@ export function useManagementClusterStats() {
       ],
       platform: [
         { label: 'Audit program', value: auditProAudits?.length || 0 },
-        { label: 'Cost scenarios', value: useCostStore.getState().scenarios?.length || 0 },
+        { label: 'Cost scenarios', value: costScenarios?.length || 0 },
         { label: 'Integrations', value: 'ERP' },
       ],
     }
   }, [
     registryAccounts,
     employees,
-    vendorStats,
+    vendors,
     opportunities,
     purchaseOrders,
     projects,
     contracts,
     auditLogs,
     auditProAudits,
-    enterpriseSummary,
+    enterpriseProducts,
     costProducts,
+    costScenarios,
     oeeData,
     rfqQuotes,
   ])

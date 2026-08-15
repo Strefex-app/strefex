@@ -1,11 +1,23 @@
 /**
- * Superadmin feature grants — platform-wide localStorage (not tenant-scoped).
- * Evaluated in subscription `hasFeature` so granted tools unlock for the target account.
+ * Superadmin feature grants.
+ * After hydrateFeatureGrantsForSession(), evaluation uses the server list only.
+ * localStorage is a fallback when Supabase is not configured.
  */
 
 export const FEATURE_GRANTS_STORAGE_KEY = 'strefex-feature-grants'
 
 const normEmail = (email) => String(email || '').trim().toLowerCase()
+
+/** null = not hydrated (localStorage fallback); array = server source of truth */
+let serverGrants = null
+
+export function setServerFeatureGrants(grants) {
+  serverGrants = grants == null ? null : (Array.isArray(grants) ? grants : [])
+}
+
+export function getServerFeatureGrants() {
+  return serverGrants
+}
 
 export function loadFeatureGrants() {
   try {
@@ -25,12 +37,17 @@ export function saveFeatureGrants(grants) {
   }
 }
 
+function grantsForEvaluation() {
+  if (serverGrants !== null) return serverGrants
+  return loadFeatureGrants()
+}
+
 /**
  * Whether an active, non-expired grant exists for this feature and user.
  * Matches by email and/or account id (aligned with superadmin normalized accounts).
  */
 export function userHasActiveFeatureGrant(featureKey, userEmail, userAccountId) {
-  const grants = loadFeatureGrants()
+  const grants = grantsForEvaluation()
   if (!Array.isArray(grants) || !featureKey) return false
   const em = normEmail(userEmail)
   const aid = userAccountId != null && userAccountId !== '' ? String(userAccountId) : ''

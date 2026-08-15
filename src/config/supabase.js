@@ -22,6 +22,7 @@ if (isSupabaseConfigured) {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      flowType: 'pkce',
     },
   })
 }

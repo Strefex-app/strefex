@@ -35,6 +35,9 @@ import {
 import { useIndustryStore } from '../store/industryStore'
 import { tenantKey } from '../utils/tenantStorage'
 import { rememberOfficialRegistrationCode } from '../utils/platformRegistrationCode'
+import { sessionExpiresAtMs } from '../utils/sessionExpiry'
+import { hydrateFeatureGrantsForSession } from './featureGrantsService'
+import { setServerFeatureGrants } from '../utils/featureGrants'
 
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
@@ -338,10 +341,11 @@ async function storeSupabaseSession(session, profile) {
   const accountTypes = normalizeAccountTypes(metadataAccountTypes, fallbackAccountType)
   const primaryAccountType = accountTypes[0] || fallbackAccountType
 
+  setServerFeatureGrants([])
   useAuthStore.getState().login({
     role,
     token: session?.access_token || null,
-    expiresAt: session?.expires_at ? session.expires_at * 1000 : Date.now() + 55 * 60 * 1000,
+    expiresAt: sessionExpiresAtMs(session) || Date.now() + 55 * 60 * 1000,
     user: {
       id: user?.id,
       email: user?.email,
@@ -386,6 +390,11 @@ async function storeSupabaseSession(session, profile) {
 
   // Keep UI account-type context aligned with profile metadata.
   useSubscriptionStore.getState().setAccountType(primaryAccountType)
+  hydrateFeatureGrantsForSession()
+    .then(() => {
+      useSubscriptionStore.setState((s) => ({ grantsVersion: (s.grantsVersion || 0) + 1 }))
+    })
+    .catch(() => {})
   // Keep service expertise selection aligned for service providers.
   try {
     const serviceCategories = Array.isArray(metadata.service_categories)
@@ -410,7 +419,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
   if (!hasRegistrationMetadata) {
     // Even without registration metadata, keep superadmin role persistent.
     if (superadminEmail && profile?.role !== 'superadmin') {
-      await profilesService.updateProfile({ role: 'superadmin' })
+      await profilesService.updateProfilePrivileged({ role: 'superadmin' })
       return profilesService.getMyProfile()
     }
     return profile
@@ -500,7 +509,7 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
 
   if (!needsUpdate) return profile
 
-  await profilesService.updateProfile({
+  await profilesService.updateProfilePrivileged({
     company_id: companyId,
     full_name: fullName || null,
     phone: phone || null,
@@ -522,6 +531,7 @@ function storeSession(backendResponse) {
   const primaryAccountType = normalizeAccountType(user?.account_type || user?.account_types?.[0] || 'seller')
   const normalizedAccountTypes = normalizeAccountTypes(user?.account_types, primaryAccountType)
 
+  setServerFeatureGrants(null)
   useAuthStore.getState().login({
     role,
     token: AUTH_USE_COOKIES ? null : access_token,
@@ -780,7 +790,7 @@ const authService = {
           }
 
           if (newCompany) {
-            await profilesService.updateProfile({
+            await profilesService.updateProfilePrivileged({
               company_id: newCompany.id,
               full_name: fullName,
               phone: phone || null,
@@ -955,9 +965,11 @@ const authService = {
   /**
    * Refresh the user profile.
    */
-  async refreshProfile() {
+  async refreshProfile(session = null) {
     try {
       if (isSupabaseConfigured) {
+        const liveSession = session || await supabaseAuth.getSession()
+        const refreshedExpiresAt = sessionExpiresAtMs(liveSession)
         const profile = await profilesService.getMyProfile()
         if (profile) {
           const current = useAuthStore.getState()
@@ -979,8 +991,9 @@ const authService = {
           const store = useAuthStore.getState()
           store.login?.({
             role: effectiveRole,
-            token: current?.token || null,
-            expiresAt: current?.expiresAt || null,
+            token: liveSession?.access_token || current?.token || null,
+            expiresAt: refreshedExpiresAt || current?.expiresAt || null,
+            skipRehydrate: true,
             user: {
               ...(current?.user || {}),
               id: profile.id,
@@ -1017,6 +1030,7 @@ const authService = {
         role: effectiveRole,
         token: current?.token || null,
         expiresAt: current?.expiresAt || null,
+        skipRehydrate: true,
         user: {
           ...(current?.user || {}),
           id: user.id,
@@ -1027,7 +1041,13 @@ const authService = {
         tenant: current?.tenant || null,
       })
       return user
-    } catch {
+    } catch (err) {
+      try {
+        const { reportSyncError } = await import('../store/syncStatusStore')
+        reportSyncError(err?.message || 'Could not refresh profile', 'profile')
+      } catch {
+        /* ignore */
+      }
       return null
     }
   },
@@ -1082,8 +1102,17 @@ const authService = {
     if (isSupabaseConfigured) {
       const { data } = supabaseAuth.onAuthStateChange((event, session) => {
         callback(session?.user || null)
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          const expiresAt = sessionExpiresAtMs(session)
+          if (expiresAt) {
+            useAuthStore.getState().touchSession({
+              token: session?.access_token || null,
+              expiresAt,
+            })
+          }
+        }
         if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-          authService.refreshProfile().catch(() => {})
+          authService.refreshProfile(session).catch(() => {})
         }
       })
       return data.subscription?.unsubscribe || (() => {})
@@ -1104,7 +1133,11 @@ const authService = {
       const state = useAuthStore.getState()
       if (!state.isAuthenticated || !state.user) {
         try {
-          const data = await authApi.refresh()
+          const data = await withTimeout(
+            authApi.refresh(),
+            AUTH_TIMEOUT_MS,
+            'Session restore timed out.'
+          )
           if (data?.user) {
             storeSession(data)
             return data
@@ -1114,7 +1147,11 @@ const authService = {
         }
       } else if (state.expiresAt && Date.now() > state.expiresAt) {
         try {
-          const data = await authApi.refresh()
+          const data = await withTimeout(
+            authApi.refresh(),
+            AUTH_TIMEOUT_MS,
+            'Session restore timed out.'
+          )
           if (data?.user) {
             storeSession(data)
             return data
@@ -1134,19 +1171,43 @@ const authService = {
       return null
     }
     try {
-      const session = await supabaseAuth.getSession()
+      const session = await withTimeout(
+        supabaseAuth.getSession(),
+        AUTH_TIMEOUT_MS,
+        'Session restore timed out. Please refresh or sign in again.'
+      )
       if (session?.user) {
-        const rawProfile = await profilesService.getMyProfile()
-        const profile = await syncProfileFromRegistrationMetadata(session.user, rawProfile)
-        await storeSupabaseSession(session, profile)
-        await useIndustrySubscriptionStore.getState().loadActiveSubscriptions(session.user.id)
-        return { session, profile }
+        try {
+          const rawProfile = await withTimeout(
+            profilesService.getMyProfile(),
+            AUTH_TIMEOUT_MS,
+            'Session restore timed out while loading your profile.'
+          )
+          const profile = await withTimeout(
+            syncProfileFromRegistrationMetadata(session.user, rawProfile),
+            AUTH_TIMEOUT_MS,
+            'Session restore timed out while finalizing your account.'
+          )
+          await storeSupabaseSession(session, profile)
+          await useIndustrySubscriptionStore.getState().loadActiveSubscriptions(session.user.id)
+          return { session, profile }
+        } catch {
+          const existing = useAuthStore.getState()
+          if (existing.isAuthenticated && existing.user?.id === session.user.id) {
+            return { session, timedOut: true }
+          }
+          await storeSupabaseSession(session, null)
+          return { session, profile: null, timedOut: true }
+        }
       }
-    } catch {
-      // Silent — no session to restore
+    } catch (err) {
+      const timedOut = /timed out/i.test(String(err?.message || ''))
+      if (timedOut && useAuthStore.getState().isAuthenticated) {
+        return { timedOut: true }
+      }
     }
 
-    // No valid Supabase session — clear any stale auth state
+    // Confirmed no Supabase session — clear stale auth state
     if (useAuthStore.getState().isAuthenticated) {
       useAuthStore.getState().logout()
     }

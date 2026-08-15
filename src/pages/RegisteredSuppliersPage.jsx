@@ -12,6 +12,7 @@ import { downloadCsv, exportExcel, exportPdf } from '../utils/registeredSupplier
 import { parseRegisteredSuppliersCsv, mapRowToPayload } from '../utils/registeredSuppliersCsv'
 import { parseDirectorySpreadsheetRows } from '../utils/directorySpreadsheetImport'
 import { buildRfqOrQuoteMailto } from '../utils/directoryRfqMailto'
+import { useVirtualWindow } from '../components/VirtualTableBody'
 import '../styles/app-page.css'
 import './PlatformDirectoryPage.css'
 
@@ -192,6 +193,8 @@ export default function RegisteredSuppliersPage() {
       return String(a.company_name || '').localeCompare(String(b.company_name || ''), undefined, { sensitivity: 'base' })
     })
   }, [filtered])
+
+  const virt = useVirtualWindow(sorted)
 
   const canEdit = isSupabaseConfigured
 
@@ -555,7 +558,11 @@ export default function RegisteredSuppliersPage() {
                 : 'No contacts match the current filters.'}
             </div>
           ) : (
-            <div className="buyer-dir-table-wrap">
+            <div
+              className="buyer-dir-table-wrap"
+              onScroll={virt.onScroll}
+              style={virt.enabled ? { maxHeight: virt.height, overflow: 'auto' } : undefined}
+            >
               <table className={`buyer-dir-table ${canEdit ? '' : 'buyer-dir-table--no-actions'}`}>
                 <colgroup>
                   <col className="buyer-dir-col--seg" />
@@ -589,7 +596,10 @@ export default function RegisteredSuppliersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((r) => {
+                  {virt.topPad > 0 ? (
+                    <tr aria-hidden="true"><td colSpan={20} style={{ height: virt.topPad, padding: 0, border: 'none' }} /></tr>
+                  ) : null}
+                  {virt.items.map((r) => {
                     const rfqHref = buildRfqOrQuoteMailto(r)
                     const webHref = r.website && /^https?:\/\//i.test(r.website) ? r.website : r.website ? `https://${r.website}` : ''
                     const docCount = normalizePresentationFiles(r).length
@@ -676,6 +686,9 @@ export default function RegisteredSuppliersPage() {
                       </tr>
                     )
                   })}
+                  {virt.bottomPad > 0 ? (
+                    <tr aria-hidden="true"><td colSpan={20} style={{ height: virt.bottomPad, padding: 0, border: 'none' }} /></tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>

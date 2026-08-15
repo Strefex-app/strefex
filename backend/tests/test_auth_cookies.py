@@ -76,6 +76,21 @@ async def test_logout_clears_cookies(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(client: AsyncClient):
+    """Logout invalidates the refresh JWT even if the cookie is replayed."""
+    await register_company_user(client, company_name=f"Revoke Co {uuid.uuid4().hex[:6]}")
+    refresh_val = client.cookies.get(REFRESH_COOKIE)
+    assert refresh_val
+
+    logout_resp = await client.post("/api/v1/auth/logout")
+    assert logout_resp.status_code == 204
+
+    client.cookies.set(REFRESH_COOKIE, refresh_val)
+    refresh_resp = await client.post("/api/v1/auth/refresh")
+    assert refresh_resp.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_refresh_token_rejected_for_api_access(client: AsyncClient):
     """Refresh JWT cannot be used as a Bearer access token."""
     await register_company_user(client, company_name=f"Type Co {uuid.uuid4().hex[:6]}")

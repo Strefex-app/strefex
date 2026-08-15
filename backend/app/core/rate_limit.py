@@ -47,6 +47,7 @@ async def check_auth_rate_limit(request: Request, action: str) -> None:
         "login": (30, 60),
         "register": (10, 3600),
         "verify_resend": (3, 3600),
+        "refresh": (30, 60),
     }
     max_calls, window = limits.get(action, (20, 60))
     await check_rate_limit(f"auth:{action}:{ip}", max_calls=max_calls, window_seconds=window)

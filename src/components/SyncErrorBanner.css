@@ -1,0 +1,33 @@
+.sync-error-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light, rgba(15, 23, 42, 0.12));
+  background: var(--bg-card, #fff);
+  color: var(--color-primary);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.sync-error-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sync-error-banner__btn {
+  appearance: none;
+  border: 1px solid var(--border-light, rgba(15, 23, 42, 0.12));
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--text-caption);
+  font-weight: var(--font-medium);
+  padding: 6px 12px;
+  cursor: pointer;
+}

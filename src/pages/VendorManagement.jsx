@@ -50,7 +50,7 @@ export default function VendorManagement() {
   const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
 
   const vendors = useVendorStore((s) => s.vendors)
-  const stats = useVendorStore((s) => s.getVendorStats)()
+  const stats = useMemo(() => useVendorStore.getState().getVendorStats(), [vendors])
   const addVendor = useVendorStore((s) => s.addVendor)
   const approveVendor = useVendorStore((s) => s.approveVendor)
   const blockVendor = useVendorStore((s) => s.blockVendor)

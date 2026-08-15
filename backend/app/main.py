@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import api_router
@@ -11,7 +11,8 @@ from app.config import get_settings
 from app.core.exceptions import http_exception_handler
 from app.core.auth_cookies import read_access_cookie
 from app.core.security import decode_token
-from app.database import init_db
+from app.database import engine
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 settings = get_settings()
@@ -42,8 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Startup: optional DB init (use Alembic in production)."""
     # await init_db()  # Uncomment to create tables on startup; prefer Alembic
     yield
-    # Shutdown: close pools etc. if needed
-    pass
+    await engine.dispose()
 
 
 app = FastAPI(
@@ -58,14 +58,15 @@ app = FastAPI(
 
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_origin_regex=r"https://.*\.(bubble\.io|flutterflow\.io)$",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_cors_kwargs = {
+    "allow_origins": settings.cors_origins,
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+if settings.debug:
+    _cors_kwargs["allow_origin_regex"] = r"https://.*\.(bubble\.io|flutterflow\.io)$"
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 
 @app.middleware("http")
@@ -113,4 +114,16 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health():
+    """Liveness: process is up. Does not touch the database."""
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Readiness: database accepts connections."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        raise HTTPException(status_code=503, detail="database unavailable")
     return {"status": "ok"}

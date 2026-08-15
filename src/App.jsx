@@ -263,6 +263,7 @@ function PlanGate({ feature, planName, children, requiredRole }) {
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const tenantReady = useAuthStore((state) => state.tenantReady)
   const startRequestRefresh = useServiceRequestStore((s) => s.startRefreshSequence)
   const stopRequestRefresh = useServiceRequestStore((s) => s.stopRefreshSequence)
   const theme = useSettingsStore((s) => s.theme)
@@ -281,15 +282,32 @@ function App() {
   }, []);
 
   useEffect(() => {
-    authService.initSession().finally(() => setSessionChecked(true))
+    let finished = false
+    let sessionReady = false
+    const finish = () => {
+      if (finished) return
+      finished = true
+      sessionReady = true
+      setSessionChecked(true)
+    }
+    const timer = window.setTimeout(finish, 12000)
+    authService.initSession().finally(() => {
+      window.clearTimeout(timer)
+      finish()
+    })
 
     // Listen for server-side session changes (sign-out from other tab, token revoked)
     const unsub = authService.onAuthStateChange((user) => {
+      if (!sessionReady) return
       if (!user && useAuthStore.getState().isAuthenticated) {
         useAuthStore.getState().logout()
       }
     })
-    return unsub
+    return () => {
+      window.clearTimeout(timer)
+      finish()
+      unsub?.()
+    }
   }, [])
 
   useEffect(() => {
@@ -305,11 +323,19 @@ function App() {
     return undefined
   }, [isAuthenticated, sessionChecked, startRequestRefresh, stopRequestRefresh])
 
+  useEffect(() => {
+    if (!isAuthenticated || tenantReady) return undefined
+    const timer = window.setTimeout(() => {
+      useAuthStore.getState().markTenantReady()
+    }, 12000)
+    return () => window.clearTimeout(timer)
+  }, [isAuthenticated, tenantReady])
+
   const showPushPrompt = isAuthenticated && shouldOfferPwaNotificationPrompt()
 
   // While verifying the session, show a minimal loading screen
   // to prevent flash of login page or unauthorized protected content
-  if (!sessionChecked) {
+  if (!sessionChecked || (isAuthenticated && !tenantReady)) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -322,7 +348,7 @@ function App() {
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0 }}>Loading…</p>
+          <p className="stx-text-small" style={{ color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
         </div>
       </div>
     )

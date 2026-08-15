@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useProjectStore } from '../store/projectStore'
@@ -60,8 +60,16 @@ const IndustryHub = () => {
 
   // Get stats from stores
   const projects = useProjectStore((state) => state.projects)
-  const { getRfqStats } = useRfqStore()
-  const rfqStats = getRfqStats(industryId)
+  const rfqs = useRfqStore((s) => s.rfqs)
+  const rfqStats = useMemo(() => {
+    const list = industryId
+      ? (Array.isArray(rfqs) ? rfqs : []).filter((rfq) => rfq.industryId === industryId)
+      : (Array.isArray(rfqs) ? rfqs : [])
+    return {
+      sent: list.filter((r) => r.status === 'sent' || r.status === 'active').length,
+      active: list.filter((r) => r.status === 'active').length,
+    }
+  }, [rfqs, industryId])
 
   const projectsTotal = projects?.length ?? 0
   const projectsInProgress = projects?.reduce((acc, p) => {

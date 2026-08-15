@@ -15,6 +15,14 @@ async def test_health_endpoint(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_health_ready_endpoint(client: AsyncClient):
+    """Readiness probe should return 200 when the database is up."""
+    response = await client.get("/health/ready")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.asyncio
 async def test_list_plans(client: AsyncClient):
     """GET /api/v1/billing/plans should return 4 plans."""
     response = await client.get("/api/v1/billing/plans")

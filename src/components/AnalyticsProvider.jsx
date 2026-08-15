@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { analytics } from '../services/analytics'
-import stripeService from '../services/stripeService'
+import { syncSubscriptionFromSupabase } from '../services/stripeService'
 import { setSentryUser, setSentryContext } from '../config/sentry'
 
 export default function AnalyticsProvider({ children }) {
@@ -33,12 +33,11 @@ export default function AnalyticsProvider({ children }) {
     if (!isAuthenticated) return undefined
     let cancelled = false
     const run = () => {
-      stripeService
-        .getSubscription()
+      syncSubscriptionFromSupabase()
         .then((sub) => {
           if (cancelled) return
           if (sub?.plan_id) {
-            setPlan(sub.plan_id, sub.status || 'active', sub.trial_ends_at || null)
+            setPlan(sub.plan_id, sub.status || 'active', sub.trial_ends_at || sub.current_period_end || null)
           }
         })
         .catch(() => {})

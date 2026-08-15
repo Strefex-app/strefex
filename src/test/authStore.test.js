@@ -98,4 +98,55 @@ describe('Auth Store', () => {
     useAuthStore.getState().login({ token: 'tok', expiresAt: Date.now() - 1000 })
     expect(useAuthStore.getState().isTokenValid()).toBe(false)
   })
+
+  it('logout drops server feature grants so the next session cannot reuse them', async () => {
+    const { saveFeatureGrants, setServerFeatureGrants, userHasActiveFeatureGrant } = await import('../utils/featureGrants')
+    saveFeatureGrants([
+      { featureKey: 'auditProProgram', email: 'user@company.com', status: 'active' },
+    ])
+    setServerFeatureGrants([
+      { featureKey: 'auditProProgram', email: 'user@company.com', status: 'active' },
+    ])
+    useAuthStore.getState().login({
+      role: 'user',
+      token: 'tok',
+      user: { email: 'user@company.com' },
+    })
+    useAuthStore.getState().logout()
+    expect(userHasActiveFeatureGrant('auditProProgram', 'user@company.com', '1')).toBe(false)
+  })
+
+  it('touchSession updates expiry without clearing the user', () => {
+    useAuthStore.getState().login({
+      role: 'user',
+      token: 'old-tok',
+      expiresAt: Date.now() + 1000,
+      user: { id: '1', email: 'u@test.com', fullName: 'U', role: 'user' },
+    })
+    const nextExpiry = Date.now() + 3600000
+    useAuthStore.getState().touchSession({ token: 'new-tok', expiresAt: nextExpiry })
+    const store = useAuthStore.getState()
+    expect(store.isAuthenticated).toBe(true)
+    expect(store.token).toBe('new-tok')
+    expect(store.expiresAt).toBe(nextExpiry)
+    expect(store.user.email).toBe('u@test.com')
+  })
+
+  it('gates tenantReady until a tenant change rehydrates', () => {
+    useAuthStore.getState().login({
+      role: 'user',
+      token: 'tok',
+      tenant: { id: 't1', name: 'A', slug: 'a' },
+    })
+    expect(useAuthStore.getState().tenantReady).toBe(false)
+    useAuthStore.getState().markTenantReady()
+    expect(useAuthStore.getState().tenantReady).toBe(true)
+    useAuthStore.getState().login({
+      role: 'user',
+      token: 'tok',
+      tenant: { id: 't1', name: 'A', slug: 'a' },
+      skipRehydrate: true,
+    })
+    expect(useAuthStore.getState().tenantReady).toBe(true)
+  })
 })

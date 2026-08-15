@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { AUTH_USE_COOKIES } from '../config/authCookies'
 import { isSuperadminEmail } from '../services/superadminAuth'
+import { setServerFeatureGrants } from '../utils/featureGrants'
 import {
   scheduleRehydrateTenantStores,
   stopWorkspaceCloudSyncOnLogout,
@@ -69,23 +70,50 @@ export const useAuthStore = create((set, get) => ({
 
   /** `live` = Supabase/backend session; `demo` = isolated presentation sandbox. */
   sessionMode: stored?.sessionMode ?? 'live',
+  tenantReady: true,
 
   /**
    * Login — stores the full session, then rehydrates all tenant-scoped stores
    * so that the new user's data (not the previous user's) is loaded.
    * @param {{ role, token, expiresAt, user?, tenant?, sessionMode? }} session
    */
-  login: ({ role = 'user', token = null, expiresAt = null, user = null, tenant = null, sessionMode = 'live' } = {}) => {
+  login: ({ role = 'user', token = null, expiresAt = null, user = null, tenant = null, sessionMode = 'live', skipRehydrate = false } = {}) => {
     // Final enforcement: superadmin role requires verified STREFEX email
     let safeRole = role
     if (safeRole === 'superadmin' && !isSuperadminEmail(user?.email)) {
       safeRole = 'admin'
     }
     const safeToken = AUTH_USE_COOKIES ? null : token
-    const next = { isAuthenticated: true, role: safeRole, token: safeToken, expiresAt, user, tenant, sessionMode }
+    const prev = get()
+    const tenantChanged =
+      !skipRehydrate &&
+      (!prev.isAuthenticated || String(prev.tenant?.id || '') !== String(tenant?.id || ''))
+    const next = {
+      isAuthenticated: true,
+      role: safeRole,
+      token: safeToken,
+      expiresAt,
+      user,
+      tenant,
+      sessionMode,
+      tenantReady: tenantChanged ? false : prev.tenantReady,
+    }
     persist(next)
     set(next)
-    scheduleRehydrateTenantStores(get)
+    if (tenantChanged) scheduleRehydrateTenantStores(get)
+  },
+
+  /** Overwrite role from a server-verified profile without a full rehydrate. */
+  applyVerifiedRole: (role) => {
+    const state = get()
+    if (!state.isAuthenticated) return
+    let safeRole = role || 'user'
+    if (safeRole === 'superadmin' && !isSuperadminEmail(state.user?.email)) {
+      safeRole = 'admin'
+    }
+    const next = { ...state, role: safeRole }
+    persist(next)
+    set({ role: safeRole })
   },
 
   /** Update user profile without re-authenticating. */
@@ -104,9 +132,24 @@ export const useAuthStore = create((set, get) => ({
     set({ tenant })
   },
 
+  /**
+   * Refresh token/expiry without rehydrating tenant stores.
+   * Used when Supabase auto-refreshes the session.
+   */
+  touchSession: ({ token, expiresAt } = {}) => {
+    const state = get()
+    if (!state.isAuthenticated) return
+    const nextToken = AUTH_USE_COOKIES ? null : (token === undefined ? state.token : token)
+    const nextExpiresAt = expiresAt === undefined ? state.expiresAt : expiresAt
+    const next = { ...state, token: nextToken, expiresAt: nextExpiresAt }
+    persist(next)
+    set({ token: nextToken, expiresAt: nextExpiresAt })
+  },
+
   /** Logout — clears session and rehydrates stores to 'guest' (empty) state. */
   logout: () => {
     stopWorkspaceCloudSyncOnLogout()
+    setServerFeatureGrants([])
     import('../config/demoAccount')
       .then((m) => m.revokeDemoAccessSession())
       .catch(() => {})
@@ -119,11 +162,14 @@ export const useAuthStore = create((set, get) => ({
       user: null,
       tenant: null,
       sessionMode: 'live',
+      tenantReady: true,
     })
     // Rehydrate all stores — now tenantId becomes 'guest', so the stores
     // will load empty/default data instead of the previous user's data.
     scheduleRehydrateTenantStores(get)
   },
+
+  markTenantReady: () => set({ tenantReady: true }),
 
   /* ── convenience helpers ───────────────────────────────── */
   isDemoSession: () => get().sessionMode === 'demo',

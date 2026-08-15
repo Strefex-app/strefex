@@ -9,13 +9,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "capacity": "node scripts/capacity-check.mjs",
     "quality": "npm test && npm run lint:ci && npm run build && npm run audit:ci",
     "lint:ci": "node scripts/lint-ci.mjs",
     "audit:ci": "node scripts/npm-audit-ci.mjs",
     "generate-icons": "node scripts/generate-icons.mjs"
   },
   "overrides": {
-    "ws": "^8.18.2"
+    "ws": "^8.18.2",
+    "brace-expansion": "1.1.18"
   },
   "dependencies": {
     "@sentry/react": "^10.38.0",
@@ -24,6 +26,7 @@
     "@supabase/supabase-js": "^2.97.0",
     "countries-list": "^3.3.0",
     "d3-geo": "^2.0.2",
+    "exceljs": "^4.4.0",
     "firebase": "^12.9.0",
     "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
@@ -38,7 +41,6 @@
     "stripe": "^20.4.0",
     "tesseract.js": "^7.0.0",
     "tesseract.js-core": "^7.0.0",
-    "xlsx": "^0.18.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

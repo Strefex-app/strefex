@@ -4,6 +4,7 @@ from typing import Any, Sequence
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.models.asset import Asset
 
@@ -78,6 +79,7 @@ class AssetRepository:
     ) -> Sequence[Asset]:
         stmt = (
             self._list_filters(company_id, project_id, status, asset_type, search)
+            .options(noload(Asset.audits))
             .order_by(Asset.created_at.desc())
             .offset(skip)
             .limit(limit)

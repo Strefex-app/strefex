@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import Icon from './Icon'
+import NavIcon from './NavIcon'
 import { useAuthStore } from '../store/authStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useSubscriptionStore } from '../services/featureFlags'
@@ -70,7 +70,7 @@ const BottomNav = () => {
             onClick={() => handleNavClick(item.path)}
           >
             <div className="bottom-nav-icon">
-              <Icon name={item.icon} size={24} />
+              <NavIcon name={item.icon} size={24} />
               {item.id === 'notifications' && unreadCount > 0 && (
                 <span className="bottom-nav-notif-badge">+{unreadCount > 99 ? '99' : unreadCount}</span>
               )}

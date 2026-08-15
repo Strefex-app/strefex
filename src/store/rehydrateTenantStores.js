@@ -149,9 +149,19 @@ export function scheduleRehydrateTenantStores(getAuthState) {
     }
 
     try {
+      const { useAuthStore } = await import('./authStore')
+      useAuthStore.getState().markTenantReady?.()
+    } catch {
+      /* ignore */
+    }
+
+    try {
       const m = await import('../services/workspaceCloudSync')
-      if (getAuthState()?.sessionMode === 'demo') return
-      await m.bootstrapWorkspaceCloudSync()
+      if (getAuthState()?.sessionMode === 'demo') {
+        /* demo stays local */
+      } else {
+        await m.bootstrapWorkspaceCloudSync()
+      }
     } catch (err) {
       devWarn('workspace cloud sync bootstrap skipped', err)
     }

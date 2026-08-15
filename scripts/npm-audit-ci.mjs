@@ -2,10 +2,14 @@
 /**
  * CI npm audit — fail on high/critical except known unfixable advisories.
  * Usage: node scripts/npm-audit-ci.mjs
+ *
+ * `xlsx` was replaced with exceljs. Do not re-allowlist spreadsheet parsers.
+ * Remaining highs (firebase/jspdf/vite/d3/pptxgenjs) are pre-existing and
+ * must be fixed or explicitly allowlisted with a tracked reason.
  */
 import { execSync } from 'node:child_process'
 
-const ALLOWLIST = new Set(['xlsx'])
+const ALLOWLIST = new Set([])
 
 let report
 try {

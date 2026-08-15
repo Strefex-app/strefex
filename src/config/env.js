@@ -37,6 +37,7 @@ const env = {
 
   /* ── General ──────────────────────────────────────────── */
   IS_DEV: import.meta.env.DEV,
+  IS_PROD: import.meta.env.PROD,
   /* ── Presentation demo (local sandbox — requires access code) ── */
   VITE_DEMO_ACCESS_CODE: import.meta.env.VITE_DEMO_ACCESS_CODE || '',
   VITE_DEMO_LOGIN_ENABLED: import.meta.env.VITE_DEMO_LOGIN_ENABLED ?? 'true',

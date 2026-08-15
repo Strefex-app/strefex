@@ -37,7 +37,7 @@ class Asset(Base, UUIDMixin, TimestampMixin):
 
     company: Mapped["Company"] = relationship("Company", back_populates="assets", lazy="selectin")
     project: Mapped["Project | None"] = relationship("Project", back_populates="assets", lazy="selectin")
-    audits: Mapped[list["Audit"]] = relationship("Audit", back_populates="asset", lazy="selectin")
+    audits: Mapped[list["Audit"]] = relationship("Audit", back_populates="asset", lazy="noload")
 
     def __repr__(self) -> str:
         return f"<Asset {self.name}>"

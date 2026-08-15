@@ -6,14 +6,21 @@
  */
 
 const DEFAULT_SUPERADMIN_EMAIL = 'strefex@strfgroup.ru'
-const SUPERADMIN_EMAIL = (import.meta.env.VITE_SA_EMAIL || DEFAULT_SUPERADMIN_EMAIL).trim().toLowerCase()
+
+export function configuredSuperadminEmail(runtimeEnv = import.meta.env) {
+  const fromEnv = String(runtimeEnv?.VITE_SA_EMAIL || '').trim().toLowerCase()
+  if (fromEnv) return fromEnv
+  if (runtimeEnv?.PROD) return ''
+  return DEFAULT_SUPERADMIN_EMAIL
+}
 
 /**
  * Check whether an email address is the registered STREFEX superadmin.
  */
-export function isSuperadminEmail(email) {
-  if (!SUPERADMIN_EMAIL) return false
-  return email?.trim().toLowerCase() === SUPERADMIN_EMAIL
+export function isSuperadminEmail(email, runtimeEnv = import.meta.env) {
+  const configured = configuredSuperadminEmail(runtimeEnv)
+  if (!configured) return false
+  return email?.trim().toLowerCase() === configured
 }
 
 /** @deprecated Use Supabase auth; client must not verify superadmin passwords. */
@@ -25,8 +32,8 @@ export function canAssignSuperadmin(currentRole) {
   return currentRole === 'superadmin'
 }
 
-export function getSuperadminEmail() {
-  return SUPERADMIN_EMAIL
+export function getSuperadminEmail(runtimeEnv = import.meta.env) {
+  return configuredSuperadminEmail(runtimeEnv)
 }
 
 export function changeSuperadminPassword(_currentPassword, _newPassword) {

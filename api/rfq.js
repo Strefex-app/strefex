@@ -5,7 +5,14 @@ import {
   supabaseAdmin,
 } from './_lib/platformApi.js'
 import { resolveApiKeyContext } from './_lib/apiKeyAuth.js'
-import { checkRateLimit } from './_lib/rateLimit.js'
+import { checkSharedRateLimit } from './_lib/rateLimit.js'
+import {
+  authorizeRfqWrite,
+  canEditSupplier,
+  getRfqSupplierLink,
+  isBuyerOfRfq,
+  isPlatformAdminProfile,
+} from './_lib/rfqAccess.js'
 
 async function getProfile(userId) {
   const { data, error } = await supabaseAdmin
@@ -37,12 +44,17 @@ export default async function handler(req, res) {
   if (process.env.ENFORCE_API_KEYS === 'true' && !apiKeyContext) {
     return res.status(401).json({ error: 'Valid API key required' })
   }
-  const limitKey = apiKeyContext?.id || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anon'
-  const rl = checkRateLimit({ key: `rfq:${limitKey}`, windowMs: 60_000, max: 120 })
-  if (!rl.allowed) return res.status(429).json({ error: 'Rate limit exceeded' })
-
   const user = await requireAuthUser(req)
   if (!user) return res.status(401).json({ error: 'Authentication required' })
+  const limitKey = apiKeyContext?.id || user.id || req.headers['x-forwarded-for'] || 'anon'
+  const rl = await checkSharedRateLimit({
+    key: `rfq:${limitKey}`,
+    endpoint: 'rfq',
+    userId: user.id,
+    windowMs: 60_000,
+    max: 120,
+  })
+  if (!rl.allowed) return res.status(429).json({ error: 'Rate limit exceeded' })
 
   try {
     const profile = await getProfile(user.id)
@@ -102,71 +114,77 @@ export default async function handler(req, res) {
       return res.status(200).json({ rfqId: rfq.id })
     }
 
-    if (action === 'respond') {
+    if (action === 'respond' || action === 'status') {
       const rfqId = String(body.rfqId || '').trim()
       const supplierId = String(body.supplierId || '').trim()
-      if (!rfqId || !supplierId) return res.status(400).json({ error: 'rfqId and supplierId are required' })
-
-      const payload = {
-        rfq_id: rfqId,
-        supplier_id: supplierId,
-        price: body.price ?? null,
-        lead_time: body.leadTime ?? null,
-        currency: body.currency || 'USD',
-        warranty_months: body.warrantyMonths ?? null,
-        moq: body.moq ?? null,
-        payment_terms: body.paymentTerms || null,
-        attachment_urls: Array.isArray(body.attachments) ? body.attachments : [],
-        response_fields: body.responseFields && typeof body.responseFields === 'object' ? body.responseFields : {},
-        notes: String(body.notes || '').trim() || null,
+      const status = action === 'status' ? String(body.status || '').trim().toLowerCase() : ''
+      if (!rfqId || !supplierId) {
+        return res.status(400).json({ error: 'rfqId and supplierId are required' })
       }
-      const { error: responseErr } = await supabaseAdmin.from('rfq_responses').upsert(payload, {
-        onConflict: 'rfq_id,supplier_id',
-      })
-      if (responseErr) throw responseErr
+      if (action === 'status') {
+        if (!status) return res.status(400).json({ error: 'rfqId, supplierId and status are required' })
+        if (!['invited', 'viewed', 'responded', 'rejected', 'closed'].includes(status)) {
+          return res.status(400).json({ error: 'Invalid status' })
+        }
+      }
 
-      const { data: linkRows, error: linkReadErr } = await supabaseAdmin
-        .from('rfq_suppliers')
-        .select('id')
-        .eq('rfq_id', rfqId)
-        .eq('supplier_id', supplierId)
-        .limit(1)
-      if (linkReadErr) throw linkReadErr
-      if (linkRows && linkRows[0]) {
+      const link = await getRfqSupplierLink(supabaseAdmin, { rfqId, supplierId })
+      if (!link) return res.status(404).json({ error: 'RFQ supplier link not found' })
+
+      const isAdmin = isPlatformAdminProfile(profile)
+      const isSupplierEditor = isAdmin
+        ? true
+        : await canEditSupplier(supabaseAdmin, { userId: user.id, supplierId })
+      const { isBuyer: isBuyerMember } = isAdmin
+        ? { isBuyer: true }
+        : await isBuyerOfRfq(supabaseAdmin, {
+          userId: user.id,
+          companyId: profile.company_id,
+          rfqId,
+        })
+      const access = authorizeRfqWrite({
+        isAdmin,
+        isSupplierEditor,
+        isBuyerMember,
+        action,
+        status,
+      })
+      if (!access.ok) return res.status(access.status).json({ error: access.error })
+
+      if (action === 'respond') {
+        const payload = {
+          rfq_id: rfqId,
+          supplier_id: supplierId,
+          price: body.price ?? null,
+          lead_time: body.leadTime ?? null,
+          currency: body.currency || 'USD',
+          warranty_months: body.warrantyMonths ?? null,
+          moq: body.moq ?? null,
+          payment_terms: body.paymentTerms || null,
+          attachment_urls: Array.isArray(body.attachments) ? body.attachments : [],
+          response_fields: body.responseFields && typeof body.responseFields === 'object' ? body.responseFields : {},
+          notes: String(body.notes || '').trim() || null,
+        }
+        const { error: responseErr } = await supabaseAdmin.from('rfq_responses').upsert(payload, {
+          onConflict: 'rfq_id,supplier_id',
+        })
+        if (responseErr) throw responseErr
+
         const { error: linkUpdateErr } = await supabaseAdmin
           .from('rfq_suppliers')
           .update({ status: 'responded', responded_at: new Date().toISOString() })
-          .eq('id', linkRows[0].id)
+          .eq('id', link.id)
         if (linkUpdateErr) throw linkUpdateErr
+        return res.status(200).json({ ok: true })
       }
-      return res.status(200).json({ ok: true })
-    }
-
-    if (action === 'status') {
-      const rfqId = String(body.rfqId || '').trim()
-      const supplierId = String(body.supplierId || '').trim()
-      const status = String(body.status || '').trim().toLowerCase()
-      if (!rfqId || !supplierId || !status) return res.status(400).json({ error: 'rfqId, supplierId and status are required' })
-      if (!['invited', 'viewed', 'responded', 'rejected', 'closed'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status' })
-      }
-      const { data: links, error: readErr } = await supabaseAdmin
-        .from('rfq_suppliers')
-        .select('id')
-        .eq('rfq_id', rfqId)
-        .eq('supplier_id', supplierId)
-        .limit(1)
-      if (readErr) throw readErr
-      if (!links || !links[0]) return res.status(404).json({ error: 'RFQ supplier link not found' })
 
       const updates = { status }
       if (status === 'viewed') updates.viewed_at = new Date().toISOString()
       if (status === 'closed') updates.closed_at = new Date().toISOString()
-
       const { error: updateErr } = await supabaseAdmin
         .from('rfq_suppliers')
         .update(updates)
-        .eq('id', links[0].id)
+        .eq('id', link.id)
       if (updateErr) throw updateErr
       return res.status(200).json({ ok: true })
     }

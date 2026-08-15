@@ -35,7 +35,7 @@ export default defineConfig({
             if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf'
             if (id.includes('react-simple-maps') || id.includes('d3-geo')) return 'vendor-maps'
             if (id.includes('@sentry')) return 'vendor-sentry'
-            if (id.includes('/xlsx/')) return 'vendor-xlsx'
+            if (id.includes('/xlsx/') || id.includes('exceljs')) return 'vendor-xlsx'
             if (id.includes('tesseract')) return 'vendor-ocr'
             if (id.includes('heic2any')) return 'vendor-heic'
           }
@@ -53,7 +53,7 @@ export default defineConfig({
 
   /* Optimise dev server dependency pre-bundling */
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'zustand', 'countries-list'],
+    include: ['react', 'react-dom', 'react-router-dom', 'zustand', 'countries-list', 'exceljs'],
   },
 
   test: {

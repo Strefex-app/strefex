@@ -8,6 +8,7 @@ import {
   grantDemoAccessSession,
   isDemoAccessGranted,
   revokeDemoAccessSession,
+  getDemoAccessCode,
 } from '../config/demoAccount'
 import { buildDemoSeedPayload } from '../data/demoAccountSeed'
 
@@ -55,6 +56,13 @@ describe('demoAccount', () => {
   it('verifyDemoAccessCode compares exactly', () => {
     expect(verifyDemoAccessCode(TEST_CODE)).toBe(true)
     expect(verifyDemoAccessCode('nope')).toBe(false)
+  })
+
+  it('never enables demo login in production builds', () => {
+    const prod = { PROD: true, VITE_DEMO_ACCESS_CODE: TEST_CODE, VITE_DEMO_LOGIN_ENABLED: 'true' }
+    expect(isDemoLoginEnabled(prod)).toBe(false)
+    expect(getDemoAccessCode(prod)).toBe('')
+    expect(verifyDemoAccessCode(TEST_CODE, prod)).toBe(false)
   })
 
   it('detects demo session from auth storage', () => {

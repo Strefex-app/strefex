@@ -11,6 +11,7 @@ import {
 import { buildDemoSeedPayload, DEMO_SEED_VERSION } from '../data/demoAccountSeed'
 import { isSupabaseConfigured, supabaseAuth } from './supabaseService'
 import { useAuthStore } from '../store/authStore'
+import { setServerFeatureGrants } from '../utils/featureGrants'
 import { scheduleRehydrateTenantStores, stopWorkspaceCloudSyncOnLogout } from '../store/rehydrateTenantStores'
 import { tenantKey } from '../utils/tenantStorage'
 
@@ -56,6 +57,7 @@ export async function enterDemoAccount(profileKey = 'buyer') {
   const meta = getDemoProfileMeta(profileKey)
   seedDemoWorkspace(profileKey)
 
+  setServerFeatureGrants(null)
   useAuthStore.getState().login({
     role: 'admin',
     token: null,

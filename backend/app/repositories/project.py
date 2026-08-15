@@ -5,6 +5,7 @@ from typing import Sequence
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.models.project import Project
 
@@ -48,6 +49,7 @@ class ProjectRepository:
     ) -> Sequence[Project]:
         stmt = (
             self._list_filters(company_id, status, search)
+            .options(noload(Project.assets), noload(Project.audits), noload(Project.rfqs))
             .order_by(Project.created_at.desc())
             .offset(skip)
             .limit(limit)

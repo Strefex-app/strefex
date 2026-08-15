@@ -70,7 +70,8 @@ const ExecutiveSummary = () => {
     : null
   const categoryLabel = categoryObj ? categoryObj.name : categoryId || ''
   
-  const { getRfqsByIndustry, getRfqStats, addRfq, sendRfq, addAttachment, removeAttachment } = useRfqStore()
+  const { getRfqsByIndustry, addRfq, sendRfq, addAttachment, removeAttachment } = useRfqStore()
+  const storeRfqs = useRfqStore((s) => s.rfqs)
   
   // State
   const [selectedSupplier, setSelectedSupplier] = useState(null)
@@ -302,8 +303,18 @@ const ExecutiveSummary = () => {
     }))
   }, [registeredServiceProviders])
   const categories = allCategories
-  const rfqs = useMemo(() => getRfqsByIndustry(industryId), [industryId, getRfqsByIndustry])
-  const rfqStats = useMemo(() => getRfqStats(industryId), [industryId, getRfqStats])
+  const rfqs = useMemo(() => getRfqsByIndustry(industryId), [industryId, getRfqsByIndustry, storeRfqs])
+  const rfqStats = useMemo(() => {
+    const list = Array.isArray(rfqs) ? rfqs : []
+    return {
+      total: list.length,
+      sent: list.filter((r) => r.status === 'sent' || r.status === 'active').length,
+      active: list.filter((r) => r.status === 'active').length,
+      draft: list.filter((r) => r.status === 'draft').length,
+      completed: list.filter((r) => r.status === 'completed').length,
+      responses: list.reduce((sum, r) => sum + (r.responses || 0), 0),
+    }
+  }, [rfqs])
   
   // Matched suppliers for new RFQ
   const matchedSuppliers = useMemo(() => {

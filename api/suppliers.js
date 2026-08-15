@@ -1,6 +1,12 @@
-import { assertAllowedOrigin, setApiHeaders, supabaseAdmin } from './_lib/platformApi.js'
+import {
+  assertAllowedOrigin,
+  requireAuthUser,
+  setApiHeaders,
+  supabaseAdmin,
+  supabaseForRequest,
+} from './_lib/platformApi.js'
 import { resolveApiKeyContext } from './_lib/apiKeyAuth.js'
-import { checkRateLimit } from './_lib/rateLimit.js'
+import { checkSharedRateLimit } from './_lib/rateLimit.js'
 
 function toInt(value, fallback) {
   const parsed = Number(value)
@@ -13,13 +19,24 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
   if (!assertAllowedOrigin(req)) return res.status(403).json({ error: 'Origin is not allowed' })
-  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase is not configured' })
+
   const apiKeyContext = await resolveApiKeyContext(req)
-  if (process.env.ENFORCE_API_KEYS === 'true' && !apiKeyContext) {
-    return res.status(401).json({ error: 'Valid API key required' })
+  const user = await requireAuthUser(req)
+  if (!user && !apiKeyContext) {
+    return res.status(401).json({ error: 'Authentication required' })
   }
-  const limitKey = apiKeyContext?.id || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anon'
-  const rl = checkRateLimit({ key: `suppliers:${limitKey}`, windowMs: 60_000, max: 240 })
+
+  const db = user ? supabaseForRequest(req) : supabaseAdmin
+  if (!db) return res.status(500).json({ error: 'Supabase is not configured' })
+
+  const limitKey = apiKeyContext?.id || user?.id || req.headers['x-forwarded-for'] || 'anon'
+  const rl = await checkSharedRateLimit({
+    key: `suppliers:${limitKey}`,
+    endpoint: 'suppliers_search',
+    userId: user?.id || null,
+    windowMs: 60_000,
+    max: 240,
+  })
   if (!rl.allowed) return res.status(429).json({ error: 'Rate limit exceeded' })
 
   try {
@@ -40,7 +57,7 @@ export default async function handler(req, res) {
     const pageN = Math.max(1, toInt(page, 1))
     const offset = (pageN - 1) * limit
 
-    const { data, error } = await supabaseAdmin.rpc('search_suppliers', {
+    const { data, error } = await db.rpc('search_suppliers', {
       p_query: String(q || '') || null,
       p_country: String(country || '') || null,
       p_industry: String(industry || '') || null,

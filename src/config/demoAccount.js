@@ -39,19 +39,21 @@ export const DEMO_SEED_VERSION = '2026-05-20-v1'
 
 const MIN_ACCESS_CODE_LENGTH = 8
 
-/** Secret from deployment env — never commit the real value. */
-export function getDemoAccessCode() {
-  return String(import.meta.env.VITE_DEMO_ACCESS_CODE || '').trim()
+/** Secret from deployment env — never committed. Stripped from production builds. */
+export function getDemoAccessCode(env = import.meta.env) {
+  if (env.PROD) return ''
+  return String(env.VITE_DEMO_ACCESS_CODE || '').trim()
 }
 
-/** Demo UI/logins only when an access code is configured server-side. */
-export function isDemoLoginEnabled() {
-  if (import.meta.env.VITE_DEMO_LOGIN_ENABLED === 'false') return false
-  return getDemoAccessCode().length >= MIN_ACCESS_CODE_LENGTH
+/** Demo UI/logins only in non-production, when an access code is configured. */
+export function isDemoLoginEnabled(env = import.meta.env) {
+  if (env.PROD) return false
+  if (env.VITE_DEMO_LOGIN_ENABLED === 'false') return false
+  return getDemoAccessCode(env).length >= MIN_ACCESS_CODE_LENGTH
 }
 
-export function verifyDemoAccessCode(code) {
-  const expected = getDemoAccessCode()
+export function verifyDemoAccessCode(code, env = import.meta.env) {
+  const expected = getDemoAccessCode(env)
   if (!expected) return false
   return String(code || '').trim() === expected
 }

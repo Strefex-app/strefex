@@ -8,7 +8,12 @@
  */
 import env from '../config/env'
 import { AUTH_USE_COOKIES } from '../config/authCookies'
+import { isSupabaseConfigured } from '../config/supabase'
 import { useAuthStore } from '../store/authStore'
+
+const REQUEST_TIMEOUT_MS = 30_000
+const GET_CACHE_TTL_MS = 15_000
+const getCache = new Map()
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -31,6 +36,33 @@ function handleUnauthorized() {
   if (typeof window !== 'undefined') {
     window.location.href = '/login'
   }
+}
+
+function shouldLogoutOn401(path, method, opts = {}) {
+  if (opts.skipLogoutOn401) return false
+  const p = String(path || '')
+  const m = String(method || 'GET').toUpperCase()
+  if (p.startsWith('/billing/') && m === 'GET') return false
+  if (isSupabaseConfigured && !p.startsWith('/auth/')) return false
+  return true
+}
+
+function invalidateGetCache() {
+  getCache.clear()
+}
+
+function readGetCache(key) {
+  const hit = getCache.get(key)
+  if (!hit) return undefined
+  if (Date.now() - hit.at > GET_CACHE_TTL_MS) {
+    getCache.delete(key)
+    return undefined
+  }
+  return hit.data
+}
+
+function writeGetCache(key, data) {
+  getCache.set(key, { at: Date.now(), data })
 }
 
 let refreshInFlight = null
@@ -56,7 +88,22 @@ async function refreshCookieSession() {
  * @param {object} opts   – fetch options + { skipAuth, raw }
  */
 async function request(path, opts = {}) {
-  const { skipAuth = false, raw = false, _retried = false, ...fetchOpts } = opts
+  const {
+    skipAuth = false,
+    raw = false,
+    _retried = false,
+    skipLogoutOn401 = false,
+    skipCache = false,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    ...fetchOpts
+  } = opts
+
+  const method = String(fetchOpts.method || 'GET').toUpperCase()
+  const cacheKey = `${method}:${path}`
+  if (method === 'GET' && !skipCache && !raw) {
+    const cached = readGetCache(cacheKey)
+    if (cached !== undefined) return cached
+  }
 
   const headers = {
     'Content-Type': 'application/json',
@@ -76,12 +123,28 @@ async function request(path, opts = {}) {
 
   const url = `${env.API_BASE_URL}${path}`
   const credentials = AUTH_USE_COOKIES ? 'include' : 'same-origin'
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   let response
   try {
-    response = await fetch(url, { ...fetchOpts, headers, credentials })
+    response = await fetch(url, {
+      ...fetchOpts,
+      headers,
+      credentials,
+      signal: fetchOpts.signal || controller.signal,
+    })
   } catch (err) {
+    clearTimeout(timer)
+    if (err?.name === 'AbortError') {
+      throw new ApiError(0, 'Request timed out')
+    }
+    if (!_retried && method === 'GET' && typeof navigator !== 'undefined' && navigator.onLine !== false) {
+      return request(path, { ...opts, _retried: true })
+    }
     throw new ApiError(0, `Network error: ${err.message}`)
+  } finally {
+    clearTimeout(timer)
   }
 
   if (response.status === 401 && !skipAuth && AUTH_USE_COOKIES && !_retried) {
@@ -92,8 +155,14 @@ async function request(path, opts = {}) {
   }
 
   if (response.status === 401) {
-    handleUnauthorized()
+    if (shouldLogoutOn401(path, method, { skipLogoutOn401 })) {
+      handleUnauthorized()
+    }
     throw new ApiError(401, 'Session expired. Please log in again.')
+  }
+
+  if (method !== 'GET') {
+    invalidateGetCache()
   }
 
   // Handle 204 No Content
@@ -114,6 +183,10 @@ async function request(path, opts = {}) {
 
   if (!response.ok) {
     throw new ApiError(response.status, data?.detail || response.statusText, data)
+  }
+
+  if (method === 'GET' && !skipCache) {
+    writeGetCache(cacheKey, data)
   }
 
   return data
@@ -188,7 +261,7 @@ export const assetsApi = {
 
 export const billingApi = {
   /** Get current subscription status for the tenant. */
-  getSubscription: ()          => api.get('/billing/subscription'),
+  getSubscription: ()          => api.get('/billing/subscription', { skipLogoutOn401: true }),
   /** Create a Stripe Checkout session for a plan upgrade. */
   createCheckout:  (planId)    => api.post('/billing/checkout', { plan_id: planId }),
   /** Open Stripe Customer Portal for managing billing. */
@@ -210,5 +283,5 @@ export const healthApi = {
 }
 
 /* ── Default export ──────────────────────────────────────── */
-export { ApiError }
+export { ApiError, invalidateGetCache }
 export default api

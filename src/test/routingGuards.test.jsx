@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+
+vi.mock('../config/supabase', () => ({
+  isSupabaseConfigured: false,
+  supabase: null,
+}))
+
 import ProtectedRoute from '../components/ProtectedRoute'
 import AccountTypeRoute from '../components/AccountTypeRoute'
 import { useAuthStore } from '../store/authStore'

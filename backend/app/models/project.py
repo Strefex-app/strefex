@@ -44,9 +44,9 @@ class Project(Base, UUIDMixin, TimestampMixin):
         back_populates="projects_created",
         lazy="selectin",
     )
-    assets: Mapped[list["Asset"]] = relationship("Asset", back_populates="project", lazy="selectin")
-    audits: Mapped[list["Audit"]] = relationship("Audit", back_populates="project", lazy="selectin")
-    rfqs: Mapped[list["Rfq"]] = relationship("Rfq", back_populates="project", lazy="selectin")
+    assets: Mapped[list["Asset"]] = relationship("Asset", back_populates="project", lazy="noload")
+    audits: Mapped[list["Audit"]] = relationship("Audit", back_populates="project", lazy="noload")
+    rfqs: Mapped[list["Rfq"]] = relationship("Rfq", back_populates="project", lazy="noload")
 
     def __repr__(self) -> str:
         return f"<Project {self.name}>"

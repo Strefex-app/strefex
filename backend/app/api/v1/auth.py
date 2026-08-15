@@ -51,9 +51,12 @@ def _login_response(
     refresh_token: str,
 ) -> LoginResponse:
     set_auth_cookies(response, access_token, refresh_token)
-    company_slug = company.slug if company else None
+    settings = get_settings()
+    body_token = access_token
+    if settings.auth_use_cookies and not settings.debug:
+        body_token = None
     return LoginResponse(
-        access_token=access_token,
+        access_token=body_token,
         token_type="bearer",
         user=auth_service.user_to_response(user),
         tenant=auth_service.tenant_to_response(company) if company else None,
@@ -88,7 +91,8 @@ async def login(
 
     company = user.company
     company_slug = company.slug if company else None
-    access_token, refresh_token = auth_service.create_tokens_for_user(user, company_slug)
+    access_token, refresh_token, refresh_jti = auth_service.create_tokens_for_user(user, company_slug)
+    await auth_service.persist_refresh_jti(db, user, refresh_jti)
     return _login_response(response, user, company, access_token, refresh_token)
 
 
@@ -159,11 +163,12 @@ async def register(
             tenant=tenant_response,
         )
 
-    access_token, refresh_token = auth_service.create_tokens_for_user(user, company.slug)
+    access_token, refresh_token, refresh_jti = auth_service.create_tokens_for_user(user, company.slug)
+    await auth_service.persist_refresh_jti(db, user, refresh_jti)
     set_auth_cookies(response, access_token, refresh_token)
     return RegisterResponse(
         email_verification_pending=False,
-        access_token=access_token,
+        access_token=access_token if get_settings().debug or not get_settings().auth_use_cookies else None,
         user=user_response,
         tenant=tenant_response,
     )
@@ -176,6 +181,7 @@ async def refresh_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Issue new access + refresh tokens from httpOnly refresh cookie (rotation)."""
+    await check_auth_rate_limit(request, "refresh")
     refresh_token = read_refresh_cookie(request)
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token required")
@@ -193,13 +199,21 @@ async def refresh_session(
 
     company = user.company
     company_slug = company.slug if company else None
-    access_token, new_refresh = auth_service.create_tokens_for_user(user, company_slug)
+    access_token, new_refresh, refresh_jti = auth_service.create_tokens_for_user(user, company_slug)
+    await auth_service.persist_refresh_jti(db, user, refresh_jti)
     return _login_response(response, user, company, access_token, new_refresh)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(response: Response):
-    """Clear httpOnly auth cookies."""
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Clear httpOnly auth cookies and revoke the refresh token."""
+    refresh_token = read_refresh_cookie(request)
+    if refresh_token:
+        await auth_service.revoke_refresh_token(db, refresh_token)
     clear_auth_cookies(response)
     return None
 

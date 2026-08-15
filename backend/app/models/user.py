@@ -47,6 +47,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     email_verification_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     email_verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    refresh_token_jti: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     company: Mapped["Company"] = relationship("Company", back_populates="users", lazy="selectin")
     role: Mapped["Role | None"] = relationship("Role", back_populates="users", lazy="selectin")

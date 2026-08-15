@@ -129,7 +129,10 @@ function getAllowedOrigins(req) {
 
 function assertAllowedOrigin(req) {
   const origin = req.headers.origin
-  if (!origin) return true
+  if (!origin) {
+    const auth = String(req.headers.authorization || '')
+    return auth.startsWith('Bearer ')
+  }
   const allow = getAllowedOrigins(req)
   return allow.has(origin)
 }

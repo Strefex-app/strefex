@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
@@ -47,9 +47,25 @@ export default function Home() {
   const projects = useProjectStore((state) => state.projects)
   const hasRole = useAuthStore((state) => state.hasRole)
   const accountType = useSubscriptionStore((s) => s.accountType)
-  const rfqStats = useRfqStore((s) => s.getRfqStats)()
-  const receivedRfqStats = useRfqStore((s) => s.getReceivedRfqStats)()
-  const serviceRequestStats = useServiceRequestStore((s) => s.getStats)()
+  const rfqs = useRfqStore((s) => s.rfqs)
+  const receivedRfqs = useRfqStore((s) => s.receivedRfqs)
+  const requests = useServiceRequestStore((s) => s.requests)
+  const rfqStats = useMemo(() => {
+    const list = Array.isArray(rfqs) ? rfqs : []
+    return {
+      total: list.length,
+      sent: list.filter((r) => r.status === 'sent' || r.status === 'active').length,
+      active: list.filter((r) => r.status === 'active').length,
+    }
+  }, [rfqs])
+  const receivedRfqStats = useMemo(() => {
+    const list = Array.isArray(receivedRfqs) ? receivedRfqs : []
+    return { total: list.length }
+  }, [receivedRfqs])
+  const serviceRequestStats = useMemo(() => {
+    const list = Array.isArray(requests) ? requests : []
+    return { total: list.length }
+  }, [requests])
   const [expandedAction, setExpandedAction] = useState(null)
 
   const { t } = useTranslation()

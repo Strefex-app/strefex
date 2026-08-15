@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import Icon from './Icon'
+import NavIcon from './NavIcon'
 import './Header.css'
 
 const Header = () => {
@@ -13,10 +13,10 @@ const Header = () => {
         </div>
         <div className="header-actions">
           <div className="header-search stx-click-feedback">
-            <Icon name="search" size={24} />
+            <NavIcon name="search" size={24} />
           </div>
           <div className="header-profile stx-click-feedback" onClick={() => navigate('/profile')}>
-            <Icon name="profile" size={24} />
+            <NavIcon name="profile" size={24} />
           </div>
         </div>
       </div>

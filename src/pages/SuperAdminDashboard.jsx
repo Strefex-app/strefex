@@ -15,6 +15,12 @@ import authService from '../services/authService'
 import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
 import { VISIBILITY_TIER_LABELS } from '../constants/companyProfileDirectory'
 import { loadFeatureGrants, saveFeatureGrants } from '../utils/featureGrants'
+import {
+  deleteFeatureGrant,
+  insertFeatureGrants,
+  listFeatureGrants,
+  updateFeatureGrant,
+} from '../services/featureGrantsService'
 import { mergeRegistrationPreference, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
@@ -487,11 +493,28 @@ export default function SuperAdminDashboard() {
   const [trialFeedback, setTrialFeedback] = useState('')
 
   /* ── Feature grants state ────────────────────────────── */
-  const [featureGrants, setFeatureGrants] = useState(loadFeatureGrants)
+  const [featureGrants, setFeatureGrants] = useState(() =>
+    isSupabaseConfigured ? [] : loadFeatureGrants(),
+  )
   const [grantCompany, setGrantCompany] = useState('')
   const [grantFeatures, setGrantFeatures] = useState([])
   const [grantPeriod, setGrantPeriod] = useState(30)
   const [grantFeedback, setGrantFeedback] = useState('')
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return undefined
+    let cancelled = false
+    listFeatureGrants()
+      .then((rows) => {
+        if (!cancelled) setFeatureGrants(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setGrantFeedback('Could not load feature grants from the server')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const activeGrants = useMemo(() => featureGrants.filter(
     (g) => !g.expiresAt || new Date(g.expiresAt) > new Date()
@@ -593,7 +616,7 @@ export default function SuperAdminDashboard() {
     return GRANTABLE_FEATURES.filter((f) => f.tier > currentTier)
   }, [selectedGrantAccount])
 
-  const handleGrantFeature = useCallback(() => {
+  const handleGrantFeature = useCallback(async () => {
     if (!grantCompany || grantFeatures.length === 0) return
     const acct = normalizedAccounts.find((a) => a.id === grantCompany)
     if (!acct) return
@@ -622,12 +645,23 @@ export default function SuperAdminDashboard() {
       status: 'active',
     }))
 
-    const updated = [...featureGrants, ...newGrants]
+    let persisted = newGrants
+    try {
+      if (isSupabaseConfigured) {
+        persisted = await insertFeatureGrants(newGrants)
+      }
+    } catch {
+      setGrantFeedback('Could not save feature grants to the server')
+      setTimeout(() => setGrantFeedback(''), 4000)
+      return
+    }
+
+    const updated = [...featureGrants, ...persisted]
     setFeatureGrants(updated)
     saveFeatureGrants(updated)
     const targetEmail = String(acct.email || '').trim()
     if (targetEmail) {
-      const labels = newGrants.map((g) => g.featureLabel).join(', ')
+      const labels = persisted.map((g) => g.featureLabel).join(', ')
       useServiceRequestStore.getState().pushGlobalPlatformNotification({
         targetEmail,
         title: 'Management tools unlocked',
@@ -636,30 +670,51 @@ export default function SuperAdminDashboard() {
       })
     }
     setGrantFeatures([])
-    setGrantFeedback(`Granted ${newGrants.length} feature(s) to ${grantListCompanyLabel}`)
+    setGrantFeedback(`Granted ${persisted.length} feature(s) to ${grantListCompanyLabel}`)
     setTimeout(() => setGrantFeedback(''), 4000)
-  }, [grantCompany, grantFeatures, grantPeriod, normalizedAccounts, featureGrants])
+  }, [grantCompany, grantFeatures, grantPeriod, normalizedAccounts, featureGrants, isSupabaseConfigured])
 
-  const handleRevokeGrant = useCallback((grantId) => {
+  const handleRevokeGrant = useCallback(async (grantId) => {
+    try {
+      if (isSupabaseConfigured) {
+        await deleteFeatureGrant(grantId)
+      }
+    } catch {
+      setGrantFeedback('Could not revoke grant on the server')
+      setTimeout(() => setGrantFeedback(''), 3000)
+      return
+    }
     const updated = featureGrants.filter((g) => g.id !== grantId)
     setFeatureGrants(updated)
     saveFeatureGrants(updated)
     setGrantFeedback('Feature grant revoked')
     setTimeout(() => setGrantFeedback(''), 3000)
-  }, [featureGrants])
+  }, [featureGrants, isSupabaseConfigured])
 
-  const handleExtendGrant = useCallback((grantId, extraDays) => {
+  const handleExtendGrant = useCallback(async (grantId, extraDays) => {
+    const current = featureGrants.find((g) => g.id === grantId)
+    if (!current) return
+    const base = current.expiresAt ? new Date(current.expiresAt) : new Date()
+    const newExpiry = new Date(base.getTime() + extraDays * 86400000).toISOString()
+    const nextPeriod = (current.periodDays || 0) + extraDays
+    try {
+      if (isSupabaseConfigured) {
+        await updateFeatureGrant(grantId, { expiresAt: newExpiry, periodDays: nextPeriod })
+      }
+    } catch {
+      setGrantFeedback('Could not extend grant on the server')
+      setTimeout(() => setGrantFeedback(''), 3000)
+      return
+    }
     const updated = featureGrants.map((g) => {
       if (g.id !== grantId) return g
-      const base = g.expiresAt ? new Date(g.expiresAt) : new Date()
-      const newExpiry = new Date(base.getTime() + extraDays * 86400000)
-      return { ...g, expiresAt: newExpiry.toISOString(), periodDays: (g.periodDays || 0) + extraDays }
+      return { ...g, expiresAt: newExpiry, periodDays: nextPeriod }
     })
     setFeatureGrants(updated)
     saveFeatureGrants(updated)
     setGrantFeedback(`Grant extended by ${extraDays} days`)
     setTimeout(() => setGrantFeedback(''), 3000)
-  }, [featureGrants])
+  }, [featureGrants, isSupabaseConfigured])
 
   /* ── RFQ stores ──────────────────────────────────────── */
   const allBuyerRfqs = useRfqStore((s) => s.rfqs)

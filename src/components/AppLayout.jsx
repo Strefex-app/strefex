@@ -7,9 +7,10 @@ import { useTranslation } from '../i18n/useTranslation'
 import { LANGUAGES } from '../i18n/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
-import Icon from './Icon'
+import NavIcon from './NavIcon'
 import GlobalPageBreadcrumb from './shared/GlobalPageBreadcrumb'
 import DemoModeBanner from './DemoModeBanner'
+import SyncErrorBanner from './SyncErrorBanner'
 import './AppLayout.css'
 
 /*
@@ -40,8 +41,8 @@ const SIDEBAR_NAV = [
   { id: 'settings', tKey: 'nav.settings', path: '/settings', icon: 'settings' },
 ]
 
-/* getNavIcon — uses centralised Icon component */
-const getNavIcon = (iconName) => <Icon name={iconName} size={24} />
+/* getNavIcon — chrome glyphs only (NavIcon), not the full page icon map */
+const getNavIcon = (iconName) => <NavIcon name={iconName} size={24} />
 
 export default function AppLayout({ children }) {
   const navigate = useNavigate()
@@ -135,7 +136,7 @@ export default function AppLayout({ children }) {
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
       >
-        <Icon name="menu" size={24} />
+        <NavIcon name="menu" size={24} />
       </button>
 
       {/* Backdrop for mobile */}
@@ -152,7 +153,7 @@ export default function AppLayout({ children }) {
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           >
-            <Icon name="close" size={20} />
+            <NavIcon name="close" size={20} />
           </button>
         </div>
         <nav className="sidebar-nav">
@@ -273,7 +274,7 @@ export default function AppLayout({ children }) {
             </div>
           </div>
           <button type="button" className="sidebar-logout" onClick={handleLogout}>
-            <Icon name="logout" size={20} />
+            <NavIcon name="logout" size={20} />
             <span className="sidebar-logout-label">{t('nav.logout')}</span>
           </button>
         </div>
@@ -281,9 +282,10 @@ export default function AppLayout({ children }) {
       <main className="app-main">
         {/* Preview session countdown banner */}
         {isDemoSession && <DemoModeBanner onExit={handleLogout} />}
+        <SyncErrorBanner />
         {previewTimeLeft !== null && previewTimeLeft > 0 && !isDemoSession && (
           <div className={`preview-timer-banner ${previewTimeLeft <= 60 ? 'preview-timer-urgent' : ''}`}>
-            <Icon name="clock" size={16} />
+            <NavIcon name="clock" size={16} />
             <span>
               Preview session — <strong>{Math.floor(previewTimeLeft / 60)}:{(previewTimeLeft % 60).toString().padStart(2, '0')}</strong> remaining
             </span>

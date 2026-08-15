@@ -11,13 +11,11 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v6'
+const CACHE_VERSION = 'strefex-v7'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/apple-touch-icon.png',
   '/icons/icon-192x192.png',
@@ -69,7 +67,12 @@ self.addEventListener('install', (event) => {
       })
     })
   )
-  self.skipWaiting()
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 /* ─── Activate — clean old caches ──────────────────────────── */
@@ -161,15 +164,8 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstNavigation(request) {
   try {
     const response = await fetch(request)
-    if (response.ok) {
-      const cache = await caches.open(STATIC_CACHE)
-      cache.put(request, response.clone())
-    }
     return response
   } catch {
-    const cached = await caches.match(request)
-    if (cached) return cached
-    // Offline fallback page
     return new Response(OFFLINE_HTML, {
       status: 200,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
@@ -205,7 +201,10 @@ async function networkFirstStatic(request, cacheName) {
   } catch {
     const cached = await cache.match(request)
     if (cached) return cached
-    return new Response('', { status: 408 })
+    return new Response(OFFLINE_HTML, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    })
   }
 }
 

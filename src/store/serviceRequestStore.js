@@ -16,6 +16,7 @@ import { create } from 'zustand'
 import { allocateNextBuyerSequence, formatBuyerRef } from '../utils/buyerRequestNumbers'
 import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
+import { reportSyncError } from './syncStatusStore'
 
 const deliverOsBatch = (batch, readerEmail, role) => {
   void import('../services/pushNotificationService')
@@ -176,8 +177,22 @@ let _refreshVisibilityListener = null
 /** Single-flight: overlapping refreshFromDatabase calls share one Supabase round-trip. */
 let _refreshDbInFlight = null
 
-/** Polling interval while the tab is visible (hidden tabs pause interval to save battery & network). */
-const SERVICE_REQUEST_POLL_MS_VISIBLE = 12000
+/** Polling tick while visible. Idle routes skip DB refresh until 60s. */
+export const SERVICE_REQUEST_POLL_MS_VISIBLE = 12000
+export const SERVICE_REQUEST_POLL_MS_IDLE = 60000
+export const SERVICE_REQUEST_POLL_LIMIT_FAST = 100
+export const SERVICE_REQUEST_POLL_LIMIT_IDLE = 50
+
+function pollIsFast() {
+  if (typeof window === 'undefined') return false
+  const p = window.location.pathname
+  return (
+    p === '/main-menu' ||
+    p === '/' ||
+    p.startsWith('/service-requests') ||
+    p.startsWith('/notifications')
+  )
+}
 
 const stripStorageMeta = (request) => {
   const next = { ...request }
@@ -981,26 +996,34 @@ export const useServiceRequestStore = create((set, get) => ({
         const userEmail = normalizeEmail(getAuthSnapshot()?.user?.email)
         const canSeeAll = role === 'superadmin' || role === 'auditor_external'
 
+        const fast = pollIsFast()
+        const limit = fast ? SERVICE_REQUEST_POLL_LIMIT_FAST : SERVICE_REQUEST_POLL_LIMIT_IDLE
+        const since = get().lastRefreshedAt
+        const updatedFilter = since ? [['updated_at', 'gte', since]] : undefined
+
         const requestsPromise = canSeeAll
-          ? serviceRequestsService.list(null, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+          ? serviceRequestsService.list(null, { limit, orderBy: 'updated_at', ascending: false, filters: updatedFilter })
           : (companyId
-            ? serviceRequestsService.list(companyId, { limit: 500, orderBy: 'updated_at', ascending: false }).catch(() => [])
+            ? serviceRequestsService.list(companyId, { limit, orderBy: 'updated_at', ascending: false, filters: updatedFilter })
             : Promise.resolve([]))
 
         const notificationsByCompanyPromise = canSeeAll
-          ? notificationsService.list(null, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+          ? notificationsService.list(null, { limit, orderBy: 'created_at', ascending: false, filters: since ? [['created_at', 'gte', since]] : undefined })
           : (companyId
-            ? notificationsService.list(companyId, { limit: 500, orderBy: 'created_at', ascending: false }).catch(() => [])
+            ? notificationsService.list(companyId, { limit, orderBy: 'created_at', ascending: false, filters: since ? [['created_at', 'gte', since]] : undefined })
             : Promise.resolve([]))
 
         const notificationsByTargetPromise = canSeeAll || !userEmail
           ? Promise.resolve([])
           : notificationsService.list(null, {
-            limit: 500,
+            limit,
             orderBy: 'created_at',
             ascending: false,
-            filters: [['target_email', 'eq', userEmail]],
-          }).catch(() => [])
+            filters: [
+              ['target_email', 'eq', userEmail],
+              ...(since ? [['created_at', 'gte', since]] : []),
+            ],
+          })
 
         const [dbRequestsRaw, dbNotificationsByCompanyRaw, dbNotificationsByTargetRaw] = await Promise.all([
           requestsPromise,
@@ -1034,6 +1057,8 @@ export const useServiceRequestStore = create((set, get) => ({
           lastRefreshedAt: new Date().toISOString(),
         })
         void syncOsNotifications()
+      } catch (err) {
+        reportSyncError(err?.message || 'Could not refresh requests', 'requests')
       } finally {
         set({ isRefreshing: false })
         _refreshDbInFlight = null
@@ -1046,8 +1071,14 @@ export const useServiceRequestStore = create((set, get) => ({
   startRefreshSequence: () => {
     const run = () => {
       get().refreshFromStorage()
+      const last = get().lastRefreshedAt
+      const elapsed = last ? Date.now() - new Date(last).getTime() : Number.POSITIVE_INFINITY
+      const minInterval = pollIsFast() ? SERVICE_REQUEST_POLL_MS_VISIBLE : SERVICE_REQUEST_POLL_MS_IDLE
+      if (elapsed < minInterval - 400) return
       get().refreshFromDatabase()
-        .catch(() => {})
+        .catch((err) => {
+          reportSyncError(err?.message || 'Could not refresh requests', 'requests')
+        })
         .finally(() => {
           void syncOsNotifications()
         })
@@ -1061,7 +1092,10 @@ export const useServiceRequestStore = create((set, get) => ({
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         return
       }
-      _refreshTimer = setInterval(run, SERVICE_REQUEST_POLL_MS_VISIBLE)
+      _refreshTimer = setInterval(
+        run,
+        pollIsFast() ? SERVICE_REQUEST_POLL_MS_VISIBLE : SERVICE_REQUEST_POLL_MS_IDLE,
+      )
     }
 
     run()

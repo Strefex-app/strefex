@@ -40,7 +40,8 @@ export default function ManagementDashboardMetrics() {
   const quotations = useProcurementStore((s) => s.quotations)
   const purchaseOrders = useProcurementStore((s) => s.purchaseOrders)
   const requisitions = useProcurementStore((s) => s.requisitions)
-  const vendorStats = useVendorStore((s) => s.getVendorStats)()
+  const vendorList = useVendorStore((s) => s.vendors)
+  const vendorStats = useMemo(() => useVendorStore.getState().getVendorStats(), [vendorList])
 
   const metrics = useMemo(() => {
     const activeProjects = projects.filter((p) => p.stage !== 'closed' && p.status !== 'archived').length

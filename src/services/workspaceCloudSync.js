@@ -30,6 +30,7 @@ import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useMessengerStore } from '../store/messengerStore'
+import { reportSyncError, useSyncStatusStore } from '../store/syncStatusStore'
 
 const DEBOUNCE_MS = 2500
 const PROFILE_CONTACTS_STORAGE = 'strefex-profile-contacts'
@@ -201,7 +202,9 @@ export async function pullWorkspaceSnapshots() {
   let rows = []
   try {
     rows = await workspaceSnapshotsService.listForCurrentUser()
-  } catch {
+    useSyncStatusStore.getState().clearSyncError()
+  } catch (err) {
+    reportSyncError(err?.message || 'Workspace sync unavailable', 'workspace')
     return
   }
 
@@ -701,7 +704,27 @@ function detachManagementAuditsRealtime() {
   }
 }
 
+let bootstrapRetryTimers = []
+
+function clearBootstrapRetries() {
+  bootstrapRetryTimers.forEach((t) => clearTimeout(t))
+  bootstrapRetryTimers = []
+}
+
+function scheduleBootstrapRetry(companyId) {
+  clearBootstrapRetries()
+  ;[2000, 8000, 20000].forEach((ms) => {
+    bootstrapRetryTimers.push(
+      window.setTimeout(() => {
+        if (bootstrappedCompanyId !== companyId) return
+        void pullWorkspaceSnapshotsForced()
+      }, ms),
+    )
+  })
+}
+
 export function stopWorkspaceCloudSync() {
+  clearBootstrapRetries()
   debounceTimers.forEach((t) => clearTimeout(t))
   debounceTimers.clear()
   detachManagementAuditsRealtime()
@@ -731,8 +754,12 @@ export async function bootstrapWorkspaceCloudSync() {
   let rows = []
   try {
     rows = await workspaceSnapshotsService.listForCurrentUser()
-  } catch {
-    bootstrappedCompanyId = null
+    useSyncStatusStore.getState().clearSyncError()
+  } catch (err) {
+    reportSyncError(err?.message || 'Workspace sync unavailable', 'workspace')
+    attachSubscribers()
+    attachLifecycleSync()
+    scheduleBootstrapRetry(companyId)
     return
   }
 

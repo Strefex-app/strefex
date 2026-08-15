@@ -8,12 +8,12 @@
  * so the app falls back to localStorage seamlessly.
  */
 import { supabase, isSupabaseConfigured } from '../config/supabase'
+import { resolveCrudListLimit } from '../utils/crudListLimit'
 
 /**
- * Cross-tenant `list(null, …)` without filters previously issued unbounded selects.
+ * Cross-tenant and tenant lists default to a finite window.
  * Callers that truly need more rows must pass `limit` or `unbounded: true`.
  */
-const DEFAULT_GLOBAL_UNFILTERED_LIST_LIMIT = 2000
 
 /* ================================================================
    AUTH
@@ -220,6 +220,35 @@ export const profilesService = {
     if (!isSupabaseConfigured) return null
     const user = (await supabase.auth.getUser()).data.user
     const allowedKeys = new Set([
+      'full_name',
+      'phone',
+      'avatar_url',
+      'phone_verified',
+      'metadata',
+    ])
+    const safeUpdates = Object.fromEntries(
+      Object.entries(updates || {}).filter(([key]) => allowedKeys.has(key))
+    )
+    if (Object.keys(safeUpdates).length === 0) {
+      return null
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(safeUpdates)
+      .eq('id', user?.id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Bootstrap / superadmin-only fields. Still blocked by DB trigger for normal users.
+   */
+  async updateProfilePrivileged(updates) {
+    if (!isSupabaseConfigured) return null
+    const user = (await supabase.auth.getUser()).data.user
+    const allowedKeys = new Set([
       'company_id',
       'full_name',
       'phone',
@@ -346,6 +375,7 @@ export const teamService = {
       .from('team_members')
       .select('*, profiles(*)')
       .eq('company_id', companyId)
+      .limit(500)
     if (error) throw error
     return data || []
   },
@@ -394,15 +424,10 @@ function createCrudService(tableName) {
       if (companyId) query = query.eq('company_id', companyId)
       if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending ?? false })
       else query = query.order('created_at', { ascending: false })
-      const hasFilters = Array.isArray(options.filters) && options.filters.length > 0
-      let effectiveLimit = options.limit
-      if (effectiveLimit === undefined && !options.unbounded && !companyId && !hasFilters) {
-        effectiveLimit = DEFAULT_GLOBAL_UNFILTERED_LIST_LIMIT
-      }
-      if (effectiveLimit != null && effectiveLimit !== false) {
-        const lim = Math.max(1, Number(effectiveLimit))
+      const effectiveLimit = resolveCrudListLimit(options)
+      if (effectiveLimit != null) {
         const off = Math.max(0, Number(options.offset) || 0)
-        query = query.range(off, off + lim - 1)
+        query = query.range(off, off + effectiveLimit - 1)
       }
       if (options.filters) {
         options.filters.forEach(([col, op, val]) => {

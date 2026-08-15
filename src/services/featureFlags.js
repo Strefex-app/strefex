@@ -18,6 +18,7 @@
 import { create } from 'zustand'
 import { getPlanById, getEffectiveLimits, getTierLevel, TIERS, BUYER_TRIAL_DAYS } from './stripeService'
 import { useAuthStore } from '../store/authStore'
+import { isSuperadminEmail } from './superadminAuth'
 import { FEATURE_GRANTS_STORAGE_KEY, userHasActiveFeatureGrant } from '../utils/featureGrants'
 
 /* ── Promo code definitions ────────────────────────────── */
@@ -37,9 +38,14 @@ function getPromoConfig(code) {
 
 export { PROMO_CODES }
 
-/* ── Superadmin helper — bypasses all plan/feature gates ── */
+/* ── Superadmin helper — email + role; localStorage role spoof is not enough ── */
 const _isSuperAdmin = () => {
-  try { return useAuthStore.getState().role === 'superadmin' } catch { return false }
+  try {
+    const s = useAuthStore.getState()
+    return s.role === 'superadmin' && isSuperadminEmail(s.user?.email)
+  } catch {
+    return false
+  }
 }
 
 /* ── Tenant-scoped local storage helpers ──────────────────── */

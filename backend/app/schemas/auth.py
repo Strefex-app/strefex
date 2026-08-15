@@ -14,7 +14,7 @@ class TokenResponse(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    access_token: str
+    access_token: str | None = None
     token_type: str = "bearer"
     user: "UserInResponse"
     tenant: "TenantInResponse | None" = None
