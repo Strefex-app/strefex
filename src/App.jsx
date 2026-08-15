@@ -174,6 +174,7 @@ import {
   ComplianceDashboard,
   AIInsights,
   ERPIntegrations,
+  PlatformSecurityAuditHub,
   TemplateLibrary,
   AuditLogs,
   NotFoundPage,
@@ -551,6 +552,7 @@ function App() {
           <Route path="/management/contracts-compliance/contracts" element={<PlanGate feature="contractManagement" planName="Enterprise"><ContractDashboard /></PlanGate>} />
           <Route path="/management/finance/spend-analysis" element={<PlanGate feature="spendAnalysis" planName="Enterprise" requiredRole="manager"><SpendAnalysis /></PlanGate>} />
           <Route path="/management/contracts-compliance/compliance" element={<PlanGate feature="complianceEsg" planName="Enterprise"><ComplianceDashboard /></PlanGate>} />
+          <Route path="/management/platform/security-audit" element={<PlanGate feature="auditProProgram" planName="Enterprise" requiredRole="admin"><PlatformSecurityAuditHub /></PlanGate>} />
           <Route path="/management/platform/ai-insights" element={<PlanGate feature="aiInsights" planName="Enterprise" requiredRole="manager"><AIInsights /></PlanGate>} />
           <Route path="/management/platform/erp" element={<PlanGate feature="erpIntegrations" planName="Enterprise" requiredRole="admin"><ERPIntegrations /></PlanGate>} />
           <Route path="/management/contracts-compliance/activity-log" element={<PlanGate feature="auditLogs" planName="Enterprise" requiredRole="admin"><AuditLogs /></PlanGate>} />

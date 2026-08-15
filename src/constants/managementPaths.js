@@ -28,6 +28,7 @@ export const MODULE_SLUGS = {
   production: 'production',
   erp: 'erp',
   'ai-insights': 'ai-insights',
+  'platform-security-audit': 'security-audit',
 }
 
 export function managementClusterPath(clusterId) {

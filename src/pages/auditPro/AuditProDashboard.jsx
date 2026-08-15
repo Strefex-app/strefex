@@ -22,6 +22,7 @@ function conductFindingsUrl(auditId, findingId) {
 }
 
 const INDUSTRY_CHART_COLORS = {
+  'Platform / SaaS': '#0ea5e9',
   Automotive: 'var(--accent)',
   Machinery: '#6366f1',
   Electronics: '#8b5cf6',

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useAuditProStore from '../../store/auditProStore'
 import { auditProUid } from '../../utils/auditProUid'
@@ -24,6 +24,7 @@ import { useServiceRequestStore } from '../../store/serviceRequestStore'
 
 export default function AuditProNewAudit() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { language } = useTranslation()
   const audits = useAuditProStore((s) => s.audits)
   const auditors = useAuditProStore((s) => s.auditors)
@@ -42,20 +43,20 @@ export default function AuditProNewAudit() {
     [suppliers, showDemoKit],
   )
 
-  const [form, setForm] = useState({
-    title: '',
-    industry: '',
-    auditType: '',
-    standard: '',
+  const [form, setForm] = useState(() => ({
+    title: searchParams.get('title') || '',
+    industry: searchParams.get('industry') || '',
+    auditType: searchParams.get('auditType') || '',
+    standard: searchParams.get('standard') || '',
     supplierId: '',
     auditorId: '',
     secondaryAuditorId: '',
     plannedDate: '',
-    scope: '',
+    scope: searchParams.get('scope') || '',
     status: 'Planned',
     auditDays: '1',
     language: 'English',
-  })
+  }))
 
   const availableStandards = form.industry && form.auditType ? AUDIT_STANDARDS[form.industry]?.[form.auditType] || [] : []
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
