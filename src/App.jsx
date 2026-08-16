@@ -97,6 +97,8 @@ import {
   EnterpriseExceptional,
   EnterpriseRisk,
   EnterpriseProductCalc,
+  QualityExcellenceHub,
+  QualityExcellenceTool,
   ProductionManagement,
   Production5S,
   ProductionISO9001,
@@ -541,6 +543,11 @@ function App() {
           <Route path="/management/ops/production/workcenter-output" element={<PlanGate feature="productionManagement" planName="Premium"><WorkCenterOutput /></PlanGate>} />
           <Route path="/management/ops/production/system-management" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagement /></PlanGate>} />
           <Route path="/management/ops/production/system/:systemId" element={<PlanGate feature="productionManagement" planName="Premium"><SystemManagementPage /></PlanGate>} />
+
+          {/* ── Quality Excellence (Premium) ───────────────── */}
+          <Route path="/management/ops/quality-excellence" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceHub /></PlanGate>} />
+          <Route path="/management/ops/quality-excellence/:toolId" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceTool /></PlanGate>} />
+          <Route path="/management/ops/quality-excellence/:toolId/:recordId" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceTool /></PlanGate>} />
 
           {/* ── HR Space ───────────────────────────────────── */}
           <Route path="/management/people/hr-space" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />

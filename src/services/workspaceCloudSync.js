@@ -7,7 +7,8 @@
  *
  * Synced keys (see SYNC_SPECS): projects, vendors, rfqs, contracts, procurement, cost,
  * enterprise, production, templates, audit_logs, audit_pro, hr_space, account_registry, profile_contacts,
- * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain).
+ * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain),
+ * quality_excellence.
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
 import { isDemoModeActive } from '../config/demoAccount'
@@ -21,6 +22,7 @@ import useProcurementStore from '../store/procurementStore'
 import useCostStore from '../store/costStore'
 import useEnterpriseStore from '../store/enterpriseStore'
 import useProductionStore from '../store/productionStore'
+import useQualityExcellenceStore from '../store/qualityExcellenceStore'
 import { useTemplateStore } from '../store/templateStore'
 import useAuditStore from '../store/auditStore'
 import useAuditProStore from '../store/auditProStore'
@@ -411,6 +413,15 @@ const SYNC_SPECS = [
       return true
     },
     subscribe: (cb) => useProductionStore.subscribe(cb),
+  },
+  {
+    key: 'quality_excellence',
+    extract: () => ({ records: useQualityExcellenceStore.getState().records || [] }),
+    apply: (p) => {
+      if (Array.isArray(p?.records)) useQualityExcellenceStore.setState({ records: p.records })
+    },
+    isEmpty: (p) => !Array.isArray(p?.records) || p.records.length === 0,
+    subscribe: (cb) => useQualityExcellenceStore.subscribe(cb),
   },
   {
     key: 'templates',

@@ -1,5 +1,6 @@
 import { MANAGEMENT_MODULE_CLUSTERS, MANAGEMENT_MODULES } from '../data/managementModuleGroups'
 import { getModuleSlug, MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
+import { QUALITY_EXCELLENCE_TOOLS } from '../data/qualityExcellenceCatalog'
 
 /** Child segment labels for nested module pages. */
 export const MANAGEMENT_CHILD_LABELS = {
@@ -59,6 +60,9 @@ export const MANAGEMENT_CHILD_LABELS = {
     'new-project': 'New project',
     project: 'Project',
   },
+  'quality-excellence': Object.fromEntries(
+    QUALITY_EXCELLENCE_TOOLS.map((tool) => [tool.id, `${tool.number} ${tool.name}`]),
+  ),
 }
 
 function titleFromSlug(slug = '') {

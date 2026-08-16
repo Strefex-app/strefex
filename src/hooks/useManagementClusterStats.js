@@ -10,6 +10,7 @@ import useAuditProStore from '../store/auditProStore'
 import useEnterpriseStore from '../store/enterpriseStore'
 import useCostStore from '../store/costStore'
 import useProductionStore from '../store/productionStore'
+import useQualityExcellenceStore from '../store/qualityExcellenceStore'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { tenantKey } from '../utils/tenantStorage'
 
@@ -47,6 +48,7 @@ export function useManagementClusterStats() {
   const costProducts = useCostStore((s) => s.products)
   const costScenarios = useCostStore((s) => s.scenarios)
   const oeeData = useProductionStore((s) => s.oeeData)
+  const qualityRecords = useQualityExcellenceStore((s) => s.records)
   const rfqQuotes = useRfqIntelligenceStore((s) => s.quotes)
 
   return useMemo(() => {
@@ -98,6 +100,7 @@ export function useManagementClusterStats() {
         { label: 'Projects', value: projects.length },
         { label: 'Active', value: activeProjects },
         { label: 'Avg OEE', value: avgOee != null ? `${avgOee}%` : '—' },
+        { label: 'Quality records', value: qualityRecords.length },
       ],
       platform: [
         { label: 'Audit program', value: auditProAudits?.length || 0 },
@@ -119,6 +122,7 @@ export function useManagementClusterStats() {
     costProducts,
     costScenarios,
     oeeData,
+    qualityRecords,
     rfqQuotes,
   ])
 }

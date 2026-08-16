@@ -26,6 +26,7 @@ export const MODULE_SLUGS = {
   spend: 'spend-analysis',
   project: 'projects',
   production: 'production',
+  'quality-excellence': 'quality-excellence',
   erp: 'erp',
   'ai-insights': 'ai-insights',
 }

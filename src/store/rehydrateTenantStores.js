@@ -49,6 +49,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         templateMod,
         companyRecognitionMod,
         myCalendarMod,
+        qualityExcellenceMod,
       ] = await Promise.all([
         import('./projectStore'),
         import('./productionStore'),
@@ -63,6 +64,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         import('./templateStore'),
         import('./companyRecognitionStore'),
         import('./myCalendarStore'),
+        import('./qualityExcellenceStore'),
       ])
 
       const persistStores = [
@@ -79,6 +81,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         templateMod.useTemplateStore,
         companyRecognitionMod.useCompanyRecognitionStore,
         myCalendarMod.useMyCalendarStore,
+        qualityExcellenceMod.default,
       ]
       persistStores.forEach((store) => {
         try { store?.persist?.rehydrate?.() } catch { /* silent */ }

@@ -71,6 +71,8 @@ export const EnterpriseFinancial = lazy(() => import('../pages/EnterpriseFinanci
 export const EnterpriseExceptional = lazy(() => import('../pages/EnterpriseExceptional'))
 export const EnterpriseRisk = lazy(() => import('../pages/EnterpriseRisk'))
 export const EnterpriseProductCalc = lazy(() => import('../pages/EnterpriseProductCalc'))
+export const QualityExcellenceHub = lazy(() => import('../pages/QualityExcellenceHub'))
+export const QualityExcellenceTool = lazy(() => import('../pages/QualityExcellenceTool'))
 export const ProductionManagement = lazy(() => import('../pages/ProductionManagement'))
 export const Production5S = lazy(() => import('../pages/Production5S'))
 export const ProductionISO9001 = lazy(() => import('../pages/ProductionISO9001'))

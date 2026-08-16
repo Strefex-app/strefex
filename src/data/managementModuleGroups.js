@@ -175,6 +175,16 @@ export const MANAGEMENT_MODULES = [
     clusterId: 'ops',
   },
   {
+    id: 'quality-excellence',
+    label: 'Quality Excellence',
+    description: '30 practitioner tools: 5 Whys, 8D, FMEA, SPC, APQP, COQ, and right-sizing',
+    path: managementModulePath('ops', 'quality-excellence'),
+    icon: 'quality',
+    featureKey: 'productionManagement',
+    planLabel: 'Premium',
+    clusterId: 'ops',
+  },
+  {
     id: 'erp',
     label: 'ERP Integrations',
     description: 'ERP sync for vendors and purchasing',
@@ -237,7 +247,7 @@ export const MANAGEMENT_MODULE_CLUSTERS = [
   {
     id: 'ops',
     label: 'Ops',
-    description: 'Projects and production operations',
+    description: 'Projects, production, and Quality Excellence',
     icon: 'production',
     color: '#e67e22',
     path: managementClusterPath('ops'),
