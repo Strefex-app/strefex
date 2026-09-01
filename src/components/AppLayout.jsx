@@ -103,7 +103,7 @@ export default function AppLayout({ children }) {
         localStorage.removeItem(previewKey)
         setPreviewTimeLeft(null)
         logout()
-        navigate('/login')
+        navigate('/', { replace: true })
         return
       }
       setPreviewTimeLeft(remaining)
@@ -116,7 +116,7 @@ export default function AppLayout({ children }) {
   const handleLogout = () => {
     localStorage.removeItem(tenantKey('strefex-preview-expires'))
     logout()
-    navigate('/login')
+    navigate('/', { replace: true })
   }
 
   const displayName = user?.fullName || user?.name || user?.email || 'User'

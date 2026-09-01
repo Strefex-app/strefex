@@ -13,7 +13,7 @@ export default function DemoModeBanner({ onExit }) {
 
   const handleExit = () => {
     if (typeof onExit === 'function') onExit()
-    else navigate('/login')
+    else navigate('/', { replace: true })
   }
 
   return (

@@ -34,7 +34,8 @@ function getToken() {
 function handleUnauthorized() {
   useAuthStore.getState().logout()
   if (typeof window !== 'undefined') {
-    window.location.href = '/login'
+    // Public entry is the marketing home; Sign in is available there.
+    window.location.href = '/'
   }
 }
 

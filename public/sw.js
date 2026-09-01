@@ -11,7 +11,7 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v7'
+const CACHE_VERSION = 'strefex-v8'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 
@@ -60,6 +60,8 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 
 /* ─── Install ──────────────────────────────────────────────── */
 self.addEventListener('install', (event) => {
+  // Take over sooner after deploys that fix public routing (e.g. `/` marketing home).
+  self.skipWaiting()
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       return cache.addAll(PRECACHE_URLS).catch((err) => {
