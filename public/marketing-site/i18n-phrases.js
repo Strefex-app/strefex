@@ -1,7 +1,7 @@
 // STREFEX marketing site — phrase map keyed by the English source string.
 // Standards codes, acronym trails, and proper nouns are intentionally omitted (left as-is).
 const DE = {
-  "Website language":"Sprache der Website","Default language is English. Records and certificates keep their original language.":"Standardsprache ist Englisch. Nachweise und Zertifikate behalten ihre Originalsprache.",
+  "Website language":"Sprache der Website",
   "Automotive":"Automobil","Medical":"Medizin","General":"Allgemein",
   "What STREFEX is":"Was STREFEX ist","Network for the market.":"Netzwerk für den Markt.","Company mode for the plant.":"Company-Modus für das Werk.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Nachweisbasierte Suche und Anfragen auf der Netzwerkseite — plus Personal, Beschaffung, Betrieb, Finanzen und Compliance im Company-Modus.",
@@ -35,7 +35,7 @@ const DE = {
   "Directories":"Verzeichnisse","Integrations":"Integrationen","Account":"Konto","Support":"Support"
 };
 const FR = {
-  "Website language":"Langue du site","Default language is English. Records and certificates keep their original language.":"La langue par défaut est l'anglais. Les enregistrements et certificats conservent leur langue d'origine.",
+  "Website language":"Langue du site",
   "Automotive":"Automobile","Medical":"Médical","General":"Général",
   "What STREFEX is":"Ce qu'est STREFEX","Network for the market.":"Network pour le marché.","Company mode for the plant.":"Mode Company pour l'usine.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Recherche et appels d'offres étayés par des preuves côté Network — plus RH, Achats, Opérations, Finance et Conformité dans le mode Company.",
@@ -69,7 +69,7 @@ const FR = {
   "Directories":"Annuaires","Integrations":"Intégrations","Account":"Compte","Support":"Assistance"
 };
 const IT = {
-  "Website language":"Lingua del sito","Default language is English. Records and certificates keep their original language.":"La lingua predefinita è l'inglese. Registrazioni e certificati mantengono la lingua originale.",
+  "Website language":"Lingua del sito",
   "Automotive":"Automotive","Medical":"Medicale","General":"Generale",
   "What STREFEX is":"Che cos'è STREFEX","Network for the market.":"Network per il mercato.","Company mode for the plant.":"Modalità Company per lo stabilimento.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Ricerca e richieste d'offerta documentate sul lato Network — più Personale, Acquisti, Operations, Finanza e Compliance nella modalità Company.",
@@ -103,7 +103,7 @@ const IT = {
   "Directories":"Directory","Integrations":"Integrazioni","Account":"Account","Support":"Assistenza"
 };
 const ES = {
-  "Website language":"Idioma del sitio","Default language is English. Records and certificates keep their original language.":"El idioma predeterminado es el inglés. Los registros y certificados conservan su idioma original.",
+  "Website language":"Idioma del sitio",
   "Automotive":"Automoción","Medical":"Médico","General":"General",
   "What STREFEX is":"Qué es STREFEX","Network for the market.":"Network para el mercado.","Company mode for the plant.":"Modo Company para la planta.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Búsqueda y solicitudes de oferta respaldadas por evidencias en Network — además de Personas, Compras, Operaciones, Finanzas y Cumplimiento en el modo Company.",
@@ -137,7 +137,7 @@ const ES = {
   "Directories":"Directorios","Integrations":"Integraciones","Account":"Cuenta","Support":"Soporte"
 };
 const PT = {
-  "Website language":"Idioma do site","Default language is English. Records and certificates keep their original language.":"O idioma predefinido é o inglês. Registos e certificados mantêm o idioma original.",
+  "Website language":"Idioma do site",
   "Automotive":"Automóvel","Medical":"Médico","General":"Geral",
   "What STREFEX is":"O que é a STREFEX","Network for the market.":"Network para o mercado.","Company mode for the plant.":"Modo Company para a fábrica.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Pesquisa e pedidos de cotação com evidências no lado Network — além de Pessoas, Compras, Operações, Finanças e Conformidade no modo Company.",
@@ -171,7 +171,7 @@ const PT = {
   "Directories":"Diretórios","Integrations":"Integrações","Account":"Conta","Support":"Suporte"
 };
 const RU = {
-  "Website language":"Язык сайта","Default language is English. Records and certificates keep their original language.":"Язык по умолчанию — английский. Записи и сертификаты сохраняют язык оригинала.",
+  "Website language":"Язык сайта",
   "Automotive":"Автопром","Medical":"Медицина","General":"Общие",
   "What STREFEX is":"Что такое STREFEX","Network for the market.":"Network — для рынка.","Company mode for the plant.":"Режим Company — для завода.",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Поиск и запросы предложений с подтверждениями на стороне Network — плюс Персонал, Закупки, Операции, Финансы и Комплаенс в режиме Company.",
@@ -205,7 +205,7 @@ const RU = {
   "Directories":"Каталоги","Integrations":"Интеграции","Account":"Аккаунт","Support":"Поддержка"
 };
 const ZH = {
-  "Website language":"网站语言","Default language is English. Records and certificates keep their original language.":"默认语言为英语。记录与证书保留原始语言。",
+  "Website language":"网站语言",
   "Automotive":"汽车","Medical":"医疗","General":"通用",
   "What STREFEX is":"STREFEX 是什么","Network for the market.":"Network 面向市场。","Company mode for the plant.":"Company 模式面向工厂。",
   "Evidence-backed discovery and RFQs on the network side — plus People, Sourcing, Ops, Finance, and Compliance inside Company mode.":"Network 侧提供有据可依的发现与询价 — Company 模式内含人员、采购、运营、财务与合规。",
