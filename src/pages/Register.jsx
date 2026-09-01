@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Elements } from '@stripe/react-stripe-js'
 import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
@@ -58,6 +58,7 @@ function RegisterForm() {
   const [showAgreementModal, setShowAgreementModal] = useState(false)
 
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isDomainIndustryRegistered = useAccountRegistry((s) => s.isDomainIndustryRegistered)
   const registerAccount = useAccountRegistry((s) => s.registerAccount)
@@ -74,9 +75,33 @@ function RegisterForm() {
     return plansForType.find((p) => p.id === 'start')?.id || plansForType[0]?.id || 'start'
   }
 
+  const resolveAccountTypeFromQuery = (raw) => {
+    const value = String(raw || '').trim().toLowerCase()
+    if (!value) return null
+    if (value === 'buyer' || value === 'buyers') return 'buyer'
+    if (value === 'seller' || value === 'supplier' || value === 'suppliers' || value === 'manufacturer' || value === 'manufacturers') {
+      return 'seller'
+    }
+    if (value === 'service_provider' || value === 'service-provider' || value === 'services') return 'service_provider'
+    if (value === 'auditor' || value === 'auditors') return 'auditor'
+    return null
+  }
+
   useEffect(() => {
     if (isAuthenticated) navigate('/main-menu', { replace: true })
   }, [isAuthenticated, navigate])
+
+  // Deep-link from marketing CTAs: /register?type=buyer | supplier | seller | manufacturer
+  useEffect(() => {
+    const fromQuery = resolveAccountTypeFromQuery(
+      searchParams.get('type') || searchParams.get('account') || searchParams.get('role'),
+    )
+    if (!fromQuery) return
+    setAccountTypes([fromQuery])
+    setSelectedPlan(getDefaultPlanForAccountType(fromQuery))
+    if (fromQuery === 'auditor') setSelectedServiceCategories(['supplier-audit'])
+    else if (fromQuery !== 'service_provider') setSelectedServiceCategories([])
+  }, [searchParams])
 
   const selectedPlanObj = PLANS.find((p) => p.id === selectedPlan) || PLANS[0]
   const displayPrice = getPlanPrice(selectedPlanObj, primaryAccountType)
@@ -665,6 +690,11 @@ function RegisterForm() {
             Already have an account?{' '}
             <Link to="/login" style={{ color: '#00d4ff', fontWeight: 500, textDecoration: 'none' }}>
               Sign In
+            </Link>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13 }}>
+            <Link to="/" style={{ color: '#667085', textDecoration: 'none' }}>
+              ← Back to STREFEX home
             </Link>
           </div>
         </div>

@@ -32,6 +32,11 @@ import { managementLegacyRedirectRoutes } from './routes/managementLegacyRedirec
 import {
   Login,
   Register,
+  MarketingShell,
+  MarketingHome,
+  MarketingIntroBuyers,
+  MarketingIntroManufacturers,
+  MarketingIntroHowItWorks,
   VerifyEmail,
   SubscriptionPlans,
   TeamManagement,
@@ -368,6 +373,15 @@ function App() {
           {/* ── Public ────────────────────────────────────── */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Register />} />
+
+          {/* Public marketing site (www.strefex.pro) — always the introduction */}
+          <Route path="/" element={<MarketingShell />}>
+            <Route index element={<MarketingHome />} />
+            <Route path="intro/buyers" element={<MarketingIntroBuyers />} />
+            <Route path="intro/manufacturers" element={<MarketingIntroManufacturers />} />
+            <Route path="intro/how-it-works" element={<MarketingIntroHowItWorks />} />
+          </Route>
+
           <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* ── Core pages ────────────────────────────────── */}
@@ -595,7 +609,6 @@ function App() {
           <Route path="/management/:clusterId" element={<P><ManagementClusterPage /></P>} />
 
           {/* ── Catch-all ─────────────────────────────────── */}
-          <Route path="/" element={<Navigate to={isAuthenticated ? "/main-menu" : "/login"} />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </Suspense>

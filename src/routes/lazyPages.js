@@ -5,6 +5,17 @@ import { lazy } from 'react'
 
 export const Login = lazy(() => import('../pages/Login'))
 export const Register = lazy(() => import('../pages/Register'))
+export const MarketingShell = lazy(() => import('../pages/marketing/MarketingShell'))
+export const MarketingHome = lazy(() => import('../pages/marketing/MarketingHome'))
+export const MarketingIntroBuyers = lazy(() =>
+  import('../pages/marketing/MarketingIntroPages').then((m) => ({ default: m.IntroBuyers })),
+)
+export const MarketingIntroManufacturers = lazy(() =>
+  import('../pages/marketing/MarketingIntroPages').then((m) => ({ default: m.IntroManufacturers })),
+)
+export const MarketingIntroHowItWorks = lazy(() =>
+  import('../pages/marketing/MarketingIntroPages').then((m) => ({ default: m.IntroHowItWorks })),
+)
 export const VerifyEmail = lazy(() => import('../pages/VerifyEmail'))
 export const SubscriptionPlans = lazy(() => import('../pages/SubscriptionPlans'))
 export const TeamManagement = lazy(() => import('../pages/TeamManagement'))
