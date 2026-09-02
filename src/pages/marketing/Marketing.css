@@ -33,6 +33,24 @@
   background: #060c1b;
 }
 
+.mkt-site-fallback {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+  color: #e7eef6;
+  background: #060c1b;
+}
+
+.mkt-site-fallback a {
+  color: #58c8f5;
+}
+
 .mkt-nav {
   position: sticky;
   top: 0;

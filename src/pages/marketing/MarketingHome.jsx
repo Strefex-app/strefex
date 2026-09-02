@@ -3,43 +3,71 @@
  * (ported from the STREFEX Website.html design). Auth CTAs use target=_top
  * to /login and /register.
  *
- * Loaded via srcDoc (not iframe src) so global X-Frame-Options / frame-ancestors
- * cannot blank the landing page while still keeping the URL at `/`.
+ * Loaded via srcDoc (not iframe src) so X-Frame-Options / frame-ancestors
+ * cannot blank the landing. Requires vercel rewrite exclusion for
+ * /marketing-site/* so fetch() receives the real HTML (not the SPA shell).
  */
 import { useEffect, useState } from 'react'
 
 export default function MarketingHome() {
   const [srcDoc, setSrcDoc] = useState('')
+  const [status, setStatus] = useState('loading') // loading | ready | error
 
   useEffect(() => {
     let cancelled = false
-    fetch('/marketing-site/index.html')
+    setStatus('loading')
+    fetch('/marketing-site/index.html', { cache: 'no-cache' })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
       })
       .then((html) => {
         if (cancelled) return
-        // Relative CSS/JS/assets must resolve under /marketing-site/
+        // Guard: SPA rewrite misconfig returns the React shell instead of marketing HTML.
+        if (!html.includes('Strategic Supplier Intelligence') && !html.includes('data-i18n-ui')) {
+          throw new Error('Marketing HTML not served (check vercel marketing-site rewrite)')
+        }
         const withBase = html.replace(
           /<head([^>]*)>/i,
           '<head$1><base href="/marketing-site/">',
         )
         setSrcDoc(withBase)
+        setStatus('ready')
       })
       .catch(() => {
-        if (!cancelled) setSrcDoc('')
+        if (!cancelled) {
+          setSrcDoc('')
+          setStatus('error')
+        }
       })
     return () => {
       cancelled = true
     }
   }, [])
 
+  if (status === 'error') {
+    return (
+      <div className="mkt-site-fallback" role="alert">
+        <h1 className="stx-text-page-title">STREFEX</h1>
+        <p className="stx-text-wrap">
+          The public landing could not load. Open the site files directly or sign in to the platform.
+        </p>
+        <p>
+          <a href="/marketing-site/index.html">Open landing</a>
+          {' · '}
+          <a href="/login">Sign in</a>
+          {' · '}
+          <a href="/register">Sign up</a>
+        </p>
+      </div>
+    )
+  }
+
   return (
     <iframe
       className="mkt-site-frame"
       title="STREFEX"
-      srcDoc={srcDoc || undefined}
+      srcDoc={status === 'ready' ? srcDoc : undefined}
     />
   )
 }

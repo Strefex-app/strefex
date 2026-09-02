@@ -1,0 +1,33 @@
+{
+  "built_utc": "20260902-0720",
+  "batch1": {
+    "zip": "strefex-batch1-marketing-20260902-0720.zip",
+    "files": [
+      "PACKAGE_README.md",
+      "public/marketing-site/assets/logo.png",
+      "public/marketing-site/assets/mark.svg",
+      "public/marketing-site/i18n-phrases.js",
+      "public/marketing-site/i18n-ui.js",
+      "public/marketing-site/index.html",
+      "public/marketing-site/site.js",
+      "public/sw.js",
+      "src/App.jsx",
+      "src/data/marketingPlatformCatalog.js",
+      "src/pages/Register.jsx",
+      "src/pages/marketing/Marketing.css",
+      "src/pages/marketing/MarketingHome.jsx",
+      "src/pages/marketing/MarketingIntroPages.jsx",
+      "src/pages/marketing/MarketingModeOrgChart.jsx",
+      "src/pages/marketing/MarketingShell.jsx",
+      "src/routes/lazyPages.js",
+      "vercel.json"
+    ],
+    "bytes": 159567,
+    "fixes": [
+      "include site.js + full marketing-site assets",
+      "MarketingHome srcDoc + HTML sanity check",
+      "vercel.json marketing-site rewrite exclusion + SAMEORIGIN",
+      "service worker cache bump"
+    ]
+  }
+}
