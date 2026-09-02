@@ -2,18 +2,21 @@
  * STREFEX Platform — Service Worker
  *
  * Caching strategies:
- *   - App shell (HTML)             → Network-first, fallback to cache
- *   - JS/CSS (app bundles)         → Network-first when online (fresh UI after deploy)
+ *   - App shell (HTML navigations) → Network-first, then cached shell, then offline page
+ *   - JS/CSS (app bundles)         → Network-first, then cache — never serve HTML as JS
  *   - Other static (images, fonts) → Stale-while-revalidate
  *   - API calls                    → Network-only (no stale data)
- *   - CDN / fonts                 → Cache-first, long TTL
- *   - Offline fallback            → Custom offline page from cache
+ *   - CDN / fonts                  → Cache-first, long TTL
+ *
+ * Important: returning the offline HTML document for failed script/style
+ * requests breaks React.lazy after deploys and shows a false "offline" state.
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v9'
+const CACHE_VERSION = 'strefex-v10'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
+const SHELL_URL = '/index.html'
 
 const PRECACHE_URLS = [
   '/manifest.json',
@@ -28,7 +31,7 @@ const OFFLINE_HTML = `<!DOCTYPE html>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="theme-color" content="#13151a"/>
-  <title>STREFEX — Offline</title>
+  <title>STREFEX — Connection issue</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Quattrocento Sans',Candara,Calibri,'Segoe UI',Roboto,Arial,sans-serif;
@@ -39,8 +42,9 @@ const OFFLINE_HTML = `<!DOCTYPE html>
     h1{font-size:1.5rem;margin-bottom:.75rem;font-weight:600}
     p{font-size:.95rem;line-height:1.6;color:rgba(255,255,255,.7);margin-bottom:1.5rem}
     button{background:#00d4ff;color:#0d0e10;border:none;padding:.75rem 2rem;
-           border-radius:8px;font-size:.95rem;cursor:pointer;transition:opacity .2s}
+           border-radius:8px;font-size:.95rem;cursor:pointer;transition:opacity .2s;margin:0 .35rem .5rem}
     button:hover{opacity:.85}
+    button.secondary{background:transparent;color:#00d4ff;border:1px solid rgba(0,212,255,.45)}
   </style>
 </head>
 <body>
@@ -50,17 +54,16 @@ const OFFLINE_HTML = `<!DOCTYPE html>
       <path d="M16.24 7.76a6 6 0 0 0-8.49 0M19.07 4.93a10 10 0 0 0-14.14 0" stroke-linecap="round"/>
       <line x1="2" y1="2" x2="22" y2="22" stroke-linecap="round"/>
     </svg>
-    <h1>You are offline</h1>
-    <p>STREFEX requires an internet connection for full functionality.
-       Check your connection and try again.</p>
+    <h1>Couldn’t load STREFEX</h1>
+    <p>The app shell did not reach this device. This is often a brief network blip or a stale install after a deploy — not always true offline.</p>
     <button onclick="location.reload()">Try again</button>
+    <button class="secondary" type="button" onclick="(async()=>{try{if('caches' in window){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));} if(navigator.serviceWorker){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}}catch(e){} location.href='/?noscache='+Date.now();})()">Clear cache &amp; reload</button>
   </div>
 </body>
 </html>`
 
 /* ─── Install ──────────────────────────────────────────────── */
 self.addEventListener('install', (event) => {
-  // Take over sooner after deploys that fix public routing (e.g. `/` marketing home).
   self.skipWaiting()
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
@@ -86,15 +89,15 @@ self.addEventListener('activate', (event) => {
           .filter((k) => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
           .map((k) => caches.delete(k))
       )
-    )
+    ).then(() => self.clients.claim())
   )
-  self.clients.claim()
 })
 
 /* ─── Helpers ──────────────────────────────────────────────── */
 
+/** True document navigations only — do not treat Accept: text/html fetches as navigations. */
 function isNavigationRequest(request) {
-  return request.mode === 'navigate' || (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'))
+  return request.mode === 'navigate'
 }
 
 function isStaticAsset(url) {
@@ -121,6 +124,36 @@ function isCdnAsset(url) {
          url.hostname.includes('js.stripe.com')
 }
 
+function offlineDocumentResponse() {
+  return new Response(OFFLINE_HTML, {
+    status: 503,
+    statusText: 'Service Unavailable',
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  })
+}
+
+function assetMissResponse(request) {
+  const url = new URL(request.url)
+  const isJs = /\.js(\?.*)?$/i.test(url.pathname)
+  const isCss = /\.css(\?.*)?$/i.test(url.pathname)
+  const body = isJs
+    ? '/* strefex: asset unavailable */'
+    : isCss
+      ? '/* strefex: asset unavailable */'
+      : ''
+  return new Response(body, {
+    status: 503,
+    statusText: 'Service Unavailable',
+    headers: {
+      'Content-Type': isJs ? 'application/javascript' : isCss ? 'text/css' : 'text/plain',
+      'Cache-Control': 'no-store',
+    },
+  })
+}
+
 /* ─── Fetch handler ────────────────────────────────────────── */
 self.addEventListener('fetch', (event) => {
   const { request } = event
@@ -128,37 +161,38 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
 
-  // Skip chrome-extension, devtools, etc.
   if (!url.protocol.startsWith('http')) return
 
-  // API calls — network only, no caching
+  // Same-origin marketing static files — network first, never HTML-as-JS
+  if (url.origin === self.location.origin && url.pathname.startsWith('/marketing-site/')) {
+    if (isAppScriptOrStyle(url) || url.pathname.endsWith('.html')) {
+      event.respondWith(networkFirstStatic(request, RUNTIME_CACHE))
+      return
+    }
+  }
+
   if (isApiCall(url)) return
 
-  // Navigation (HTML pages) — network-first with offline fallback
   if (isNavigationRequest(request)) {
     event.respondWith(networkFirstNavigation(request))
     return
   }
 
-  // CDN fonts / scripts — cache-first (long-lived)
   if (isCdnAsset(url)) {
     event.respondWith(cacheFirst(request, RUNTIME_CACHE))
     return
   }
 
-  // JS/CSS — network-first when online (avoid stale-while-revalidate showing old UI until a later reload)
   if (isStaticAsset(url) && isAppScriptOrStyle(url)) {
     event.respondWith(networkFirstStatic(request, RUNTIME_CACHE))
     return
   }
 
-  // Other static assets (images, fonts paths, etc.) — stale-while-revalidate
   if (isStaticAsset(url)) {
     event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE))
     return
   }
 
-  // Everything else — network with cache fallback
   event.respondWith(networkWithCacheFallback(request))
 })
 
@@ -166,12 +200,20 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstNavigation(request) {
   try {
     const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE)
+      // SPA shell: cache both the request URL and canonical index for recovery.
+      cache.put(request, response.clone())
+      cache.put(SHELL_URL, response.clone())
+    }
     return response
   } catch {
-    return new Response(OFFLINE_HTML, {
-      status: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
+    const cached =
+      (await caches.match(request)) ||
+      (await caches.match(SHELL_URL)) ||
+      (await caches.match('/'))
+    if (cached) return cached
+    return offlineDocumentResponse()
   }
 }
 
@@ -198,15 +240,17 @@ async function networkFirstStatic(request, cacheName) {
     const response = await fetch(request)
     if (response.ok) {
       cache.put(request, response.clone())
+      return response
     }
+    // Do not cache 404/5xx hashed chunks from a partial deploy.
+    const cached = await cache.match(request)
+    if (cached) return cached
     return response
   } catch {
     const cached = await cache.match(request)
     if (cached) return cached
-    return new Response(OFFLINE_HTML, {
-      status: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
+    // Never return the offline HTML document as a script/style body.
+    return assetMissResponse(request)
   }
 }
 
@@ -241,16 +285,6 @@ async function networkWithCacheFallback(request) {
     return cached || new Response('', { status: 408 })
   }
 }
-
-/* ─── Background sync (for future use) ─────────────────────── */
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-data') {
-    event.waitUntil(
-      // Future: replay queued mutations
-      Promise.resolve()
-    )
-  }
-})
 
 /* ─── Push notifications (for future use) ──────────────────── */
 self.addEventListener('push', (event) => {

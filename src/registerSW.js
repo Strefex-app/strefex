@@ -2,12 +2,12 @@
  * Service Worker registration with update detection.
  *
  * - Registers the SW on page load
- * - Checks for updates periodically (every 60 min)
+ * - Checks for updates on load, focus, and periodically
  * - Notifies the app when a new version is available
  */
 
 const SW_URL = '/sw.js'
-const UPDATE_INTERVAL_MS = 60 * 60 * 1000
+const UPDATE_INTERVAL_MS = 30 * 60 * 1000
 
 let _registration = null
 let _onUpdate = null
@@ -24,6 +24,11 @@ export async function getServiceWorkerRegistration() {
   _readyPromise = navigator.serviceWorker.ready.catch(() => null)
   _registration = await _readyPromise
   return _registration
+}
+
+function checkForUpdates(reg) {
+  if (!reg) return
+  reg.update().catch(() => {})
 }
 
 export async function registerServiceWorker() {
@@ -44,10 +49,21 @@ export async function registerServiceWorker() {
       })
     })
 
-    // Periodic update checks
-    setInterval(() => {
-      reg.update().catch(() => {})
-    }, UPDATE_INTERVAL_MS)
+    // Immediate + frequent checks so deploys reach users before stale lazy chunks break.
+    checkForUpdates(reg)
+    setInterval(() => checkForUpdates(reg), UPDATE_INTERVAL_MS)
+    window.addEventListener('focus', () => checkForUpdates(reg))
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdates(reg)
+    })
+
+    // New SW took control (after skipWaiting) — reload once so lazy imports match index.html.
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return
+      refreshing = true
+      window.location.reload()
+    })
 
     return reg
   } catch (err) {
