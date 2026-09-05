@@ -35,7 +35,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://js.stripe.com https://*.stripe.com https://cdn.mxpnl.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.stripe.com https://*.stripe.network https://api.mixpanel.com https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' blob: https://js.stripe.com https://hooks.stripe.com https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.jsdelivr.net https://js.stripe.com https://*.stripe.com https://cdn.mxpnl.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://unpkg.com https://*.stripe.com https://*.stripe.network https://api.mixpanel.com https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' blob: https://js.stripe.com https://hooks.stripe.com https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
         },
         {
           "key": "Strict-Transport-Security",

@@ -1531,6 +1531,13 @@
 <script>
 window.__resources = window.__resources || {};
 window.__resources.worldAtlas = "/intelligent-sourcing/assets/5d9e267c-1cbb-4f8a-85f6-b043d1245fab.json";
+/* Same-origin React/Babel — production CSP blocks unpkg CDN scripts. */
+window.__resources["https://unpkg.com/react@18.3.1/umd/react.production.min.js"] = "/intelligent-sourcing/vendor/react.production.min.js";
+window.__resources["https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"] = "/intelligent-sourcing/vendor/react-dom.production.min.js";
+window.__resources["https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"] = "/intelligent-sourcing/vendor/babel.min.js";
+window.__resources["/intelligent-sourcing/vendor/react.production.min.js"] = "/intelligent-sourcing/vendor/react.production.min.js";
+window.__resources["/intelligent-sourcing/vendor/react-dom.production.min.js"] = "/intelligent-sourcing/vendor/react-dom.production.min.js";
+window.__resources["/intelligent-sourcing/vendor/babel.min.js"] = "/intelligent-sourcing/vendor/babel.min.js";
 window.__STREFEX_SOURCING_BRIDGE__ = {
   emit: function (action, payload) {
     try {

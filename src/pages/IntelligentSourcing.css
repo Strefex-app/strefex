@@ -22,6 +22,19 @@
   background: var(--bg-primary, #f6f7f8);
 }
 
+.intelligent-sourcing-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--color-muted, #9db1c8);
+  font: var(--font-medium, 500) var(--text-body, 1rem) / var(--leading-body, 1.45) var(--font-sans);
+  background: var(--bg-primary, #0d0e10);
+}
+
 .intelligent-sourcing-error {
   margin: 24px;
   max-width: 40rem;

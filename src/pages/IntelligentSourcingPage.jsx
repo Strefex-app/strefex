@@ -378,7 +378,17 @@ export default function IntelligentSourcingPage() {
   useEffect(() => {
     let cancelled = false
     setStatus('loading')
+    setSrcDoc('')
     setFrameSrc('')
+
+    // Direct same-origin iframe (React/Babel vendored under /intelligent-sourcing/vendor).
+    // Avoids huge srcDoc documents that inherit production CSP and previously blocked unpkg.
+    const loadDirect = () => {
+      setSrcDoc('')
+      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&t=${Date.now()}`)
+      setStatus('ready')
+    }
+
     fetch(`${window.location.origin}/intelligent-sourcing/index.html`, { cache: 'no-cache' })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -389,17 +399,14 @@ export default function IntelligentSourcingPage() {
         if (!html.includes('Intelligent Sourcing') || !html.includes('SOURCING_DATA')) {
           throw new Error('Intelligent Sourcing HTML not served (check vercel rewrite)')
         }
-        setSrcDoc(injectPlatformPayload(html, JSON.parse(payloadKey), theme))
-        setFrameSrc('')
-        setStatus('ready')
+        loadDirect()
       })
       .catch(() => {
         if (cancelled) return
-        // Fallback: load static file directly and push payload via postMessage
-        setSrcDoc('')
-        setFrameSrc(`/intelligent-sourcing/index.html?embed=1&t=${Date.now()}`)
-        setStatus('ready')
+        // Last resort: still try the static URL (may recover after SW cache churn)
+        loadDirect()
       })
+
     return () => { cancelled = true }
   }, [payloadKey, theme])
 
@@ -513,14 +520,21 @@ export default function IntelligentSourcingPage() {
             </p>
           </div>
         ) : (
-          <iframe
-            ref={iframeRef}
-            className="intelligent-sourcing-frame"
-            title="Intelligent Sourcing"
-            src={frameSrc || undefined}
-            srcDoc={!frameSrc && status === 'ready' ? srcDoc : undefined}
-            onLoad={pushPlatformToFrame}
-          />
+          <>
+            {status === 'loading' && (
+              <div className="intelligent-sourcing-loading" role="status">
+                Loading Sourcing…
+              </div>
+            )}
+            <iframe
+              ref={iframeRef}
+              className="intelligent-sourcing-frame"
+              title="Intelligent Sourcing"
+              src={frameSrc || undefined}
+              srcDoc={!frameSrc && status === 'ready' ? srcDoc : undefined}
+              onLoad={pushPlatformToFrame}
+            />
+          </>
         )}
 
         {lastCreatedRfq && (

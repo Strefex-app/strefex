@@ -1139,17 +1139,20 @@
     return b instanceof Blob ? b : null;
   }
 
-  // src/cdn.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
-  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
-  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
-  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
+  // src/cdn.ts — prefer same-origin vendor copies (production CSP blocks unpkg by default)
+  var REACT_URL = "/intelligent-sourcing/vendor/react.production.min.js";
+  var REACT_SRI = "";
+  var REACT_DOM_URL = "/intelligent-sourcing/vendor/react-dom.production.min.js";
+  var REACT_DOM_SRI = "";
+  var BABEL_URL = "/intelligent-sourcing/vendor/babel.min.js";
+  var BABEL_SRI = "";
+  var REACT_URL_FALLBACK = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_DOM_URL_FALLBACK = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var BABEL_URL_FALLBACK = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
   function cdnScriptFor(url, sri) {
     const res = window.__resources;
     const v = res ? res[url] : void 0;
-    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
+    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri || undefined };
   }
 
   // src/external.ts
@@ -1177,16 +1180,8 @@
       if (window.Babel) return Promise.resolve();
       if (babelLoading) return babelLoading;
       const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
-      babelLoading = new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = babel.src;
-        if (babel.integrity) {
-          s.integrity = babel.integrity;
-          s.crossOrigin = "anonymous";
-        }
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
+      babelLoading = loadScript(babel.src, babel.integrity).catch(() => loadScript(BABEL_URL_FALLBACK)).then(() => {
+        if (!window.Babel) throw new Error("Babel failed to load");
       });
       return babelLoading;
     }
@@ -1843,7 +1838,10 @@
     return Promise.all([
       loadScript(react.src, react.integrity),
       loadScript(reactDom.src, reactDom.integrity)
-    ]).then(() => void 0);
+    ]).catch(() => Promise.all([
+      loadScript(REACT_URL_FALLBACK),
+      loadScript(REACT_DOM_URL_FALLBACK)
+    ])).then(() => void 0);
   }
   function init() {
     const runtime = createRuntime(document);
