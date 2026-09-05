@@ -318,7 +318,8 @@ function MiniBarChart({ items, maxVal }) {
 }
 
 function profileRowToAccountStub(p) {
-  const co = p?.companies
+  const coRaw = p?.companies
+  const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
   const md = p?.metadata && typeof p.metadata === 'object' ? p.metadata : {}
   const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
   const accountType = types[0] || co?.account_type || 'seller'
@@ -327,15 +328,18 @@ function profileRowToAccountStub(p) {
     String(p.email || co?.email || '')
       .trim()
       .toLowerCase()
+  // Prefer joined company row; fall back to profile.company_id when the join is empty (RLS / orphan).
+  const companyId = co?.id || p.company_id || null
   return {
     id: p.id,
-    companyId: co?.id || null,
+    companyId,
     registrationCode: co?.registration_code || null,
     visibilityTier: co?.visibility_tier || null,
     email: contactEmail,
     company: co?.name || md.company_name || '',
     contactName: p.full_name,
     fullName: p.full_name,
+    phone: p.phone || co?.phone || '',
     accountType,
     plan: co?.plan || 'start',
     status: co?.status === 'active' ? 'active' : p.status || 'active',
@@ -1286,9 +1290,10 @@ export default function SuperAdminDashboard() {
                 type="button"
                 className="sad-btn-primary"
                 onClick={() => {
+                  const navState = { accountStub: selectedAccount }
                   const cid = selectedAccount.companyId || selectedAccount.company_id
                   if (cid && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(cid))) {
-                    navigate(`/admin-dashboard/account/${cid}`)
+                    navigate(`/admin-dashboard/account/${cid}`, { state: navState })
                     return
                   }
                   const key = encodeURIComponent(
@@ -1297,7 +1302,7 @@ export default function SuperAdminDashboard() {
                       || selectedAccount.id
                       || '',
                   )
-                  navigate(`/admin-dashboard/local-account/${key}`)
+                  navigate(`/admin-dashboard/local-account/${key}`, { state: navState })
                 }}
               >
                 Edit account profile

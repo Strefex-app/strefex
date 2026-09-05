@@ -287,6 +287,31 @@ export const profilesService = {
     return data || []
   },
 
+  /** Superadmin: single profile + company join (for account edit hydration). */
+  async getByIdWithCompany(profileId) {
+    if (!isSupabaseConfigured || !profileId) return null
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, phone, role, metadata, status, created_at, company_id, companies(*)')
+      .eq('id', profileId)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+
+  async getByEmailWithCompany(email) {
+    if (!isSupabaseConfigured || !email) return null
+    const normalized = String(email).trim().toLowerCase()
+    if (!normalized) return null
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, phone, role, metadata, status, created_at, company_id, companies(*)')
+      .eq('email', normalized)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+
   /**
    * Platform directory: profiles + companies (RLS: superadmin / auditor_external only).
    * @param {{ limit?: number, offset?: number }} [params]

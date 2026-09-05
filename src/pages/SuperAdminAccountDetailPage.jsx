@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { isSupabaseConfigured, companiesService, profilesService, companyProfileAttachmentsService } from '../services/supabaseService'
 import {
@@ -89,15 +89,61 @@ function companyFromRegistryAccount(acct) {
     },
     _local: true,
     _registryKey: acct.email || acct.id,
-    _contactName: acct.name || '',
+    _contactName: acct.name || acct.contactName || acct.fullName || '',
     _contactPhone: acct.phone || '',
+    _profileId: UUID_RE.test(String(acct.id || '')) ? acct.id : null,
   }
+}
+
+/** Hydrate form from dashboard list stub when registry / company row is missing. */
+function companyFromAccountStub(stub) {
+  if (!stub) return null
+  const profileId = UUID_RE.test(String(stub.id || '')) ? stub.id : null
+  return {
+    id: stub.companyId || stub.company_id || null,
+    name: stub.company || stub.companyName || '',
+    email: stub.email || '',
+    phone: stub.phone || '',
+    website: stub.website || '',
+    country: stub.country || '',
+    city: stub.city || '',
+    address: stub.address || '',
+    account_type: stub.accountType || 'seller',
+    plan: stub.plan || 'start',
+    registration_code: stub.registrationCode || '',
+    visibility_tier: stub.visibilityTier || stub.visibility_tier || 'basic',
+    external_audit_status: stub.externalAuditStatus || 'none',
+    external_audit_notes: stub.externalAuditNotes || '',
+    external_audit_passed_at: stub.externalAuditPassedAt || null,
+    profile_attachments: [],
+    metadata: {
+      ...(stub.metadata || {}),
+      address: stub.address || null,
+      receiving_plants: stub.receivingPlants || stub.metadata?.receiving_plants || [],
+    },
+    _local: true,
+    _fromStub: true,
+    _registryKey: stub.email || stub.id,
+    _contactName: stub.name || stub.contactName || stub.fullName || '',
+    _contactPhone: stub.phone || '',
+    _profileId: profileId,
+  }
+}
+
+async function loadCloudCompany(cid) {
+  const [c, plist] = await Promise.all([
+    companiesService.getById(cid),
+    profilesService.listForCompany(cid),
+  ])
+  return { c, plist: Array.isArray(plist) ? plist : [] }
 }
 
 export default function SuperAdminAccountDetailPage() {
   const { companyId: companyIdParam, accountKey: accountKeyParam } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
+  const registerAccount = useAccountRegistry((s) => s.registerAccount)
   const [company, setCompany] = useState(null)
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -111,8 +157,12 @@ export default function SuperAdminAccountDetailPage() {
   const [form, setForm] = useState(emptyForm)
   const [plants, setPlants] = useState([])
   const [registryKey, setRegistryKey] = useState('')
+  /** Resolved Postgres company id when URL was local but stub/profile had a company. */
+  const [resolvedCloudId, setResolvedCloudId] = useState('')
+  /** Cloud getById failed; editing from list stub / registry only. */
+  const [forceLocalEdit, setForceLocalEdit] = useState(false)
 
-  const companyId = useMemo(() => {
+  const routeCompanyId = useMemo(() => {
     const raw = decodeParam(companyIdParam)
     return UUID_RE.test(raw) ? raw : ''
   }, [companyIdParam])
@@ -125,8 +175,11 @@ export default function SuperAdminAccountDetailPage() {
     return ''
   }, [accountKeyParam, companyIdParam])
 
+  const companyId = forceLocalEdit ? '' : (resolvedCloudId || routeCompanyId)
   const isCloud = Boolean(companyId)
-  const isLocal = Boolean(localLookupKey) && !isCloud
+  const isLocal = forceLocalEdit || (Boolean(localLookupKey) && !routeCompanyId && !resolvedCloudId)
+
+  const accountStub = location.state?.accountStub || null
 
   const syncFormFromCompany = useCallback((c, plist) => {
     const primary = Array.isArray(plist) && plist.length ? plist[0] : null
@@ -142,7 +195,7 @@ export default function SuperAdminAccountDetailPage() {
       plan: c?.plan || 'start',
       contactName: primary?.full_name || c?._contactName || '',
       contactPhone: primary?.phone || c?._contactPhone || '',
-      contactProfileId: primary?.id || '',
+      contactProfileId: primary?.id || c?._profileId || '',
     })
     const saved = readReceivingPlantsFromAccount(
       { receivingPlants: c?.metadata?.receiving_plants },
@@ -151,33 +204,126 @@ export default function SuperAdminAccountDetailPage() {
     setPlants(saved.length ? saved : normalizeReceivingPlants([]))
   }, [])
 
+  const applyLocalShaped = useCallback((shaped, plist = []) => {
+    setCompany(shaped)
+    setRegistryKey(shaped._registryKey || shaped.email || localLookupKey)
+    setProfiles(plist)
+    setAuditStatus(shaped.external_audit_status || 'none')
+    setAuditNotes(shaped.external_audit_notes || '')
+    syncFormFromCompany(shaped, plist)
+  }, [localLookupKey, syncFormFromCompany])
+
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     setSavedMsg('')
+    setResolvedCloudId('')
+    setForceLocalEdit(false)
 
-    if (isLocal) {
-      const acct = findRegistryAccount(localLookupKey)
-      if (!acct) {
-        setCompany(null)
-        setProfiles([])
-        setRegistryKey('')
+    const hydrateFromStubOrFail = (fallbackMsg) => {
+      const shaped = companyFromAccountStub(accountStub)
+      if (shaped) {
+        setForceLocalEdit(true)
+        applyLocalShaped(shaped)
         setLoading(false)
-        setError('Account not found in the local registry.')
+        return true
+      }
+      setCompany(null)
+      setProfiles([])
+      setRegistryKey('')
+      setLoading(false)
+      setError(fallbackMsg)
+      return false
+    }
+
+    // Local route: registry → resolve company via stub/profile → stub hydrate
+    if (localLookupKey && !routeCompanyId) {
+      const acct = findRegistryAccount(localLookupKey)
+      if (acct) {
+        applyLocalShaped(companyFromRegistryAccount(acct))
+        setLoading(false)
         return
       }
-      const shaped = companyFromRegistryAccount(acct)
-      setCompany(shaped)
-      setRegistryKey(acct.email || acct.id || localLookupKey)
-      setProfiles([])
-      setAuditStatus(shaped.external_audit_status || 'none')
-      setAuditNotes(shaped.external_audit_notes || '')
-      syncFormFromCompany(shaped, [])
-      setLoading(false)
+
+      const stubCid = accountStub?.companyId || accountStub?.company_id
+      const stubProfileId = accountStub?.id
+      const keyLooksLikeUuid = UUID_RE.test(String(localLookupKey))
+
+      if (isSupabaseConfigured) {
+        try {
+          // Prefer company UUID from navigation stub
+          if (stubCid && UUID_RE.test(String(stubCid))) {
+            const { c, plist } = await loadCloudCompany(String(stubCid))
+            setResolvedCloudId(String(stubCid))
+            setCompany(c)
+            setRegistryKey((c?.email || accountStub?.email || '').trim().toLowerCase())
+            setProfiles(plist)
+            setAuditStatus(c?.external_audit_status || 'none')
+            setAuditNotes(c?.external_audit_notes || '')
+            syncFormFromCompany(c, plist)
+            setLoading(false)
+            return
+          }
+
+          // Profile UUID in stub or in the local-account URL key
+          const profileId =
+            (stubProfileId && UUID_RE.test(String(stubProfileId)) && String(stubProfileId))
+            || (keyLooksLikeUuid ? String(localLookupKey) : '')
+          let row = null
+          if (profileId) {
+            row = await profilesService.getByIdWithCompany(profileId)
+          } else if (localLookupKey.includes('@') || (accountStub?.email || '').includes('@')) {
+            row = await profilesService.getByEmailWithCompany(
+              accountStub?.email || localLookupKey,
+            )
+          }
+          if (row) {
+            const coRaw = row?.companies
+            const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
+            const cid = co?.id || row?.company_id
+            if (cid && UUID_RE.test(String(cid))) {
+              try {
+                const { c, plist } = await loadCloudCompany(String(cid))
+                setResolvedCloudId(String(cid))
+                setCompany(c)
+                setRegistryKey((c?.email || row?.email || '').trim().toLowerCase())
+                setProfiles(plist.length ? plist : [row])
+                setAuditStatus(c?.external_audit_status || 'none')
+                setAuditNotes(c?.external_audit_notes || '')
+                syncFormFromCompany(c, plist.length ? plist : [row])
+                setLoading(false)
+                return
+              } catch {
+                /* fall through to stub / profile-shaped local */
+              }
+            }
+            const shaped = companyFromAccountStub({
+              id: row.id,
+              email: row.email,
+              company: co?.name || row.metadata?.company_name || '',
+              name: row.full_name,
+              contactName: row.full_name,
+              phone: row.phone || co?.phone || '',
+              companyId: cid || null,
+              accountType: co?.account_type || 'seller',
+              plan: co?.plan || 'start',
+            })
+            applyLocalShaped(shaped, [row])
+            setLoading(false)
+            return
+          }
+        } catch {
+          /* fall through to stub */
+        }
+      }
+
+      hydrateFromStubOrFail(
+        'Account not found. Open Edit from the accounts list, or ensure this profile is linked to a company.',
+      )
       return
     }
 
-    if (!isCloud) {
+    if (!routeCompanyId) {
       setLoading(false)
       setError('Invalid company id.')
       return
@@ -190,24 +336,26 @@ export default function SuperAdminAccountDetailPage() {
     }
 
     try {
-      const [c, plist] = await Promise.all([
-        companiesService.getById(companyId),
-        profilesService.listForCompany(companyId),
-      ])
+      const { c, plist } = await loadCloudCompany(routeCompanyId)
       setCompany(c)
       setRegistryKey((c?.email || '').trim().toLowerCase())
-      setProfiles(Array.isArray(plist) ? plist : [])
+      setProfiles(plist)
       setAuditStatus(c?.external_audit_status || 'none')
       setAuditNotes(c?.external_audit_notes || '')
       syncFormFromCompany(c, plist)
     } catch (e) {
-      setCompany(null)
-      setProfiles([])
-      setError(e?.message || 'Failed to load company.')
+      // Company row missing / RLS: still allow edit from the list stub
+      if (hydrateFromStubOrFail(e?.message || 'Failed to load company.')) return
     } finally {
       setLoading(false)
     }
-  }, [companyId, isCloud, isLocal, localLookupKey, syncFormFromCompany])
+  }, [
+    accountStub,
+    applyLocalShaped,
+    localLookupKey,
+    routeCompanyId,
+    syncFormFromCompany,
+  ])
 
   useEffect(() => {
     void load()
@@ -257,7 +405,7 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const saveAccountProfile = async () => {
-    if (!company || (!isCloud && !isLocal)) return
+    if (!company || (!isCloud && !isLocal && !company._fromStub && !company._local)) return
     if (!form.name.trim()) {
       setError('Company name is required.')
       return
@@ -270,9 +418,9 @@ export default function SuperAdminAccountDetailPage() {
       const emailKey = (form.email || company.email || registryKey || '').trim().toLowerCase()
       const lookup = registryKey || emailKey || company._registryKey
 
-      if (isLocal) {
-        if (!lookup) throw new Error('Missing local account key.')
-        const updatedLocal = updateAccount(lookup, {
+      if (isLocal || (company._local && !companyId)) {
+        if (!lookup && !emailKey) throw new Error('Missing local account key.')
+        const patch = {
           company: form.name.trim(),
           name: form.contactName.trim() || undefined,
           email: emailKey || undefined,
@@ -284,7 +432,21 @@ export default function SuperAdminAccountDetailPage() {
           accountType: form.account_type || undefined,
           plan: form.plan || undefined,
           receivingPlants: normalizeReceivingPlants(plants),
-        })
+          companyId: company.id || undefined,
+        }
+        let updatedLocal = lookup ? updateAccount(lookup, patch) : null
+        if (!updatedLocal && emailKey) {
+          updatedLocal = updateAccount(emailKey, patch)
+        }
+        if (!updatedLocal) {
+          updatedLocal = registerAccount({
+            id: company._profileId || `local-${Date.now()}`,
+            email: emailKey || lookup,
+            ...patch,
+            accountType: form.account_type || 'seller',
+            plan: form.plan || 'start',
+          })
+        }
         if (!updatedLocal) throw new Error('Could not update local account registry.')
         await saveReceivingPlantsToAccount({
           plants,
@@ -293,6 +455,17 @@ export default function SuperAdminAccountDetailPage() {
           updateAccount,
           tenant: null,
         })
+        if (form.contactProfileId && isSupabaseConfigured) {
+          try {
+            await profilesService.updateProfilePrivileged({
+              id: form.contactProfileId,
+              full_name: form.contactName.trim() || null,
+              phone: form.contactPhone.trim() || null,
+            })
+          } catch {
+            /* profile privileged update may be restricted */
+          }
+        }
         setCompany(companyFromRegistryAccount(updatedLocal))
         setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
         setSavedMsg('Account profile saved to local registry.')
@@ -344,13 +517,26 @@ export default function SuperAdminAccountDetailPage() {
       }
 
       if (emailKey) {
-        updateAccount(emailKey, {
+        const existing = updateAccount(emailKey, {
           company: form.name.trim(),
           country: form.country.trim() || '',
           city: form.city.trim() || '',
           address: nextAddress || '',
           accountType: form.account_type || undefined,
         })
+        if (!existing) {
+          registerAccount({
+            id: form.contactProfileId || emailKey,
+            email: emailKey,
+            company: form.name.trim(),
+            companyId,
+            country: form.country.trim() || '',
+            city: form.city.trim() || '',
+            address: nextAddress || '',
+            accountType: form.account_type || 'seller',
+            plan: form.plan || 'start',
+          })
+        }
       }
 
       if (plants.length) {
@@ -377,17 +563,27 @@ export default function SuperAdminAccountDetailPage() {
     setSaving(true)
     setError('')
     try {
-      if (isLocal) {
+      if (isLocal || (company._local && !companyId)) {
         const lookup = registryKey || company._registryKey || company.email
         if (!lookup) throw new Error('Missing local account key.')
-        const updatedLocal = updateAccount(lookup, {
+        const patch = {
           externalAuditStatus: auditStatus,
           externalAuditNotes: auditNotes.trim() || '',
           externalAuditPassedAt: auditStatus === 'passed'
             ? (company.external_audit_passed_at || new Date().toISOString())
             : null,
           visibilityTier: auditStatus === 'passed' ? 'verified' : undefined,
-        })
+        }
+        let updatedLocal = updateAccount(lookup, patch)
+        if (!updatedLocal) {
+          updatedLocal = registerAccount({
+            id: company._profileId || lookup,
+            email: lookup,
+            company: company.name || form.name || 'Business Account',
+            accountType: company.account_type || 'seller',
+            ...patch,
+          })
+        }
         if (!updatedLocal) throw new Error('Could not update local account registry.')
         const shaped = companyFromRegistryAccount(updatedLocal)
         setCompany(shaped)
