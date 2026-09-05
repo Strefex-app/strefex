@@ -1,10 +1,10 @@
-/* Full-bleed inside AppLayout .app-main (cancels main padding so design fits the shell). */
+/* Full-bleed inside AppLayout .app-main (cancels horizontal padding so design fits the shell). */
 .intelligent-sourcing-page {
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin: -24px;
+  margin: 0 -24px;
   margin-bottom: calc(-100px - env(safe-area-inset-bottom, 0px));
   width: calc(100% + 48px);
   height: calc(100dvh);

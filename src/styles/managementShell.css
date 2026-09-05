@@ -8,6 +8,7 @@
   margin: 0 0 10px;
   font-size: var(--text-small);
   color: var(--color-secondary);
+  min-width: 0;
 }
 
 .mgmt-breadcrumb__link {
@@ -29,16 +30,36 @@
   font-weight: var(--font-medium);
 }
 
-/* Global breadcrumb bar (AppLayout) */
+/* Global breadcrumb bar (AppLayout) — height matches .sidebar-brand so the hairline continues */
 
 .app-page-breadcrumb-bar {
-  padding: 14px 20px 0;
-  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: var(--stx-chrome-top-h, 77px);
+  min-height: var(--stx-chrome-top-h, 77px);
+  max-height: var(--stx-chrome-top-h, 77px);
+  /* Full-bleed via negative margins only — do not also widen width (that overflows app-main grids) */
+  margin: 0 -24px 20px;
+  padding: 0 24px;
+  width: auto;
+  max-width: none;
+  background: var(--bg-card, var(--surface-card, #fff));
+  border-bottom: 1px solid var(--border-hairline, var(--border-color, rgba(0, 0, 0, 0.08)));
 }
 
-@media (min-width: 900px) {
+.app-page-breadcrumb-bar .mgmt-breadcrumb {
+  margin: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
   .app-page-breadcrumb-bar {
-    padding: 16px 28px 0;
+    margin: 0 -16px 16px;
+    padding: 0 16px;
   }
 }
 

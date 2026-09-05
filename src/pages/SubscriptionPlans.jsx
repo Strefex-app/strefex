@@ -228,7 +228,7 @@ export default function SubscriptionPlans() {
               <h2 className="app-page-title">Plans & Pricing</h2>
               <p className="app-page-subtitle stx-text-wrap">
                 {stripeLive
-                  ? 'Active billing is managed through Stripe plans below.'
+                  ? 'Select a plan and subscribe.'
                   : 'Choose the plan that fits your business. Upgrade or downgrade at any time.'}
               </p>
               {(showLocalPlanCatalog || stripeLive) && (
@@ -279,15 +279,10 @@ export default function SubscriptionPlans() {
 
         {/* ── Stripe checkout section ── */}
         {stripeLive && (
-          <div className="app-page-card" style={{ padding: '2rem 1rem' }}>
-            <h3 style={{ textAlign: 'center', marginBottom: '0.5rem', fontSize: '1.1rem', color: '#333' }}>
-              Subscribe via Stripe
-            </h3>
-            <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#888' }}>
-              Secure checkout powered by Stripe. Use the plan buttons below to subscribe.
-            </p>
-            <div style={{ marginTop: '1rem' }}>
-              <p style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.82rem', color: '#777' }}>
+          <div className="app-page-card sp-stripe-section">
+            <h3 className="sp-stripe-heading">Select a plan and subscribe</h3>
+            <div className="sp-stripe-body">
+              <p className="sp-stripe-billing-note">
                 {billingPeriod === BILLING_PERIODS.MONTHLY
                   ? 'Monthly charge'
                   : billingPeriod === BILLING_PERIODS.ANNUAL

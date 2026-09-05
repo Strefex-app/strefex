@@ -2,9 +2,7 @@
 /*  Subscription Plans — Full-scale maximized layout             */
 /* ═══════════════════════════════════════════════════════════════ */
 
-/* ── Maximize page: strip parent padding to bare minimum ────── */
-.app-main:has(.sp-page) { padding: 8px 4px 24px !important; }
-
+/* Maximize plan cards within normal AppLayout padding (keep chrome hairline aligned). */
 .sp-page {
   max-width: 100% !important;
   width: 100% !important;
@@ -81,6 +79,22 @@
 }
 
 /* Stripe paid plans - 4-column layout */
+.sp-stripe-section {
+  padding: 28px 24px !important;
+}
+.sp-stripe-heading {
+  text-align: center;
+  margin: 0 0 1rem;
+  font-size: var(--text-section, 1.1rem);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+.sp-stripe-billing-note {
+  text-align: center;
+  margin: 0 0 0.75rem;
+  font-size: var(--text-small, 0.82rem);
+  color: var(--color-muted);
+}
 .sp-stripe-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -330,7 +344,6 @@
 
 /* ── iPad portrait (~768-834px) ────────────────────────── */
 @media (max-width: 900px) {
-  .app-main:has(.sp-page) { padding: 8px 4px 24px !important; }
   .sp-header-card { padding: 24px 20px 20px !important; }
   .sp-header-card .app-page-title { font-size: 24px; }
   .sp-header-card .app-page-subtitle { font-size: 15px; }
@@ -356,7 +369,6 @@
 
 /* ── Phone landscape / large phone (~680px) ────────────── */
 @media (max-width: 680px) {
-  .app-main:has(.sp-page) { padding: 6px 2px 20px !important; }
   .sp-header-card { padding: 20px 16px 16px !important; }
   .sp-header-card .app-page-title { font-size: 22px; }
   .sp-header-card .app-page-subtitle { font-size: 14px; }
@@ -383,14 +395,12 @@
 
 /* ── Mobile (<640px): hamburger visible, needs top padding ─ */
 @media (max-width: 640px) {
-  .app-main:has(.sp-page) { padding: 64px 6px 20px !important; }
   .sp-modal-overlay { padding: 12px; }
   .sp-modal { max-width: 100%; margin: 0; }
 }
 
 /* ── Small phone (<420px) ──────────────────────────────── */
 @media (max-width: 420px) {
-  .app-main:has(.sp-page) { padding: 60px 4px 16px !important; }
   .sp-header-card { padding: 16px 12px 14px !important; }
   .sp-header-card .app-page-title { font-size: 20px; }
   .sp-header-card .app-page-subtitle { font-size: 13px; }

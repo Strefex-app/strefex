@@ -248,6 +248,7 @@ export const profilesService = {
   async updateProfilePrivileged(updates) {
     if (!isSupabaseConfigured) return null
     const user = (await supabase.auth.getUser()).data.user
+    const targetId = updates?.id || user?.id
     const allowedKeys = new Set([
       'company_id',
       'full_name',
@@ -269,7 +270,7 @@ export const profilesService = {
     const { data, error } = await supabase
       .from('profiles')
       .update(safeUpdates)
-      .eq('id', user?.id)
+      .eq('id', targetId)
       .select()
       .single()
     if (error) throw error

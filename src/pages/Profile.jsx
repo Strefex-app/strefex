@@ -404,6 +404,7 @@ const Profile = () => {
   const role = useAuthStore((s) => s.role)
   const isSuperAdmin = role === 'superadmin'
   const isAdmin = role === 'admin' || isSuperAdmin
+  const canEditCompany = Boolean(user)
   const planId = useSubscriptionStore((s) => s.planId)
   const accountType = useSubscriptionStore((s) => s.accountType)
   const status = useSubscriptionStore((s) => s.status)
@@ -945,15 +946,52 @@ const Profile = () => {
       setCompanyError('Company name is required')
       return
     }
-    if (!tenant?.id) {
-      setCompanyError('Company profile is not linked to your account yet')
-      return
-    }
 
     const uploadedPathsThisSave = []
     try {
       setSavingCompany(true)
       const nextAddress = companyForm.companyAddress.trim()
+      const nextCountry = companyForm.country.trim()
+      const nextCity = companyForm.city.trim()
+      const nextName = companyForm.companyName.trim()
+      const nextSummary = companyForm.companySummary.trim()
+
+      // Offline / registry-only accounts — still persist local profile + geo.
+      if (!tenant?.id) {
+        setUser({
+          ...(user || {}),
+          fullName: companyForm.fullName.trim(),
+          phone: companyForm.phone.trim() || null,
+          companyName: nextName,
+          country: nextCountry || null,
+          city: nextCity || null,
+        })
+        if (tenant) {
+          setTenant({
+            ...tenant,
+            name: nextName,
+            address: nextAddress || null,
+            country: nextCountry || null,
+            city: nextCity || null,
+            website: companyForm.website.trim() || null,
+            metadata: {
+              ...(tenant.metadata || {}),
+              address: nextAddress || null,
+              company_summary: nextSummary || null,
+            },
+          })
+        }
+        if (user?.email) {
+          updateRegistryAccount(user.email, {
+            company: nextName,
+            country: nextCountry || '',
+            city: nextCity || '',
+            address: nextAddress || '',
+          })
+        }
+        setShowEditCompany(false)
+        return
+      }
 
       let nextProfileAttachments = null
       if (canAttachCompanyProfile && isSupabaseConfigured && tenant.id) {
@@ -968,12 +1006,11 @@ const Profile = () => {
         nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
       }
 
-      const nextSummary = companyForm.companySummary.trim()
       const companyPayload = {
-        name: companyForm.companyName.trim(),
+        name: nextName,
         address: nextAddress || null,
-        country: companyForm.country.trim() || null,
-        city: companyForm.city.trim() || null,
+        country: nextCountry || null,
+        city: nextCity || null,
         website: companyForm.website.trim() || null,
         metadata: {
           ...(tenant.metadata || {}),
@@ -1020,10 +1057,10 @@ const Profile = () => {
       })
       setTenant({
         ...(tenant || {}),
-        name: updatedCompany?.name || companyForm.companyName.trim(),
+        name: updatedCompany?.name || nextName,
         address: (updatedCompany?.address ?? nextAddress) || null,
-        country: (updatedCompany?.country ?? companyForm.country.trim()) || null,
-        city: (updatedCompany?.city ?? companyForm.city.trim()) || null,
+        country: (updatedCompany?.country ?? nextCountry) || null,
+        city: (updatedCompany?.city ?? nextCity) || null,
         website: (updatedCompany?.website ?? companyForm.website.trim()) || null,
         registration_code: updatedCompany?.registration_code ?? tenant?.registration_code,
         visibility_tier: updatedCompany?.visibility_tier ?? tenant?.visibility_tier,
@@ -1040,9 +1077,9 @@ const Profile = () => {
       })
       if (user?.email) {
         updateRegistryAccount(user.email, {
-          company: updatedCompany?.name || companyForm.companyName.trim(),
-          country: (updatedCompany?.country ?? companyForm.country.trim()) || '',
-          city: (updatedCompany?.city ?? companyForm.city.trim()) || '',
+          company: updatedCompany?.name || nextName,
+          country: (updatedCompany?.country ?? nextCountry) || '',
+          city: (updatedCompany?.city ?? nextCity) || '',
           address: (updatedCompany?.address ?? nextAddress) || '',
         })
       }
@@ -1158,7 +1195,7 @@ const Profile = () => {
               <p className="prof-card-subtitle">Your organization details and subscription plan.</p>
             </div>
             <div className="prof-company-actions">
-              {isAdmin && (
+              {canEditCompany && (
                 <button className="prof-btn-outline" onClick={() => setShowEditCompany(true)}>
                   Edit Company Info
                 </button>

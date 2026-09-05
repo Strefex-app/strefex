@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import ManagementModuleGrid, { moduleUnlocked } from '../components/management/ManagementModuleGrid'
 import PeopleHrDashboard from '../components/management/PeopleHrDashboard'
-import { MANAGEMENT_OVERVIEW_PATH, isManagementClusterId } from '../constants/managementPaths'
+import { isManagementClusterId } from '../constants/managementPaths'
 import { getManagementCluster } from '../data/managementModuleGroups'
 import { getClusterStatsForId, useManagementClusterStats } from '../hooks/useManagementClusterStats'
 import { useSubscriptionStore } from '../services/featureFlags'
@@ -71,11 +70,6 @@ export default function ManagementClusterPage() {
   return (
     <AppLayout>
       <div className="app-page mgmt-cluster-page">
-        <ManagementBreadcrumb trail={[
-          { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
-          { label: cluster.label },
-        ]} />
-
         {isPeopleCluster ? (
           <PeopleHrDashboard />
         ) : (

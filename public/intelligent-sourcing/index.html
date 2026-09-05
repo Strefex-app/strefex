@@ -18,7 +18,7 @@
     }
     var s = document.createElement('style');
     s.id = 'strefex-embed-shell-early';
-    s.textContent = 'aside{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important}button[aria-label="Menu"]{display:none!important}html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}';
+    s.textContent = 'aside{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important}button[aria-label="Menu"]{display:none!important}main>header{box-sizing:border-box!important;height:77px!important;min-height:77px!important;max-height:77px!important;padding-top:0!important;padding-bottom:0!important;padding-left:24px!important;padding-right:24px!important;align-items:center!important;flex-wrap:nowrap!important}html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}';
     document.documentElement.appendChild(s);
   } catch (e) { /* */ }
 })();
@@ -1680,8 +1680,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
         <div style="max-width:1400px">
           <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
             <div>
-              <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Sourcing</span></div>
-              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:38px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Intelligent Sourcing</h1>
+              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:38px; letter-spacing:-.02em; color:var(--navy-800); margin:0 0 6px">Intelligent Sourcing</h1>
               <p style="font-size:14.5px; line-height:1.55; color:var(--text-muted); margin:0; max-width:620px; text-wrap:pretty">Start from what you are sourcing, narrow to an industry and a category, then read the executive summary before a single RFQ leaves the building.</p>
             </div>
             <div style="display:flex; gap:10px; flex:none">
@@ -1712,17 +1711,26 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               <p style="font-size:13.5px; color:var(--text-muted); margin:0 0 20px">Three separate supply objects with different qualification logic. Pick one — the flow adapts.</p>
               <div style="display:grid; grid-template-columns:{{ domCols }}; gap:16px">
                 <sc-for list="{{ domains }}" as="d" hint-placeholder-count="3">
-                  <div sc-camel-on-click="{{ d.onPick }}" style="border:1px solid var(--border-hairline); border-top:3px solid var(--navy-800); border-radius:6px; padding:20px 18px 18px; cursor:pointer; background:var(--white); transition:box-shadow 160ms cubic-bezier(.2,0,.1,1), border-color 160ms" style-hover="box-shadow:0 6px 18px rgba(6,24,41,.10); border-color:var(--border-strong)">
+                  <div sc-camel-on-click="{{ d.onPick }}" style="border:1px solid var(--border-hairline); border-top:3px solid var(--navy-800); border-radius:6px; padding:22px 20px 20px; cursor:pointer; background:var(--white); min-width:0; transition:box-shadow 160ms cubic-bezier(.2,0,.1,1), border-color 160ms" style-hover="box-shadow:0 6px 18px rgba(6,24,41,.10); border-color:var(--border-strong)">
                     <span style="width:40px; height:40px; border-radius:4px; background:var(--steel-100); border:1px solid var(--border-hairline); display:flex; align-items:center; justify-content:center; color:var(--navy-700)">
                       <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="{{ d.icon }}" size="21" hint-size="21px,21px"></x-import>
                     </span>
                     <div style="font-family:var(--font-sans); font-weight:600; font-size:16.5px; color:var(--navy-800); margin-top:14px">{{ d.name }}</div>
                     <div style="font-size:13px; line-height:1.5; color:var(--text-muted); margin-top:6px; min-height:58px; text-wrap:pretty">{{ d.desc }}</div>
                     <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-hairline); padding-top:11px; margin-top:4px">{{ d.example }}</div>
-                    <div style="display:flex; gap:16px; margin-top:12px">
-                      <span><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ d.suppliers }}</span><span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Suppliers</span></span>
-                      <span><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ d.categories }}</span><span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Categories</span></span>
-                      <span><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:{{ d.vcolor }}">{{ d.verified }}%</span><span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Verified</span></span>
+                    <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); column-gap:0; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-hairline)">
+                      <span style="min-width:0; padding:0 10px 0 0; border-right:1px solid var(--border-hairline)">
+                        <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px; line-height:1.15; color:var(--navy-800)">{{ d.suppliers }}</span>
+                        <span style="display:block; margin-top:3px; font-family:var(--font-condensed); font-size:9px; letter-spacing:.04em; text-transform:uppercase; line-height:1.2; white-space:nowrap; color:var(--text-faint)">Suppliers</span>
+                      </span>
+                      <span style="min-width:0; padding:0 10px; border-right:1px solid var(--border-hairline)">
+                        <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px; line-height:1.15; color:var(--navy-800)">{{ d.categories }}</span>
+                        <span style="display:block; margin-top:3px; font-family:var(--font-condensed); font-size:9px; letter-spacing:.04em; text-transform:uppercase; line-height:1.2; white-space:nowrap; color:var(--text-faint)">Category</span>
+                      </span>
+                      <span style="min-width:0; padding:0 0 0 10px">
+                        <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px; line-height:1.15; color:{{ d.vcolor }}">{{ d.verified }}%</span>
+                        <span style="display:block; margin-top:3px; font-family:var(--font-condensed); font-size:9px; letter-spacing:.04em; text-transform:uppercase; line-height:1.2; white-space:nowrap; color:var(--text-faint)">Verified</span>
+                      </span>
                     </div>
                     <div style="display:flex; align-items:center; gap:7px; margin-top:16px; font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--navy-800)">Explore
                       <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="arrowRight" size="15" hint-size="15px,15px"></x-import>
@@ -1733,28 +1741,28 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             </div>
 
             <div style="display:flex; flex-direction:column; gap:16px">
-              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:14px 16px">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
                   <div style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); border-left:3px solid var(--navy-800); padding-left:9px">Your RFQs</div>
                   <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint)">{{ rfqListCount }}</span>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:2px; margin-top:12px">
+                <div style="display:flex; flex-direction:column; gap:2px; margin-top:10px">
                   <sc-if value="{{ rfqListEmpty }}">
                     <div style="padding:10px 0; font-size:13px; color:var(--text-muted); line-height:1.5">No RFQs yet. Create one to track quotes and compare replies here.</div>
                   </sc-if>
                   <sc-for list="{{ rfqList }}" as="r" hint-placeholder-count="3">
-                    <div style="padding:12px 0; border-bottom:1px solid var(--border-hairline)">
-                      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+                    <div style="padding:10px 0; border-bottom:1px solid var(--border-hairline)">
+                      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px">
                         <div style="min-width:0; flex:1">
-                          <div style="font-size:13.5px; font-weight:600; color:var(--navy-800)">
+                          <div style="font-size:13px; font-weight:600; color:var(--navy-800)">
                             <span style="font-family:var(--font-mono); font-weight:600; margin-right:6px">{{ r.ref }}</span>
                             <span>{{ r.title }}</span>
                           </div>
-                          <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:3px">{{ r.meta }}</div>
+                          <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin-top:3px">{{ r.meta }}</div>
                         </div>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px; flex:none">
-                          <button sc-camel-on-click="{{ r.onTrack }}" type="button" style="font-family:var(--font-sans); font-weight:600; font-size:12px; color:var(--navy-800); background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; cursor:pointer" style-hover="background:var(--steel-200)">Track</button>
-                          <button sc-camel-on-click="{{ r.onCompare }}" type="button" style="font-family:var(--font-sans); font-weight:600; font-size:12px; color:#fff; background:var(--action-primary); border:1px solid var(--action-primary); border-radius:6px; padding:7px 10px; cursor:pointer" style-hover="background:var(--action-primary-hover)">Compare</button>
+                        <div style="display:flex; flex-direction:column; gap:6px; flex:none; width:88px">
+                          <button sc-camel-on-click="{{ r.onTrack }}" type="button" style="font-family:var(--font-sans); font-weight:600; font-size:12px; color:var(--navy-800); background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:6px 8px; cursor:pointer; width:100%" style-hover="background:var(--steel-200)">Track</button>
+                          <button sc-camel-on-click="{{ r.onCompare }}" type="button" style="font-family:var(--font-sans); font-weight:600; font-size:12px; color:#fff; background:var(--action-primary); border:1px solid var(--action-primary); border-radius:6px; padding:6px 8px; cursor:pointer; width:100%" style-hover="background:var(--action-primary-hover)">Compare</button>
                         </div>
                       </div>
                     </div>
@@ -2760,6 +2768,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               </div>
               <div style="display:flex; gap:10px">
                 <button sc-camel-on-click="{{ onAddPlant }}" style="flex:1; font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:var(--action-primary); border:none; border-radius:6px; padding:11px; cursor:pointer" style-hover="background:var(--action-primary-hover)">Add a receiving plant</button>
+                <button sc-camel-on-click="{{ onSavePlants }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:var(--navy-800); border:none; border-radius:6px; padding:11px 16px; cursor:pointer">Save to account</button>
                 <button sc-camel-on-click="{{ onClosePanel }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:6px; padding:11px 16px; cursor:pointer">Done</button>
               </div>
             </sc-if>
@@ -2934,6 +2943,7 @@ class Component extends DCLogic {
     this.setState(p => ({
       plants: this.plantList().map(b => b.id === id ? Object.assign({}, b, { [key]: key === "lat" || key === "lon" ? (parseFloat(value) || 0) : value }) : b)
     }));
+    this.schedulePlantsSave();
   }
   addPlant() {
     const id = "p" + Date.now().toString(36).slice(-4);
@@ -2941,12 +2951,29 @@ class Component extends DCLogic {
       plants: this.plantList().concat([{ id, name: "New plant", cc: "DE", lat: 50.0, lon: 10.0, cont: "EU" }]),
       buyerId: id
     }));
-    this.say("Plant added — set its city, country and coordinates.");
+    this.say("Plant added — set its name, country and coordinates, then Save.");
+    this.schedulePlantsSave();
   }
   removePlant(id) {
     const left = this.plantList().filter(b => b.id !== id);
     if (!left.length) return this.say("Keep at least one receiving plant.");
     this.setState(p => ({ plants: left, buyerId: p.buyerId === id ? left[0].id : p.buyerId }));
+    this.schedulePlantsSave();
+  }
+  schedulePlantsSave() {
+    clearTimeout(this._plantsSaveT);
+    this._plantsSaveT = setTimeout(() => this.emitPlantsUpdate(), 450);
+  }
+  emitPlantsUpdate() {
+    try {
+      const plants = this.plantList();
+      (window.__STREFEX_SOURCING_BRIDGE__ || {}).emit && window.__STREFEX_SOURCING_BRIDGE__.emit("update-plants", { plants });
+    } catch (e) {}
+  }
+  savePlantsAndClose() {
+    this.emitPlantsUpdate();
+    this.say("Receiving plants saved to your account.");
+    this.setState({ panel: null });
   }
 
 
@@ -3958,8 +3985,8 @@ transitFor(sup) {
       /* Desktop: fixed 4 columns × 2 rows for the eight supplier indicators */
       indCols: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(4,minmax(0,1fr))",
       domCols: narrow ? "1fr" : "repeat(3,minmax(0,1fr))",
-      homeCols: narrow ? "minmax(0,1fr)" : "minmax(0,1fr) 336px",
-      rfqCols: narrow ? "minmax(0,1fr)" : "minmax(0,1fr) 366px",
+      homeCols: narrow ? "minmax(0,1fr)" : "minmax(0,1.55fr) 268px",
+      rfqCols: narrow ? "minmax(0,1fr)" : "minmax(0,1fr) 300px",
       regCols: narrow ? "minmax(0,1fr)" : "minmax(0,1fr) 340px",
       halfCols: narrow ? "minmax(0,1fr)" : "repeat(2,minmax(0,1fr))",
       formCols2: phone ? "1fr" : "repeat(2,minmax(0,1fr))",
@@ -3987,6 +4014,7 @@ transitFor(sup) {
         rule: b.id === s.buyerId ? "var(--signal-running)" : "var(--steel-500)"
       })),
       onAddPlant: () => this.addPlant(),
+      onSavePlants: () => this.savePlantsAndClose(),
       say: msg => this.say(msg),
       onRequestMapping: () => this.say("Mapping requested — the research desk maps this category within 5 working days and notifies you."),
       onInvitePlants: () => this.say("Invitation sent. They enter the registration path at stage 1 with your reference, and verification is prioritised."),

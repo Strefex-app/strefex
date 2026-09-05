@@ -8,7 +8,6 @@ import useProcurementStore from '../store/procurementStore'
 import useVendorStore from '../store/vendorStore'
 import useAuditStore from '../store/auditStore'
 import ProcurementTracePanel, { ReferenceId } from '../components/pm/ProcurementRegisterTable'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { buildProcurementTraceRows } from '../utils/pmTraceability'
 import { filterByCompanyRole, canApprove as guardCanApprove } from '../utils/companyGuard'
 import './ProcurementDashboard.css'
@@ -214,12 +213,6 @@ export default function ProcurementDashboard() {
     { id: 'approvals', label: `Approvals (${stats.pendingPRs + stats.pendingPOs})` },
   ]
 
-  const tabTrailLabel = TABS.find((tb) => tb.id === tab)?.label || 'Overview'
-  const breadcrumbTrail = [
-    { label: 'Procurement', to: '/procurement' },
-    ...(tab !== 'overview' ? [{ label: tabTrailLabel }] : [{ label: 'Overview' }]),
-  ]
-
   const renderKPIs = () => (
     <div className="proc-kpis">
       <div className="proc-kpi"><span className="proc-kpi-n">{stats.totalPRs}</span><span className="proc-kpi-l">Requisitions</span></div>
@@ -335,7 +328,6 @@ export default function ProcurementDashboard() {
 
         <div className="proc-header">
           <div>
-            <ManagementBreadcrumb trail={breadcrumbTrail} />
             <h1 className="proc-title">Procurement Management</h1>
             <p className="proc-subtitle">Multi-level approval workflows — Requisitions, Purchase Orders & Spend Tracking</p>
           </div>

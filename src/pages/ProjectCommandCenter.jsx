@@ -1,7 +1,6 @@
 import { useMemo, useState, useCallback } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { useAuthStore } from '../store/authStore'
 import { useProjectStore } from '../store/projectStore'
 import { useProgramStore } from '../store/programStore'
@@ -96,7 +95,6 @@ export default function ProjectCommandCenter() {
       <AppLayout>
         <div className="app-page">
           <div className="app-page-card">
-            <ManagementBreadcrumb trail={[{ label: 'Project Management', to: '/project-management' }, { label: 'Project not found' }]} />
             <p className="app-page-body">Project not found.</p>
             <Link to="/project-management" className="app-page-btn-outline app-page-btn-sm">Project Management</Link>
           </div>
@@ -164,10 +162,6 @@ export default function ProjectCommandCenter() {
       <div className="app-page">
         <div className="app-page-card">
           <ControlPageHeader
-            trail={[
-              { label: 'Project Management', to: '/project-management' },
-              { label: project.projectNumber || project.name },
-            ]}
             title={project.name}
             subtitle={`Project ${project.projectNumber || '—'} — budget and linked records`}
             project={{ number: project.projectNumber || '—', name: project.name }}

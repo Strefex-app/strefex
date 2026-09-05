@@ -216,11 +216,10 @@
 
 .mgmt-hub-card {
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   min-height: 88px;
-  max-height: 88px;
   padding: 10px 11px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -231,6 +230,7 @@
   width: 100%;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mgmt-hub-card:hover {

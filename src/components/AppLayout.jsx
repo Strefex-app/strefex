@@ -292,7 +292,8 @@ export default function AppLayout({ children }) {
         </div>
       </aside>
       <main className="app-main">
-        {/* Preview session countdown banner */}
+        {/* Address bar first so its hairline aligns with .sidebar-brand */}
+        <GlobalPageBreadcrumb />
         {isDemoSession && <DemoModeBanner onExit={handleLogout} />}
         <SyncErrorBanner />
         {previewTimeLeft !== null && previewTimeLeft > 0 && !isDemoSession && (
@@ -316,7 +317,6 @@ export default function AppLayout({ children }) {
             </button>
           </div>
         )}
-        <GlobalPageBreadcrumb />
         {children}
       </main>
     </div>

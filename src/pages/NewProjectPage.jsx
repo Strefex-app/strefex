@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useProjectStore } from '../store/projectStore'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { ReferenceId } from '../components/pm/ProcurementRegisterTable'
 import { currentYear, formatStandaloneProjectNumber, nextSeqFromNumbers, standaloneProjectNumberPattern } from '../utils/pmNumbering'
 import '../styles/app-page.css'
@@ -58,7 +57,6 @@ export default function NewProjectPage() {
       <AppLayout>
         <div className="app-page">
           <div className="app-page-card">
-            <ManagementBreadcrumb trail={[{ label: 'Project Management', to: '/project-management' }, { label: 'New project' }]} />
             <h1 className="app-page-title">Project created</h1>
             <p className="app-page-subtitle">Project number assigned. Link RFQ, vendors, and other records from project control when ready.</p>
             <dl className="pcc-created-refs">
@@ -85,7 +83,6 @@ export default function NewProjectPage() {
     <AppLayout>
       <div className="app-page">
         <div className="app-page-card">
-          <ManagementBreadcrumb trail={[{ label: 'Project Management', to: '/project-management' }, { label: 'New project' }]} />
           <h1 className="app-page-title">New project</h1>
           <p className="app-page-subtitle">Creates a project record only. Link RFQ and other modules later via dropdown.</p>
 

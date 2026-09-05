@@ -3,9 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useProjectStore } from '../store/projectStore'
 import useProcurementStore from '../store/procurementStore'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
-import { SOURCING_CLUSTER_PATH } from '../constants/rfqPaths'
-import { MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
 import { ReferenceId } from '../components/pm/ProcurementRegisterTable'
 import { currentYear, formatRfqNumber, nextSeqFromNumbers, rfqNumberPattern } from '../utils/pmNumbering'
 import '../styles/app-page.css'
@@ -63,12 +60,6 @@ export default function NewProcurementOpportunityPage() {
       <AppLayout>
         <div className="app-page">
           <div className="app-page-card">
-            <ManagementBreadcrumb trail={[
-              { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
-              { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
-              { label: 'Procurement register' },
-              { label: 'Created' },
-            ]} />
             <h1 className="app-page-title">RFQ created</h1>
             <p className="app-page-subtitle">RFQ saved in Procurement. Link to a project anytime from project control or select project below on next RFQ.</p>
             <dl className="pcc-created-refs">
@@ -110,11 +101,6 @@ export default function NewProcurementOpportunityPage() {
     <AppLayout>
       <div className="app-page">
         <div className="app-page-card">
-          <ManagementBreadcrumb trail={[
-            { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
-            { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
-            { label: 'Procurement register' },
-          ]} />
           <h1 className="app-page-title">New procurement RFQ</h1>
           <p className="app-page-subtitle">Official RFQ / OPP record in Procurement. Optionally link to a project — or estimate first in RFQ Intelligence.</p>
 

@@ -7,6 +7,7 @@ import useIatfControlStore from '../store/iatfControlStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import { IATF_CONTROL_PATH } from '../data/iatfControlCatalog'
+import { managementModulePath } from '../constants/managementPaths'
 import { buildItemMasterIndex } from '../utils/itemMaster'
 import './CostManagement.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
@@ -29,20 +30,21 @@ const CostManagement = () => {
   const partOnlyCount = itemMaster.filter((row) => row.part && !row.product).length
   const productOnlyCount = itemMaster.filter((row) => row.product && !row.part).length
 
+  const costBase = managementModulePath('finance', 'cost')
   const subPages = [
-    { id: 'calculator', label: 'Product Cost Calculator', description: 'Calculate and manage product costs with BOM', path: '/cost-management/calculator', icon: 'calculator' },
-    { id: 'bom', label: 'Bill of Materials', description: 'Manage material lists and component costs', path: '/cost-management/bom', icon: 'list' },
-    { id: 'breakdown', label: 'Cost Breakdown Analysis', description: 'Analyze cost structure and categories', path: '/cost-management/breakdown', icon: 'chart' },
-    { id: 'comparison', label: 'Cost Comparison', description: 'Compare products, versions, and scenarios', path: '/cost-management/comparison', icon: 'compare' },
-    { id: 'scenarios', label: 'What-If Scenarios', description: 'Model cost impact of changes', path: '/cost-management/scenarios', icon: 'whatif' },
-    { id: 'targets', label: 'Target Costing', description: 'Set and track cost targets', path: '/cost-management/targets', icon: 'target' },
+    { id: 'calculator', label: 'Product Cost Calculator', description: 'Calculate and manage product costs with BOM', path: `${costBase}/calculator`, icon: 'calculator' },
+    { id: 'bom', label: 'Bill of Materials', description: 'Manage material lists and component costs', path: `${costBase}/bom`, icon: 'list' },
+    { id: 'breakdown', label: 'Cost Breakdown Analysis', description: 'Analyze cost structure and categories', path: `${costBase}/breakdown`, icon: 'chart' },
+    { id: 'comparison', label: 'Cost Comparison', description: 'Compare products, versions, and scenarios', path: `${costBase}/comparison`, icon: 'compare' },
+    { id: 'scenarios', label: 'What-If Scenarios', description: 'Model cost impact of changes', path: `${costBase}/scenarios`, icon: 'whatif' },
+    { id: 'targets', label: 'Target Costing', description: 'Set and track cost targets', path: `${costBase}/targets`, icon: 'target' },
   ]
 
   const quickActions = [
-    { id: 'new-product', label: 'New Product Cost', icon: 'plus', path: '/cost-management/calculator?new=true' },
-    { id: 'import', label: 'Import BOM', icon: 'upload', path: '/cost-management/bom?import=true' },
-    { id: 'report', label: 'Generate Report', icon: 'report', path: '/cost-management/breakdown' },
-    { id: 'scenario', label: 'New Scenario', icon: 'whatif', path: '/cost-management/scenarios?new=true' },
+    { id: 'new-product', label: 'New Product Cost', icon: 'plus', path: `${costBase}/calculator?new=true` },
+    { id: 'import', label: 'Import BOM', icon: 'upload', path: `${costBase}/bom?import=true` },
+    { id: 'report', label: 'Generate Report', icon: 'report', path: `${costBase}/breakdown` },
+    { id: 'scenario', label: 'New Scenario', icon: 'whatif', path: `${costBase}/scenarios?new=true` },
   ]
 
   const getIcon = (iconName) => <Icon name={iconName} size={20} />
@@ -157,7 +159,7 @@ const CostManagement = () => {
                   <div 
                     key={product.id} 
                     className="cost-mgmt-recent-item"
-                    onClick={() => navigate(`/cost-management/calculator?id=${product.id}`)}
+                    onClick={() => navigate(`${costBase}/calculator?id=${product.id}`)}
                   >
                     <div className="recent-product-info">
                       <span className="recent-product-name">{product.name}</span>

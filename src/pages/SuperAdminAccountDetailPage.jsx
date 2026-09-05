@@ -10,24 +10,75 @@ import {
   PROFILE_ATTACHMENT_SLOT_LABELS,
   VISIBILITY_TIER_LABELS,
 } from '../constants/companyProfileDirectory'
+import { useAccountRegistry } from '../store/accountRegistry'
+import {
+  normalizeReceivingPlants,
+  readReceivingPlantsFromAccount,
+  saveReceivingPlantsToAccount,
+} from '../utils/receivingPlantsPersist'
 import '../styles/app-page.css'
 import './SuperAdminAccountDetailPage.css'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+function emptyForm() {
+  return {
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    country: '',
+    city: '',
+    address: '',
+    account_type: 'buyer',
+    plan: 'start',
+    contactName: '',
+    contactPhone: '',
+    contactProfileId: '',
+  }
+}
+
 export default function SuperAdminAccountDetailPage() {
   const { companyId } = useParams()
   const navigate = useNavigate()
+  const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const [company, setCompany] = useState(null)
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [savedMsg, setSavedMsg] = useState('')
   const [auditStatus, setAuditStatus] = useState('none')
   const [auditNotes, setAuditNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
   const [openPath, setOpenPath] = useState('')
+  const [form, setForm] = useState(emptyForm)
+  const [plants, setPlants] = useState([])
 
   const validId = useMemo(() => Boolean(companyId && UUID_RE.test(companyId)), [companyId])
+
+  const syncFormFromCompany = useCallback((c, plist) => {
+    const primary = Array.isArray(plist) && plist.length ? plist[0] : null
+    setForm({
+      name: c?.name || '',
+      email: c?.email || '',
+      phone: c?.phone || '',
+      website: c?.website || '',
+      country: c?.country || '',
+      city: c?.city || '',
+      address: c?.address || c?.metadata?.address || '',
+      account_type: c?.account_type || 'buyer',
+      plan: c?.plan || 'start',
+      contactName: primary?.full_name || '',
+      contactPhone: primary?.phone || '',
+      contactProfileId: primary?.id || '',
+    })
+    const saved = readReceivingPlantsFromAccount(
+      { receivingPlants: c?.metadata?.receiving_plants },
+      c,
+    )
+    setPlants(saved.length ? saved : normalizeReceivingPlants([]))
+  }, [])
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !validId) {
@@ -46,6 +97,7 @@ export default function SuperAdminAccountDetailPage() {
       setProfiles(Array.isArray(plist) ? plist : [])
       setAuditStatus(c?.external_audit_status || 'none')
       setAuditNotes(c?.external_audit_notes || '')
+      syncFormFromCompany(c, plist)
     } catch (e) {
       setCompany(null)
       setProfiles([])
@@ -53,13 +105,41 @@ export default function SuperAdminAccountDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [companyId, validId])
+  }, [companyId, syncFormFromCompany, validId])
 
   useEffect(() => {
     void load()
   }, [load])
 
   const snapshot = useMemo(() => (company ? evaluateCompanyProfileDirectory(company) : null), [company])
+
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
+
+  const updatePlantField = (id, key, value) => {
+    const parsed = key === 'lat' || key === 'lon' ? (parseFloat(value) || 0) : value
+    setPlants((prev) => prev.map((p) => (p.id === id ? { ...p, [key]: parsed } : p)))
+  }
+
+  const addPlant = () => {
+    setPlants((prev) => [
+      ...prev,
+      {
+        id: `plant-${Date.now()}`,
+        name: 'New plant',
+        cc: 'DE',
+        lat: 50,
+        lon: 10,
+        cont: 'EU',
+      },
+    ])
+  }
+
+  const removePlant = (id) => {
+    setPlants((prev) => {
+      const left = prev.filter((p) => p.id !== id)
+      return left.length ? left : prev
+    })
+  }
 
   const openAttachment = async (path) => {
     if (!path || !isSupabaseConfigured) return
@@ -71,6 +151,91 @@ export default function SuperAdminAccountDetailPage() {
       /* silent */
     } finally {
       setOpenPath('')
+    }
+  }
+
+  const saveAccountProfile = async () => {
+    if (!company || !validId) return
+    if (!form.name.trim()) {
+      setError('Company name is required.')
+      return
+    }
+    setSavingProfile(true)
+    setError('')
+    setSavedMsg('')
+    try {
+      const nextAddress = form.address.trim()
+      const companyPayload = {
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        website: form.website.trim() || null,
+        country: form.country.trim() || null,
+        city: form.city.trim() || null,
+        address: nextAddress || null,
+        account_type: form.account_type || company.account_type,
+        plan: form.plan || company.plan,
+        metadata: {
+          ...(company.metadata || {}),
+          address: nextAddress || null,
+        },
+      }
+      const merged = {
+        ...company,
+        ...companyPayload,
+        profile_attachments: company.profile_attachments,
+      }
+      const vis = buildCompanyVisibilityUpdate(merged)
+      companyPayload.visibility_tier = vis.visibility_tier
+      companyPayload.metadata = { ...companyPayload.metadata, ...vis.metadata }
+
+      const updated = await companiesService.update(companyId, companyPayload)
+      setCompany(updated)
+
+      if (form.contactProfileId) {
+        try {
+          await profilesService.updateProfilePrivileged({
+            id: form.contactProfileId,
+            full_name: form.contactName.trim() || null,
+            phone: form.contactPhone.trim() || null,
+          })
+          setProfiles((prev) => prev.map((p) => (
+            p.id === form.contactProfileId
+              ? { ...p, full_name: form.contactName.trim(), phone: form.contactPhone.trim() }
+              : p
+          )))
+        } catch {
+          /* privileged update may be restricted; company save still applies */
+        }
+      }
+
+      const emailKey = (form.email || company.email || '').trim().toLowerCase()
+      if (emailKey) {
+        updateAccount(emailKey, {
+          company: form.name.trim(),
+          country: form.country.trim() || '',
+          city: form.city.trim() || '',
+          address: nextAddress || '',
+          accountType: form.account_type || undefined,
+        })
+      }
+
+      if (plants.length) {
+        await saveReceivingPlantsToAccount({
+          plants,
+          email: emailKey,
+          companyId,
+          updateAccount,
+          tenant: updated,
+        })
+      }
+
+      setSavedMsg('Account profile saved.')
+      await load()
+    } catch (e) {
+      setError(e?.message || 'Failed to save account profile.')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -120,6 +285,7 @@ export default function SuperAdminAccountDetailPage() {
 
         {loading && <p className="saad-muted">Loading…</p>}
         {error && <div className="saad-error" role="alert">{error}</div>}
+        {savedMsg && <div className="saad-ok" role="status">{savedMsg}</div>}
 
         {!loading && company && (
           <>
@@ -141,18 +307,112 @@ export default function SuperAdminAccountDetailPage() {
             </header>
 
             <div className="saad-grid">
-              <section className="saad-card">
-                <h2>Company record</h2>
-                <dl className="saad-dl">
-                  <dt>Registration #</dt><dd>{company.registration_code || '—'}</dd>
-                  <dt>Email</dt><dd>{company.email || '—'}</dd>
-                  <dt>Phone</dt><dd>{company.phone || '—'}</dd>
-                  <dt>Website</dt><dd>{company.website || '—'}</dd>
-                  <dt>Country / City</dt><dd>{[company.country, company.city].filter(Boolean).join(', ') || '—'}</dd>
-                  <dt>Address</dt><dd>{company.address || company.metadata?.address || '—'}</dd>
-                  <dt>Plan</dt><dd>{company.plan || '—'}</dd>
-                  <dt>Visibility tier</dt><dd>{company.visibility_tier} — {VISIBILITY_TIER_LABELS[company.visibility_tier]}</dd>
-                </dl>
+              <section className="saad-card saad-card-wide">
+                <h2>Account profile (editable)</h2>
+                <p className="saad-muted">
+                  Superadmin can correct buyer and user company data for sourcing geo accuracy.
+                  Changes sync to the platform company record and the local account registry.
+                </p>
+                <div className="saad-form-grid">
+                  <label className="saad-field">
+                    Company name
+                    <input value={form.name} onChange={(e) => setField('name', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Company email
+                    <input value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Phone
+                    <input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Website
+                    <input value={form.website} onChange={(e) => setField('website', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Country
+                    <input value={form.country} onChange={(e) => setField('country', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    City
+                    <input value={form.city} onChange={(e) => setField('city', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field saad-field-span">
+                    Address / plant address
+                    <input value={form.address} onChange={(e) => setField('address', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Account type
+                    <select value={form.account_type} onChange={(e) => setField('account_type', e.target.value)} disabled={savingProfile}>
+                      <option value="buyer">Buyer</option>
+                      <option value="seller">Seller</option>
+                      <option value="service_provider">Service provider</option>
+                      <option value="auditor">Auditor</option>
+                    </select>
+                  </label>
+                  <label className="saad-field">
+                    Plan
+                    <select value={form.plan} onChange={(e) => setField('plan', e.target.value)} disabled={savingProfile}>
+                      <option value="start">Start</option>
+                      <option value="basic">Basic</option>
+                      <option value="premium">Premium</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </label>
+                  <label className="saad-field">
+                    Contact full name
+                    <input value={form.contactName} onChange={(e) => setField('contactName', e.target.value)} disabled={savingProfile} />
+                  </label>
+                  <label className="saad-field">
+                    Contact phone
+                    <input value={form.contactPhone} onChange={(e) => setField('contactPhone', e.target.value)} disabled={savingProfile} />
+                  </label>
+                </div>
+
+                <h3 className="saad-h3">Receiving plants</h3>
+                <p className="saad-muted">Used by Intelligent Sourcing map and transit estimates.</p>
+                <div className="saad-plants">
+                  {plants.map((p) => (
+                    <div key={p.id} className="saad-plant-row">
+                      <input
+                        aria-label="Plant name"
+                        value={p.name}
+                        onChange={(e) => updatePlantField(p.id, 'name', e.target.value)}
+                        disabled={savingProfile}
+                      />
+                      <input
+                        aria-label="Country code"
+                        value={p.cc}
+                        onChange={(e) => updatePlantField(p.id, 'cc', e.target.value.toUpperCase().slice(0, 2))}
+                        disabled={savingProfile}
+                      />
+                      <input
+                        aria-label="Latitude"
+                        value={p.lat}
+                        onChange={(e) => updatePlantField(p.id, 'lat', e.target.value)}
+                        disabled={savingProfile}
+                      />
+                      <input
+                        aria-label="Longitude"
+                        value={p.lon}
+                        onChange={(e) => updatePlantField(p.id, 'lon', e.target.value)}
+                        disabled={savingProfile}
+                      />
+                      <button type="button" className="saad-link" onClick={() => removePlant(p.id)} disabled={savingProfile}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="saad-plant-actions">
+                  <button type="button" className="saad-back" onClick={addPlant} disabled={savingProfile}>
+                    Add plant
+                  </button>
+                  <button type="button" className="saad-primary" disabled={savingProfile} onClick={() => void saveAccountProfile()}>
+                    {savingProfile ? 'Saving…' : 'Save account profile'}
+                  </button>
+                </div>
               </section>
 
               <section className="saad-card">

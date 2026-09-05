@@ -1166,6 +1166,9 @@ export default function SuperAdminDashboard() {
         </select>
         <div className="sad-filter-count">{filteredAccounts.length} accounts</div>
       </div>
+      <p className="sad-muted" style={{ margin: '0 0 12px', fontSize: 13 }}>
+        Click an account row, then press <strong>Edit account profile</strong> to open the fillable form.
+      </p>
 
       {(authRole === 'superadmin' || authRole === 'auditor_external') && isSupabaseConfigured && (
         <div className="sad-filters sad-filters-db-profiles">
@@ -1279,15 +1282,26 @@ export default function SuperAdminDashboard() {
               </p>
             </div>
             <div className="sad-detail-actions">
-              {selectedAccount.companyId && (
-                <button
-                  type="button"
-                  className="sad-btn-secondary"
-                  onClick={() => navigate(`/admin-dashboard/account/${selectedAccount.companyId}`)}
-                >
-                  Open platform profile
-                </button>
-              )}
+              <button
+                type="button"
+                className="sad-btn-primary"
+                onClick={() => {
+                  const cid = selectedAccount.companyId || selectedAccount.company_id
+                  if (cid && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(cid))) {
+                    navigate(`/admin-dashboard/account/${cid}`)
+                    return
+                  }
+                  const key = encodeURIComponent(
+                    selectedAccount.registryLookupKey
+                      || selectedAccount.email
+                      || selectedAccount.id
+                      || '',
+                  )
+                  navigate(`/admin-dashboard/local-account/${key}`)
+                }}
+              >
+                Edit account profile
+              </button>
               <button className="sad-detail-close" onClick={() => setSelectedAccount(null)}>Close</button>
             </div>
           </div>

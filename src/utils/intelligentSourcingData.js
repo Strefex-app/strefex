@@ -5,6 +5,7 @@ import { getApproximateLngLatOrFallback } from './accountApproximateLocation'
 import { INDUSTRY_LABELS, SUPPLIER_DATABASE } from '../data/supplierDatabase'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { serviceEngagementDays } from './serviceDurationEstimates'
+import { readReceivingPlantsFromAccount } from './receivingPlantsPersist'
 
 /** Design-canvas industry id → platform slug */
 export const SOURCING_INDUSTRY_TO_PLATFORM = {
@@ -183,6 +184,9 @@ export function buildSourcingSuppliers({ registrySellers = [], includeSeeded = t
 }
 
 export function buildBuyerPlants({ tenant, user, account } = {}) {
+  const saved = readReceivingPlantsFromAccount(account, tenant)
+  if (saved.length) return saved
+
   const country = account?.country || tenant?.country || user?.country || ''
   const city = account?.city || tenant?.city || user?.city || ''
   const address = account?.address || tenant?.address || ''

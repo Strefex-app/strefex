@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import { useProjectStore } from '../store/projectStore'
 import { useAuthStore } from '../store/authStore'
 import { useLimit } from '../services/featureFlags'
@@ -881,7 +880,6 @@ const ProjectManagement = () => {
             <div className="gc-pm-control">
               <div className="gc-pm-control-head">
                 <div className="gc-pm-control-head-left">
-                  <ManagementBreadcrumb trail={[{ label: 'Project Management' }]} />
                   <div className="gc-pm-title-row">
                     <h1 className="gc-title">Project Management</h1>
                     <div className="gc-view-tabs" role="tablist" aria-label="Schedule view">

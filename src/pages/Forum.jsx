@@ -201,7 +201,7 @@ export default function Forum() {
               <div className="forum-indicator-label stx-text-caption stx-text-wrap">Updates listed</div>
             </div>
             <div className="forum-indicator-card">
-              <div className="forum-indicator-value" style={{ color: '#c27a17' }}>
+              <div className="forum-indicator-value forum-indicator-value--watch">
                 {metrics.importantCount}
               </div>
               <div className="forum-indicator-label stx-text-caption stx-text-wrap">Marked important</div>
@@ -276,7 +276,7 @@ export default function Forum() {
             </form>
 
             {hub.announcements.length === 0 ? (
-              <p className="stx-text-body stx-text-wrap" style={{ color: '#64748b', margin: 0 }}>
+              <p className="stx-text-body stx-text-wrap forum-empty">
                 No posts yet — add your first rollout note, KPI change, or management decision here.
               </p>
             ) : (
@@ -295,7 +295,7 @@ export default function Forum() {
                       </button>
                     </div>
                     <div className="forum-li-title">{a.title}</div>
-                    <p className="stx-text-small stx-text-wrap" style={{ margin: 0, color: '#334155' }}>
+                    <p className="stx-text-small stx-text-wrap forum-li-body">
                       {a.body}
                     </p>
                   </li>
@@ -352,7 +352,7 @@ export default function Forum() {
             </form>
 
             {hub.lessons.length === 0 ? (
-              <p className="stx-text-body stx-text-wrap" style={{ color: '#64748b', margin: 0 }}>
+              <p className="stx-text-body stx-text-wrap forum-empty">
                 Capture post-mortems, audit follow-ups, and supplier incidents so peers do not repeat the same gap.
               </p>
             ) : (
@@ -369,7 +369,7 @@ export default function Forum() {
                       </button>
                     </div>
                     <div className="forum-li-title">{l.title}</div>
-                    <p className="stx-text-small stx-text-wrap" style={{ margin: 0, color: '#334155' }}>
+                    <p className="stx-text-small stx-text-wrap forum-li-body">
                       {l.takeaway}
                     </p>
                   </li>
@@ -387,11 +387,11 @@ export default function Forum() {
           <div className="forum-tools">
             <Link className="forum-tool-card stx-click-feedback" to="/support">
               <Icon name="document" size={22} aria-hidden />
-              <div style={{ minWidth: 0 }}>
+              <div className="min-width-0">
                 <div className="stx-text-small" style={{ fontWeight: 'var(--font-semibold)' }}>
                   Community support / tickets
                 </div>
-                <div className="stx-text-caption stx-text-wrap" style={{ color: '#64748b' }}>
+                <div className="stx-text-caption stx-text-wrap forum-tool-card__caption">
                   Formal requests and bug reports with backlog history
                 </div>
               </div>
@@ -400,11 +400,11 @@ export default function Forum() {
 
             <Link className="forum-tool-card stx-click-feedback" to="/calendar">
               <Icon name="calendar" size={22} aria-hidden />
-              <div style={{ minWidth: 0 }}>
+              <div className="min-width-0">
                 <div className="stx-text-small" style={{ fontWeight: 'var(--font-semibold)' }}>
                   Platform calendar
                 </div>
-                <div className="stx-text-caption stx-text-wrap" style={{ color: '#64748b' }}>
+                <div className="stx-text-caption stx-text-wrap forum-tool-card__caption">
                   Meetings, audits, and milestones your team subscribed to here
                 </div>
               </div>
@@ -413,11 +413,11 @@ export default function Forum() {
 
             <Link className="forum-tool-card stx-click-feedback" to="/resources">
               <Icon name="templates" size={22} aria-hidden />
-              <div style={{ minWidth: 0 }}>
+              <div className="min-width-0">
                 <div className="stx-text-small" style={{ fontWeight: 'var(--font-semibold)' }}>
                   Resources library
                 </div>
-                <div className="stx-text-caption stx-text-wrap" style={{ color: '#64748b' }}>
+                <div className="stx-text-caption stx-text-wrap forum-tool-card__caption">
                   Guides and hubs for materials / equipment workflows
                 </div>
               </div>
@@ -426,11 +426,11 @@ export default function Forum() {
 
             <Link className="forum-tool-card stx-click-feedback" to="/messenger">
               <Icon name="messenger" size={22} aria-hidden />
-              <div style={{ minWidth: 0 }}>
+              <div className="min-width-0">
                 <div className="stx-text-small" style={{ fontWeight: 'var(--font-semibold)' }}>
                   Company messenger
                 </div>
-                <div className="stx-text-caption stx-text-wrap" style={{ color: '#64748b' }}>
+                <div className="stx-text-caption stx-text-wrap forum-tool-card__caption">
                   Requires Premium messenger entitlement on your plan
                 </div>
               </div>

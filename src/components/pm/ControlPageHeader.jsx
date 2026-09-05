@@ -1,14 +1,12 @@
 import { Link } from 'react-router-dom'
-import ManagementBreadcrumb from '../management/ManagementBreadcrumb'
 import { ReferenceId, StatusPill } from './ProcurementRegisterTable'
 import { ragMeta, stageMeta } from './controlStatus'
 
 /**
- * SAP Fiori / Procore-style object page header: breadcrumb, title, fact strip.
+ * SAP Fiori / Procore-style object page header: title, fact strip.
+ * Address bar lives in AppLayout GlobalPageBreadcrumb.
  */
 export default function ControlPageHeader({
-  breadcrumbs = [],
-  trail = [],
   title,
   subtitle,
   program,
@@ -21,12 +19,9 @@ export default function ControlPageHeader({
 }) {
   const stageInfo = stageMeta(stage)
   const ragInfo = ragMeta(rag)
-  const pathTrail = trail.length > 0 ? trail : breadcrumbs
 
   return (
     <header className="pcc-page-header">
-      {pathTrail.length > 0 ? <ManagementBreadcrumb trail={pathTrail} /> : null}
-
       <div className="pcc-page-header__main">
         <div className="pcc-page-header__titles min-width-0">
           <h1 className="pcc-page-header__title stx-text-wrap">{title}</h1>

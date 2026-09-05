@@ -45,6 +45,8 @@
       style.textContent = [
         'aside { display: none !important; width: 0 !important; min-width: 0 !important; padding: 0 !important; overflow: hidden !important; }',
         'button[aria-label="Menu"] { display: none !important; }',
+        /* Match AppLayout .sidebar-brand (--stx-chrome-top-h: 77px) so header rule lines up with nav rule */
+        'main > header { box-sizing: border-box !important; height: 77px !important; min-height: 77px !important; max-height: 77px !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-left: 24px !important; padding-right: 24px !important; align-items: center !important; flex-wrap: nowrap !important; }',
         ':root {',
         '  --font-serif: ' + FONT + ' !important;',
         '  --font-serif-text: ' + FONT + ' !important;',

@@ -1,24 +1,28 @@
 /* Home — widgets & windows matching Intelligent Sourcing chrome */
 
 .home-dash {
-  margin: -24px;
-  margin-bottom: calc(-24px - env(safe-area-inset-bottom, 0px));
+  margin: 0 -24px;
+  margin-bottom: calc(0px - env(safe-area-inset-bottom, 0px));
   width: calc(100% + 48px);
-  min-height: calc(100% + 48px);
+  min-height: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
 }
 
-/* Sourcing-style sticky address bar */
+/* Sourcing-style sticky address bar — matches .sidebar-brand hairline */
 .home-dash__topbar {
+  box-sizing: border-box;
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 28px;
+  flex-wrap: nowrap;
+  height: var(--stx-chrome-top-h, 77px);
+  min-height: var(--stx-chrome-top-h, 77px);
+  max-height: var(--stx-chrome-top-h, 77px);
+  padding: 0 28px;
   background: var(--surface-card);
   border-bottom: 1px solid var(--border-hairline);
 }
@@ -803,12 +807,16 @@ button.home-w--inverse:hover {
 
 @media (max-width: 720px) {
   .home-dash {
-    margin: -16px;
+    margin: 0 -16px;
     width: calc(100% + 32px);
   }
 
   .home-dash__topbar {
-    padding: 12px 16px;
+    padding: 0 16px;
+    height: auto;
+    min-height: var(--stx-chrome-top-h, 77px);
+    max-height: none;
+    flex-wrap: wrap;
   }
 
   .home-dash__inner {

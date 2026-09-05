@@ -26,6 +26,7 @@ import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndu
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { useSettingsStore } from '../store/settingsStore'
+import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
 import './IntelligentSourcing.css'
 
 const PLATFORM_FONT_STACK = "'Quattrocento Sans', Candara, Calibri, 'Segoe UI', Roboto, Arial, sans-serif"
@@ -220,6 +221,7 @@ function buildEmbedShellCss(theme = 'light') {
 <style id="strefex-embed-shell">
   aside { display: none !important; width: 0 !important; min-width: 0 !important; padding: 0 !important; overflow: hidden !important; }
   button[aria-label="Menu"] { display: none !important; }
+  main > header { box-sizing: border-box !important; height: 77px !important; min-height: 77px !important; max-height: 77px !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-left: 24px !important; padding-right: 24px !important; align-items: center !important; flex-wrap: nowrap !important; }
   :root {
     --font-serif: ${PLATFORM_FONT_STACK} !important;
     --font-serif-text: ${PLATFORM_FONT_STACK} !important;
@@ -302,12 +304,14 @@ export default function IntelligentSourcingPage() {
   const isSuperAdmin = role === 'superadmin'
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
+  const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
   const rfqs = useRfqStore((s) => s.rfqs)
   const getSafeRfqs = useRfqStore((s) => s.getSafeRfqs)
   const theme = useSettingsStore((s) => s.theme)
+  const setTenant = useAuthStore((s) => s.setTenant)
   const showMarketplaceCatalog = useSubscriptionStore((s) => s.hasFeature('executiveSummary'))
     || isSeededSupplierDirectoryEnabled()
     || isSuperAdmin
@@ -440,6 +444,23 @@ export default function IntelligentSourcingPage() {
       setPlant(payload.buyer)
       return
     }
+    if (action === 'update-plants' && Array.isArray(payload?.plants)) {
+      void saveReceivingPlantsToAccount({
+        plants: payload.plants,
+        email: user?.email,
+        companyId: tenant?.id,
+        updateAccount,
+        setTenant,
+        tenant,
+      }).then((result) => {
+        if (result?.ok && result.plants?.length) {
+          const activeId = plant?.id
+          const nextActive = result.plants.find((p) => p.id === activeId) || result.plants[0]
+          if (nextActive) setPlant(nextActive)
+        }
+      })
+      return
+    }
     if (action === 'open-rfq' || action === 'send-rfq') {
       openPlatformRfqForm(payload || {})
       return
@@ -455,7 +476,17 @@ export default function IntelligentSourcingPage() {
     if (action === 'open-profile') {
       navigate('/profile')
     }
-  }, [navigate, openPlatformRfqForm, pushPlatformToFrame, setPlant])
+  }, [
+    navigate,
+    openPlatformRfqForm,
+    plant?.id,
+    pushPlatformToFrame,
+    setPlant,
+    setTenant,
+    tenant,
+    updateAccount,
+    user?.email,
+  ])
 
   useEffect(() => {
     window.addEventListener('message', handleSourcingMessage)

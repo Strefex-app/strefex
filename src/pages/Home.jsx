@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
@@ -14,6 +14,7 @@ import { BUYER_WORKSPACE_PATH, buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { buildBuyerPlants } from '../utils/intelligentSourcingData'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
+import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
 import { getSupplierLocations } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import {
@@ -190,6 +191,8 @@ export default function Home() {
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
+  const updateAccount = useAccountRegistry((s) => s.updateAccount)
+  const setTenant = useAuthStore((s) => s.setTenant)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
   const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
@@ -220,6 +223,23 @@ export default function Home() {
   )
   const [plantList, setPlantList] = useState(null)
   const plants = plantList || defaultPlants
+  const plantsSaveTimer = useRef(null)
+
+  const persistPlants = useCallback((list) => {
+    void saveReceivingPlantsToAccount({
+      plants: list,
+      email: user?.email,
+      companyId: tenant?.id,
+      updateAccount,
+      setTenant,
+      tenant,
+    })
+  }, [setTenant, tenant, updateAccount, user?.email])
+
+  const schedulePersistPlants = useCallback((list) => {
+    clearTimeout(plantsSaveTimer.current)
+    plantsSaveTimer.current = setTimeout(() => persistPlants(list), 500)
+  }, [persistPlants])
 
   useEffect(() => {
     setPlantList(null)
@@ -235,7 +255,9 @@ export default function Home() {
     const parsed = key === 'lat' || key === 'lon' ? (parseFloat(value) || 0) : value
     setPlantList((prev) => {
       const base = prev || defaultPlants
-      return base.map((p) => (p.id === id ? { ...p, [key]: parsed } : p))
+      const next = base.map((p) => (p.id === id ? { ...p, [key]: parsed } : p))
+      schedulePersistPlants(next)
+      return next
     })
     if (plant?.id === id) {
       setPlant({ ...plant, [key]: parsed })
@@ -244,7 +266,7 @@ export default function Home() {
 
   const addPlant = () => {
     const id = `plant-${Date.now()}`
-    const next = {
+    const nextRow = {
       id,
       name: 'New plant',
       cc: 'DE',
@@ -252,7 +274,11 @@ export default function Home() {
       lon: 10,
       cont: 'EU',
     }
-    setPlantList((prev) => [...(prev || defaultPlants), next])
+    setPlantList((prev) => {
+      const next = [...(prev || defaultPlants), nextRow]
+      schedulePersistPlants(next)
+      return next
+    })
   }
 
   const removePlant = (id) => {
@@ -260,7 +286,13 @@ export default function Home() {
     const left = base.filter((p) => p.id !== id)
     if (!left.length) return
     setPlantList(left)
+    schedulePersistPlants(left)
     if (plant?.id === id) setPlant(left[0])
+  }
+
+  const savePlantsAndClose = () => {
+    persistPlants(plants)
+    setPlantsPanelOpen(false)
   }
 
   const avatarInitials = useMemo(() => {
@@ -1523,6 +1555,9 @@ export default function Home() {
                 <div className="home-plants-panel__actions">
                   <button type="button" className="home-w__btn home-w__btn--primary" onClick={addPlant}>
                     Add a receiving plant
+                  </button>
+                  <button type="button" className="home-w__btn home-w__btn--primary" onClick={savePlantsAndClose}>
+                    Save to account
                   </button>
                   <button
                     type="button"

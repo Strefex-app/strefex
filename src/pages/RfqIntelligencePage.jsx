@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
-import { RFQ_PROCUREMENT_NEW_PATH, RFQ_INTELLIGENCE_PATH, SOURCING_CLUSTER_PATH, COMPANY_MFG_CALC_PATH, executiveSummaryUrl } from '../constants/rfqPaths'
-import { MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
+import { RFQ_PROCUREMENT_NEW_PATH, RFQ_INTELLIGENCE_PATH, COMPANY_MFG_CALC_PATH, executiveSummaryUrl } from '../constants/rfqPaths'
 import '../styles/app-page.css'
 import '../styles/rfq-intelligence.css'
 import {
@@ -381,15 +379,6 @@ export default function RfqIntelligencePage({ variant = 'network' }) {
   return (
     <AppLayout>
       <div className="app-page rfqi-scope">
-        <ManagementBreadcrumb trail={isCompany ? [
-          { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
-          { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
-          { label: 'Price calculator' },
-        ] : [
-          { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
-          { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
-          { label: 'Intelligence' },
-        ]} />
         <p className="app-page-subtitle" style={{ marginTop: 4 }}>
           {isCompany ? (
             <>

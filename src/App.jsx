@@ -519,6 +519,7 @@ function App() {
           <Route path="/developer" element={<SuperAdmin><DeveloperDashboard /></SuperAdmin>} />
           <Route path="/admin-dashboard" element={<SuperAdmin><SuperAdminDashboard /></SuperAdmin>} />
           <Route path="/admin-dashboard/account/:companyId" element={<SuperAdmin><SuperAdminAccountDetailPage /></SuperAdmin>} />
+          <Route path="/admin-dashboard/local-account/:accountKey" element={<SuperAdmin><SuperAdminAccountDetailPage /></SuperAdmin>} />
 
           {/* ── Cost Management (Premium only) ────────────── */}
           <Route path="/management/finance/cost" element={<PlanGate feature="costManagement" planName="Premium"><CostManagement /></PlanGate>} />

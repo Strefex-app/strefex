@@ -11,7 +11,25 @@ describe('pageBreadcrumbs', () => {
 
   it('resolves People cluster trail', () => {
     const r = resolvePageBreadcrumb('/management/people')
-    expect(r.layout).toBe('custom')
+    expect(r.layout).toBe('global')
+    expect(r.trail).toEqual([
+      { label: 'Overview', to: '/management' },
+      { label: 'People', to: '/management/people' },
+    ])
+  })
+
+  it('uses own-chrome layout for Home and Sourcing only', () => {
+    expect(resolvePageBreadcrumb('/main-menu').layout).toBe('custom')
+    expect(resolvePageBreadcrumb('/hub/procurement').layout).toBe('custom')
+    expect(resolvePageBreadcrumb('/management/sourcing/intelligence').layout).toBe('global')
+    expect(resolvePageBreadcrumb('/management/ops/projects/new-project').layout).toBe('global')
+  })
+
+  it('falls back for unknown app routes', () => {
+    const r = resolvePageBreadcrumb('/some-unknown-tool')
+    expect(r.layout).toBe('global')
+    expect(r.root).toEqual(PAGE_ROOTS.home)
+    expect(r.trail[0].label).toBe('Some Unknown Tool')
   })
 
   it('resolves Team Management full hierarchy', () => {

@@ -1,6 +1,5 @@
 import { matchPath } from 'react-router-dom'
 import {
-  isManagementCustomLayout,
   resolveLegacyManagementRedirect,
   resolveManagementBreadcrumb,
 } from '../utils/managementRoutes'
@@ -25,25 +24,19 @@ function titleFromSlug(slug = '') {
 }
 
 /**
- * Routes where the page renders its own breadcrumb (custom header layout).
- * Global bar is suppressed to avoid duplicates.
+ * Routes that render their own top chrome (aligned hairline).
+ * Global address bar is suppressed only here to avoid duplicates.
  */
-const CUSTOM_LAYOUT_PATHS = [
-  '/management/ops/projects',
-  '/management/ops/projects/new-project',
-  '/management/ops/projects/project/:projectId/control',
-  /* Intelligent Sourcing fills the shell — no duplicate top chrome */
+const OWN_CHROME_PATHS = [
+  '/main-menu',
   '/hub/procurement',
   '/sourcing',
   '/dashboard/buyer',
-  /* Home renders its own Sourcing-style address bar */
-  '/main-menu',
 ]
 
-function isCustomLayout(pathname) {
-  if (isManagementCustomLayout(pathname)) return true
-  return CUSTOM_LAYOUT_PATHS.some((pattern) =>
-    matchPath({ path: pattern, end: pattern.indexOf(':') < 0 && pattern.indexOf('*') < 0 }, pathname),
+function isOwnChromeLayout(pathname) {
+  return OWN_CHROME_PATHS.some((pattern) =>
+    matchPath({ path: pattern, end: true }, pathname),
   )
 }
 
@@ -54,13 +47,21 @@ const EXACT_ROUTES = {
   '/hub/governance': { root: 'home', trail: [{ label: 'Admin' }] },
   '/main-menu': { root: 'home', trail: [] },
   '/profile': { root: 'home', trail: [{ label: 'Profile' }] },
+  '/profile/calendar': { root: 'home', trail: [{ label: 'Profile', to: '/profile' }, { label: 'Calendar' }] },
   '/settings': { root: 'home', trail: [{ label: 'Settings' }] },
   '/plans': { root: 'home', trail: [{ label: 'Plans' }] },
+  '/payment': { root: 'home', trail: [{ label: 'Plans', to: '/plans' }, { label: 'Payment' }] },
   '/templates': { root: 'home', trail: [{ label: 'Profile', to: '/profile' }, { label: 'Templates' }] },
   '/support': { root: 'home', trail: [{ label: 'Support' }] },
   '/messenger': { root: 'home', trail: [{ label: 'Messenger' }] },
   '/notifications': { root: 'home', trail: [{ label: 'Notifications' }] },
   '/calendar': { root: 'home', trail: [{ label: 'Calendar' }] },
+  '/resources': { root: 'home', trail: [{ label: 'Resources' }] },
+  '/tasks': { root: 'home', trail: [{ label: 'Tasks' }] },
+  '/project': { root: 'home', trail: [{ label: 'Project' }] },
+  '/dashboard': { root: 'home', trail: [{ label: 'Dashboard' }] },
+  '/dashboard/supplier': { root: 'home', trail: [{ label: 'Supplier workspace' }] },
+  '/service-provider-dashboard': { root: 'home', trail: [{ label: 'Service provider' }] },
   '/service-requests': { root: 'home', trail: [{ label: 'Service Requests' }] },
   '/equipment-hub': { root: 'home', trail: [{ label: 'Equipment Hub' }] },
   '/product-hub': { root: 'home', trail: [{ label: 'Product Hub' }] },
@@ -72,20 +73,23 @@ const EXACT_ROUTES = {
   '/equipment-request': { root: 'home', trail: [{ label: 'Equipment Request' }] },
   '/audit-request': { root: 'home', trail: [{ label: 'Audit Request' }] },
   '/request-service': { root: 'home', trail: [{ label: 'Request Service' }] },
+  '/executive-summary': { root: 'home', trail: [{ label: 'Executive Summary' }] },
+  '/forge': { root: 'forge', trail: [] },
   '/admin/approvals': { root: 'governance', trail: [{ label: 'Approvals' }] },
   '/developer': { root: 'governance', trail: [{ label: 'Developer' }] },
   '/admin-dashboard': { root: 'governance', trail: [{ label: 'Platform Dashboard' }] },
+  '/admin/supplier-governance': { root: 'governance', trail: [{ label: 'Supplier governance' }] },
+  '/admin/data-ingestion': { root: 'governance', trail: [{ label: 'Data ingestion' }] },
 }
 
 function resolvePrefix(pathname) {
   if (pathname.startsWith('/industry/')) {
-    return {
-      root: PAGE_ROOTS.home,
-      trail: [
-        { label: 'Industry', to: pathname.split('/').slice(0, 3).join('/') || '/main-menu' },
-        { label: titleFromSlug(pathname.split('/').slice(3).join('-')) || 'Page' },
-      ],
+    const parts = pathname.split('/').filter(Boolean)
+    const trail = [{ label: 'Industry', to: `/${parts.slice(0, 2).join('/')}` }]
+    if (parts.length > 2) {
+      trail.push({ label: titleFromSlug(parts.slice(2).join('-')) || 'Page' })
     }
+    return { root: PAGE_ROOTS.home, trail }
   }
 
   if (pathname.startsWith('/product-hub/')) {
@@ -98,14 +102,37 @@ function resolvePrefix(pathname) {
     }
   }
 
-  if (pathname.startsWith('/dashboard/buyer')) {
+  if (pathname.startsWith('/raw-materials/')) {
     return {
-      root: PAGE_ROOTS.buyers,
-      trail: [{ label: titleFromSlug(pathname.split('/').slice(3).join('-')) || 'Workspace' }],
+      root: PAGE_ROOTS.home,
+      trail: [
+        { label: 'Raw Materials', to: '/raw-materials' },
+        { label: titleFromSlug(pathname.split('/').slice(2).join('-')) || 'Category' },
+      ],
     }
   }
 
-  if (pathname.startsWith('/admin-dashboard/account/')) {
+  if (pathname.startsWith('/service-hub/')) {
+    return {
+      root: PAGE_ROOTS.home,
+      trail: [
+        { label: 'Service Hub', to: '/service-hub' },
+        { label: titleFromSlug(pathname.split('/').slice(2).join('-')) || 'Page' },
+      ],
+    }
+  }
+
+  if (pathname.startsWith('/dashboard/buyer')) {
+    const rest = pathname.split('/').slice(3).filter(Boolean)
+    return {
+      root: PAGE_ROOTS.buyers,
+      trail: rest.length
+        ? [{ label: titleFromSlug(rest.join('-')) || 'Workspace' }]
+        : [{ label: 'Workspace' }],
+    }
+  }
+
+  if (pathname.startsWith('/admin-dashboard/account/') || pathname.startsWith('/admin-dashboard/local-account/')) {
     return {
       root: PAGE_ROOTS.governance,
       trail: [{ label: 'Platform Dashboard', to: '/admin-dashboard' }, { label: 'Account' }],
@@ -124,6 +151,37 @@ function resolvePrefix(pathname) {
     }
   }
 
+  if (pathname.startsWith('/forge/')) {
+    return {
+      root: PAGE_ROOTS.forge,
+      trail: [{ label: titleFromSlug(pathname.split('/').slice(1).join('-')) || 'Module' }],
+    }
+  }
+
+  if (pathname.startsWith('/rfq-comparison/')) {
+    return {
+      root: PAGE_ROOTS.buyers,
+      trail: [{ label: 'RFQ comparison' }],
+    }
+  }
+
+  if (pathname.startsWith('/suppliers/')) {
+    return {
+      root: PAGE_ROOTS.home,
+      trail: [{ label: 'Supplier profile' }],
+    }
+  }
+
+  if (pathname.startsWith('/profile/')) {
+    return {
+      root: PAGE_ROOTS.home,
+      trail: [
+        { label: 'Profile', to: '/profile' },
+        { label: titleFromSlug(pathname.split('/').slice(2).join('-')) || 'Page' },
+      ],
+    }
+  }
+
   return null
 }
 
@@ -138,7 +196,7 @@ export function resolvePageBreadcrumb(pathname) {
 
   const canonicalPath = resolveLegacyManagementRedirect(pathname) || pathname
 
-  if (isCustomLayout(canonicalPath)) {
+  if (isOwnChromeLayout(canonicalPath)) {
     return { layout: 'custom' }
   }
 
@@ -147,7 +205,7 @@ export function resolvePageBreadcrumb(pathname) {
     return { ...managementTrail, layout: 'global' }
   }
 
-  const exact = EXACT_ROUTES[pathname]
+  const exact = EXACT_ROUTES[pathname] || EXACT_ROUTES[canonicalPath]
   if (exact) {
     return {
       root: PAGE_ROOTS[exact.root] || PAGE_ROOTS.management,
@@ -156,10 +214,17 @@ export function resolvePageBreadcrumb(pathname) {
     }
   }
 
-  const prefix = resolvePrefix(pathname)
+  const prefix = resolvePrefix(pathname) || resolvePrefix(canonicalPath)
   if (prefix) {
     return { ...prefix, layout: 'global' }
   }
 
-  return null
+  /* Fallback — every AppLayout page gets an address bar */
+  const segments = canonicalPath.split('/').filter(Boolean)
+  const leaf = segments[segments.length - 1] || 'Page'
+  return {
+    root: PAGE_ROOTS.home,
+    trail: [{ label: titleFromSlug(leaf) || 'Page' }],
+    layout: 'global',
+  }
 }

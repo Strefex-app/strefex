@@ -161,22 +161,8 @@ export function resolveManagementBreadcrumb(pathname) {
   return { root, trail }
 }
 
-export function isManagementCustomLayout(pathname) {
-  if (!pathname.startsWith('/management')) return false
-  const segments = pathname.split('/').filter(Boolean)
-  if (segments.length === 2 && MANAGEMENT_MODULE_CLUSTERS.some((c) => c.id === segments[1])) {
-    return true
-  }
-  if (pathname === '/management/sourcing/workspace') return true
-  if (pathname === '/management/sourcing/price-calculator') return true
-  if (pathname.startsWith('/management/sourcing/register')) return true
-  if (pathname.startsWith('/management/sourcing/intelligence')) return true
-  if (pathname === '/management/ops/manufacturing-calculator') return true
-  if (pathname.startsWith('/management/contracts-compliance/auditors/overview')) return true
-  if (pathname.startsWith('/management/ops/projects/new-project')) return true
-  if (pathname.startsWith('/management/ops/projects/project/') && pathname.endsWith('/control')) {
-    return true
-  }
+/** @deprecated Prefer GlobalPageBreadcrumb — kept for rare nested headers. Always returns false. */
+export function isManagementCustomLayout() {
   return false
 }
 

@@ -1,9 +1,11 @@
 /* Production Management page styles */
 .production-page {
   max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   overflow-x: hidden;
-  padding: 20px;
+  box-sizing: border-box;
+  padding: 0;
 }
 
 .production-header {
@@ -29,38 +31,43 @@
 }
 
 .production-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: var(--text-page-title, 24px);
+  font-weight: var(--font-semibold, 600);
   color: var(--color-primary);
   margin: 0 0 8px 0;
 }
 
 .production-subtitle {
-  font-size: 15px;
+  font-size: var(--text-body, 15px);
   color: var(--color-secondary);
   margin: 0;
 }
 
-/* Indicators */
+/* Indicators — 4 equal columns, icon/donut left + value right */
 .production-indicators {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .production-indicator-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   padding: 14px 18px;
   background: var(--bg-card);
   border-radius: 10px;
   border: 1px solid var(--border-light);
-  min-width: 120px;
-  flex: 1;
-  gap: 8px;
-  text-align: center;
+  min-width: 0;
+  gap: 12px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.production-indicator-card > div:last-of-type {
+  min-width: 0;
 }
 
 .indicator-icon {
@@ -94,17 +101,18 @@
 }
 
 .indicator-value {
-  font-size: 22px;
+  font-size: var(--text-section, 22px);
   font-weight: var(--font-semibold);
   color: var(--color-primary);
   line-height: 1.2;
+  overflow-wrap: break-word;
 }
 
 .indicator-label {
-  font-size: 11px;
+  font-size: var(--text-caption, 11px);
   color: var(--color-muted);
   margin-top: 2px;
-  text-align: center;
+  text-align: left;
 }
 
 .production-indicator-clickable {
@@ -141,7 +149,7 @@
 /* Certification Status Row */
 .cert-status-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -151,9 +159,13 @@
   border-radius: 10px;
   padding: 16px 20px;
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .cert-badge {
@@ -291,9 +303,11 @@
 /* Main Layout */
 .production-main {
   display: grid;
-  grid-template-columns: 1fr 1fr 280px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(200px, 280px);
+  gap: 16px;
   align-items: start;
+  min-width: 0;
+  margin-bottom: 16px;
 }
 
 .production-card {
@@ -302,6 +316,17 @@
   padding: 16px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Cards stacked outside the main grid need vertical gap */
+.production-page > .production-card {
+  margin-bottom: 16px;
+}
+
+.production-page > .production-card:last-child {
+  margin-bottom: 0;
 }
 
 .production-card-title {
@@ -389,7 +414,7 @@
 
 .production-system-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -700,7 +725,7 @@
 /* Responsive */
 @media (max-width: 1200px) {
   .production-main {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .production-sidebar {
@@ -718,7 +743,11 @@
   }
 
   .production-headcount-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .production-indicators {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -751,8 +780,12 @@
 }
 
 @media (max-width: 640px) {
+  .production-indicators {
+    grid-template-columns: 1fr;
+  }
+
   .production-indicator-card {
-    min-width: 100px;
+    min-width: 0;
   }
 
   .indicator-value {
