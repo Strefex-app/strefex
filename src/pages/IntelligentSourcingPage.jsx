@@ -242,12 +242,21 @@ function injectPlatformPayload(html, payload, theme = 'light') {
   const json = JSON.stringify(payload).replace(/</g, '\\u003c')
   const boot = `<script>window.__STREFEX_PLATFORM_SOURCING__=${json};</script>`
   const shell = buildEmbedShellCss(theme)
-  let out = html.replace(
-    /<head([^>]*)>/i,
-    `<head$1><base href="/intelligent-sourcing/">${boot}${shell}`,
-  )
+  let out = html
+    // Absolute asset URLs so srcDoc / nested bases cannot miss /intelligent-sourcing/
+    .replace(/(src|href)=(["'])assets\//gi, '$1=$2/intelligent-sourcing/assets/')
+    .replace(/url\((["']?)assets\//gi, 'url($1/intelligent-sourcing/assets/')
+    .replace(
+      /<head([^>]*)>/i,
+      `<head$1><base href="/intelligent-sourcing/">${boot}${shell}`,
+    )
   if (theme === 'dark') {
-    out = out.replace(/<html([^>]*)>/i, '<html$1 data-theme="dark">')
+    out = out.replace(/<html([^>]*)>/i, (match, attrs = '') => {
+      if (/\bdata-theme\s*=/.test(attrs)) {
+        return `<html${attrs.replace(/\bdata-theme\s*=\s*(['"]).*?\1/i, 'data-theme="dark"')}>`
+      }
+      return `<html${attrs} data-theme="dark">`
+    })
   }
   return out
 }
@@ -343,6 +352,7 @@ export default function IntelligentSourcingPage() {
   const payloadKey = useMemo(() => JSON.stringify(platformPayload), [platformPayload])
 
   const [srcDoc, setSrcDoc] = useState('')
+  const [frameSrc, setFrameSrc] = useState('')
   const [status, setStatus] = useState('loading')
   const [showRfqModal, setShowRfqModal] = useState(false)
   const [rfqContext, setRfqContext] = useState(null)
@@ -350,10 +360,26 @@ export default function IntelligentSourcingPage() {
   const [sendError, setSendError] = useState('')
   const iframeRef = useRef(null)
 
+  const pushPlatformToFrame = useCallback(() => {
+    const win = iframeRef.current?.contentWindow
+    if (!win) return
+    try {
+      win.postMessage(
+        { source: 'strefex-platform', action: 'apply-platform', payload: JSON.parse(payloadKey) },
+        '*',
+      )
+      win.postMessage(
+        { source: 'strefex-platform', action: 'set-theme', theme },
+        '*',
+      )
+    } catch { /* not ready */ }
+  }, [payloadKey, theme])
+
   useEffect(() => {
     let cancelled = false
     setStatus('loading')
-    fetch('/intelligent-sourcing/index.html', { cache: 'no-cache' })
+    setFrameSrc('')
+    fetch(`${window.location.origin}/intelligent-sourcing/index.html`, { cache: 'no-cache' })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
@@ -364,27 +390,23 @@ export default function IntelligentSourcingPage() {
           throw new Error('Intelligent Sourcing HTML not served (check vercel rewrite)')
         }
         setSrcDoc(injectPlatformPayload(html, JSON.parse(payloadKey), theme))
+        setFrameSrc('')
         setStatus('ready')
       })
       .catch(() => {
-        if (!cancelled) {
-          setSrcDoc('')
-          setStatus('error')
-        }
+        if (cancelled) return
+        // Fallback: load static file directly and push payload via postMessage
+        setSrcDoc('')
+        setFrameSrc(`/intelligent-sourcing/index.html?embed=1&t=${Date.now()}`)
+        setStatus('ready')
       })
     return () => { cancelled = true }
   }, [payloadKey, theme])
 
   useEffect(() => {
-    const win = iframeRef.current?.contentWindow
-    if (!win || status !== 'ready') return
-    try {
-      win.postMessage(
-        { source: 'strefex-platform', action: 'set-theme', theme },
-        '*',
-      )
-    } catch { /* not ready */ }
-  }, [theme, status])
+    if (status !== 'ready') return
+    pushPlatformToFrame()
+  }, [status, pushPlatformToFrame, frameSrc, srcDoc])
 
   const openPlatformRfqForm = useCallback((payload = {}) => {
     if (payload?.buyer) setPlant(payload.buyer)
@@ -402,6 +424,10 @@ export default function IntelligentSourcingPage() {
     const data = event?.data
     if (!data || data.source !== 'strefex-intelligent-sourcing') return
     const { action, payload } = data
+    if (action === 'ready') {
+      pushPlatformToFrame()
+      return
+    }
     if (action === 'select-plant' && payload?.buyer) {
       setPlant(payload.buyer)
       return
@@ -421,7 +447,7 @@ export default function IntelligentSourcingPage() {
     if (action === 'open-profile') {
       navigate('/profile')
     }
-  }, [navigate, openPlatformRfqForm, setPlant])
+  }, [navigate, openPlatformRfqForm, pushPlatformToFrame, setPlant])
 
   useEffect(() => {
     window.addEventListener('message', handleSourcingMessage)
@@ -491,7 +517,9 @@ export default function IntelligentSourcingPage() {
             ref={iframeRef}
             className="intelligent-sourcing-frame"
             title="Intelligent Sourcing"
-            srcDoc={status === 'ready' ? srcDoc : undefined}
+            src={frameSrc || undefined}
+            srcDoc={!frameSrc && status === 'ready' ? srcDoc : undefined}
+            onLoad={pushPlatformToFrame}
           />
         )}
 
