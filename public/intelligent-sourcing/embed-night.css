@@ -1,0 +1,60 @@
+/* Platform embed night tokens — used when html[data-theme="dark"] inside AppLayout iframe. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --navy-900: #0d0e10;
+  --navy-800: #00d4ff;
+  --navy-700: #5ce1ff;
+  --navy-600: #7ee9ff;
+  --navy-500: #9db1c8;
+  --navy-400: #9db1c8;
+  --navy-300: #6b7280;
+  --steel-700: #9db1c8;
+  --steel-600: #6b7280;
+  --steel-500: rgba(255,255,255,0.13);
+  --steel-400: rgba(255,255,255,0.1);
+  --steel-300: rgba(255,255,255,0.07);
+  --steel-200: #1a1d24;
+  --steel-100: #0d0e10;
+  --white: #13151a;
+  --black: #e8eaf2;
+  --surface-page: #0d0e10;
+  --surface-card: #13151a;
+  --surface-sunken: #1a1d24;
+  --surface-inverse: #1a1d24;
+  --surface-console: #0d0e10;
+  --surface-panel: #13151a;
+  --surface-field: #1a1d24;
+  --text-strong: #e8eaf2;
+  --text-body: rgba(232,234,242,0.75);
+  --text-muted: #6b7280;
+  --text-faint: #6b7280;
+  --text-on-dark: #e8eaf2;
+  --text-on-dark-muted: #9db1c8;
+  --border-hairline: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.13);
+  --border-on-dark: rgba(154,174,199,0.22);
+  --action-primary: #00d4ff;
+  --action-primary-hover: #5ce1ff;
+  --action-primary-active: #7ee9ff;
+  --focus-ring: rgba(0,212,255,0.35);
+  --signal-running-bg: rgba(52,211,153,0.14);
+  --signal-warning-bg: rgba(251,191,36,0.14);
+  --signal-fault-bg: rgba(248,113,113,0.14);
+  --signal-data: #00d4ff;
+  --signal-data-bg: rgba(0,212,255,0.14);
+  background: #0d0e10;
+  color: #e8eaf2;
+}
+
+html[data-theme="dark"] body {
+  background: #0d0e10 !important;
+  color: #e8eaf2 !important;
+}
+
+html[data-theme="dark"] [style*="background:#fff"],
+html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background:#FFFFFF"],
+html[data-theme="dark"] [style*="background: #FFFFFF"],
+html[data-theme="dark"] [style*="background:var(--white)"] {
+  background: #13151a !important;
+}

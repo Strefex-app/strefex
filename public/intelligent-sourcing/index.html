@@ -2,6 +2,27 @@
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* Hide design nav immediately when embedded in AppLayout (avoids double main menu).
+ * Also apply theme from ?theme= before paint to avoid a light flash in night mode. */
+(function () {
+  try {
+    var q = new URLSearchParams(String(location.search || ''));
+    var embed = q.get('embed') === '1' || (window.parent && window.parent !== window);
+    if (!embed) return;
+    document.documentElement.setAttribute('data-strefex-embed', '1');
+    if (q.get('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.style.colorScheme = 'dark';
+      document.documentElement.style.background = '#0d0e10';
+    }
+    var s = document.createElement('style');
+    s.id = 'strefex-embed-shell-early';
+    s.textContent = 'aside{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important}button[aria-label="Menu"]{display:none!important}html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}';
+    document.documentElement.appendChild(s);
+  } catch (e) { /* */ }
+})();
+</script>
 <script src="assets/12c1c9a8-0a83-4e31-835c-b120aa232fd7.js"></script>
 
 

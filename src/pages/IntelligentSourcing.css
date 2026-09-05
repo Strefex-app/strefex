@@ -12,6 +12,10 @@
   overflow: hidden;
 }
 
+html[data-theme="dark"] .intelligent-sourcing-page {
+  background: var(--bg-primary, #0d0e10);
+}
+
 .intelligent-sourcing-frame {
   flex: 1 1 auto;
   width: 100%;
@@ -20,6 +24,10 @@
   border: 0;
   display: block;
   background: var(--bg-primary, #f6f7f8);
+}
+
+html[data-theme="dark"] .intelligent-sourcing-frame {
+  background: var(--bg-primary, #0d0e10);
 }
 
 .intelligent-sourcing-loading {
@@ -32,6 +40,10 @@
   pointer-events: none;
   color: var(--color-muted, #9db1c8);
   font: var(--font-medium, 500) var(--text-body, 1rem) / var(--leading-body, 1.45) var(--font-sans);
+  background: var(--bg-primary, #f6f7f8);
+}
+
+html[data-theme="dark"] .intelligent-sourcing-loading {
   background: var(--bg-primary, #0d0e10);
 }
 

@@ -385,7 +385,8 @@ export default function IntelligentSourcingPage() {
     // Avoids huge srcDoc documents that inherit production CSP and previously blocked unpkg.
     const loadDirect = () => {
       setSrcDoc('')
-      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&t=${Date.now()}`)
+      const themeParam = theme === 'dark' ? 'dark' : 'light'
+      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&theme=${themeParam}&t=${Date.now()}`)
       setStatus('ready')
     }
 
