@@ -18,10 +18,12 @@
   align-items: center;
   gap: 4px;
   background: none;
-  border: none;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
+  min-height: 52px;
   padding: 8px 10px;
-  transition: transform 0.2s;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
   color: var(--nav-text);
   flex: 1 1 0;
   min-width: 0;
@@ -29,7 +31,17 @@
 }
 
 .bottom-nav-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bottom-nav-item:focus-visible {
+  outline: 2px solid var(--accent, #00d4ff);
+  outline-offset: 2px;
+}
+
+.bottom-nav-item:active {
+  transform: translateY(0);
 }
 
 .bottom-nav-item.active {

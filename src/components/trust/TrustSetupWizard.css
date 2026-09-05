@@ -1,0 +1,131 @@
+.trust-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trust-wizard__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.trust-wizard__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trust-wizard__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  font-size: var(--text-caption);
+  color: var(--color-secondary);
+}
+
+.trust-wizard__step.is-active {
+  border-color: #175cd3;
+  background: #eff8ff;
+  color: #175cd3;
+  font-weight: var(--font-semibold);
+}
+
+.trust-wizard__step.is-done {
+  border-color: #abefc6;
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.trust-wizard__step-n {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+}
+
+.trust-wizard__step.is-active .trust-wizard__step-n,
+.trust-wizard__step.is-done .trust-wizard__step-n {
+  background: currentColor;
+  color: #fff;
+}
+
+.trust-wizard__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trust-wizard__industry,
+.trust-wizard__form,
+.trust-wizard__share,
+.trust-wizard__publish {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+
+.trust-wizard__form label,
+.trust-wizard__industry label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trust-wizard__form input,
+.trust-wizard__industry select {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.trust-wizard__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--text-small);
+}
+
+.trust-wizard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trust-wizard__summary {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--text-small);
+}
+
+.trust-wizard__done {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #abefc6;
+  background: #ecfdf3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trust-wizard__note {
+  margin: 0;
+}

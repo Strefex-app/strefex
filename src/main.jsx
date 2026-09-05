@@ -8,6 +8,7 @@ import './styles/typography.css'
 import './styles/rfq-intelligence-dark.css'
 import './styles/responsive-tables.css'
 import './styles/managementShell.css'
+import './styles/stx-chrome.css'
 /* After all routes — RFQ shell beats legacy light hex in lazily-loaded page CSS */
 import './styles/platform-rfq-shell.css'
 import { registerServiceWorker } from './registerSW'

@@ -104,6 +104,9 @@ import {
   EnterpriseProductCalc,
   QualityExcellenceHub,
   QualityExcellenceTool,
+  IatfControlHub,
+  TrustSetupPage,
+  CompanyDatabase,
   ProductionManagement,
   Production5S,
   ProductionISO9001,
@@ -124,6 +127,8 @@ import {
   SystemManagementPage,
   ProfileCalendar,
   HeadcountManagement,
+  DepartmentHomes,
+  CompanyWorkflowsHub,
   QualificationMatrix,
   EmployeeGoals,
   EmployeeDialogue,
@@ -157,22 +162,21 @@ import {
   RawMaterialsLanding,
   RawMaterialsCategory,
   MaterialSuppliers,
-  SellerDashboard,
   ServiceProviderDashboard,
   RfqComparison,
   RfqIntelligencePage,
+  CompanyManufacturingCalculator,
   VendorManagement,
   VendorDetail,
   SupplierProfilePage,
   SupplierDashboard,
   SupplierGovernanceAdmin,
-  BuyerWorkspace,
+  NetworkSourcingRoute,
   SupplierWorkspace,
   AdminDataIngestion,
   PlatformDirectoryPage,
   RegisteredSuppliersPage,
   AccountDirectoryPage,
-  ProcurementHub,
   PartnerHub,
   GovernanceHub,
   ProcurementDashboard,
@@ -397,12 +401,13 @@ function App() {
           <Route path="/project" element={<P><Project /></P>} />
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
           <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
-          <Route path="/seller-dashboard" element={<AccountType allowed={['seller']}><SellerDashboard /></AccountType>} />
-          <Route path="/buyer-dashboard" element={<Navigate to="/dashboard/buyer?tab=track" replace />} />
-          <Route path="/hub/procurement" element={<P><ProcurementHub /></P>} />
+          <Route path="/seller-dashboard" element={<P><Navigate to="/dashboard/supplier" replace /></P>} />
+          <Route path="/buyer-dashboard" element={<Navigate to="/hub/procurement?tab=track" replace />} />
+          <Route path="/hub/procurement" element={<P><NetworkSourcingRoute /></P>} />
+          <Route path="/sourcing" element={<P><NetworkSourcingRoute /></P>} />
           <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
           <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
-          <Route path="/dashboard/buyer" element={<P><BuyerWorkspace /></P>} />
+          <Route path="/dashboard/buyer" element={<P><NetworkSourcingRoute /></P>} />
           <Route path="/dashboard/buyer/account-directory" element={<P><AccountDirectoryPage /></P>} />
           <Route path="/dashboard/buyer/platform-directory" element={<SuperAdmin><PlatformDirectoryPage /></SuperAdmin>} />
           <Route path="/dashboard/buyer/registered-suppliers" element={<SuperAdmin><RegisteredSuppliersPage /></SuperAdmin>} />
@@ -473,6 +478,7 @@ function App() {
           <Route path="/management/ops/projects/project/:projectId" element={<P><ProjectDetail /></P>} />
           <Route path="/management/sourcing/register/new" element={<P><NewProcurementOpportunityPage /></P>} />
           <Route path="/management/sourcing/workspace" element={<P><RfqManagementHub /></P>} />
+          <Route path="/management/sourcing/price-calculator" element={<P><CompanyManufacturingCalculator /></P>} />
           <Route path="/management/sourcing/intelligence" element={<P><RfqIntelligencePage /></P>} />
           <Route path="/rfq-intelligence" element={<P><RfqIntelligenceRedirect /></P>} />
 
@@ -562,8 +568,17 @@ function App() {
           <Route path="/management/ops/quality-excellence" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceHub /></PlanGate>} />
           <Route path="/management/ops/quality-excellence/:toolId" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceTool /></PlanGate>} />
           <Route path="/management/ops/quality-excellence/:toolId/:recordId" element={<PlanGate feature="productionManagement" planName="Premium"><QualityExcellenceTool /></PlanGate>} />
+          <Route path="/management/company-database" element={<Navigate to="/management/company-database/plant-qms" replace />} />
+          <Route path="/management/company-database/:space" element={<PlanGate feature="productionManagement" planName="Premium"><CompanyDatabase /></PlanGate>} />
+          <Route path="/management/company-database/:space/:folderId" element={<PlanGate feature="productionManagement" planName="Premium"><CompanyDatabase /></PlanGate>} />
+          <Route path="/management/ops/iatf-control" element={<PlanGate feature="productionManagement" planName="Premium"><IatfControlHub /></PlanGate>} />
+          <Route path="/management/ops/manufacturing-calculator" element={<Navigate to="/management/sourcing/price-calculator" replace />} />
+          <Route path="/management/ops/trust-setup" element={<PlanGate feature="productionManagement" planName="Premium"><TrustSetupPage /></PlanGate>} />
 
           {/* ── HR Space ───────────────────────────────────── */}
+          <Route path="/management/people/workflows" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><CompanyWorkflowsHub /></PlanGate>} />
+          <Route path="/management/people/departments" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><DepartmentHomes /></PlanGate>} />
+          <Route path="/management/people/departments/:deptKey" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><DepartmentHomes /></PlanGate>} />
           <Route path="/management/people/hr-space" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><HeadcountManagement /></PlanGate>} />
           <Route path="/management/people/hr-space/qualification-matrix" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><QualificationMatrix /></PlanGate>} />
           <Route path="/management/people/hr-space/goals" element={<PlanGate feature="productionManagement" planName="Premium" requiredRole="manager"><EmployeeGoals /></PlanGate>} />

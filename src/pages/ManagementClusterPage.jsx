@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
 import ManagementModuleGrid, { moduleUnlocked } from '../components/management/ManagementModuleGrid'
+import PeopleHrDashboard from '../components/management/PeopleHrDashboard'
 import { MANAGEMENT_OVERVIEW_PATH, isManagementClusterId } from '../constants/managementPaths'
 import { getManagementCluster } from '../data/managementModuleGroups'
 import { getClusterStatsForId, useManagementClusterStats } from '../hooks/useManagementClusterStats'
@@ -65,6 +66,7 @@ export default function ManagementClusterPage() {
 
   const stats = getClusterStatsForId(cluster.id, clusterStatsMap)
   const unlockedCount = visibleModules.filter((m) => moduleUnlocked(m, authCtx)).length
+  const isPeopleCluster = cluster.id === 'people'
 
   return (
     <AppLayout>
@@ -74,28 +76,32 @@ export default function ManagementClusterPage() {
           { label: cluster.label },
         ]} />
 
-        <div className="mgmt-cluster-hero app-page-card">
-          <div className="mgmt-cluster-hero__main">
-            <div
-              className="mgmt-cluster-hero__icon"
-              style={{ background: `${cluster.color}18`, color: cluster.color }}
-            >
-              <Icon name={cluster.icon} size={28} />
-            </div>
-            <div className="min-width-0">
-              <h1 className="app-page-title">{cluster.label}</h1>
-              <p className="app-page-subtitle stx-text-wrap">{cluster.description}</p>
-            </div>
-          </div>
-          <div className="mgmt-cluster-stats" role="list" aria-label={`${cluster.label} metrics`}>
-            {stats.map((stat) => (
-              <div key={stat.label} className="mgmt-cluster-stat" role="listitem">
-                <span className="mgmt-cluster-stat__value">{stat.value}</span>
-                <span className="mgmt-cluster-stat__label">{stat.label}</span>
+        {isPeopleCluster ? (
+          <PeopleHrDashboard />
+        ) : (
+          <div className="mgmt-cluster-hero app-page-card">
+            <div className="mgmt-cluster-hero__main">
+              <div
+                className="mgmt-cluster-hero__icon"
+                style={{ background: `${cluster.color}18`, color: cluster.color }}
+              >
+                <Icon name={cluster.icon} size={28} />
               </div>
-            ))}
+              <div className="min-width-0">
+                <h1 className="app-page-title">{cluster.label}</h1>
+                <p className="app-page-subtitle stx-text-wrap">{cluster.description}</p>
+              </div>
+            </div>
+            <div className="mgmt-cluster-stats" role="list" aria-label={`${cluster.label} metrics`}>
+              {stats.map((stat) => (
+                <div key={stat.label} className="mgmt-cluster-stat" role="listitem">
+                  <span className="mgmt-cluster-stat__value">{stat.value}</span>
+                  <span className="mgmt-cluster-stat__label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mgmt-hub-tools-head">
           <h2 className="stx-text-section mgmt-hub-tools-title">

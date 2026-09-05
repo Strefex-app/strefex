@@ -2,13 +2,16 @@ import AuthPageBackdrop from './AuthPageBackdrop'
 import { AUTH_LOGO_WHITE } from '../constants/authPageAssets'
 
 /**
- * Login / Register layout — navy backdrop + white logo (change only when requested).
+ * Login / Register / Verify Email — form-focused layout (intro lives on marketing home).
  */
-export default function AuthPageShell({ children, contentMaxWidth = 500 }) {
+export default function AuthPageShell({
+  children,
+  contentMaxWidth = 500,
+}) {
   return (
     <div className="auth-page-shell">
       <AuthPageBackdrop />
-      <div className="auth-page-shell__foreground" style={{ maxWidth: contentMaxWidth }}>
+      <div className="auth-page-shell__foreground">
         <header className="auth-page-shell__logo-wrap">
           <img
             src={AUTH_LOGO_WHITE}
@@ -17,10 +20,16 @@ export default function AuthPageShell({ children, contentMaxWidth = 500 }) {
             width={320}
             height={120}
             decoding="async"
-            loading="lazy"
+            loading="eager"
           />
         </header>
-        <div className="auth-page-shell__content">{children}</div>
+
+        <div
+          className="auth-page-shell__content"
+          style={{ maxWidth: contentMaxWidth }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )

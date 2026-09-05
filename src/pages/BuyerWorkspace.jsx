@@ -5,16 +5,19 @@ import { useTranslation } from '../i18n/useTranslation'
 import '../styles/app-page.css'
 import './BuyerWorkspace.css'
 import SupplierCard from '../components/SupplierCard'
-import SupplierComparisonTable from '../components/SupplierComparisonTable'
-import BuyerRfqCreateForm from '../components/buyer/BuyerRfqCreateForm'
-import BuyerRfqSendReview from '../components/buyer/BuyerRfqSendReview'
+import CapabilityCompareTable from '../components/CapabilityCompareTable'
+import ShortlistGapPanel from '../components/buyer/ShortlistGapPanel'
+import HubIndustryRegistration from '../components/hubs/HubIndustryRegistration'
 import industrialIntelligenceService from '../services/industrialIntelligenceService'
-import useRfqStore from '../store/rfqStore'
 import { useIndustryStore } from '../store/industryStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
+import useRfqStore from '../store/rfqStore'
+import useEvidenceRequestStore from '../store/evidenceRequestStore'
+import { normalizeCapabilityCompareRows } from '../utils/capabilityCompare'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
+import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { PLATFORM_HUB_INDUSTRY_SLUGS, displayHubIndustryFromSlug } from '../data/platformHubIndustries'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
@@ -28,6 +31,14 @@ import {
   isSupplierUuid,
   loadDiscoverDirectoryPage,
 } from '../utils/buyerWorkspaceSuppliers'
+import {
+  coverageStats,
+  enhanceSupplierList,
+  filterStandardForIndustry,
+  sortSuppliersByReliability,
+  supplierMeetsCertFilter,
+} from '../utils/buyerSourcingReliability'
+import { rfqIntelligenceUrl, executiveSummaryUrl, BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 
 function getRegistrySellersForDiscover(industryId, categoryId) {
   const registry = useAccountRegistry.getState()
@@ -36,14 +47,17 @@ function getRegistrySellersForDiscover(industryId, categoryId) {
 }
 
 const TABS = [
-  { id: 'discover', labelKey: 'buyerWorkspace.tabDiscover' },
-  { id: 'shortlist', labelKey: 'buyerWorkspace.tabShortlist' },
-  { id: 'create', labelKey: 'buyerWorkspace.tabCreateRfq' },
-  { id: 'send', labelKey: 'buyerWorkspace.tabSendRfq' },
+  { id: 'find', labelKey: 'buyerWorkspace.tabFind' },
   { id: 'track', labelKey: 'buyerWorkspace.tabTrack' },
 ]
 
-const LEGACY_TAB_MAP = { rfq: 'create' }
+const LEGACY_TAB_MAP = {
+  discover: 'find',
+  shortlist: 'find',
+  create: 'track',
+  send: 'track',
+  rfq: 'track',
+}
 
 const DISCOVER_PAGE_SIZE = 24
 
@@ -59,21 +73,28 @@ export default function BuyerWorkspace() {
   const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
+  // Legacy create/send deep links are handled by NetworkSourcingRoute → Sourcing.
+  // If this page is reached with those tabs, stay on Track (never bounce to Home).
   const normalizedTab = LEGACY_TAB_MAP[tabParam] || tabParam
   const initialTab = TABS.some((tab) => tab.id === normalizedTab)
     ? normalizedTab
-    : 'discover'
+    : 'track'
   const [activeTab, setActiveTab] = useState(initialTab)
 
   const user = useAuthStore((s) => s.user)
-  const addRfq = useRfqStore((s) => s.addRfq)
-  const sendRfq = useRfqStore((s) => s.sendRfq)
+  const localRfqs = useRfqStore((s) => s.rfqs)
+  const createEvidenceRequest = useEvidenceRequestStore((s) => s.createRequest)
+  const hasOpenEvidenceRequest = useEvidenceRequestStore((s) => s.hasOpenRequest)
 
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const selectedCategories = useIndustryStore((s) => s.selectedCategories)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const hasExecutiveSummary = useSubscriptionStore((s) => s.hasFeature('executiveSummary'))
-  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
+  const catalogToggle = useMarketplaceCatalogVisibilityEffective()
+  // Network Sourcing must show the platform directory when seed is on; buyers are not
+  // superadmin so the ES toggle alone would leave Find + Send RFQ empty forever.
+  const showMarketplaceCatalog = catalogToggle || isSeededSupplierDirectoryEnabled()
+  const [discoverScope, setDiscoverScope] = useState('category') // 'category' | 'industry'
 
   const isPreviewSession = useMemo(() => {
     try {
@@ -95,6 +116,7 @@ export default function BuyerWorkspace() {
   const [discoverLoading, setDiscoverLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [discoverSuppliers, setDiscoverSuppliers] = useState([])
+  const [certFilterOn, setCertFilterOn] = useState(false)
   const [discoverTotal, setDiscoverTotal] = useState(0)
   const [discoverSource, setDiscoverSource] = useState('connected')
   const [shortlisted, setShortlisted] = useState([])
@@ -102,10 +124,17 @@ export default function BuyerWorkspace() {
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const [trackingRows, setTrackingRows] = useState([])
-  const [rfqDraft, setRfqDraft] = useState(null)
-  const [sendingRfq, setSendingRfq] = useState(false)
   const [, startTransition] = useTransition()
   const discoverRequestRef = useRef(0)
+
+  useEffect(() => {
+    setCertFilterOn(false)
+  }, [selectedIndustry])
+
+  const primaryCertFilter = useMemo(
+    () => filterStandardForIndustry(selectedIndustry),
+    [selectedIndustry],
+  )
 
   const industryOptions = useMemo(() => {
     if (isSuperAdmin) return [...PLATFORM_HUB_INDUSTRY_SLUGS]
@@ -135,11 +164,15 @@ export default function BuyerWorkspace() {
   }, [setSearchParams])
 
   useEffect(() => {
-    const tab = searchParams.get('tab')
-    const mapped = LEGACY_TAB_MAP[tab] || tab
+    const rawTab = searchParams.get('tab')
+    const mapped = LEGACY_TAB_MAP[rawTab] || rawTab
     if (mapped && TABS.some((entry) => entry.id === mapped) && mapped !== activeTab) {
       setActiveTab(mapped)
     }
+    const urlIndustry = searchParams.get('industryId')
+    const urlCategory = searchParams.get('categoryId')
+    if (urlIndustry) setSelectedIndustry(urlIndustry)
+    if (urlCategory) setSelectedCategory(urlCategory)
   }, [searchParams, activeTab])
 
   useEffect(() => {
@@ -185,28 +218,40 @@ export default function BuyerWorkspace() {
     setDiscoverLoading(true)
     setDiscoverSuppliers([])
     setDiscoverTotal(0)
+    setDiscoverScope('category')
 
-    const loadDirectoryFirstPage = async () => {
+    const loadDirectoryFirstPage = async (categoryIdForLoad = selectedCategory, scope = 'category') => {
+      let deferLoadingClear = false
       try {
-        const registeredSellers = getRegistrySellersForDiscover(selectedIndustry, selectedCategory)
+        const registeredSellers = getRegistrySellersForDiscover(
+          selectedIndustry,
+          categoryIdForLoad || undefined,
+        )
         const page = await loadDiscoverDirectoryPage({
           industryId: selectedIndustry,
-          categoryId: selectedCategory,
-          categoryLabel: selectedCategoryLabel,
+          categoryId: categoryIdForLoad || '',
+          categoryLabel: categoryIdForLoad ? selectedCategoryLabel : '',
           registeredSellers,
           showMarketplaceCatalog,
           offset: 0,
           limit: DISCOVER_PAGE_SIZE,
           signal,
         })
-        if (signal.cancelled || discoverRequestRef.current !== requestId) return
+        if (signal.cancelled || discoverRequestRef.current !== requestId) return false
+        // Category too narrow — fall back to whole industry so Find is not a dead end.
+        if (page.total === 0 && categoryIdForLoad && scope === 'category') {
+          deferLoadingClear = true
+          return loadDirectoryFirstPage('', 'industry')
+        }
         startTransition(() => {
-          setDiscoverSuppliers(page.rows)
+          setDiscoverSuppliers(enhanceSupplierList(page.rows, selectedIndustry))
           setDiscoverTotal(page.total)
           setDiscoverSource('directory')
+          setDiscoverScope(scope)
         })
+        return page.total > 0
       } finally {
-        if (discoverRequestRef.current === requestId) {
+        if (!deferLoadingClear && discoverRequestRef.current === requestId) {
           setDiscoverLoading(false)
         }
       }
@@ -240,7 +285,7 @@ export default function BuyerWorkspace() {
 
         if (connected.length > 0) {
           startTransition(() => {
-            setDiscoverSuppliers(connected)
+            setDiscoverSuppliers(enhanceSupplierList(connected, selectedIndustry))
             setDiscoverTotal(connected.length)
             setDiscoverSource('connected')
           })
@@ -265,18 +310,22 @@ export default function BuyerWorkspace() {
   }, [selectedIndustry, selectedCategory, selectedCategoryLabel, shortlisted, showMarketplaceCatalog, t])
 
   const loadMoreDirectory = useCallback(async () => {
-    if (!selectedIndustry || !selectedCategory || discoverSource !== 'directory') return
+    if (!selectedIndustry || discoverSource !== 'directory') return
     if (discoverSuppliers.length >= discoverTotal) return
 
     setLoadingMore(true)
     const requestId = discoverRequestRef.current
     const signal = { cancelled: false }
+    const categoryIdForLoad = discoverScope === 'industry' ? '' : selectedCategory
     try {
-      const registeredSellers = getRegistrySellersForDiscover(selectedIndustry, selectedCategory)
+      const registeredSellers = getRegistrySellersForDiscover(
+        selectedIndustry,
+        categoryIdForLoad || undefined,
+      )
       const page = await loadDiscoverDirectoryPage({
         industryId: selectedIndustry,
-        categoryId: selectedCategory,
-        categoryLabel: selectedCategoryLabel,
+        categoryId: categoryIdForLoad || '',
+        categoryLabel: categoryIdForLoad ? selectedCategoryLabel : '',
         registeredSellers,
         showMarketplaceCatalog,
         offset: discoverSuppliers.length,
@@ -285,7 +334,7 @@ export default function BuyerWorkspace() {
       })
       if (signal.cancelled || discoverRequestRef.current !== requestId) return
       startTransition(() => {
-        setDiscoverSuppliers((prev) => [...prev, ...page.rows])
+        setDiscoverSuppliers((prev) => enhanceSupplierList([...prev, ...page.rows], selectedIndustry))
         setDiscoverTotal(page.total)
       })
     } finally {
@@ -293,7 +342,16 @@ export default function BuyerWorkspace() {
         setLoadingMore(false)
       }
     }
-  }, [selectedIndustry, selectedCategory, selectedCategoryLabel, discoverSource, discoverSuppliers.length, discoverTotal, showMarketplaceCatalog])
+  }, [
+    selectedIndustry,
+    selectedCategory,
+    selectedCategoryLabel,
+    discoverSource,
+    discoverScope,
+    discoverSuppliers.length,
+    discoverTotal,
+    showMarketplaceCatalog,
+  ])
 
   const hasMoreDiscover = discoverSource === 'directory' && discoverSuppliers.length < discoverTotal
 
@@ -341,7 +399,7 @@ export default function BuyerWorkspace() {
       if (prev.some((p) => supplierKey(p) === id)) return prev
       return [...prev, supplier]
     })
-    setTab('shortlist')
+    setTab('find')
   }
 
   const handleShortlist = async (supplier) => {
@@ -356,99 +414,134 @@ export default function BuyerWorkspace() {
       await industrialIntelligenceService.shortlistSupplier({ supplierId })
       setFeedback(t('buyerWorkspace.feedbackShortlist'))
       await loadShortlists()
-      setTab('shortlist')
     } catch (err) {
       setError(err?.message || t('buyerWorkspace.errShortlist'))
     }
   }
 
-  const rfqCandidateSuppliers = useMemo(() => {
-    const map = new Map()
-    ;[...shortlistedCards, ...discoverSuppliers].forEach((row) => {
-      const key = supplierKey(row)
-      if (key) map.set(key, row)
-    })
-    return [...map.values()]
-  }, [shortlistedCards, discoverSuppliers])
-
-  const createRfqDraft = (draft) => {
-    setRfqDraft(draft)
-    setTab('send')
-  }
-
-  const rfqSupplierRows = useMemo(() => {
-    if (!rfqDraft) return []
-    const lookup = new Map()
-    ;[...discoverSuppliers, ...shortlistedCards, ...selectedForCompare].forEach((row, index) => {
-      const id = supplierKey(row)
-      if (!id) return
-      lookup.set(id, {
-        id,
-        name: canSeeDetails
-          ? supplierDisplayName(row)
-          : formatMaskedManufacturerLabel(index),
-        matchScore: row.overall_score || row.matchScore || row.fitLevel,
-      })
-    })
-    return rfqDraft.supplierIds.map((id, index) => lookup.get(id) || {
-      id,
-      name: canSeeDetails ? String(id) : formatMaskedManufacturerLabel(index),
-    })
-  }, [rfqDraft, discoverSuppliers, shortlistedCards, selectedForCompare, canSeeDetails])
-
-  const handleSendRfq = async () => {
-    if (!rfqDraft) return
-    setSendingRfq(true)
-    setError('')
-    try {
-      const created = addRfq({
-        title: rfqDraft.title,
-        industryId: selectedIndustry,
-        categoryId: rfqDraft.categoryId || selectedCategory,
-        requirements: rfqDraft.requirements,
-        suppliers: rfqDraft.supplierIds,
-        attachments: (rfqDraft.attachments || []).map((a) => a.name),
-        buyerEmail: user?.email || '',
-        buyerCompany: user?.companyName || user?.company || user?.email || 'Buyer',
-        description: rfqDraft.description,
-        dueDate: rfqDraft.deadline,
-      })
-      if (created?.id) sendRfq(created.id)
-
-      const uuidIds = rfqDraft.supplierIds.filter(isSupplierUuid)
-      if (uuidIds.length > 0) {
-        await industrialIntelligenceService.createRfq({
-          title: rfqDraft.title,
-          description: rfqDraft.description,
-          deadline: rfqDraft.deadline,
-          supplierIds: uuidIds,
-          requirements: rfqDraft.requirements,
-          skipCompletenessCheck: uuidIds.length !== rfqDraft.supplierIds.length,
-        })
-      }
-
-      setFeedback(t('buyerWorkspace.feedbackRfq'))
-      setRfqDraft(null)
-      await loadTracking()
-      setTab('track')
-    } catch (err) {
-      setError(err?.message || t('buyerWorkspace.errRfq'))
-    } finally {
-      setSendingRfq(false)
+  const handleRequestEvidence = useCallback((supplier) => {
+    const supplierId = supplierKey(supplier)
+    if (!supplierId) return
+    const primary = filterStandardForIndustry(selectedIndustry)
+    if (hasOpenEvidenceRequest(supplierId, primary?.id)) {
+      setFeedback(t('buyerWorkspace.evidenceAlreadyRequested'))
+      return
     }
-  }
+    createEvidenceRequest({
+      supplierId,
+      supplierName: supplierDisplayName(supplier),
+      industryId: selectedIndustry,
+      standardId: primary?.id,
+      standardLabel: primary?.label,
+      buyerCompany: user?.companyName || user?.company || '',
+      buyerEmail: user?.email || '',
+    })
+    setFeedback(t('buyerWorkspace.evidenceRequested').replace('{standard}', primary?.label || ''))
+  }, [
+    selectedIndustry,
+    createEvidenceRequest,
+    hasOpenEvidenceRequest,
+    user,
+    t,
+  ])
+
+  const handleGapRequestEvidence = useCallback((supplierId) => {
+    const row = [...shortlistedCards, ...discoverSuppliers, ...selectedForCompare]
+      .find((s) => supplierKey(s) === supplierId)
+    if (row) handleRequestEvidence(row)
+  }, [shortlistedCards, discoverSuppliers, selectedForCompare, handleRequestEvidence])
+
+  const compareRows = useMemo(
+    () => normalizeCapabilityCompareRows(selectedForCompare, selectedIndustry),
+    [selectedForCompare, selectedIndustry],
+  )
+
+  const trackRowsMerged = useMemo(() => {
+    const byId = new Map()
+    trackingRows.forEach((row) => {
+      byId.set(String(row.id), {
+        id: row.id,
+        title: row.title,
+        deadline: row.deadline || '—',
+        invited: row.invited_count || 0,
+        viewed: row.viewed_count || 0,
+        responded: row.responded_count || 0,
+        closed: row.closed_count || 0,
+        localId: null,
+        quoteCount: 0,
+        source: 'network',
+      })
+    })
+    ;(localRfqs || []).forEach((rfq) => {
+      if (!rfq?.id || rfq.status === 'draft') return
+      const key = String(rfq.id)
+      const quoteCount = (rfq.sellerResponses || []).length
+      const invited = (rfq.selectedSellers || rfq.suppliers || []).length
+      const existing = byId.get(key)
+      if (existing) {
+        byId.set(key, {
+          ...existing,
+          localId: rfq.id,
+          quoteCount,
+          invited: Math.max(existing.invited, invited),
+          responded: Math.max(existing.responded, quoteCount),
+          buyerRef: rfq.buyerRefDisplay || existing.buyerRef || null,
+          title: rfq.buyerRefDisplay
+            ? `${rfq.buyerRefDisplay} — ${rfq.title || existing.title || 'RFQ'}`
+            : (existing.title || rfq.title),
+          source: 'both',
+        })
+        return
+      }
+      byId.set(key, {
+        id: rfq.id,
+        title: rfq.buyerRefDisplay
+          ? `${rfq.buyerRefDisplay} — ${rfq.title || 'RFQ'}`
+          : (rfq.title || rfq.id),
+        deadline: rfq.deadline || rfq.dueDate || '—',
+        invited,
+        viewed: 0,
+        responded: quoteCount,
+        closed: rfq.status === 'closed' || rfq.status === 'awarded' ? 1 : 0,
+        localId: rfq.id,
+        quoteCount,
+        buyerRef: rfq.buyerRefDisplay || null,
+        source: 'local',
+      })
+    })
+    return [...byId.values()]
+  }, [trackingRows, localRfqs])
 
   const tabCounts = {
-    discover: discoverTotal || discoverSuppliers.length,
-    shortlist: shortlisted.length,
-    create: rfqDraft ? 1 : 0,
-    send: rfqDraft?.supplierIds?.length || 0,
-    track: trackingRows.length,
+    find: (discoverTotal || discoverSuppliers.length) + shortlisted.length,
+    track: trackRowsMerged.length,
   }
+
+  const intelUrl = rfqIntelligenceUrl({
+    industryId: selectedIndustry || undefined,
+    categoryId: selectedCategory || undefined,
+  })
+
+  const execSummaryUrl = executiveSummaryUrl({
+    industryId: selectedIndustry || undefined,
+    categoryId: selectedCategory || undefined,
+  })
 
   const discoverSourceLabel = discoverSource === 'connected'
     ? t('buyerWorkspace.sourceConnected')
     : t('buyerWorkspace.sourceDirectory')
+
+  const discoverCoverage = useMemo(
+    () => coverageStats(discoverSuppliers, selectedIndustry),
+    [discoverSuppliers, selectedIndustry],
+  )
+
+  const displayedDiscover = useMemo(() => {
+    const filtered = certFilterOn
+      ? discoverSuppliers.filter((row) => supplierMeetsCertFilter(row, selectedIndustry))
+      : discoverSuppliers
+    return sortSuppliersByReliability(filtered)
+  }, [discoverSuppliers, certFilterOn, selectedIndustry])
 
   return (
     <AppLayout>
@@ -456,11 +549,20 @@ export default function BuyerWorkspace() {
         <div className="app-page-card bw-header">
           <div>
             <h2 className="app-page-title">{t('buyerWorkspace.title')}</h2>
-            <p className="app-page-subtitle">{t('buyerWorkspace.subtitle')}</p>
+            <p className="app-page-subtitle">{t('buyerWorkspace.subtitleTrackOnly')}</p>
           </div>
           <div className="bw-header__actions">
             <Link to="/hub/procurement" className="app-page-btn-outline">
-              {t('buyerWorkspace.backToHub')}
+              {t('nav.sourcing')}
+            </Link>
+            <Link to={execSummaryUrl} className="app-page-btn-outline">
+              {t('buyerWorkspace.executiveSummaryLink')}
+            </Link>
+            <Link to="/dashboard/buyer/account-directory" className="app-page-btn-outline">
+              {t('buyerWorkspace.contactsLink')}
+            </Link>
+            <Link to={intelUrl} className="app-page-btn-outline">
+              {t('buyerWorkspace.intelligenceLink')}
             </Link>
             <Link to="/notifications" className="app-page-btn-outline">
               {t('buyerWorkspace.notificationsLink')}
@@ -489,21 +591,34 @@ export default function BuyerWorkspace() {
           ))}
         </div>
 
-        {activeTab === 'discover' && (
-          <div className="app-page-card">
-            <h3 className="bw-panel-title">{t('buyerWorkspace.discoverTitle')}</h3>
-            <p className="bw-panel-hint">{t('buyerWorkspace.discoverHint')}</p>
-
-            {industryOptions.length === 0 ? (
-              <div className="bw-shortlist-empty">
-                <p>{t('buyerWorkspace.noIndustrySelected')}</p>
-                <Link to="/hub/procurement" className="app-page-btn-primary">
-                  {t('buyerWorkspace.registerIndustries')}
-                </Link>
+        {activeTab === 'find' && (
+          <>
+            {industryOptions.length === 0 && !isSuperAdmin ? (
+              <div className="app-page-card">
+                <HubIndustryRegistration audience="buyer" />
+                <div className="bw-shortlist-empty" style={{ marginTop: 16 }}>
+                  <p>{t('buyerWorkspace.noIndustrySelected')}</p>
+                </div>
               </div>
             ) : (
               <>
-                <div className="bw-industry-filter">
+                <div className="app-page-card">
+                  <h3 className="bw-panel-title">{t('buyerWorkspace.discoverTitle')}</h3>
+                  <p className="bw-panel-hint">{t('buyerWorkspace.discoverHint')}</p>
+
+                  <div className="bw-exec-summary-entry">
+                    <div className="min-width-0">
+                      <strong className="stx-text-wrap">{t('buyerWorkspace.executiveSummaryTitle')}</strong>
+                      <p className="bw-panel-hint" style={{ margin: '4px 0 0' }}>
+                        {t('buyerWorkspace.executiveSummaryHint')}
+                      </p>
+                    </div>
+                    <Link to={execSummaryUrl} className="app-page-btn-primary app-page-btn-sm">
+                      {t('buyerWorkspace.executiveSummaryOpen')}
+                    </Link>
+                  </div>
+
+                  <div className="bw-industry-filter">
                   <label className="bw-industry-filter__field">
                     <span className="bw-industry-filter__label">{t('buyerWorkspace.industryLabel')}</span>
                     <select
@@ -535,6 +650,21 @@ export default function BuyerWorkspace() {
                     </label>
                   )}
                   {discoverSuppliers.length > 0 && (
+                    <label className="bw-industry-filter__field">
+                      <span className="bw-industry-filter__label">{t('buyerWorkspace.reliabilityFilter')}</span>
+                      <button
+                        type="button"
+                        className={`app-page-btn-outline bw-filter-btn${certFilterOn ? ' bw-filter-btn--active' : ''}`}
+                        aria-pressed={certFilterOn}
+                        onClick={() => setCertFilterOn((v) => !v)}
+                      >
+                        {certFilterOn
+                          ? t('buyerWorkspace.certFilterOn').replace('{standard}', primaryCertFilter?.label || '')
+                          : t('buyerWorkspace.certFilterOff').replace('{standard}', primaryCertFilter?.label || '')}
+                      </button>
+                    </label>
+                  )}
+                  {discoverSuppliers.length > 0 && (
                     <span className="bw-source-badge">{discoverSourceLabel}</span>
                   )}
                 </div>
@@ -554,17 +684,62 @@ export default function BuyerWorkspace() {
                   </div>
                 )}
 
-                {discoverLoading && discoverSuppliers.length === 0 ? (
-                  <p className="app-page-subtitle">{t('buyerWorkspace.loading')}</p>
-                ) : discoverSuppliers.length === 0 ? (
-                  <p className="app-page-subtitle">{t('buyerWorkspace.noManufacturers')}</p>
+                {discoverCoverage.total > 0 && (
+                  <div className="bw-coverage-bar" role="status">
+                    <span className="bw-coverage-bar__primary">
+                      {t('buyerWorkspace.reliabilityCoverage')
+                        .replace('{percent}', String(discoverCoverage.percent))}
+                    </span>
+                    <span className="bw-coverage-bar__meta">
+                      {t('buyerWorkspace.reliabilityBreakdown')
+                        .replace('{primary}', String(discoverCoverage.withPrimary))
+                        .replace('{primaryLabel}', discoverCoverage.primaryStandardLabel)
+                        .replace('{published}', String(discoverCoverage.published))}
+                    </span>
+                  </div>
+                )}
+
+                {discoverLoading && displayedDiscover.length === 0 && discoverSuppliers.length === 0 ? (
+                  <div className="bw-supplier-grid bw-supplier-grid--loading" aria-busy="true">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <div key={`sk-${i}`} className="bw-supplier-card bw-supplier-card--skeleton" aria-hidden="true">
+                        <div className="bw-skeleton-line bw-skeleton-line--title" />
+                        <div className="bw-skeleton-line" />
+                        <div className="bw-skeleton-line bw-skeleton-line--short" />
+                      </div>
+                    ))}
+                  </div>
+                ) : displayedDiscover.length === 0 ? (
+                  <div className="bw-shortlist-empty">
+                    <p>
+                      {certFilterOn
+                        ? t('buyerWorkspace.noCertMatches').replace('{standard}', primaryCertFilter?.label || '')
+                        : t('buyerWorkspace.noManufacturers')}
+                    </p>
+                    <p className="bw-panel-hint">{t('buyerWorkspace.emptyFindHint')}</p>
+                    <div className="bw-rfq-path-actions">
+                      <Link to={execSummaryUrl} className="app-page-btn-primary">
+                        {t('buyerWorkspace.executiveSummaryOpen')}
+                      </Link>
+                      <Link to={BUYER_WORKSPACE_PATH} className="app-page-btn-outline">
+                        {t('buyerWorkspace.sendRfqViaHome')}
+                      </Link>
+                      <Link to="/dashboard/buyer/account-directory" className="app-page-btn-outline">
+                        {t('buyerWorkspace.contactsLink')}
+                      </Link>
+                    </div>
+                  </div>
                 ) : (
                   <>
+                    {discoverScope === 'industry' && (
+                      <p className="bw-panel-hint">{t('buyerWorkspace.industryWideHint')}</p>
+                    )}
                     <div className="bw-supplier-grid">
-                      {discoverSuppliers.map((supplier, index) => (
+                      {displayedDiscover.map((supplier, index) => (
                         <SupplierCard
                           key={`disc-${supplierKey(supplier)}`}
                           supplier={supplier}
+                          industryId={selectedIndustry}
                           masked={!canSeeDetails}
                           displayNameOverride={
                             canSeeDetails
@@ -574,8 +749,14 @@ export default function BuyerWorkspace() {
                           disableShortlist={!supplier._canShortlist}
                           onSelect={addCompare}
                           onShortlist={handleShortlist}
+                          onRequestEvidence={canSeeDetails ? handleRequestEvidence : undefined}
+                          evidenceRequestPending={hasOpenEvidenceRequest(
+                            supplierKey(supplier),
+                            primaryCertFilter?.id,
+                          )}
                           compareLabel={t('buyerWorkspace.addToCompare')}
                           shortlistLabel={t('buyerWorkspace.shortlistAction')}
+                          requestEvidenceLabel={t('buyerWorkspace.requestEvidence')}
                         />
                       ))}
                     </div>
@@ -604,108 +785,79 @@ export default function BuyerWorkspace() {
                     <span className="app-page-subtitle" style={{ margin: 0 }}>
                       {t('buyerWorkspace.shortlistReady').replace('{count}', String(shortlisted.length))}
                     </span>
-                    <button type="button" className="app-page-btn-primary" onClick={() => setTab('create')}>
+                    <Link to={execSummaryUrl} className="app-page-btn-primary">
                       {t('buyerWorkspace.goToRfq')}
-                    </button>
+                    </Link>
+                  </div>
+                )}
+                </div>
+
+                {(shortlistedCards.length > 0 || compareRows.length > 0) && (
+                  <div className="app-page-card bw-find-section">
+                    <h3 className="bw-panel-title">{t('buyerWorkspace.shortlistTitle')}</h3>
+                    <p className="bw-panel-hint">{t('buyerWorkspace.shortlistHint')}</p>
+
+                    {shortlistedCards.length > 0 && (
+                      <>
+                        <ShortlistGapPanel
+                          suppliers={shortlistedCards}
+                          industryId={selectedIndustry}
+                          onRequestEvidence={canSeeDetails ? handleGapRequestEvidence : undefined}
+                          requestLabel={t('buyerWorkspace.requestEvidence')}
+                        />
+                        <div className="bw-supplier-grid">
+                          {shortlistedCards.map((supplier) => (
+                            <SupplierCard
+                              key={`sl-${supplierKey(supplier)}`}
+                              supplier={supplier}
+                              industryId={selectedIndustry}
+                              onSelect={addCompare}
+                              compareLabel={t('buyerWorkspace.addToCompare')}
+                              hideShortlist
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {compareRows.length > 0 && (
+                      <>
+                        <h3 className="bw-panel-title" style={{ marginTop: shortlistedCards.length > 0 ? 20 : 0 }}>
+                          {t('buyerWorkspace.comparison')}
+                        </h3>
+                        <CapabilityCompareTable
+                          rows={compareRows}
+                          industryId={selectedIndustry}
+                          canSeeDetails={canSeeDetails}
+                          maskName={(_, index) => formatMaskedManufacturerLabel(index)}
+                        />
+                        <div className="bw-next-step">
+                          <span className="app-page-subtitle" style={{ margin: 0 }}>
+                            {t('buyerWorkspace.compareHint')}
+                          </span>
+                          <Link to={execSummaryUrl} className="app-page-btn-primary">
+                            {t('buyerWorkspace.goToRfq')}
+                          </Link>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </>
             )}
-          </div>
-        )}
-
-        {activeTab === 'shortlist' && (
-          <div className="app-page-card">
-            <h3 className="bw-panel-title">{t('buyerWorkspace.shortlistTitle')}</h3>
-            <p className="bw-panel-hint">{t('buyerWorkspace.shortlistHint')}</p>
-
-            {shortlistedCards.length === 0 ? (
-              <div className="bw-shortlist-empty">
-                <p>{t('buyerWorkspace.noShortlist')}</p>
-                <button type="button" className="app-page-btn-primary" onClick={() => setTab('discover')}>
-                  {t('buyerWorkspace.findSuppliers')}
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="bw-supplier-grid">
-                  {shortlistedCards.map((supplier) => (
-                    <SupplierCard
-                      key={`sl-${supplierKey(supplier)}`}
-                      supplier={supplier}
-                      onSelect={addCompare}
-                      compareLabel={t('buyerWorkspace.addToCompare')}
-                      hideShortlist
-                    />
-                  ))}
-                </div>
-                <h3 className="bw-panel-title" style={{ marginTop: 20 }}>{t('buyerWorkspace.comparison')}</h3>
-                <SupplierComparisonTable rows={selectedForCompare} />
-                <div className="bw-next-step">
-                  <span className="app-page-subtitle" style={{ margin: 0 }}>
-                    {t('buyerWorkspace.compareHint')}
-                  </span>
-                  <button type="button" className="app-page-btn-primary" onClick={() => setTab('create')}>
-                    {t('buyerWorkspace.goToRfq')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'create' && (
-          <div className="app-page-card">
-            <h3 className="bw-panel-title">{t('buyerWorkspace.createRfqTitle')}</h3>
-            <p className="bw-panel-hint">{t('buyerWorkspace.createRfqHint')}</p>
-            {rfqCandidateSuppliers.length === 0 ? (
-              <div className="bw-rfq-empty">
-                <p>{t('buyerWorkspace.rfqNeedsShortlist')}</p>
-                <button type="button" className="app-page-btn-primary" onClick={() => setTab('discover')}>
-                  {t('buyerWorkspace.findSuppliers')}
-                </button>
-              </div>
-            ) : (
-              <BuyerRfqCreateForm
-                industryId={selectedIndustry}
-                categoryOptions={categoryOptions}
-                initialCategoryId={selectedCategory}
-                shortlisted={rfqCandidateSuppliers}
-                showMarketplaceCatalog={showMarketplaceCatalog}
-                isSuperAdmin={isSuperAdmin}
-                canSeeDetails={canSeeDetails}
-                initialDraft={rfqDraft}
-                onContinue={createRfqDraft}
-              />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'send' && (
-          <div className="app-page-card">
-            <h3 className="bw-panel-title">{t('buyerWorkspace.sendRfqTitle')}</h3>
-            <p className="bw-panel-hint">{t('buyerWorkspace.sendRfqHint')}</p>
-            <BuyerRfqSendReview
-              draft={rfqDraft}
-              categoryLabel={selectedCategoryLabel}
-              supplierRows={rfqSupplierRows}
-              onBack={() => setTab('create')}
-              onSend={() => void handleSendRfq()}
-              sending={sendingRfq}
-            />
-          </div>
+          </>
         )}
 
         {activeTab === 'track' && (
           <div className="app-page-card">
             <h3 className="bw-panel-title">{t('buyerWorkspace.tracking')}</h3>
             <p className="bw-panel-hint">{t('buyerWorkspace.trackHint')}</p>
-            {trackingRows.length === 0 ? (
+            {trackRowsMerged.length === 0 ? (
               <div className="bw-shortlist-empty">
                 <p>{t('buyerWorkspace.noRfqsYet')}</p>
-                <button type="button" className="app-page-btn-primary" onClick={() => setTab('create')}>
+                <Link to={BUYER_WORKSPACE_PATH} className="app-page-btn-primary">
                   {t('buyerWorkspace.createFirstRfq')}
-                </button>
+                </Link>
               </div>
             ) : (
               <div className="stx-fluid-table-wrap">
@@ -718,17 +870,47 @@ export default function BuyerWorkspace() {
                       <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border-light)', padding: 8 }}>{t('buyerWorkspace.thViewed')}</th>
                       <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border-light)', padding: 8 }}>{t('buyerWorkspace.thResponded')}</th>
                       <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border-light)', padding: 8 }}>{t('buyerWorkspace.thClosed')}</th>
+                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border-light)', padding: 8 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {trackingRows.map((row) => (
+                    {trackRowsMerged.map((row) => (
                       <tr key={row.id}>
-                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.title}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }} className="stx-text-wrap">
+                          <div style={{ fontWeight: 600 }}>{row.buyerRef || row.id}</div>
+                          <div className="stx-text-caption">{row.title}</div>
+                        </td>
                         <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.deadline || '—'}</td>
-                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.invited_count || 0}</td>
-                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.viewed_count || 0}</td>
-                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.responded_count || 0}</td>
-                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.closed_count || 0}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.invited || 0}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.viewed || 0}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.responded || 0}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>{row.closed || 0}</td>
+                        <td style={{ borderBottom: '1px solid var(--border-light)', padding: 8 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {row.localId ? (
+                              <>
+                                <Link
+                                  to={`/rfq-comparison/${row.localId}`}
+                                  className="app-page-btn-secondary"
+                                  style={{ padding: '6px 10px', fontSize: '0.8125rem' }}
+                                >
+                                  Track
+                                </Link>
+                                <Link
+                                  to={`/rfq-comparison/${row.localId}`}
+                                  className="app-page-btn-primary"
+                                  style={{ padding: '6px 10px', fontSize: '0.8125rem' }}
+                                >
+                                  {row.quoteCount > 0
+                                    ? t('buyerWorkspace.compareQuotes').replace('{count}', String(row.quoteCount))
+                                    : 'Compare'}
+                                </Link>
+                              </>
+                            ) : (
+                              <span className="stx-text-caption">—</span>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

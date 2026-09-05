@@ -84,10 +84,10 @@
   background: rgba(25, 42, 86, 0.06);
 }
 
-/* Main Indicators (Fit / Risk / Capacity bars) */
+/* Main Indicators — 8 cards in 4 columns × 2 rows */
 .exec-main-indicators {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -128,11 +128,34 @@
 .exec-indicator-fill.risk { background: #f44336; }
 .exec-indicator-fill.capacity { background: #FF9800; }
 
+.exec-indicator-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .exec-indicator-value {
   font-size: var(--text-section);
   font-weight: var(--font-semibold);
   line-height: var(--leading-none);
   color: var(--color-primary);
+}
+
+.exec-indicator-n {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+  cursor: help;
+  text-decoration: underline dotted;
+  flex: none;
+}
+
+.exec-indicator-sub {
+  margin: 8px 0 0;
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+  color: var(--color-muted);
 }
 
 .exec-page-subtitle-row {
@@ -443,6 +466,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  background: var(--map-ocean, #eef0f2);
+  border: 1px solid var(--map-chart-border, #e2e5e7);
 }
 
 .exec-map-card .exec-section-title,
@@ -505,10 +530,10 @@
 .legend-dot.green { background: #4CAF50; }
 .legend-dot.orange { background: #FF9800; }
 .legend-dot.red { background: #f44336; }
-.legend-dot.navy { background: #192a56; }
+.legend-dot.navy { background: #0a2540; }
 .legend-dot.champagne {
-  background: #f7d794;
-  box-shadow: inset 0 0 0 1px rgba(25, 42, 86, 0.22);
+  background: #5fb85c;
+  box-shadow: none;
 }
 
 /* RFQ stat cards (sidebar) */
@@ -1105,6 +1130,21 @@
   animation: execModalIn .2s ease;
 }
 
+/* Unified HTML-canvas Network RFQ form needs the full two-column layout */
+.exec-modal.exec-modal--rfq {
+  max-width: min(1280px, calc(100vw - 32px));
+  background: #f6f7f8;
+}
+
+.exec-modal.exec-modal--rfq .exec-modal-body {
+  padding: 20px 24px 28px;
+}
+
+.exec-modal.exec-modal--rfq .exec-modal-header {
+  background: #fff;
+  border-bottom: 1px solid #d5dbe3;
+}
+
 @keyframes execModalIn {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1127,6 +1167,44 @@
 
 .exec-modal-body {
   padding: 20px 24px;
+}
+
+.exec-rfq-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.exec-rfq-path-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+  padding: 16px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.exec-rfq-path-card strong {
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.exec-rfq-path-card span {
+  font-size: var(--text-small);
+  color: var(--color-muted);
+  line-height: var(--leading-normal);
+}
+
+.exec-rfq-path-card:hover {
+  border-color: var(--color-secondary);
 }
 
 .exec-modal-footer {
@@ -1346,6 +1424,12 @@
 }
 
 /* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .exec-main-indicators {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 @media (max-width: 900px) {
   .exec-main-indicators {

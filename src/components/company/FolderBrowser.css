@@ -1,0 +1,124 @@
+.cdb-browser {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+
+.cdb-browser--compact {
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+}
+
+.cdb-browser__tree {
+  padding: 14px;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+  position: sticky;
+  top: 12px;
+}
+
+.cdb-browser__tree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cdb-browser__tree-head h2 {
+  margin: 0;
+}
+
+.cdb-browser__newfolder {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cdb-browser__newfolder input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cdb-tree__branch {
+  min-width: 0;
+}
+
+.cdb-tree__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-small);
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cdb-tree__item:hover {
+  background: var(--bg-surface-hover, var(--accent-light));
+}
+
+.cdb-tree__item.is-active {
+  background: var(--accent-light, var(--bg-surface));
+  border-color: var(--accent, var(--border-color));
+  font-weight: var(--font-semibold);
+}
+
+.cdb-tree__name {
+  min-width: 0;
+}
+
+.cdb-tree__count {
+  flex-shrink: 0;
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+  background: var(--bg-surface);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.cdb-browser__main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cdb-browser__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-small);
+}
+
+.cdb-browser__crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cdb-browser__sep {
+  color: var(--color-muted);
+}
+
+@media (max-width: 900px) {
+  .cdb-browser {
+    grid-template-columns: 1fr;
+  }
+
+  .cdb-browser__tree {
+    position: static;
+    max-height: 280px;
+  }
+}

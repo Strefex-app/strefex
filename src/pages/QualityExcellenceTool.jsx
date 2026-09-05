@@ -17,6 +17,7 @@ import {
   getQualityTool,
 } from '../data/qualityExcellenceCatalog'
 import useQualityExcellenceStore from '../store/qualityExcellenceStore'
+import useIatfControlStore from '../store/iatfControlStore'
 import { NUMBER_ENTRY, computeQualityRecord, summarizeQualityRecord } from '../utils/qualityExcellenceCompute'
 import { focusNewRowFirstField, handleEnterAdvance } from '../utils/qualityEnterAdvance'
 import './QualityExcellence.css'
@@ -79,6 +80,61 @@ function FieldGrid({ fields, values, onChange, readOnly, prefix }) {
         </label>
       ))}
     </div>
+  )
+}
+
+function IatfMasterFields({ draft, readOnly, onChange, onChangeMany }) {
+  const parts = useIatfControlStore((s) => s.parts)
+  const processes = useIatfControlStore((s) => s.processes)
+  if (!parts.length && !processes.length) return null
+
+  const setPart = (partId) => {
+    const part = parts.find((row) => row.id === partId)
+    const patch = { partId }
+    if (part?.processId) {
+      patch.processId = part.processId
+      const prc = processes.find((row) => row.id === part.processId)
+      if (prc?.name) patch.process = prc.name
+    }
+    if (onChangeMany) onChangeMany(patch)
+    else onChange('partId', partId)
+  }
+  const setProcess = (processId) => {
+    const prc = processes.find((row) => row.id === processId)
+    onChangeMany?.({ processId, ...(prc?.name ? { process: prc.name } : {}) })
+  }
+
+  return (
+    <>
+      <label className="qe-line">
+        <span className="stx-text-caption">Part (IATF master)</span>
+        <select
+          id="qe-id-partId"
+          value={draft.fields?.partId || ''}
+          disabled={readOnly}
+          onChange={(e) => setPart(e.target.value)}
+        >
+          <option value="">Select…</option>
+          {parts.map((part) => (
+            <option key={part.id} value={part.id}>{part.partNumber || part.name}</option>
+          ))}
+        </select>
+      </label>
+      <label className="qe-line">
+        <span className="stx-text-caption">Process (IATF master)</span>
+        <select
+          id="qe-id-processId"
+          value={draft.fields?.processId || ''}
+          disabled={readOnly}
+          onChange={(e) => setProcess(e.target.value)}
+        >
+          <option value="">Select…</option>
+          {processes.map((prc) => (
+            <option key={prc.id} value={prc.id}>{prc.name}</option>
+          ))}
+        </select>
+      </label>
+    </>
   )
 }
 
@@ -190,6 +246,10 @@ function RecordEditor({ tool, record, readOnly }) {
     queueSave({ ...draft, fields: { ...draft.fields, [key]: value } })
   }
 
+  const setFields = (patch) => {
+    queueSave({ ...draft, fields: { ...draft.fields, ...patch } })
+  }
+
   const setTableCell = (tableKey, index, key, value) => {
     const rows = [...(draft.tables?.[tableKey] || [])]
     rows[index] = { ...rows[index], [key]: value }
@@ -237,6 +297,7 @@ function RecordEditor({ tool, record, readOnly }) {
             />
           </label>
         ))}
+        <IatfMasterFields draft={draft} readOnly={readOnly} onChange={setField} onChangeMany={setFields} />
       </div>
 
       <div className={`qe-work qe-work--${workMode}`}>

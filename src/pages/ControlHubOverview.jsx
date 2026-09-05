@@ -64,6 +64,9 @@ export default function ControlHubOverview() {
                 <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => navigate('/procurement/new-opportunity')}>
                   New opportunity
                 </button>
+                <button type="button" className="app-page-btn-outline app-page-btn-sm" onClick={() => navigate('/management/company-database/commercial')}>
+                  Commercial folders
+                </button>
               </>
             )}
           />
@@ -111,7 +114,7 @@ export default function ControlHubOverview() {
 
             <div className="pch-kpi-strip">
               <div className="pch-kpi">
-                <span className="pch-kpi__label">Trace rows</span>
+                <span className="pch-kpi__label">Commercial rows</span>
                 <span className="pch-kpi__value">{traceRows.length}</span>
               </div>
               <div className="pch-kpi">
@@ -128,9 +131,9 @@ export default function ControlHubOverview() {
 
             <ProcurementTracePanel
               rows={traceRows}
-              title="Unified traceability register"
-              description="Sort columns, filter by stage, export CSV, or click any row for module links and document detail."
-              exportFilename="control-hub-traceability.csv"
+              title="Commercial register (OPP → quotation → PO)"
+              description="Purchasing documents only — not plant lot genealogy. Sort columns, filter by stage, export CSV, or click a row for module links."
+              exportFilename="control-hub-commercial-register.csv"
               emptyMessage="No linked procurement yet. Create a program and project, then add an opportunity from Procurement or project control."
             />
           </ControlHubShell>

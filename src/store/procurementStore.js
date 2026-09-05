@@ -219,6 +219,9 @@ const useProcurementStore = create(
           category: data.category || '',
           estimatedValue: data.estimatedValue ?? 0,
           currency: ctx.currency || data.currency || 'USD',
+          supplierId: data.supplierId || data.vendorId || null,
+          supplierName: data.supplierName || '',
+          networkSupplierId: data.networkSupplierId || null,
           status: 'open',
           quotationIds: [],
           createdAt: new Date().toISOString(),
@@ -227,6 +230,16 @@ const useProcurementStore = create(
         set((s) => ({ opportunities: [opp, ...s.opportunities] }))
         if (ctx.projectId) {
           useProjectStore.getState().appendProjectLink(ctx.projectId, 'opportunityIds', opp.id)
+        }
+        if (data.supplierName) {
+          ensureVendorFromProcurement(data.supplierName, {
+            vendorId: data.supplierId || data.vendorId,
+            refId: opp.id,
+            refType: 'rfq',
+            refLabel: rfqNumber,
+            source: 'sourcing-workspace',
+            module: 'procurement',
+          })
         }
         syncProcurementCloudNow()
         return opp.id

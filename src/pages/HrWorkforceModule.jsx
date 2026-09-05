@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import HrModuleShell from '../components/hr/HrModuleShell'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { hrCanon } from '../data/companyWorkflows'
 import { useTranslation } from '../i18n/useTranslation'
 import '../components/hr/HrModuleShell.css'
 
@@ -71,6 +72,7 @@ export default function HrWorkforceModule() {
                   <th>{t('qualificationMatrix.department', 'Department')}</th>
                   <th>{t('hrSpace.target', 'Target')}</th>
                   <th>{t('hrSpace.assigned', 'Assigned')}</th>
+                  <th>{t('hrSpace.nextStep', 'Next')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,6 +82,15 @@ export default function HrWorkforceModule() {
                     <td>{p.department}</td>
                     <td>{p.targetHeadcount}</td>
                     <td>{p.currentAssigned}</td>
+                    <td>
+                      {Number(p.currentAssigned) < Number(p.targetHeadcount) ? (
+                        <Link to={`${hrCanon('hiring')}?department=${encodeURIComponent(p.department || '')}`}>
+                          {t('hrSpace.openHiring', 'Open hiring')}
+                        </Link>
+                      ) : (
+                        <span className="stx-text-caption">{t('hrSpace.staffed', 'Staffed')}</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -106,7 +106,10 @@ export default function QualificationMatrix() {
   // Employee links popover
   const [activePopover, setActivePopover] = useState(null)
 
-  const allDepartments = [...new Set([...departments, ...employees.map((e) => e.department)])].sort()
+  const allDepartments = [...new Set([
+    ...departments.map((d) => (typeof d === 'string' ? d : d?.name)).filter(Boolean),
+    ...employees.map((e) => e.department).filter(Boolean),
+  ])].sort()
   const filteredEmployees =
     departmentFilter === '' ? employees : employees.filter((e) => e.department === departmentFilter)
 

@@ -1,42 +1,50 @@
 import SupplierScoreBadge from './SupplierScoreBadge'
 import { tenantVisibilityLabel, tenantVisibilityTierFromRow } from '../utils/tenantVisibilityLabel'
 
-export default function SupplierComparisonTable({ rows = [] }) {
+export default function SupplierComparisonTable({ rows = [], industryId = 'general' }) {
   if (!rows.length) {
-    return <div style={{ color: '#667085' }}>Select suppliers to compare.</div>
+    return <div className="bw-compare-empty">Select suppliers to compare.</div>
   }
+
   return (
-    <div className="stx-fluid-table-wrap">
-      <table className="stx-fluid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div className="stx-fluid-table-wrap bw-compare-table-wrap">
+      <table className="stx-fluid-table bw-compare-table">
         <thead>
           <tr>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Supplier</th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }} title="Linked seller / service provider account on the platform">
-              Platform profile
-            </th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Certifications</th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Capabilities</th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Audit</th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #e4e7ec', padding: 8 }}>Score</th>
+            <th>Supplier</th>
+            <th title="Linked seller account on the platform">Platform</th>
+            <th>Evidence</th>
+            <th>Standards</th>
+            <th>Trace</th>
+            <th>PPAP</th>
+            <th>Source</th>
+            <th>Score</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
             const visTier = tenantVisibilityTierFromRow(r)
             const visLabel = tenantVisibilityLabel(visTier)
+            const evidence = r.evidenceScore ?? r.reliabilityScore ?? 0
             return (
-            <tr key={r.id || r.supplier_id}>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{r.display_name || r.name || 'Supplier'}</td>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8, fontSize: 12, color: '#475467' }}>
-                {visLabel || '—'}
-              </td>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{r.certificationsText || '—'}</td>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{r.capabilitiesText || '—'}</td>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>{r.auditText || '—'}</td>
-              <td style={{ borderBottom: '1px solid #f2f4f7', padding: 8 }}>
-                <SupplierScoreBadge score={r.overall_score || 0} risk={r.risk_score || 0} />
-              </td>
-            </tr>
+              <tr key={r.id || r.supplier_id}>
+                <td className="stx-text-wrap">{r.display_name || r.name || 'Supplier'}</td>
+                <td className="bw-compare-meta">{visLabel || '—'}</td>
+                <td>
+                  {evidence > 0 ? (
+                    <span className={`bw-rel-score${evidence >= 60 ? ' bw-rel-score--high' : ' bw-rel-score--mid'}`}>
+                      {evidence}
+                    </span>
+                  ) : '—'}
+                </td>
+                <td className="stx-text-wrap">{r.certificationsText || '—'}</td>
+                <td>{r.traceText || '—'}</td>
+                <td>{r.ppapText || '—'}</td>
+                <td>{r.evidenceSource || '—'}</td>
+                <td>
+                  <SupplierScoreBadge score={r.overall_score || 0} risk={r.risk_score || 0} />
+                </td>
+              </tr>
             )
           })}
         </tbody>

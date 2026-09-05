@@ -1004,21 +1004,26 @@ export function matchSuppliersToRfq(rfq) {
     suppliers = suppliers.filter(s => s.categories.includes(categoryId))
   }
   
-  // Score each supplier based on requirements
+  // Score each supplier based on commercial/quality ask (not rating / risk / price index)
   return suppliers.map(s => {
     let score = s.fitLevel
     
     if (requirements.maxLeadTime && s.leadTimeDays > 0 && s.leadTimeDays <= requirements.maxLeadTime) {
-      score += 5
+      score += 8
     }
-    if (requirements.maxPrice && s.priceIndex <= requirements.maxPrice) {
-      score += 5
-    }
-    if (requirements.minRating && s.rating >= requirements.minRating) {
-      score += 5
-    }
-    if (requirements.maxRisk && s.riskLevel <= requirements.maxRisk) {
-      score += 5
+
+    const qualityLevel = String(requirements.qualityLevel || '').toLowerCase()
+    const certs = (s.certifications || []).map((c) => String(c).toLowerCase())
+    if (qualityLevel.includes('iatf') || qualityLevel.includes('16949')) {
+      if (certs.some((c) => c.includes('iatf') || c.includes('16949'))) score += 8
+    } else if (qualityLevel.includes('13485')) {
+      if (certs.some((c) => c.includes('13485'))) score += 8
+    } else if (qualityLevel.includes('as9100') || qualityLevel.includes('9100')) {
+      if (certs.some((c) => c.includes('as9100') || c.includes('9100'))) score += 8
+    } else if (qualityLevel.includes('14001')) {
+      if (certs.some((c) => c.includes('14001'))) score += 5
+    } else if (qualityLevel.includes('9001') || qualityLevel === 'iso_9001' || qualityLevel === 'standard') {
+      if (certs.some((c) => c.includes('9001') || c.includes('iso'))) score += 5
     }
     
     return {

@@ -10,9 +10,9 @@ export const lintCiPaths = [
   'src/hooks/useAuditProDemoKitVisible.js',
   'src/components/AuthPageShell.jsx',
   'src/components/AuthPageBackdrop.jsx',
-  'src/test/superadminAuth.test.js',
   'src/test/loginErrors.test.js',
   'src/test/useAuditProDemoKitVisible.test.js',
+  'src/test/authStore.test.js',
 ]
 
 export default [

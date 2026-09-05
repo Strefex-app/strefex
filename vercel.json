@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!api|assets|_vercel|geo|marketing-site).*)",
+      "source": "/((?!api|assets|_vercel|geo|marketing-site|intelligent-sourcing).*)",
       "destination": "/index.html"
     }
   ],

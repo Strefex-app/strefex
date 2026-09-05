@@ -4,7 +4,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
-import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import { attachPlantFile, openPlantFile } from '../utils/iatfFileAttach'
 import './HRDocumentation.css'
 
 const CATEGORIES = [
@@ -123,10 +123,24 @@ const HRDocumentation = () => {
     setSelectedIds(new Set())
   }
 
-  const handleUploadSubmit = (e) => {
+  const handleUploadSubmit = async (e) => {
     e.preventDefault()
     if (!uploadForm.name.trim()) return
+    const id = `d-${Date.now()}`
+    let fileMeta = {}
+    if (uploadForm.file) {
+      try {
+        fileMeta = await attachPlantFile({
+          entityType: 'hr-document',
+          entityId: id,
+          file: uploadForm.file,
+        })
+      } catch {
+        fileMeta = { fileName: uploadForm.file.name, cloud: false }
+      }
+    }
     addHrDocument({
+      id,
       name: uploadForm.name,
       category: uploadForm.category,
       employeeId: uploadForm.employeeId || null,
@@ -134,10 +148,19 @@ const HRDocumentation = () => {
       status: 'Active',
       expiryDate: uploadForm.expiryDate || null,
       fileType: (uploadForm.file?.name?.split('.').pop() || 'pdf').toLowerCase(),
+      fileName: fileMeta.fileName || uploadForm.file?.name || '',
+      storagePath: fileMeta.storagePath || '',
+      cloud: Boolean(fileMeta.cloud),
     })
     setUploadForm({ name: '', category: CATEGORIES[0], employeeId: '', expiryDate: '', file: null })
     setShowUploadModal(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const openHrFile = async (doc) => {
+    if (!doc?.storagePath) return
+    const url = await openPlantFile(doc.storagePath)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const setDocStatus = (id, status) => {
@@ -158,6 +181,8 @@ const HRDocumentation = () => {
           <h1 className="hrdoc-title">HR Documentation</h1>
           <p className="hrdoc-subtitle">
             Manage employment contracts, policies, and HR documents
+            {' · '}
+            <Link to="/management/company-database/hr-people">Open HR folder space</Link>
           </p>
         </div>
 
@@ -288,10 +313,22 @@ const HRDocumentation = () => {
                         </span>
                       </td>
                       <td className="hrdoc-td-actions">
-                        <button type="button" className="hrdoc-action-btn" title="View">
+                        <button
+                          type="button"
+                          className="hrdoc-action-btn"
+                          title="View"
+                          disabled={!doc.storagePath}
+                          onClick={() => openHrFile(doc)}
+                        >
                           View
                         </button>
-                        <button type="button" className="hrdoc-action-btn" title="Download">
+                        <button
+                          type="button"
+                          className="hrdoc-action-btn"
+                          title="Download"
+                          disabled={!doc.storagePath}
+                          onClick={() => openHrFile(doc)}
+                        >
                           Download
                         </button>
                         <button type="button" className="hrdoc-action-btn" title="Edit">

@@ -1,15 +1,25 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import useProductionStore from '../store/productionStore'
+import useIatfControlStore from '../store/iatfControlStore'
+import useQualityExcellenceStore from '../store/qualityExcellenceStore'
+import { coreToolsMaturity, liveStandardStatus } from '../utils/iatfControlCompute'
 import './ProductionStandard.css'
 
 const ProductionIATF16949 = () => {
   const navigate = useNavigate()
   const { iatf16949 } = useProductionStore()
+  const certificates = useIatfControlStore((s) => s.certificates)
+  const parts = useIatfControlStore((s) => s.parts)
+  const qeRecords = useQualityExcellenceStore((s) => s.records)
+  const liveIatf = useMemo(() => liveStandardStatus(certificates, 'iatf_16949'), [certificates])
+  const liveTools = useMemo(() => coreToolsMaturity(qeRecords, parts), [qeRecords, parts])
+  const avgMaturity = liveTools.length
+    ? liveTools.reduce((s, t) => s + t.maturity, 0) / liveTools.length
+    : 0
+  const certClass = liveIatf.status === 'valid' ? 'certified' : 'pending'
   const [activeTab, setActiveTab] = useState('overview')
-
-  const avgMaturity = iatf16949.coreTools.reduce((s, t) => s + t.maturity, 0) / iatf16949.coreTools.length
 
   return (
     <AppLayout>
@@ -23,16 +33,19 @@ const ProductionIATF16949 = () => {
               <p className="std-subtitle">Automotive industry certification and core tools compliance</p>
             </div>
             <div className="std-cert-status">
-              <div className={`cert-indicator ${iatf16949.status}`}>
+              <div className={`cert-indicator ${certClass}`}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                 </svg>
-                <span>Certified</span>
+                <span>{liveIatf.status === 'valid' ? 'Certificate valid' : liveIatf.label}</span>
               </div>
               <div className="cert-details">
-                <div>Certifying Body: <strong>{iatf16949.certifyingBody}</strong></div>
-                <div>Expires: <strong>{iatf16949.expiryDate}</strong></div>
+                <div>Certifying Body: <strong>{liveIatf.cert?.certifyingBody || '—'}</strong></div>
+                <div>Expires: <strong>{liveIatf.cert?.expiresAt || '—'}</strong></div>
+                <button type="button" className="std-back" onClick={() => navigate('/management/ops/iatf-control')}>
+                  Open IATF Control
+                </button>
               </div>
             </div>
           </div>
@@ -65,12 +78,12 @@ const ProductionIATF16949 = () => {
                 <h3>Certification Details</h3>
                 <div className="info-grid">
                   <div className="info-item">
-                    <span className="info-label">Certification Date</span>
-                    <span className="info-value">{iatf16949.certificationDate}</span>
+                    <span className="info-label">Certificate number</span>
+                    <span className="info-value">{liveIatf.cert?.number || 'Not on file'}</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">Expiry Date</span>
-                    <span className="info-value">{iatf16949.expiryDate}</span>
+                    <span className="info-value">{liveIatf.cert?.expiresAt || '—'}</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">Last Audit</span>
@@ -99,12 +112,12 @@ const ProductionIATF16949 = () => {
             <div className="std-card">
               <h3>Core Tools Overview</h3>
               <div className="tools-grid">
-                {iatf16949.coreTools.map((tool) => (
+                {liveTools.map((tool) => (
                   <div key={tool.id} className="tool-card">
                     <div className="tool-header">
                       <span className="tool-name">{tool.name}</span>
-                      <span className={`tool-status ${tool.status === 'implemented' ? 'green' : 'orange'}`}>
-                        {tool.status === 'implemented' ? 'Implemented' : 'In Progress'}
+                      <span className={`tool-status ${tool.maturity >= 80 ? 'green' : 'orange'}`}>
+                        {tool.maturity >= 80 ? 'Evidenced' : tool.maturity > 0 ? 'In progress' : 'No records'}
                       </span>
                     </div>
                     <div className="tool-maturity">

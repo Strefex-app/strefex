@@ -7,31 +7,30 @@ import { useTranslation } from '../i18n/useTranslation'
 import { LANGUAGES } from '../i18n/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import { tenantKey } from '../utils/tenantStorage'
+import authService from '../services/authService'
 import NavIcon from './NavIcon'
 import GlobalPageBreadcrumb from './shared/GlobalPageBreadcrumb'
 import DemoModeBanner from './DemoModeBanner'
 import SyncErrorBanner from './SyncErrorBanner'
+import { sidebarNavItemVisible } from '../utils/sidebarNav'
+import {
+  shouldShowHomeInNav,
+  shouldShowSourcingInNav,
+  shouldShowManagementInNav,
+} from '../utils/networkRoles'
 import './AppLayout.css'
 
 /*
- * Sidebar items with optional gating:
- *   minRole      — RBAC role requirement (unchanged)
- *   requiredPlan — subscription feature flag key from plan.limits
- *                  Items with requiredPlan are hidden if the feature is false.
- *
- * Order: common items first, then admin, then utility at the bottom.
- * Management modules (Project, Production, Enterprise, Cost) are grouped
- * under a single "Management" item that links to the /management hub page.
- * The hub page shows all modules — locked ones display an upgrade prompt.
+ * Flat job-based nav (no Network/Company mode switch):
+ *   Home → status · Sourcing → send RFQs · Management → all plant tools
+ * Inbox lives on Home top actions (not sidebar).
  */
 const SIDEBAR_NAV = [
+  { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home', homeNav: true },
+  { id: 'sourcing', tKey: 'nav.sourcing', path: '/hub/procurement', icon: 'search', sourcingNav: true },
+  { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management', managementNav: true },
   { id: 'calendar', tKey: 'nav.calendar', path: '/calendar', icon: 'calendar' },
-  { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
-  /* Hubs: Buyers, Manufacturers (seller + SP), Admin */
-  { id: 'procurement-hub', label: 'Buyers', path: '/hub/procurement', icon: 'package' },
-  { id: 'partner-hub', label: 'Manufacturers', path: '/hub/partner', icon: 'vendors', supplierSide: true },
-  { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
   { id: 'notifications', tKey: 'nav.notifications', path: '/notifications', icon: 'notifications' },
   { id: 'support', tKey: 'nav.support', path: '/support', icon: 'support' },
@@ -47,7 +46,6 @@ const getNavIcon = (iconName) => <NavIcon name={iconName} size={24} />
 export default function AppLayout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const logout = useAuthStore((state) => state.logout)
   const sessionMode = useAuthStore((state) => state.sessionMode)
   const isDemoSession = sessionMode === 'demo'
   const role = useAuthStore((state) => state.role)
@@ -102,8 +100,9 @@ export default function AppLayout({ children }) {
         // Session expired — clean up and log out
         localStorage.removeItem(previewKey)
         setPreviewTimeLeft(null)
-        logout()
-        navigate('/', { replace: true })
+        void authService.logout().finally(() => {
+          navigate('/', { replace: true })
+        })
         return
       }
       setPreviewTimeLeft(remaining)
@@ -111,12 +110,13 @@ export default function AppLayout({ children }) {
     tick()
     const interval = setInterval(tick, 1000)
     return () => clearInterval(interval)
-  }, [logout, navigate])
+  }, [navigate])
 
   const handleLogout = () => {
     localStorage.removeItem(tenantKey('strefex-preview-expires'))
-    logout()
-    navigate('/', { replace: true })
+    void authService.logout().finally(() => {
+      navigate('/', { replace: true })
+    })
   }
 
   const displayName = user?.fullName || user?.name || user?.email || 'User'
@@ -126,6 +126,18 @@ export default function AppLayout({ children }) {
 
   const showSupplierSideNav =
     role === 'superadmin' || accountType === 'seller' || accountType === 'service_provider'
+  const showBuyerSideNav = role === 'superadmin' || accountType === 'buyer'
+  const accountTypes = Array.isArray(user?.accountTypes) && user.accountTypes.length > 0
+    ? user.accountTypes
+    : [accountType].filter(Boolean)
+  const roleCtx = {
+    accountType,
+    accountTypes,
+    isSuperAdmin: role === 'superadmin',
+  }
+  const showHomeNav = shouldShowHomeInNav(roleCtx)
+  const showSourcingNav = shouldShowSourcingInNav(roleCtx)
+  const showManagementNav = shouldShowManagementInNav(roleCtx)
 
   return (
     <div className="app-layout">
@@ -158,23 +170,23 @@ export default function AppLayout({ children }) {
         </div>
         <nav className="sidebar-nav">
           {SIDEBAR_NAV
-            .filter((item) => !item.supplierSide || showSupplierSideNav)
-            .filter((item) => !item.minRole || hasRole(item.minRole))
-            .filter((item) => !item.requiredPlan || hasFeature(item.requiredPlan))
-            .filter((item) => !item.hideInPreview || previewTimeLeft === null)
+            .filter((item) => sidebarNavItemVisible(item, {
+              showSupplierSideNav,
+              showBuyerSideNav,
+              showHomeNav,
+              showSourcingNav,
+              showManagementNav,
+              hasRole,
+              hasFeature,
+              previewTimeLeft,
+            }))
             .map((item) => {
               const isActive = location.pathname === item.path ||
-                (item.id === 'procurement-hub' && (
+                (item.id === 'home' && location.pathname === '/main-menu') ||
+                (item.id === 'sourcing' && (
                   location.pathname.startsWith('/hub/procurement') ||
+                  location.pathname === '/sourcing' ||
                   location.pathname.startsWith('/dashboard/buyer')
-                )) ||
-                (item.id === 'partner-hub' && (
-                  location.pathname.startsWith('/hub/partner') ||
-                  location.pathname.startsWith('/dashboard/supplier') ||
-                  location.pathname.startsWith('/supplier-dashboard') ||
-                  location.pathname.startsWith('/service-requests') ||
-                  location.pathname.startsWith('/service-provider-dashboard') ||
-                  location.pathname.startsWith('/seller-dashboard')
                 )) ||
                 (item.id === 'governance-hub' && (
                   location.pathname.startsWith('/hub/governance') ||
@@ -293,7 +305,12 @@ export default function AppLayout({ children }) {
             <button
               type="button"
               className="preview-timer-register-btn"
-              onClick={() => { localStorage.removeItem(tenantKey('strefex-preview-expires')); logout(); navigate('/register') }}
+              onClick={() => {
+                localStorage.removeItem(tenantKey('strefex-preview-expires'))
+                void authService.logout().finally(() => {
+                  navigate('/register', { replace: true })
+                })
+              }}
             >
               Register Now
             </button>

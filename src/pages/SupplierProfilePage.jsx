@@ -3,6 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import supplierOwnershipService from '../services/supplierOwnershipService'
+import ManufacturerReliabilityCard from '../components/iatf/ManufacturerReliabilityCard'
+import { matchPublishedReliability } from '../utils/publishedReliability'
+import '../pages/IatfControl.css'
 
 const VERIFY_METHODS = [
   { id: 'email_domain', label: 'Auto-verify by business domain' },
@@ -89,6 +92,12 @@ export default function SupplierProfilePage() {
   const completeness = Number(profile?.profile_completeness || 0)
   const overallScore = Number(vendor?.purchasing?.overallScore || 0)
   const riskLevel = String(vendor?.metadata?.risk_level || vendor?.purchasing?.riskLevel || 'Not provided')
+  const reliabilityCard = matchPublishedReliability({
+    id: supplierId,
+    company_id: vendor?.id,
+    legal_name: vendor?.general?.companyName,
+    display_name: vendor?.general?.companyName,
+  })
 
   return (
     <AppLayout>
@@ -106,6 +115,12 @@ export default function SupplierProfilePage() {
             <span className="app-page-chip">Claim status: {snapshot?.isClaimed ? 'Claimed' : 'Unclaimed'}</span>
             {snapshot?.myMemberRole && <span className="app-page-chip">Your role: {snapshot.myMemberRole}</span>}
           </div>
+
+          {reliabilityCard && (
+            <div style={{ marginTop: 12 }}>
+              <ManufacturerReliabilityCard card={reliabilityCard} />
+            </div>
+          )}
 
           {!snapshot?.isClaimed && (
             <div style={{ marginTop: 12 }}>

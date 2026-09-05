@@ -14,6 +14,8 @@ import authService from '../services/authService'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import AuthPageShell from '../components/AuthPageShell'
 import { normalizeCompanySlugInput, shouldPromptCompanySlug } from '../utils/loginErrors'
+import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
+import { useSubscriptionStore } from '../services/featureFlags'
 import './Login.css'
 
 function getReadableErrorMessage(err, fallback) {
@@ -50,9 +52,22 @@ const Login = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const { t } = useTranslation()
 
+  const goAfterAuth = () => {
+    const auth = useAuthStore.getState()
+    const accountType = useSubscriptionStore.getState().accountType
+    const accountTypes = Array.isArray(auth.user?.accountTypes) && auth.user.accountTypes.length > 0
+      ? auth.user.accountTypes
+      : [accountType].filter(Boolean)
+    navigate(resolveWorkspaceLandingPath({
+      accountType,
+      accountTypes,
+      isSuperAdmin: auth.role === 'superadmin',
+    }), { replace: true })
+  }
+
   useEffect(() => {
-    if (isAuthenticated) navigate('/main-menu', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (isAuthenticated) goAfterAuth()
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (searchParams.get('confirmed') === 'true') {
@@ -125,7 +140,7 @@ const Login = () => {
     setLoading(true)
     try {
       await enterDemoAccount(profile)
-      navigate('/main-menu')
+      goAfterAuth()
     } catch (err) {
       setError(getReadableErrorMessage(err, 'Could not start demo session.'))
     } finally {
@@ -154,7 +169,7 @@ const Login = () => {
     try {
       const slug = normalizeCompanySlugInput(companySlug)
       await authService.loginWithEmail(normalizedEmail, password, slug)
-      navigate('/main-menu')
+      goAfterAuth()
     } catch (err) {
       const msg = getReadableErrorMessage(err, '')
 
@@ -295,6 +310,11 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/register" style={{ color: '#00d4ff', fontWeight: 500, textDecoration: 'none' }}>
               Sign Up
+            </Link>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13 }}>
+            <Link to="/" style={{ color: '#667085', textDecoration: 'none' }}>
+              ← Back to STREFEX home
             </Link>
           </div>
 

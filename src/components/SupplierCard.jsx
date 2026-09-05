@@ -1,12 +1,17 @@
 import SupplierScoreBadge from './SupplierScoreBadge'
 import { tenantVisibilityLabel, tenantVisibilityTierFromRow } from '../utils/tenantVisibilityLabel'
+import { reliabilityBadgesForCard, matchesIndustryPrimaryStandard } from '../utils/buyerSourcingReliability'
 
 export default function SupplierCard({
   supplier,
+  industryId = 'general',
   onSelect,
   onShortlist,
+  onRequestEvidence,
+  evidenceRequestPending = false,
   compareLabel = 'Compare',
   shortlistLabel = 'Shortlist',
+  requestEvidenceLabel = 'Request evidence',
   hideShortlist = false,
   masked = false,
   displayNameOverride,
@@ -23,6 +28,11 @@ export default function SupplierCard({
     || supplier.displayName
     || supplier.legal_name
     || 'Supplier'
+  const badges = supplier.reliabilityBadges?.length
+    ? supplier.reliabilityBadges
+    : reliabilityBadgesForCard(supplier.reliabilityCard, industryId)
+  const hasPrimary = matchesIndustryPrimaryStandard(supplier.reliabilityCard, industryId)
+  const showEvidenceRequest = !masked && onRequestEvidence && !hasPrimary
 
   return (
     <div
@@ -62,6 +72,41 @@ export default function SupplierCard({
       {!masked && supplier.description && (
         <div className="bw-supplier-card__desc stx-text-wrap">{supplier.description}</div>
       )}
+      {!masked && supplier.reliabilityScore > 0 && (
+        <div className="bw-rel-score-row">
+          <span
+            className={`bw-rel-score${
+              supplier.reliabilityScore >= 60 ? ' bw-rel-score--high' : ' bw-rel-score--mid'
+            }`}
+          >
+            Reliability {supplier.reliabilityScore}
+          </span>
+          {supplier.reliabilityPublished && (
+            <span className="bw-rel-source">Published</span>
+          )}
+          {!supplier.reliabilityPublished && supplier.reliabilityCard?.source === 'directory' && (
+            <span className="bw-rel-source">Directory</span>
+          )}
+        </div>
+      )}
+      {!masked && (badges.length > 0 || supplier.reliabilityCard) && (
+        <div className="bw-rel-chips">
+          {badges.map((badge) => (
+            <span
+              key={badge.id}
+              className={`bw-rel-chip${badge.primary ? ' bw-rel-chip--iatf' : ''}`}
+            >
+              {badge.label}
+            </span>
+          ))}
+          {supplier.reliabilityCard?.traceMethod && supplier.reliabilityCard.traceMethod !== 'none' && (
+            <span className="bw-rel-chip">Trace: {supplier.reliabilityCard.traceMethod}</span>
+          )}
+          {supplier.reliabilityCard?.ppapLevels?.length > 0 && (
+            <span className="bw-rel-chip">PPAP L{supplier.reliabilityCard.ppapLevels.join('/')}</span>
+          )}
+        </div>
+      )}
       {masked && (
         <div className="bw-supplier-card__blur-placeholder" aria-hidden="true">
           <span className="bw-supplier-card__blur-line" />
@@ -72,6 +117,16 @@ export default function SupplierCard({
         <button type="button" className="app-page-btn-outline" onClick={() => onSelect?.(supplier)}>
           {compareLabel}
         </button>
+        {showEvidenceRequest && (
+          <button
+            type="button"
+            className="app-page-btn-outline"
+            disabled={evidenceRequestPending}
+            onClick={() => onRequestEvidence?.(supplier)}
+          >
+            {evidenceRequestPending ? 'Requested' : requestEvidenceLabel}
+          </button>
+        )}
         {!hideShortlist && (
           <button
             type="button"

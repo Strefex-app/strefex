@@ -204,6 +204,165 @@
 }
 .rc-na { color: var(--color-muted); }
 
+/* ── Summary strip (standard RFQ) ───────────────────────── */
+.rc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+.rc-summary-item { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rc-summary-label {
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+  font-weight: var(--font-medium);
+}
+.rc-summary-value {
+  font-size: var(--text-small);
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+  overflow-wrap: break-word;
+}
+.rc-header-main { min-width: 0; }
+.rc-rfq-id {
+  margin-left: 8px;
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+  font-weight: var(--font-regular);
+}
+.rc-request-link {
+  margin: 4px 0 0;
+  color: var(--color-secondary, #5c6570);
+}
+.rc-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-size: var(--text-small);
+  color: var(--color-muted);
+}
+.rc-award-note {
+  margin: 0 0 12px;
+  font-size: var(--text-small);
+  color: var(--color-secondary);
+}
+.rc-linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--link-color);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+.rc-empty-responses {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--color-muted);
+}
+.rc-empty-responses h3 {
+  margin: 8px 0;
+  color: var(--color-secondary);
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
+}
+.rc-td-label {
+  font-weight: var(--font-medium);
+  color: var(--color-secondary);
+  position: sticky;
+  left: 0;
+  background: var(--bg-card);
+  white-space: nowrap;
+}
+.rc-td-val { color: var(--color-primary); vertical-align: top; }
+.rc-td-notes {
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+  max-width: 220px;
+  overflow-wrap: break-word;
+}
+.rc-cell-note {
+  margin-top: 4px;
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+}
+.rc-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-medium);
+  background: var(--border-light);
+  color: var(--color-secondary);
+}
+.rc-pill--feasible { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+.rc-pill--feasible_with_changes { background: rgba(230, 81, 0, 0.12); color: #e65100; }
+.rc-pill--not_feasible { background: rgba(198, 40, 40, 0.12); color: #c62828; }
+.rc-certs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rc-cert-chip {
+  font-size: var(--text-caption);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--border-light);
+}
+.rc-cert-yes { color: #2e7d32; font-weight: var(--font-medium); }
+.rc-cert-no { color: var(--color-muted); }
+
+.rc-gap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rc-gap-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--text-caption, 11px);
+  background: rgba(230, 81, 0, 0.12);
+  color: #e65100;
+}
+
+.rc-gap-ok {
+  color: #2e7d32;
+  font-weight: var(--font-medium);
+}
+
+.rc-btn-award {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  padding: 8px 14px;
+  font-size: var(--text-small);
+}
+.rc-btn-award:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.rc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 14px;
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+}
+.rc-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.rc-best-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: rgba(46, 125, 50, 0.2);
+  border: 1px solid #2e7d32;
+}
+
 /* ── Capacity ───────────────────────────────────────────── */
 .rc-capacity {
   font-weight: var(--font-medium);

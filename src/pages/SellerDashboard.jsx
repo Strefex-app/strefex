@@ -1,10 +1,19 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
 import AppLayout from '../components/AppLayout'
+import RfqEvidenceHints from '../components/trust/RfqEvidenceHints'
+import { bindReceivedAwardToPlant } from '../utils/awardRfqToProject'
+import { needsTrustSetup } from '../utils/trustSetup'
+import useIatfControlStore from '../store/iatfControlStore'
 import { useTranslation } from '../i18n/useTranslation'
+import StandardRfqBidForm, { isStandardBidReady } from '../components/rfq/StandardRfqBidForm'
+import {
+  bidFormToPayload,
+  seedBidFormFromAsk,
+} from '../utils/standardRfqSchema'
 import './SellerDashboard.css'
 
 /* ── Status badge helper ──────────────────────────────────── */
@@ -31,7 +40,7 @@ function daysUntil(dateStr) {
   return diff
 }
 
-export default function SellerDashboard() {
+export function ManufacturerRfqInbox() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -42,6 +51,8 @@ export default function SellerDashboard() {
   const allReceivedRfqs = useRfqStore((s) => s.getSafeReceivedRfqs())
   const respondToRfq = useRfqStore((s) => s.respondToRfq)
   const declineRfq = useRfqStore((s) => s.declineRfq)
+  const awards = useIatfControlStore((s) => s.awards) || []
+  const showTrustSetup = needsTrustSetup()
 
   const isSuperAdmin = role === 'superadmin'
   const userEmail = user?.email?.toLowerCase()
@@ -63,7 +74,20 @@ export default function SellerDashboard() {
 
   const [activeTab, setActiveTab] = useState('all')
   const [expandedRfq, setExpandedRfq] = useState(null)
-  const [responseForm, setResponseForm] = useState({ price: '', leadTime: '', warranty: '', notes: '' })
+  const [responseForm, setResponseForm] = useState(() => seedBidFormFromAsk())
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const openId = params.get('open')
+    if (!openId) return
+    const match = receivedRfqs.find((r) => String(r.id) === String(openId))
+    if (!match) return
+    setExpandedRfq(match.id)
+    setActiveTab(match.status === 'pending' ? 'pending' : match.status === 'awarded' ? 'awarded' : match.status === 'responded' ? 'responded' : 'all')
+    if (match.status === 'pending') {
+      setResponseForm(seedBidFormFromAsk(match.requirements))
+    }
+  }, [receivedRfqs])
 
   const filteredRfqs = activeTab === 'all'
     ? receivedRfqs
@@ -85,20 +109,29 @@ export default function SellerDashboard() {
 
   /* ── Submit response ────────────────────────────────────── */
   const handleSubmitResponse = (rcvId) => {
-    respondToRfq(rcvId, {
-      price: parseFloat(responseForm.price) || 0,
-      currency: 'USD',
-      leadTime: parseInt(responseForm.leadTime) || 0,
-      warranty: responseForm.warranty || '12 months',
-      notes: responseForm.notes || '',
-    })
+    respondToRfq(rcvId, bidFormToPayload(responseForm))
     setExpandedRfq(null)
-    setResponseForm({ price: '', leadTime: '', warranty: '', notes: '' })
+    setResponseForm(seedBidFormFromAsk())
   }
 
+
+  const bidReady = isStandardBidReady(responseForm)
+
   return (
-    <AppLayout>
-      <div className="sd-page">
+    <div className="sd-page">
+        {showTrustSetup && (
+          <div className="sd-trust-cta">
+            <div className="min-width-0">
+              <strong>Publish your quality evidence</strong>
+              <p className="stx-text-caption stx-text-wrap">
+                15-minute trust setup — industry, primary certificate, and Network card — so buyers see proof before RFQs.
+              </p>
+            </div>
+            <Link className="app-page-btn-primary" to="/management/ops/trust-setup">
+              Start trust setup
+            </Link>
+          </div>
+        )}
         <div className="sd-header">
           <div>
             <h1 className="sd-title">{t('sellerDashboard.title')}</h1>
@@ -253,7 +286,14 @@ export default function SellerDashboard() {
                       <button
                         type="button"
                         className="sd-rfq-row"
-                        onClick={() => setExpandedRfq(isExpanded ? null : rfq.id)}
+                        onClick={() => {
+                          if (isExpanded) {
+                            setExpandedRfq(null)
+                            return
+                          }
+                          setExpandedRfq(rfq.id)
+                          setResponseForm(seedBidFormFromAsk(rfq.requirements))
+                        }}
                       >
                         <div className="sd-rfq-left">
                           <span className="sd-rfq-title">{rfq.title}</span>
@@ -293,16 +333,44 @@ export default function SellerDashboard() {
                             <div><strong>{t('sellerDashboard.category')}</strong> {rfq.categoryId}</div>
                             <div><strong>{t('sellerDashboard.received')}</strong> {rfq.receivedAt}</div>
                             <div><strong>{t('sellerDashboard.due')}</strong> {rfq.dueDate}</div>
-                            {rfq.requirements?.quantity && <div><strong>{t('sellerDashboard.qty')}</strong> {rfq.requirements.quantity}</div>}
+                            {rfq.requirements?.quantity && (
+                              <div>
+                                <strong>{t('sellerDashboard.qty')}</strong>{' '}
+                                {rfq.requirements.quantity}
+                                {rfq.requirements?.unit ? ` ${rfq.requirements.unit}` : ''}
+                              </div>
+                            )}
                             {rfq.requirements?.maxLeadTime && (
                               <div>
                                 <strong>{t('sellerDashboard.maxLead')}</strong> {rfq.requirements.maxLeadTime} {t('sellerDashboard.daysSuffix')}
                               </div>
                             )}
-                            {rfq.requirements?.maxPrice && (
-                              <div><strong>{t('sellerDashboard.maxBudget')}</strong> ${rfq.requirements.maxPrice}k</div>
+                            {(rfq.requirements?.targetUnitPrice !== '' && rfq.requirements?.targetUnitPrice != null) && (
+                              <div>
+                                <strong>Price target</strong>{' '}
+                                {rfq.requirements.currency || 'USD'} {rfq.requirements.targetUnitPrice}/unit
+                              </div>
+                            )}
+                            {rfq.requirements?.qualityLevel && (
+                              <div>
+                                <strong>Quality</strong> {rfq.requirements.qualityLevel.replace(/_/g, ' ').toUpperCase()}
+                              </div>
+                            )}
+                            {rfq.requirements?.incoterms && (
+                              <div><strong>Incoterms ask</strong> {rfq.requirements.incoterms}</div>
+                            )}
+                            {rfq.requirements?.paymentTermsAsk && (
+                              <div><strong>Payment ask</strong> {rfq.requirements.paymentTermsAsk.replace(/_/g, ' ')}</div>
+                            )}
+                            {rfq.requirements?.monthlyCapacityAsk && (
+                              <div><strong>Capacity ask</strong> {rfq.requirements.monthlyCapacityAsk}/mo</div>
+                            )}
+                            {rfq.requirements?.moqAsk && (
+                              <div><strong>MOQ ask</strong> ≤ {rfq.requirements.moqAsk}</div>
                             )}
                           </div>
+
+                          <RfqEvidenceHints rfq={rfq} />
 
                           {rfq.status === 'responded' && rfq.myResponse && (
                             <div className="sd-my-response">
@@ -317,60 +385,57 @@ export default function SellerDashboard() {
                             </div>
                           )}
 
-                          {rfq.status === 'awarded' && rfq.myResponse && (
+                          {rfq.status === 'awarded' && (
                             <div className="sd-awarded-banner">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               {t('sellerDashboard.awardedBanner')}
+                              {(() => {
+                                const bound = awards.find((row) => row.rfqId === rfq.rfqId && row.projectId)
+                                if (bound?.projectId) {
+                                  return (
+                                    <Link
+                                      className="app-page-btn-outline"
+                                      style={{ marginLeft: 10 }}
+                                      to={`/management/ops/projects/project/${bound.projectId}`}
+                                    >
+                                      Open plant project
+                                    </Link>
+                                  )
+                                }
+                                return (
+                                  <button
+                                    type="button"
+                                    className="app-page-btn-primary"
+                                    style={{ marginLeft: 10 }}
+                                    onClick={() => {
+                                      bindReceivedAwardToPlant({ receivedRfqId: rfq.id })
+                                    }}
+                                  >
+                                    Create plant project + binder
+                                  </button>
+                                )
+                              })()}
                             </div>
                           )}
 
                           {rfq.status === 'pending' && (
                             <div className="sd-response-form">
                               <h4>{t('sellerDashboard.submitResponse')}</h4>
-                              <div className="sd-form-grid">
-                                <div className="sd-form-group">
-                                  <label>{t('sellerDashboard.priceUsd')}</label>
-                                  <input
-                                    type="number"
-                                    value={responseForm.price}
-                                    onChange={(e) => setResponseForm(f => ({ ...f, price: e.target.value }))}
-                                    placeholder={t('sellerDashboard.placeholderPrice')}
-                                  />
-                                </div>
-                                <div className="sd-form-group">
-                                  <label>{t('sellerDashboard.leadTimeDays')}</label>
-                                  <input
-                                    type="number"
-                                    value={responseForm.leadTime}
-                                    onChange={(e) => setResponseForm(f => ({ ...f, leadTime: e.target.value }))}
-                                    placeholder={t('sellerDashboard.placeholderLead')}
-                                  />
-                                </div>
-                                <div className="sd-form-group">
-                                  <label>{t('sellerDashboard.warrantyLabel')}</label>
-                                  <input
-                                    type="text"
-                                    value={responseForm.warranty}
-                                    onChange={(e) => setResponseForm(f => ({ ...f, warranty: e.target.value }))}
-                                    placeholder={t('sellerDashboard.placeholderWarranty')}
-                                  />
-                                </div>
-                                <div className="sd-form-group sd-form-full">
-                                  <label>{t('sellerDashboard.notes')}</label>
-                                  <textarea
-                                    value={responseForm.notes}
-                                    onChange={(e) => setResponseForm(f => ({ ...f, notes: e.target.value }))}
-                                    placeholder={t('sellerDashboard.placeholderNotes')}
-                                    rows={3}
-                                  />
-                                </div>
-                              </div>
+                              <p className="stx-text-caption stx-text-wrap">
+                                Standard bid: unit price with material / operations / flexible costs, feasibility, and quality level — same fields every plant uses for buyer comparison.
+                              </p>
+                              <StandardRfqBidForm
+                                value={responseForm}
+                                onChange={setResponseForm}
+                                askRequirements={rfq.requirements}
+                                idPrefix={`bid-${rfq.id}`}
+                              />
                               <div className="sd-form-actions">
                                 <button
                                   type="button"
                                   className="sd-btn sd-btn-primary"
                                   onClick={() => handleSubmitResponse(rfq.id)}
-                                  disabled={!responseForm.price || !responseForm.leadTime}
+                                  disabled={!bidReady}
                                 >
                                   {t('sellerDashboard.submitBtn')}
                                 </button>
@@ -393,7 +458,14 @@ export default function SellerDashboard() {
             )}
           </div>
         </div>
-      </div>
+    </div>
+  )
+}
+
+export default function SellerDashboard() {
+  return (
+    <AppLayout>
+      <ManufacturerRfqInbox />
     </AppLayout>
   )
 }

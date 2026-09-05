@@ -566,7 +566,7 @@ export default function AccountDirectoryPage() {
           <div className="sd-card-header">
             <h2 className="sd-card-title">Search &amp; actions</h2>
             <button type="button" className="sd-link-btn" onClick={() => navigate('/hub/procurement')}>
-              Buyers hub →
+              Sourcing →
             </button>
           </div>
 

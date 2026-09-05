@@ -1,0 +1,254 @@
+/**
+ * STREFEX shared chrome — Home widgets / indicators applied platform-wide.
+ * Surfaces and accents follow html[data-theme] (--stx-* + --bg-* / --color-*).
+ */
+
+/* ── Page canvas (Home bleed optional via .stx-dash) ───────── */
+.stx-dash,
+.home-dash {
+  --navy-800: var(--stx-navy-800);
+  --navy-700: var(--stx-navy-700);
+  --steel-100: var(--stx-steel-100);
+  --steel-200: var(--stx-steel-200);
+  --steel-300: var(--stx-steel-300);
+  --steel-500: var(--stx-steel-500);
+  --steel-700: var(--stx-steel-700);
+  /* Scoped color aliases — do not leak onto global --text-body (font size) */
+  --text-strong: var(--stx-ink);
+  --home-text-body: var(--stx-ink-body);
+  --text-muted: var(--stx-ink-muted);
+  --text-faint: var(--stx-ink-faint);
+  --border-hairline: var(--stx-border-hairline);
+  --border-strong: var(--stx-border-strong);
+  --surface-card: var(--stx-surface-card);
+  --shadow-sm: var(--stx-shadow-sm);
+  --signal-data: var(--stx-signal-data);
+  --radius: var(--stx-radius);
+  --ease: var(--stx-ease);
+
+  color: var(--home-text-body);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+}
+
+/* ── Shared card / widget shell ───────────────────────────── */
+.stx-w,
+.home-w,
+.app-page-card,
+.mgmt-hub-record,
+.mgmt-dash-kpi,
+.phd,
+.industry-hub-card,
+.industry-hub-indicator-card,
+.production-card,
+.production-indicator-card,
+.cost-mgmt-card,
+.cost-mgmt-indicator-card,
+.enterprise-card,
+.enterprise-indicator-card,
+.sysmgmt-card,
+.dark-list-item {
+  background: var(--stx-surface-card);
+  border: 1px solid var(--stx-border-hairline);
+  border-radius: var(--stx-radius);
+  box-shadow: var(--stx-shadow-sm);
+  color: var(--stx-ink-body);
+  font-family: var(--font-sans);
+}
+
+.app-page-card {
+  border-radius: 10px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+/* ── KPI / indicator chrome (Home-style left rule) ────────── */
+.stx-kpi,
+.home-w--kpi,
+.mgmt-dash-kpi,
+.industry-hub-indicator-card,
+.production-indicator-card,
+.cost-mgmt-indicator-card,
+.enterprise-indicator-card,
+.smp-kpi,
+.home-indicator-card {
+  border-left: 3px solid var(--stx-navy-800);
+  padding: 11px 13px;
+  transition: box-shadow 160ms var(--stx-ease), border-color 160ms var(--stx-ease);
+}
+
+.stx-kpi:hover,
+.home-w--kpi:hover,
+.mgmt-dash-kpi:hover {
+  box-shadow: 0 6px 18px rgba(6, 24, 41, 0.1);
+  border-color: var(--stx-border-strong);
+}
+
+html[data-theme="dark"] .stx-kpi:hover,
+html[data-theme="dark"] .home-w--kpi:hover,
+html[data-theme="dark"] .mgmt-dash-kpi:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.stx-kpi__label,
+.home-w__kpi-label,
+.mgmt-dash-kpi__label,
+.indicator-label,
+.home-indicator-label,
+.smp-kpi-label {
+  font-size: 10.5px;
+  font-weight: var(--font-semibold, 600);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stx-ink-muted);
+}
+
+.stx-kpi__value,
+.home-w__kpi-value,
+.mgmt-dash-kpi__value,
+.indicator-value,
+.home-indicator-value,
+.smp-kpi-value {
+  font-weight: var(--font-semibold, 600);
+  font-size: 22px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--stx-ink);
+}
+
+.mgmt-dash-kpi__value {
+  font-size: var(--text-section);
+}
+
+/* ── Primary / ghost buttons (Home Track / Sourcing) ──────── */
+.stx-btn,
+.home-w__btn {
+  font-family: var(--font-sans);
+  font-weight: var(--font-semibold, 600);
+  font-size: 12px;
+  border-radius: var(--stx-radius);
+  padding: 10px 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  line-height: 1;
+  transition: background 160ms var(--stx-ease), border-color 160ms var(--stx-ease);
+}
+
+.stx-btn--primary,
+.home-w__btn--primary,
+.app-page-btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+}
+
+.stx-btn--primary:hover,
+.home-w__btn--primary:hover,
+.app-page-btn-primary:hover {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+.stx-btn--ghost,
+.home-w__btn--ghost,
+.app-page-btn-outline {
+  background: var(--stx-surface-card);
+  color: var(--stx-ink);
+  border-color: var(--stx-border-strong);
+}
+
+.stx-btn--ghost:hover,
+.home-w__btn--ghost:hover,
+.app-page-btn-outline:hover {
+  background: var(--stx-steel-200);
+}
+
+/* ── Titles / body type scale ─────────────────────────────── */
+.app-page-title,
+.page-title,
+.mgmt-hub-tools-title,
+.industry-hub-title,
+.production-title,
+.cost-mgmt-title,
+.enterprise-title,
+.sysmgmt-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold, 600);
+  line-height: var(--leading-snug);
+  color: var(--color-primary);
+}
+
+.app-page-subtitle,
+.page-subtitle,
+.industry-hub-subtitle,
+.production-subtitle,
+.cost-mgmt-subtitle,
+.enterprise-subtitle,
+.sysmgmt-subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--font-regular, 400);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
+/* ── Inputs (Home plant select look) ──────────────────────── */
+.app-page input:not([type="checkbox"]):not([type="radio"]),
+.app-page select,
+.app-page textarea,
+.mgmt-hub-search {
+  border-radius: 4px;
+  border: 1px solid var(--stx-border-strong);
+  background: var(--bg-input);
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+}
+
+/* ── Night-safe white replacements for Home-local hardcodes ─ */
+html[data-theme="dark"] .home-dash__plant-select,
+html[data-theme="dark"] .home-dash__plants-btn,
+html[data-theme="dark"] .home-w__btn--ghost,
+html[data-theme="dark"] .home-plants-panel__name,
+html[data-theme="dark"] .home-plants-panel__field input,
+html[data-theme="dark"] .exec-loc-map__mode:not(.is-active) {
+  background: var(--bg-input);
+  color: var(--color-primary);
+  border-color: var(--input-border);
+}
+
+html[data-theme="dark"] .home-w__btn--primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+}
+
+html[data-theme="dark"] .home-w--inverse {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--color-primary);
+}
+
+html[data-theme="dark"] .home-w__accent-title--on-dark {
+  color: var(--color-primary);
+}
+
+html[data-theme="dark"] .home-w__accent-label--on-dark {
+  color: var(--color-muted);
+}
+
+html[data-theme="dark"] .home-w__accent-sub--on-dark {
+  color: var(--color-secondary);
+}
+
+html[data-theme="dark"] .home-dash__avatar {
+  background: var(--accent);
+  color: var(--btn-primary-text);
+  border: none;
+}
+
+html[data-theme="dark"] .home-dash__topbar {
+  background: var(--bg-card);
+  border-bottom-color: var(--border-color);
+}

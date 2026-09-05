@@ -13,7 +13,7 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v10'
+const CACHE_VERSION = 'strefex-v11'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 const SHELL_URL = '/index.html'
@@ -163,9 +163,12 @@ self.addEventListener('fetch', (event) => {
 
   if (!url.protocol.startsWith('http')) return
 
-  // Same-origin marketing static files — network first, never HTML-as-JS
-  if (url.origin === self.location.origin && url.pathname.startsWith('/marketing-site/')) {
-    if (isAppScriptOrStyle(url) || url.pathname.endsWith('.html')) {
+  // Same-origin marketing / Intelligent Sourcing static files — network first, never HTML-as-JS
+  if (url.origin === self.location.origin && (
+    url.pathname.startsWith('/marketing-site/') ||
+    url.pathname.startsWith('/intelligent-sourcing/')
+  )) {
+    if (isAppScriptOrStyle(url) || url.pathname.endsWith('.html') || url.pathname.endsWith('.json') || url.pathname.endsWith('.js')) {
       event.respondWith(networkFirstStatic(request, RUNTIME_CACHE))
       return
     }

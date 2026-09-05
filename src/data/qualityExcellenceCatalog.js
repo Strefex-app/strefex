@@ -20,6 +20,15 @@ export const QUALITY_RECORD_STATUSES = [
   { id: 'closed', label: 'Closed' },
 ]
 
+/** Plant starter kit — IATF core tools a line can run without the full 30. */
+export const QUALITY_STARTER_TOOL_IDS = [
+  't1-5-whys',
+  't4-8d',
+  't6-pareto',
+  't7-spc',
+  't9-cpk-ppk',
+]
+
 const HEADER_FIELDS = [
   { key: 'title', label: 'Record title', type: 'text', required: true, placeholder: 'Short, factual title' },
   { key: 'owner', label: 'Owner / champion', type: 'text', required: true },

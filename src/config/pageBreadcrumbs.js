@@ -8,8 +8,8 @@ import {
 /** Standard breadcrumb roots — user always jumps to a known hub, never browser back. */
 export const PAGE_ROOTS = {
   management: { label: 'Management', to: '/management' },
-  buyers: { label: 'Buyers', to: '/hub/procurement' },
-  manufacturers: { label: 'Manufacturers', to: '/hub/partner' },
+  buyers: { label: 'Sourcing', to: '/hub/procurement' },
+  manufacturers: { label: 'Quoting', to: '/hub/partner' },
   governance: { label: 'Admin', to: '/hub/governance' },
   home: { label: 'Home', to: '/main-menu' },
   hr: { label: 'HR Space', to: '/management/people/hr-space' },
@@ -32,6 +32,12 @@ const CUSTOM_LAYOUT_PATHS = [
   '/management/ops/projects',
   '/management/ops/projects/new-project',
   '/management/ops/projects/project/:projectId/control',
+  /* Intelligent Sourcing fills the shell — no duplicate top chrome */
+  '/hub/procurement',
+  '/sourcing',
+  '/dashboard/buyer',
+  /* Home renders its own Sourcing-style address bar */
+  '/main-menu',
 ]
 
 function isCustomLayout(pathname) {
@@ -43,10 +49,10 @@ function isCustomLayout(pathname) {
 
 /** Non-management routes with explicit trails. */
 const EXACT_ROUTES = {
-  '/hub/procurement': { root: 'home', trail: [{ label: 'Buyers' }] },
-  '/hub/partner': { root: 'home', trail: [{ label: 'Manufacturers' }] },
+  '/hub/procurement': { root: 'home', trail: [{ label: 'Sourcing' }] },
+  '/hub/partner': { root: 'home', trail: [{ label: 'Quoting' }] },
   '/hub/governance': { root: 'home', trail: [{ label: 'Admin' }] },
-  '/main-menu': { root: 'home', trail: [{ label: 'Home' }] },
+  '/main-menu': { root: 'home', trail: [] },
   '/profile': { root: 'home', trail: [{ label: 'Profile' }] },
   '/settings': { root: 'home', trail: [{ label: 'Settings' }] },
   '/plans': { root: 'home', trail: [{ label: 'Plans' }] },

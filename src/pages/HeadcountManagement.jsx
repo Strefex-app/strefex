@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
+import CompanyWorkflowRail from '../components/company/CompanyWorkflowRail'
 import { useTranslation } from '../i18n/useTranslation'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
-import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { COMPANY_WORKFLOWS_PATH, hrCanon } from '../data/companyWorkflows'
 import './HeadcountManagement.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
@@ -34,15 +35,15 @@ const HeadcountManagement = () => {
   }, [editModal])
 
   const pages = [
-    { id: 'qualification-matrix', path: hrSpacePath('qualification-matrix'), icon: 'stars', color: '#3498db' },
-    { id: 'goals', path: hrSpacePath('goals'), icon: 'target', color: '#27ae60' },
-    { id: 'dialogue', path: hrSpacePath('dialogue'), icon: 'dialogue', color: '#e67e22' },
-    { id: 'hr-docs', path: hrSpacePath('hr-docs'), icon: 'document', color: '#9b59b6' },
-    { id: 'training', path: hrSpacePath('training'), icon: 'training', color: '#16a085' },
-    { id: 'workforce', path: hrSpacePath('workforce'), icon: 'workforce', color: '#2c3e50' },
-    { id: 'onboarding', path: hrSpacePath('onboarding'), icon: 'onboarding', color: '#e74c3c' },
-    { id: 'attendance', path: hrSpacePath('attendance'), icon: 'clock', color: '#f39c12' },
-    { id: 'hiring', path: hrSpacePath('hiring'), icon: 'user-plus', color: '#1e8449' },
+    { id: 'workforce', path: hrCanon('workforce'), icon: 'workforce', color: '#2c3e50' },
+    { id: 'hiring', path: hrCanon('hiring'), icon: 'user-plus', color: '#1e8449' },
+    { id: 'onboarding', path: hrCanon('onboarding'), icon: 'onboarding', color: '#e74c3c' },
+    { id: 'qualification-matrix', path: hrCanon('qualification-matrix'), icon: 'stars', color: '#3498db' },
+    { id: 'training', path: hrCanon('training'), icon: 'training', color: '#16a085' },
+    { id: 'goals', path: hrCanon('goals'), icon: 'target', color: '#27ae60' },
+    { id: 'dialogue', path: hrCanon('dialogue'), icon: 'dialogue', color: '#e67e22' },
+    { id: 'hr-docs', path: hrCanon('hr-docs'), icon: 'document', color: '#9b59b6' },
+    { id: 'attendance', path: hrCanon('attendance'), icon: 'clock', color: '#f39c12' },
   ]
 
   const linkedManagementTools = [
@@ -69,10 +70,11 @@ const HeadcountManagement = () => {
   ]
 
   const quickActions = [
-    { id: 'add-employee', labelKey: 'hrSpace.qa.add-employee', icon: 'user-plus', path: `${hrSpacePath('onboarding')}?add=true` },
-    { id: 'start-review', labelKey: 'hrSpace.qa.start-review', icon: 'dialogue', path: `${hrSpacePath('dialogue')}?new=true` },
-    { id: 'set-goals', labelKey: 'hrSpace.qa.set-goals', icon: 'target', path: `${hrSpacePath('goals')}?add=true` },
-    { id: 'view-matrix', labelKey: 'hrSpace.qa.view-matrix', icon: 'stars', path: hrSpacePath('qualification-matrix') },
+    { id: 'open-hiring', labelKey: 'hrSpace.page.hiring.label', icon: 'user-plus', path: hrCanon('hiring') },
+    { id: 'add-employee', labelKey: 'hrSpace.qa.add-employee', icon: 'user-plus', path: `${hrCanon('onboarding')}?add=true` },
+    { id: 'start-review', labelKey: 'hrSpace.qa.start-review', icon: 'dialogue', path: `${hrCanon('dialogue')}?new=true` },
+    { id: 'set-goals', labelKey: 'hrSpace.qa.set-goals', icon: 'target', path: `${hrCanon('goals')}?add=true` },
+    { id: 'view-matrix', labelKey: 'hrSpace.qa.view-matrix', icon: 'stars', path: hrCanon('qualification-matrix') },
   ]
 
   return (
@@ -82,7 +84,16 @@ const HeadcountManagement = () => {
         <div className="headcount-header">
           <h1 className="headcount-title">{t('hrSpace.title')}</h1>
           <p className="headcount-subtitle">{t('hrSpace.subtitle')}</p>
+          <p className="headcount-subtitle stx-text-wrap">
+            {t('hrSpace.workflowHint', 'Workforce → hiring → onboarding → qualification → training → goals → review → documents.')}
+            {' '}
+            <Link to={COMPANY_WORKFLOWS_PATH}>
+              {t('hrSpace.openWorkflows', 'Open company workflows')}
+            </Link>
+          </p>
         </div>
+
+        <CompanyWorkflowRail chainId="people-hire" />
 
         <AiInsightsCtaStrip context="hr" />
 
@@ -213,7 +224,7 @@ const HeadcountManagement = () => {
                 <button
                   type="button"
                   className="headcount-action-item headcount-action-add stx-click-feedback"
-                  onClick={() => navigate(`${hrSpacePath()}?addModule=true`)}
+                  onClick={() => navigate(`${hrCanon()}?addModule=true`)}
                 >
                   <span className="headcount-action-icon"><Icon name="plus" size={20} /></span>
                   {t('hrSpace.addNewModule')}

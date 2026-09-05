@@ -8,7 +8,7 @@
  * Synced keys (see SYNC_SPECS): projects, vendors, rfqs, contracts, procurement, cost,
  * enterprise, production, templates, audit_logs, audit_pro, hr_space, account_registry, profile_contacts,
  * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain),
- * quality_excellence.
+ * quality_excellence, iatf_control.
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
 import { isDemoModeActive } from '../config/demoAccount'
@@ -23,6 +23,7 @@ import useCostStore from '../store/costStore'
 import useEnterpriseStore from '../store/enterpriseStore'
 import useProductionStore from '../store/productionStore'
 import useQualityExcellenceStore from '../store/qualityExcellenceStore'
+import useIatfControlStore from '../store/iatfControlStore'
 import { useTemplateStore } from '../store/templateStore'
 import useAuditStore from '../store/auditStore'
 import useAuditProStore from '../store/auditProStore'
@@ -422,6 +423,57 @@ const SYNC_SPECS = [
     },
     isEmpty: (p) => !Array.isArray(p?.records) || p.records.length === 0,
     subscribe: (cb) => useQualityExcellenceStore.subscribe(cb),
+  },
+  {
+    key: 'iatf_control',
+    extract: () => {
+      const s = useIatfControlStore.getState()
+      return {
+        folders: s.folders || [],
+        processes: s.processes || [],
+        parts: s.parts || [],
+        documents: s.documents || [],
+        lots: s.lots || [],
+        ncrs: s.ncrs || [],
+        certificates: s.certificates || [],
+        ppapPackages: s.ppapPackages || [],
+        changes: s.changes || [],
+        gauges: s.gauges || [],
+        awards: s.awards || [],
+        share: s.share || {},
+        publishedCard: s.publishedCard || null,
+      }
+    },
+    apply: (p) => {
+      if (!p || typeof p !== 'object') return
+      const next = {}
+      if (Array.isArray(p.folders)) next.folders = p.folders
+      if (Array.isArray(p.processes)) next.processes = p.processes
+      if (Array.isArray(p.parts)) next.parts = p.parts
+      if (Array.isArray(p.documents)) next.documents = p.documents
+      if (Array.isArray(p.lots)) next.lots = p.lots
+      if (Array.isArray(p.ncrs)) next.ncrs = p.ncrs
+      if (Array.isArray(p.certificates)) next.certificates = p.certificates
+      if (Array.isArray(p.ppapPackages)) next.ppapPackages = p.ppapPackages
+      if (Array.isArray(p.changes)) next.changes = p.changes
+      if (Array.isArray(p.gauges)) next.gauges = p.gauges
+      if (Array.isArray(p.awards)) next.awards = p.awards
+      if (p.share && typeof p.share === 'object') next.share = p.share
+      if (p.publishedCard !== undefined) next.publishedCard = p.publishedCard
+      if (Object.keys(next).length) useIatfControlStore.setState(next)
+    },
+    isEmpty: (p) =>
+      !p ||
+      ((!Array.isArray(p.processes) || p.processes.length === 0) &&
+        (!Array.isArray(p.parts) || p.parts.length === 0) &&
+        (!Array.isArray(p.documents) || p.documents.length === 0) &&
+        (!Array.isArray(p.lots) || p.lots.length === 0) &&
+        (!Array.isArray(p.certificates) || p.certificates.length === 0) &&
+        (!Array.isArray(p.ppapPackages) || p.ppapPackages.length === 0) &&
+        (!Array.isArray(p.changes) || p.changes.length === 0) &&
+        (!Array.isArray(p.gauges) || p.gauges.length === 0) &&
+        (!Array.isArray(p.awards) || p.awards.length === 0)),
+    subscribe: (cb) => useIatfControlStore.subscribe(cb),
   },
   {
     key: 'templates',

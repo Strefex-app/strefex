@@ -1,21 +1,20 @@
+import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import { useAuthStore } from '../../store/authStore'
 import { useIndustryStore } from '../../store/industryStore'
 import HubIndustryRegistration from '../../components/hubs/HubIndustryRegistration'
-import HubToolsSection from '../../components/hubs/HubToolsSection'
 import HubToolCard from '../../components/hubs/HubToolCard'
 import '../../styles/app-page.css'
 import './HubPages.css'
 
 const ICON = {
   search: { background: 'rgba(46,125,50,.12)', color: '#2e7d32' },
+  rfq: { background: 'rgba(25,42,86,.1)', color: '#192a56' },
   contacts: { background: 'rgba(0, 212, 255,.1)', color: '#00d4ff' },
-  browse: { background: 'rgba(25,42,86,.1)', color: '#192a56' },
-  services: { background: 'rgba(230,81,0,.12)', color: '#e65100' },
 }
 
 /**
- * Buyer hub — register industries first, then sourcing and directory tools.
+ * Buyer hub — three primary actions: Find, RFQs, Contacts.
  */
 export default function ProcurementHub() {
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
@@ -26,78 +25,80 @@ export default function ProcurementHub() {
     <AppLayout>
       <div className="app-page hub-landing">
         <div className="app-page-card">
-          <h1 className="hub-landing__title">Buyers</h1>
+          <h1 className="hub-landing__title">Sourcing</h1>
           <p className="hub-landing__subtitle stx-text-wrap">
-            Start by registering your industries, then use the tools below to source suppliers, manage RFQs, and track service orders.
+            Find manufacturers with quality evidence, send RFQs, and track responses — one guided flow.
           </p>
+        </div>
+
+        <div className="hub-trust-banner">
+          <strong>Evidence-backed sourcing</strong>
+          <span>See ISO, IATF, and medical standards on file before you invite suppliers. Your data stays tenant-scoped.</span>
         </div>
 
         <HubIndustryRegistration audience="buyer" />
 
-        <HubToolsSection
-          hasAccess={hasIndustries}
-          hint="Everything you need for procurement — search, contacts, catalogs, and platform services."
-        >
-          <div className="hub-tools-group">
-            <h3 className="hub-tools-group__label">Sourcing</h3>
-            <div className="hub-landing__grid">
-              <HubToolCard
-                to="/dashboard/buyer"
-                icon="search"
-                iconStyle={ICON.search}
-                title="Supplier search & RFQs"
-                description="Find suppliers, shortlist, compare, send RFQs, and track responses in one workspace."
-              />
-              <HubToolCard
-                to="/dashboard/buyer/account-directory"
-                icon="document"
-                iconStyle={ICON.contacts}
-                title="Your contacts"
-                description="Import and manage customers, suppliers, and equipment contacts for your organisation."
-              />
+        {hasIndustries ? (
+          <>
+            <div className="hub-tools-group">
+              <h3 className="hub-tools-group__label">Start here</h3>
+              <div className="hub-landing__grid hub-landing__grid--primary">
+                <HubToolCard
+                  to="/dashboard/buyer?tab=discover"
+                  icon="search"
+                  iconStyle={ICON.search}
+                  title="Find suppliers"
+                  description="Browse by industry and category. Filter by quality standards on file."
+                />
+                <HubToolCard
+                  to="/dashboard/buyer?tab=track"
+                  icon="check-square"
+                  iconStyle={ICON.rfq}
+                  title="Track RFQs"
+                  description="Follow responses and status for RFQs you have sent."
+                />
+                <HubToolCard
+                  to="/dashboard/buyer/account-directory"
+                  icon="document"
+                  iconStyle={ICON.contacts}
+                  title="Your contacts"
+                  description="Import and manage supplier and customer contacts."
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="hub-tools-group">
-            <h3 className="hub-tools-group__label">Browse catalogs</h3>
-            <div className="hub-landing__grid">
-              <HubToolCard
-                to="/equipment-hub"
-                icon="wrench"
-                iconStyle={ICON.browse}
-                title="Equipment"
-                description="Browse equipment categories and suppliers across your registered industries."
-              />
-              <HubToolCard
-                to="/product-hub"
-                icon="package"
-                iconStyle={ICON.browse}
-                title="Products"
-                description="Explore product categories and supplier catalogs in your industries."
-              />
+            <div className="hub-tools-group">
+              <h3 className="hub-tools-group__label">More</h3>
+              <div className="hub-landing__grid">
+                <HubToolCard
+                  to="/equipment-hub"
+                  icon="wrench"
+                  iconStyle={ICON.search}
+                  title="Equipment catalog"
+                  description="Browse equipment categories across your industries."
+                />
+                <HubToolCard
+                  to="/product-hub"
+                  icon="package"
+                  iconStyle={ICON.search}
+                  title="Product catalog"
+                  description="Explore product categories and supplier listings."
+                />
+                <HubToolCard
+                  to="/service-hub"
+                  icon="service-requests"
+                  iconStyle={ICON.contacts}
+                  title="Order a service"
+                  description="Audits, quality checks, and project support."
+                />
+              </div>
             </div>
+          </>
+        ) : (
+          <div className="app-page-card hub-tools-locked">
+            <p className="stx-text-caption">Register at least one industry above to unlock supplier search and RFQs.</p>
           </div>
-
-          <div className="hub-tools-group">
-            <h3 className="hub-tools-group__label">Platform services</h3>
-            <div className="hub-landing__grid">
-              <HubToolCard
-                to="/service-hub"
-                icon="service-requests"
-                iconStyle={ICON.services}
-                title="Order a service"
-                description="Project management, supplier audits, quality checks — submit a request without extra registration."
-              />
-              <HubToolCard
-                to="/service-requests"
-                icon="check-square"
-                iconStyle={ICON.search}
-                title="Track service orders"
-                description="Follow status and updates on service requests you have submitted."
-              />
-            </div>
-          </div>
-        </HubToolsSection>
+        )}
       </div>
     </AppLayout>
   )

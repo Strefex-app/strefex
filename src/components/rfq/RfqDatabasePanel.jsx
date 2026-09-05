@@ -15,13 +15,13 @@ const PILLARS = [
   {
     id: 'material',
     label: 'Material cost',
-    desc: 'Grades, density, €/kg, scrap factor',
+    desc: 'Grades, density, €/kg, scrap — edit per plant purchase price',
     sections: [{ key: 'materials', label: 'Materials', fields: MATERIAL_FIELDS, upsert: 'upsertMaterial', del: 'deleteMaterial' }],
   },
   {
     id: 'process',
     label: 'Process & equipment',
-    desc: 'Machines, peripherals, energy tariffs',
+    desc: 'Machines, peripherals, and energy tariffs by location (manual)',
     sections: [
       { key: 'machines', label: 'Machines', fields: MACHINE_FIELDS, upsert: 'upsertMachine', del: 'deleteMachine' },
       { key: 'peripherals', label: 'Peripherals', fields: PERIPHERAL_FIELDS, upsert: 'upsertPeripheral', del: 'deletePeripheral' },
@@ -31,7 +31,7 @@ const PILLARS = [
   {
     id: 'personnel',
     label: 'Personnel cost',
-    desc: 'Regional overhead and role rates',
+    desc: 'Regional overhead and role rates — set manually per location',
     sections: [
       { key: 'personnelRegions', label: 'Regions', fields: PERSONNEL_REGION_FIELDS, upsert: 'upsertPersonnelRegion', del: 'deletePersonnelRegion' },
       { key: 'personnelRoles', label: 'Roles', fields: PERSONNEL_ROLE_FIELDS, upsert: 'upsertPersonnelRole', del: 'deletePersonnelRole' },
@@ -128,10 +128,12 @@ export default function RfqDatabasePanel() {
 
   return (
     <div className="app-page-card rfqi-database">
-      <h3 className="app-page-title">Cost databases</h3>
+      <h3 className="app-page-title">Company rate database</h3>
       <p className="rfqi-muted stx-text-body">
-        Three cost pillars drive RFQ Intelligence: material, process &amp; equipment, and personnel.{' '}
-        {isAdmin ? 'As admin you can edit rates inline or import/export JSON.' : 'View-only — contact an admin to adjust rates.'}
+        Material prices, machine rates, energy tariffs, and personnel rates are company-level and fully manual —
+        each plant location keeps its own tariffs. Changes apply to RFQ Intelligence estimates and the Manufacturing calculator.
+        {' '}
+        {isAdmin ? 'Admins can edit rates inline or import/export JSON.' : 'View-only — contact an admin to adjust rates.'}
       </p>
 
       <div className="rfqi-pillar-tabs">

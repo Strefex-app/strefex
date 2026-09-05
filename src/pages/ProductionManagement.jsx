@@ -2,8 +2,11 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
+import CompanyWorkflowRail from '../components/company/CompanyWorkflowRail'
 import DonutChart from '../components/DonutChart'
 import useProductionStore from '../store/productionStore'
+import useIatfControlStore from '../store/iatfControlStore'
+import { liveStandardStatus } from '../utils/iatfControlCompute'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
 import './ProductionManagement.css'
@@ -19,7 +22,8 @@ const ProductionManagement = () => {
   const qualityKPIs = useProductionStore((s) => s.qualityKPIs)
   const auditTypes = useProductionStore((s) => s.auditTypes)
   const iso9001 = useProductionStore((s) => s.iso9001) ?? { expiryDate: 'N/A' }
-  const iatf16949 = useProductionStore((s) => s.iatf16949) ?? { expiryDate: 'N/A' }
+  const iatfCertificates = useIatfControlStore((s) => s.certificates)
+  const liveIatf = liveStandardStatus(iatfCertificates, 'iatf_16949')
   const getProductionSummary = useProductionStore((s) => s.getProductionSummary)
   const getAllAudits = useProductionStore((s) => s.getAllAudits)
   const summary = getProductionSummary?.() ?? EMPTY_SUMMARY
@@ -116,6 +120,8 @@ const ProductionManagement = () => {
 
         <AiInsightsCtaStrip context="production" />
 
+        <CompanyWorkflowRail chainId="production-release" />
+
         {/* Top Indicators */}
         <div className="production-indicators">
           <div className="production-indicator-card production-indicator-clickable" onClick={() => navigate('/production/oee')}>
@@ -204,17 +210,17 @@ const ProductionManagement = () => {
           </div>
           <div 
             className="cert-status-card clickable stx-click-feedback"
-            onClick={() => navigate('/production/certifications?type=iatf16949')}
+            onClick={() => navigate('/management/ops/iatf-control')}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && navigate('/production/certifications?type=iatf16949')}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/management/ops/iatf-control')}
           >
             <div className="cert-badge iatf">IATF 16949:2016</div>
             <div className="cert-info">
-              <span className="cert-status certified">{t('production.certified')}</span>
-              <span className="cert-expiry">{t('production.expires')}: {iatf16949.expiryDate}</span>
+              <span className={`cert-status ${liveIatf.status === 'valid' ? 'certified' : ''}`}>{liveIatf.label}</span>
+              <span className="cert-expiry">{t('production.expires')}: {liveIatf.cert?.expiresAt || '—'}</span>
             </div>
-            <span className="cert-view-hint">{t('production.viewHistory')} →</span>
+            <span className="cert-view-hint">IATF Control →</span>
           </div>
           <div 
             className="cert-status-card equipment-status clickable stx-click-feedback"
@@ -233,6 +239,17 @@ const ProductionManagement = () => {
               <span className="eq-stat maintenance">{summary.equipmentStatus?.maintenance ?? 0} {t('production.maintenance')}</span>
             </div>
           </div>
+        </div>
+
+        <div className="production-card production-hr-space-banner">
+          <h2 className="production-card-title">IATF Control — plant records</h2>
+          <p className="production-card-subtitle">
+            Document control, part/process masters, lot traceability, and the certificate vault live here.
+            Encyclopedias below stay as reference.
+          </p>
+          <button type="button" className="view-all-btn" onClick={() => navigate('/management/ops/iatf-control')}>
+            Open IATF Control →
+          </button>
         </div>
 
         {/* Main Content */}
@@ -373,7 +390,7 @@ const ProductionManagement = () => {
               <strong>{t('production.hrSpaceBannerPath')}</strong> {t('production.hrSpaceBannerAfterStrong')}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
-              <button type="button" className="view-all-btn" onClick={() => navigate('/hr-space')}>
+              <button type="button" className="view-all-btn" onClick={() => navigate('/management/people/hr-space')}>
                 {t('production.openHrSpace')} →
               </button>
               <button type="button" className="view-all-btn" onClick={() => navigate('/management')}>

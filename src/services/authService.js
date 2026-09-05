@@ -989,6 +989,8 @@ const authService = {
             effectiveAccountType
           )
           const store = useAuthStore.getState()
+          // Late TOKEN_REFRESHED / SIGNED_IN must not resurrect a cleared logout.
+          if (!store.isAuthenticated) return
           store.login?.({
             role: effectiveRole,
             token: liveSession?.access_token || current?.token || null,
@@ -1112,7 +1114,9 @@ const authService = {
           }
         }
         if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-          authService.refreshProfile(session).catch(() => {})
+          if (useAuthStore.getState().isAuthenticated) {
+            authService.refreshProfile(session).catch(() => {})
+          }
         }
       })
       return data.subscription?.unsubscribe || (() => {})

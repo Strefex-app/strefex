@@ -18,6 +18,8 @@
  */
 import { create } from 'zustand'
 
+import { ensureSourcingFieldPlaceholders } from '../utils/accountSourcingCompleteness'
+
 const REGISTRY_KEY = 'strefex-account-registry'
 const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
 
@@ -117,11 +119,14 @@ const loadRegistry = () => {
     const role = getAuthRole()
     if (role === 'superadmin' || role === 'auditor_external') {
       const merged = mergeAllRegistryLocalStorageSlices()
-      if (merged.length > 0) return merged
+      if (merged.length > 0) return merged.map(ensureSourcingFieldPlaceholders)
     }
 
     const scopedRaw = localStorage.getItem(getRegistryKey())
-    if (scopedRaw) return JSON.parse(scopedRaw)
+    if (scopedRaw) {
+      const parsed = JSON.parse(scopedRaw)
+      return Array.isArray(parsed) ? parsed.map(ensureSourcingFieldPlaceholders) : null
+    }
 
     // Backward compatibility: migrate legacy global registry into scoped storage.
     const legacyRaw = localStorage.getItem(REGISTRY_KEY)
@@ -129,7 +134,7 @@ const loadRegistry = () => {
     const legacyAccounts = JSON.parse(legacyRaw)
     if (!Array.isArray(legacyAccounts) || legacyAccounts.length === 0) return null
 
-    if (role === 'superadmin') return legacyAccounts
+    if (role === 'superadmin') return legacyAccounts.map(ensureSourcingFieldPlaceholders)
 
     const scope = getCompanyScope()
     if (!scope || scope === 'guest') return null
@@ -144,7 +149,9 @@ const loadRegistry = () => {
       (!scopeAccountType || String(a?.accountType || '').toLowerCase() === scopeAccountType)
     )
     if (migrated.length > 0) {
-      localStorage.setItem(getRegistryKey(), JSON.stringify(migrated))
+      const withFields = migrated.map(ensureSourcingFieldPlaceholders)
+      localStorage.setItem(getRegistryKey(), JSON.stringify(withFields))
+      return withFields
     }
     return migrated
   } catch { /* */ }
@@ -212,16 +219,22 @@ export const useAccountRegistry = create((set, get) => ({
 
   /** Call after login (especially superadmin) so scoped `::guest` registrations appear. */
   rehydrateRegistryFromStorage: () => {
-    const next = loadRegistry() || []
+    const next = (loadRegistry() || []).map(ensureSourcingFieldPlaceholders)
     mergeRegistryIndex(next)
     set({ accounts: next })
+    try {
+      saveRegistry(next)
+    } catch { /* */ }
     return next.length
   },
 
   registerAccount: (account) => {
     const accounts = get().accounts
+    const stamped = ensureSourcingFieldPlaceholders({
+      ...account,
+      updatedAt: new Date().toISOString(),
+    })
     const idx = accounts.findIndex((a) => a.id === account.id || a.email === account.email)
-    const stamped = { ...account, updatedAt: new Date().toISOString() }
     let next
     if (idx >= 0) {
       next = [...accounts]
@@ -233,6 +246,22 @@ export const useAccountRegistry = create((set, get) => ({
     mergeRegistryIndex(next)
     set({ accounts: next })
     return next[idx >= 0 ? idx : next.length - 1]
+  },
+
+  /** Fill empty country/city/address/industries keys on every account (no invented values). */
+  ensureAllAccountsSourcingFields: () => {
+    const accounts = get().accounts
+    let changed = false
+    const next = accounts.map((a) => {
+      const ensured = ensureSourcingFieldPlaceholders(a)
+      if (ensured !== a) changed = true
+      return ensured
+    })
+    if (!changed) return 0
+    saveRegistry(next)
+    mergeRegistryIndex(next)
+    set({ accounts: next })
+    return next.length
   },
 
   updateAccount: (idOrEmail, updates) => {

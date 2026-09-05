@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import ManagementBreadcrumb from '../components/management/ManagementBreadcrumb'
-import { RFQ_PROCUREMENT_NEW_PATH, RFQ_INTELLIGENCE_PATH, SOURCING_CLUSTER_PATH } from '../constants/rfqPaths'
+import { RFQ_PROCUREMENT_NEW_PATH, RFQ_INTELLIGENCE_PATH, SOURCING_CLUSTER_PATH, COMPANY_MFG_CALC_PATH, executiveSummaryUrl } from '../constants/rfqPaths'
 import { MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
 import '../styles/app-page.css'
 import '../styles/rfq-intelligence.css'
@@ -37,21 +37,36 @@ const MAT_CATS = [
   { id: 'composite', label: 'Composite' },
 ]
 
-const TABS = [
+const NETWORK_TABS = [
   { id: 'new', label: 'New RFQ' },
   { id: 'incoming', label: 'Incoming RFQs' },
   { id: 'quotes', label: 'Quotes' },
-  { id: 'calculator', label: 'Calculator' },
-  { id: 'database', label: 'Database' },
 ]
 
-const VALID_TABS = TABS.map((t) => t.id)
+const COMPANY_TABS = [
+  { id: 'calculator', label: 'Calculator' },
+  { id: 'database', label: 'Rate database' },
+]
 
-export default function RfqIntelligencePage() {
+const VALID_NETWORK = NETWORK_TABS.map((t) => t.id)
+const VALID_COMPANY = COMPANY_TABS.map((t) => t.id)
+
+export default function RfqIntelligencePage({ variant = 'network' }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const isCompany = variant === 'company'
+  const TABS = isCompany ? COMPANY_TABS : NETWORK_TABS
+  const validTabs = isCompany ? VALID_COMPANY : VALID_NETWORK
+  const defaultTab = isCompany ? 'calculator' : 'new'
 
-  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'new'
+  const rawTab = searchParams.get('tab')
+  const tab = validTabs.includes(rawTab) ? rawTab : defaultTab
+
+  useEffect(() => {
+    if (!isCompany && (rawTab === 'calculator' || rawTab === 'database')) {
+      navigate(`${COMPANY_MFG_CALC_PATH}?tab=${rawTab}`, { replace: true })
+    }
+  }, [isCompany, rawTab, navigate])
 
   const setTab = (id) => {
     const next = new URLSearchParams(searchParams)
@@ -69,6 +84,7 @@ export default function RfqIntelligencePage() {
   const saveQuote = useRfqIntelligenceStore((s) => s.saveQuote)
   const setLastToolingEUR = useRfqIntelligenceStore((s) => s.setLastToolingEUR)
   const setLastCalculatorSnapshot = useRfqIntelligenceStore((s) => s.setLastCalculatorSnapshot)
+  const setLastEstimateForRfq = useRfqIntelligenceStore((s) => s.setLastEstimateForRfq)
 
   const dbMaterials = useRfqEquipmentStore((s) => s.materials)
   const dbMachines = useRfqEquipmentStore((s) => s.machines)
@@ -314,8 +330,40 @@ export default function RfqIntelligencePage() {
       categoryId: qiCategory || undefined,
     })
 
+    const estimatePayload = {
+      targetUnitPrice: prod.total.toFixed(4),
+      currency: 'EUR',
+      itemName: partName || 'Custom part',
+      quantity: qtyProd,
+      unit: 'pcs',
+      industryId: qiIndustry || undefined,
+      categoryId: qiCategory || undefined,
+      quoteNo: qNo,
+      buckets: prod.buckets,
+    }
+    setLastEstimateForRfq(estimatePayload)
+
     setTab('quotes')
     setStep(1)
+  }
+
+  const sendRfqWithEstimate = (quote) => {
+    const estimatePayload = {
+      targetUnitPrice: (quote.prodUnit ?? 0).toFixed(4),
+      currency: 'EUR',
+      itemName: quote.partName || 'Custom part',
+      quantity: quote.qtyProd || 1,
+      unit: 'pcs',
+      industryId: quote.industryId,
+      categoryId: quote.categoryId,
+      quoteNo: quote.quoteNo,
+      buckets: quote.buckets,
+    }
+    setLastEstimateForRfq(estimatePayload)
+    navigate(executiveSummaryUrl({
+      industryId: quote.industryId,
+      categoryId: quote.categoryId,
+    }))
   }
 
   const prefilledFromIndustry =
@@ -333,22 +381,42 @@ export default function RfqIntelligencePage() {
   return (
     <AppLayout>
       <div className="app-page rfqi-scope">
-        <ManagementBreadcrumb trail={[
+        <ManagementBreadcrumb trail={isCompany ? [
+          { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
+          { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
+          { label: 'Price calculator' },
+        ] : [
           { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
           { label: 'Sourcing', to: SOURCING_CLUSTER_PATH },
           { label: 'Intelligence' },
         ]} />
         <p className="app-page-subtitle" style={{ marginTop: 4 }}>
-          Manufacturing quotation flow{prefilledFromIndustry}
-          {' · '}
-          <button type="button" className="pcc-fact-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => navigate(RFQ_PROCUREMENT_NEW_PATH)}>
-            Create procurement RFQ
-          </button>
+          {isCompany ? (
+            <>
+              Company price calculator — material, process, and personnel unit costs. Every tariff and rate is editable for your plant locations.
+            </>
+          ) : (
+            <>
+              Select Part &amp; qty → Process → Process cost → Personnel → Material for a should-cost estimate{prefilledFromIndustry}
+              {' · '}
+              <button type="button" className="pcc-fact-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => navigate(COMPANY_MFG_CALC_PATH)}>
+                Edit plant rates (Price calculator)
+              </button>
+              {' · '}
+              <button type="button" className="pcc-fact-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => navigate(RFQ_PROCUREMENT_NEW_PATH)}>
+                Create procurement RFQ
+              </button>
+            </>
+          )}
         </p>
 
         <div className="rfqi-hdr">
           <div className="rfqi-brand">
-            RFQ<span className="rfqi-brand-dot">.</span>INTELLIGENCE
+            {isCompany ? (
+              <>MFG<span className="rfqi-brand-dot">.</span>CALCULATOR</>
+            ) : (
+              <>RFQ<span className="rfqi-brand-dot">.</span>INTELLIGENCE</>
+            )}
           </div>
           <div className="rfqi-tabs">
             {TABS.map((t) => (
@@ -690,6 +758,31 @@ export default function RfqIntelligencePage() {
                     Est. production unit €{liveEstimate.total.toFixed(4)}
                   </div>
                   <RfqThreeBucketSummary buckets={liveEstimate.buckets} />
+                  {!isCompany && (
+                    <button
+                      type="button"
+                      className="app-page-btn-outline"
+                      style={{ marginTop: 12, width: '100%' }}
+                      onClick={() => {
+                        setLastEstimateForRfq({
+                          targetUnitPrice: liveEstimate.total.toFixed(4),
+                          currency: 'EUR',
+                          itemName: partName || 'Custom part',
+                          quantity: qtyProd,
+                          unit: 'pcs',
+                          industryId: qiIndustry || undefined,
+                          categoryId: qiCategory || undefined,
+                          buckets: liveEstimate.buckets,
+                        })
+                        navigate(executiveSummaryUrl({
+                          industryId: qiIndustry || undefined,
+                          categoryId: qiCategory || undefined,
+                        }))
+                      }}
+                    >
+                      Send RFQ with live estimate
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{ marginTop: 16 }}>
@@ -753,6 +846,16 @@ export default function RfqIntelligencePage() {
                 <div style={{ marginTop: 6 }}>
                   Prod unit €{(q.prodUnit ?? 0).toFixed(3)} · Tooling €{(q.toolingEUR ?? 0).toLocaleString()}
                 </div>
+                {!isCompany && (
+                  <button
+                    type="button"
+                    className="app-page-btn-primary"
+                    style={{ marginTop: 10 }}
+                    onClick={() => sendRfqWithEstimate(q)}
+                  >
+                    Send RFQ with this estimate
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -761,8 +864,11 @@ export default function RfqIntelligencePage() {
         {tab === 'calculator' && (
           <div className="rfqi-grid-2">
             <div className="app-page-card">
-              <h3 className="app-page-title">Part price calculator</h3>
-              <p className="rfqi-muted">Three-bucket costing: material, process, personnel.</p>
+              <h3 className="app-page-title">How to calculate unit cost</h3>
+              <p className="rfqi-muted stx-text-wrap">
+                Three buckets: material (€/kg), process (machine + peripherals + energy tariff), and personnel (role rates + regional overhead).
+                Change any rate below — location tariffs differ, so inputs stay manual.
+              </p>
               <div className="rfqi-form-grid rfqi-form-grid--3">
                 <div>
                   <div className="rfqi-label">Process</div>

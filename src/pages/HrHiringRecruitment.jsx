@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import HrModuleShell from '../components/hr/HrModuleShell'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { hrCanon, withEmployee } from '../data/companyWorkflows'
 import { useTranslation } from '../i18n/useTranslation'
 import {
   extractContactsFromCvText,
@@ -46,6 +47,8 @@ const emptyCandForm = () => ({
 
 export default function HrHiringRecruitment() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [tab, setTab] = useState('plan')
   const [showRoleCriteria, setShowRoleCriteria] = useState(false)
 
@@ -74,6 +77,13 @@ export default function HrHiringRecruitment() {
   const [candForm, setCandForm] = useState(emptyCandForm)
   const [hireModal, setHireModal] = useState(null)
   const [hireForm, setHireForm] = useState({ department: '', role: '', hireDate: '' })
+
+  useEffect(() => {
+    const department = searchParams.get('department')
+    if (department) {
+      setPosForm((prev) => ({ ...prev, department }))
+    }
+  }, [searchParams])
 
   const [bulkPositionId, setBulkPositionId] = useState('')
   const [bulkAutoFill, setBulkAutoFill] = useState(true)
@@ -259,13 +269,16 @@ export default function HrHiringRecruitment() {
 
   const runHire = () => {
     if (!hireModal) return
-    hireCandidate(hireModal.id, {
+    const employeeId = hireCandidate(hireModal.id, {
       department: hireForm.department || undefined,
       role: hireForm.role || undefined,
       hireDate: hireForm.hireDate || undefined,
     })
     setHireModal(null)
     setHireForm({ department: '', role: '', hireDate: '' })
+    if (employeeId) {
+      navigate(withEmployee(hrCanon('onboarding'), employeeId))
+    }
   }
 
   const handleSingleCvScan = useCallback(async (e) => {

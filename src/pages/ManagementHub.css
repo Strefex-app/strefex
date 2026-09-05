@@ -1,4 +1,25 @@
 /* ── Management Hub — clustered modules + search ─────────── */
+.page-header {
+  margin: 0 0 16px;
+  min-width: 0;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-size: var(--text-page-title);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-secondary);
+}
+
 .mgmt-hub-tools-head {
   display: flex;
   flex-direction: column;
@@ -29,6 +50,34 @@
 
 .mgmt-hub-empty {
   margin: 8px 0 0;
+  color: var(--color-secondary);
+}
+
+.mgmt-hub-records {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mgmt-hub-record {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mgmt-hub-record__kind {
+  min-width: 7rem;
   color: var(--color-secondary);
 }
 
@@ -65,20 +114,31 @@
   grid-template-columns: 52px 1fr auto;
   align-items: start;
   gap: 12px;
-  min-height: 120px;
-  padding: 14px 14px;
+  min-height: 124px;
+  padding: 16px;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   text-align: left;
   width: 100%;
+  font: inherit;
+  color: inherit;
 }
 
 .mgmt-cluster-widget:hover {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-md);
+}
+
+.mgmt-cluster-widget:focus-visible {
+  outline: 2px solid var(--accent, #00d4ff);
+  outline-offset: 2px;
+}
+
+.mgmt-cluster-widget:active {
+  transform: translateY(1px);
 }
 
 .mgmt-cluster-widget__icon {

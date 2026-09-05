@@ -13,8 +13,11 @@ export const MANAGEMENT_OVERVIEW_PATH = '/management'
 export const MODULE_SLUGS = {
   team: 'team',
   'hr-space': 'hr-space',
+  workflows: 'workflows',
+  departments: 'departments',
   forum: 'forum',
-  sourcing: 'workspace',
+  'price-calculator': 'price-calculator',
+  sourcing: 'vendors',
   vendors: 'vendors',
   procurement: 'procurement',
   'auditors-hub': 'auditors',
@@ -27,6 +30,9 @@ export const MODULE_SLUGS = {
   project: 'projects',
   production: 'production',
   'quality-excellence': 'quality-excellence',
+  'iatf-control': 'iatf-control',
+  'manufacturing-calculator': 'price-calculator',
+  'company-database': 'company-database',
   erp: 'erp',
   'ai-insights': 'ai-insights',
 }

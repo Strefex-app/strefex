@@ -1,0 +1,40 @@
+.cdb-page {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cdb-page__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cdb-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cdb-page__spaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cdb-page__space-desc {
+  margin: 0 0 14px;
+}
+
+.cdb-industry-select {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cdb-industry-select select {
+  min-width: 160px;
+}

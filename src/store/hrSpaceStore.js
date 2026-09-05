@@ -7,6 +7,12 @@ import { persist } from 'zustand/middleware'
 import { createTenantStorage } from '../utils/tenantStorage'
 import { scoreCvAgainstPosition } from '../utils/hrCvFitScore'
 import { deleteCvFile, cloneCvFile } from '../utils/hrCvFileStorage'
+import { makeLogEntry } from '../utils/recordChangeLog'
+import {
+  makeDepartmentId,
+  normalizeDepartment,
+  normalizeDepartmentList,
+} from '../utils/departmentRecord'
 
 /**
  * Talent pool entry (persisted in Zustand). Binary CV is in IndexedDB at cvStoredFileId.
@@ -52,17 +58,25 @@ const QUALIFICATIONS_SEED = [
   'Team Leadership',
 ]
 
-const DEPTS_SEED = ['Production', 'Quality', 'Maintenance', 'Assembly', 'Engineering']
+const DEPTS_SEED = ['Production', 'Quality', 'Maintenance', 'Assembly', 'Engineering', 'Human Resources', 'Sales', 'Accounting']
+  .map((name) => ({ id: makeDepartmentId(name), name }))
 
 const EMPLOYEES_SEED = [
-  { id: 'e1', name: 'Martin Weber', role: 'CNC Operator', department: 'Production', email: 'martin.weber@company.local', status: 'active', hireDate: '2022-03-01' },
-  { id: 'e2', name: 'Sarah Klein', role: 'Quality Inspector', department: 'Quality', email: 'sarah.klein@company.local', status: 'active', hireDate: '2021-06-15' },
-  { id: 'e3', name: 'Thomas Müller', role: 'Maintenance Tech', department: 'Maintenance', email: 'thomas.m@company.local', status: 'active', hireDate: '2020-11-01' },
-  { id: 'e4', name: 'Anna Fischer', role: 'Assembly Lead', department: 'Assembly', email: 'anna.fischer@company.local', status: 'active', hireDate: '2019-04-20' },
-  { id: 'e5', name: 'Klaus Schmidt', role: 'Process Engineer', department: 'Engineering', email: 'klaus.s@company.local', status: 'active', hireDate: '2018-09-10' },
-  { id: 'e6', name: 'Lisa Braun', role: 'Shift Supervisor', department: 'Production', email: 'lisa.braun@company.local', status: 'active', hireDate: '2017-02-28' },
-  { id: 'e7', name: 'Peter Wagner', role: 'Welding Specialist', department: 'Production', email: 'peter.w@company.local', status: 'active', hireDate: '2023-01-09' },
-  { id: 'e8', name: 'Maria Hoffmann', role: 'Lab Technician', department: 'Quality', email: 'maria.h@company.local', status: 'active', hireDate: '2022-08-22' },
+  { id: 'e1', name: 'Martin Weber', role: 'CNC Operator', department: 'Production', email: 'martin.weber@company.local', status: 'active', hireDate: '2022-03-01', birthDate: '1984-05-12', gender: 'M', race: 'White', city: 'Munich', country: 'Germany' },
+  { id: 'e2', name: 'Sarah Klein', role: 'Quality Inspector', department: 'Quality', email: 'sarah.klein@company.local', status: 'active', hireDate: '2021-06-15', birthDate: '1990-11-03', gender: 'F', race: 'White', city: 'Munich', country: 'Germany' },
+  { id: 'e3', name: 'Thomas Müller', role: 'Maintenance Tech', department: 'Maintenance', email: 'thomas.m@company.local', status: 'active', hireDate: '2020-11-01', birthDate: '1978-02-20', gender: 'M', race: 'White', city: 'Augsburg', country: 'Germany' },
+  { id: 'e4', name: 'Anna Fischer', role: 'Assembly Lead', department: 'Assembly', email: 'anna.fischer@company.local', status: 'active', hireDate: '2019-04-20', birthDate: '1987-08-14', gender: 'F', race: 'White', city: 'Munich', country: 'Germany' },
+  { id: 'e5', name: 'Klaus Schmidt', role: 'Process Engineer', department: 'Engineering', email: 'klaus.s@company.local', status: 'active', hireDate: '2018-09-10', birthDate: '1982-01-30', gender: 'M', race: 'White', city: 'Stuttgart', country: 'Germany' },
+  { id: 'e6', name: 'Lisa Braun', role: 'Shift Supervisor', department: 'Production', email: 'lisa.braun@company.local', status: 'active', hireDate: '2017-02-28', birthDate: '1975-07-09', gender: 'F', race: 'White', city: 'Munich', country: 'Germany' },
+  { id: 'e7', name: 'Peter Wagner', role: 'Welding Specialist', department: 'Production', email: 'peter.w@company.local', status: 'active', hireDate: '2025-01-09', birthDate: '1995-03-22', gender: 'M', race: 'Two or More Races', city: 'Nuremberg', country: 'Germany' },
+  { id: 'e8', name: 'Maria Hoffmann', role: 'Lab Technician', department: 'Quality', email: 'maria.h@company.local', status: 'active', hireDate: '2025-08-22', birthDate: '1992-12-01', gender: 'F', race: 'Asian', city: 'Munich', country: 'Germany' },
+  { id: 'e9', name: 'Jamal Okoro', role: 'CNC Operator', department: 'Production', email: 'jamal.o@company.local', status: 'active', hireDate: '2026-02-12', birthDate: '1993-06-18', gender: 'M', race: 'Black or African American', city: 'Munich', country: 'Germany' },
+  { id: 'e10', name: 'Elena Rossi', role: 'HR Specialist', department: 'Human Resources', email: 'elena.r@company.local', status: 'active', hireDate: '2025-09-01', birthDate: '1988-04-05', gender: 'F', race: 'Hispanic or Latino', city: 'Milan', country: 'Italy' },
+  { id: 'e11', name: 'Chen Wei', role: 'Process Engineer', department: 'Engineering', email: 'chen.w@company.local', status: 'active', hireDate: '2026-05-18', birthDate: '1986-10-11', gender: 'M', race: 'Asian', city: 'Stuttgart', country: 'Germany' },
+  { id: 'e12', name: 'David Lang', role: 'Sales Engineer', department: 'Sales', email: 'david.l@company.local', status: 'left', hireDate: '2019-01-14', leftDate: '2025-08-30', birthDate: '1981-09-25', gender: 'M', race: 'White', city: 'Vienna', country: 'Austria' },
+  { id: 'e13', name: 'Sofia Alvarez', role: 'Accountant', department: 'Accounting', email: 'sofia.a@company.local', status: 'left', hireDate: '2020-03-02', leftDate: '2025-11-15', birthDate: '1991-02-17', gender: 'F', race: 'Hispanic or Latino', city: 'Munich', country: 'Germany' },
+  { id: 'e14', name: 'Nora Becker', role: 'Sales Coordinator', department: 'Sales', email: 'nora.b@company.local', status: 'active', hireDate: '2026-03-03', birthDate: '1998-01-19', gender: 'F', race: 'White', city: 'Berlin', country: 'Germany' },
+  { id: 'e15', name: 'Omar Haddad', role: 'Maintenance Tech', department: 'Maintenance', email: 'omar.h@company.local', status: 'active', hireDate: '2025-04-14', birthDate: '1989-07-28', gender: 'M', race: 'Asian', city: 'Augsburg', country: 'Germany' },
 ]
 
 function buildSeedRatings(employeeIds, qCount) {
@@ -152,17 +166,19 @@ const TALENT_POOL_SEED = [
 const useHrSpaceStore = create(
   persist(
     (set, get) => ({
-      _version: 2,
+      _version: 5,
 
-      nextEmployeeSeq: 8,
+      nextEmployeeSeq: 16,
 
       employees: EMPLOYEES_SEED.map((e, i) => ({
         ...e,
         employeeNumber: formatEmployeeNumber(i + 1),
+        departmentId: makeDepartmentId(e.department),
       })),
 
       qualificationNames: [...QUALIFICATIONS_SEED],
-      departments: [...DEPTS_SEED],
+      departments: DEPTS_SEED.map((d) => ({ ...d })),
+      departmentLogs: [],
 
       ratings: buildSeedRatings(seedEmployeeIds, QUALIFICATIONS_SEED.length),
 
@@ -369,9 +385,24 @@ const useHrSpaceStore = create(
         return employeeId
       },
 
-      updateEmployee: (employeeId, patch) => {
+      updateEmployee: (employeeId, patch, meta = {}) => {
+        const prev = get().employees.find((e) => e.id === employeeId)
+        const logs = []
+        if (prev && patch.department && patch.department !== prev.department) {
+          logs.push(makeLogEntry({
+            action: 'moved',
+            summary: `${prev.name}: ${prev.department || '—'} → ${patch.department}`,
+            department: patch.department,
+            reason: meta.reason || '',
+            entityType: 'employee',
+            entityId: employeeId,
+            entityLabel: prev.name,
+            changes: [{ field: 'department', oldValue: prev.department || '', newValue: patch.department }],
+          }))
+        }
         set((s) => ({
           employees: s.employees.map((e) => (e.id === employeeId ? { ...e, ...patch } : e)),
+          departmentLogs: logs.length ? [...logs, ...(s.departmentLogs || [])] : s.departmentLogs,
         }))
       },
 
@@ -427,9 +458,62 @@ const useHrSpaceStore = create(
       },
 
       addDepartment: (name) => {
-        const n = name.trim()
-        if (!n || get().departments.includes(n)) return
-        set((s) => ({ departments: [...s.departments, n] }))
+        const row = normalizeDepartment(name)
+        if (!row) return null
+        const existing = normalizeDepartmentList(get().departments)
+        if (existing.some((d) => d.name.toLowerCase() === row.name.toLowerCase())) return null
+        const entry = makeLogEntry({
+          action: 'created',
+          summary: `Department ${row.name}`,
+          department: row.name,
+          entityType: 'department',
+          entityId: row.id,
+          entityLabel: row.name,
+        })
+        set((s) => ({
+          departments: normalizeDepartmentList([...s.departments, row]),
+          departmentLogs: [entry, ...(s.departmentLogs || [])],
+        }))
+        return row
+      },
+
+      renameDepartment: (from, to, meta = {}) => {
+        const prev = String(from || '').trim()
+        const next = String(to || '').trim()
+        if (!next || !prev || next === prev) return false
+        const list = normalizeDepartmentList(get().departments)
+        if (list.some((d) => d.name.toLowerCase() === next.toLowerCase() && d.name !== prev)) return false
+        const prevRow = list.find((d) => d.name === prev || d.id === prev)
+        if (!prevRow) return false
+        const nextId = prevRow.id
+        const entry = makeLogEntry({
+          action: 'renamed',
+          summary: `${prevRow.name} → ${next}`,
+          department: next,
+          reason: meta.reason || '',
+          entityType: 'department',
+          entityId: nextId,
+          entityLabel: next,
+          changes: [{ field: 'name', oldValue: prevRow.name, newValue: next }],
+        })
+        set((s) => ({
+          departments: normalizeDepartmentList(s.departments).map((d) => (
+            d.id === nextId ? { ...d, name: next } : d
+          )),
+          employees: s.employees.map((row) => (
+            row.department === prevRow.name || row.departmentId === nextId
+              ? { ...row, department: next, departmentId: nextId }
+              : row
+          )),
+          openPositions: (s.openPositions || []).map((row) => (
+            row.department === prevRow.name || row.departmentId === nextId
+              ? { ...row, department: next, departmentId: nextId }
+              : row
+          )),
+          workforcePlans: (s.workforcePlans || []).map((row) => (row.department === prev ? { ...row, department: next } : row)),
+          departmentLogs: [entry, ...(s.departmentLogs || [])],
+        }))
+        return true
       },
 
       addGoal: (goal) => {
@@ -458,9 +542,29 @@ const useHrSpaceStore = create(
         set((s) => ({ dialogues: s.dialogues.filter((d) => d.id !== id) }))
       },
 
+      linkTeamLogin: (employeeId, { teamMemberId = '', teamEmail = '' } = {}) => {
+        if (!get().employees.some((row) => row.id === employeeId)) return
+        set((s) => ({
+          employees: s.employees.map((row) => {
+            if (row.id === employeeId) {
+              return { ...row, teamMemberId: teamMemberId || null, teamEmail: teamEmail || row.email || '' }
+            }
+            if (teamMemberId && row.teamMemberId === teamMemberId && row.id !== employeeId) {
+              return { ...row, teamMemberId: null }
+            }
+            return row
+          }),
+        }))
+      },
+
+      unlinkTeamLogin: (employeeId) => {
+        get().linkTeamLogin(employeeId, { teamMemberId: '', teamEmail: '' })
+      },
+
       addHrDocument: (doc) => {
-        const id = `d-${Date.now()}`
+        const id = doc.id || `d-${Date.now()}`
         set((s) => ({ hrDocuments: [...s.hrDocuments, { ...doc, id }] }))
+        return id
       },
 
       updateHrDocument: (id, patch) => {
@@ -774,12 +878,12 @@ const useHrSpaceStore = create(
     }),
     {
       name: 'strefex-hr-space',
-      version: 2,
+      version: 5,
       storage: createTenantStorage(),
       migrate: (state, fromVersion) => {
         if (!state || typeof state !== 'object') return state
+        let st = { ...state }
         if (fromVersion < 2) {
-          const st = { ...state }
           if (!Array.isArray(st.talentPoolEntries)) {
             st.talentPoolEntries = [...TALENT_POOL_SEED]
           }
@@ -792,9 +896,67 @@ const useHrSpaceStore = create(
             }))
           }
           st._version = 2
-          return st
         }
-        return state
+        if (fromVersion < 3) {
+          st.departments = normalizeDepartmentList(st.departments)
+          if (Array.isArray(st.employees)) {
+            st.employees = st.employees.map((row) => ({
+              ...row,
+              departmentId: row.departmentId || makeDepartmentId(row.department),
+            }))
+          }
+          st._version = 3
+        }
+        if (fromVersion < 5) {
+          st.departments = normalizeDepartmentList([
+            ...(Array.isArray(st.departments) ? st.departments : []),
+            ...DEPTS_SEED,
+          ])
+          const byId = new Map((Array.isArray(st.employees) ? st.employees : []).map((e) => [e.id, e]))
+          EMPLOYEES_SEED.forEach((seed, i) => {
+            const existing = byId.get(seed.id)
+            if (!existing) {
+              byId.set(seed.id, {
+                ...seed,
+                employeeNumber: formatEmployeeNumber(i + 1),
+                departmentId: makeDepartmentId(seed.department),
+              })
+              return
+            }
+            /* Seed demo rows: ensure dashboard demographics/location fields exist for People HR map. */
+            const isSeedDemo = String(existing.email || '').endsWith('@company.local')
+              || seedEmployeeIds.includes(existing.id)
+            byId.set(seed.id, {
+              ...existing,
+              birthDate: existing.birthDate || seed.birthDate,
+              gender: existing.gender || seed.gender,
+              race: existing.race || seed.race,
+              city: existing.city || seed.city,
+              country: existing.country || seed.country,
+              leftDate: existing.leftDate || seed.leftDate,
+              status: existing.status || seed.status,
+              hireDate: existing.hireDate || seed.hireDate,
+              departmentId: existing.departmentId || makeDepartmentId(existing.department || seed.department),
+              ...(isSeedDemo
+                ? {
+                    birthDate: seed.birthDate,
+                    gender: seed.gender,
+                    race: seed.race,
+                    city: seed.city,
+                    country: seed.country,
+                    leftDate: seed.leftDate,
+                    status: seed.status,
+                    hireDate: seed.hireDate,
+                    department: seed.department || existing.department,
+                    role: seed.role || existing.role,
+                  }
+                : {}),
+            })
+          })
+          st.employees = [...byId.values()]
+          st._version = 5
+        }
+        return st
       },
       partialize: (s) => ({
         _version: s._version,
@@ -802,6 +964,7 @@ const useHrSpaceStore = create(
         employees: s.employees,
         qualificationNames: s.qualificationNames,
         departments: s.departments,
+        departmentLogs: s.departmentLogs || [],
         ratings: s.ratings,
         goals: s.goals,
         dialogues: s.dialogues,

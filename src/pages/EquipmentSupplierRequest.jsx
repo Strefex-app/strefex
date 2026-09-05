@@ -13,6 +13,7 @@ import {
 } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { rfqIntelligenceUrl } from '../constants/rfqPaths'
+import { DEFAULT_ASK_REQUIREMENTS } from '../utils/standardRfqSchema'
 import '../styles/app-page.css'
 import './EquipmentSupplierRequest.css'
 
@@ -139,10 +140,7 @@ const EquipmentSupplierRequest = () => {
         industryId: formData.industryId,
         categoryId: isProductContext ? '' : formData.categoryId || '',
         requirements: {
-          quantity: 1,
-          maxLeadTime: 90,
-          maxPrice: 110,
-          minRating: 4,
+          ...DEFAULT_ASK_REQUIREMENTS,
           requestDetail: descriptionBlock,
           companyName: formData.companyName,
           email: formData.email,

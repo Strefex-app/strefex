@@ -21,6 +21,13 @@
   gap: 8px;
 }
 
+.qe-hub-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .qe-hub-bar__title {
   min-width: 0;
 }
@@ -409,32 +416,71 @@
 
 .qe-btn {
   appearance: none;
-  border: 1px solid var(--border-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1.5px solid var(--border-color, var(--border-light));
   background: var(--bg-card);
   color: inherit;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 8px 14px;
   cursor: pointer;
-  font-weight: var(--font-medium);
+  font: inherit;
+  font-size: var(--text-small, 0.875rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.2;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.qe-btn:hover:not(:disabled) {
+  background: var(--accent-light, var(--bg-surface-hover));
+  border-color: var(--accent, var(--border-color));
+}
+
+.qe-btn:focus-visible {
+  outline: 2px solid var(--accent, #00d4ff);
+  outline-offset: 2px;
+}
+
+.qe-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.qe-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .qe-btn--primary {
   background: var(--btn-primary-bg, var(--color-primary));
-  color: var(--btn-primary-fg, #fff);
-  border-color: transparent;
+  color: var(--btn-primary-text, #0d0e10);
+  border-color: var(--btn-primary-bg, var(--color-primary));
+}
+
+.qe-btn--primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover, var(--btn-primary-bg));
+  border-color: var(--btn-primary-hover, var(--btn-primary-bg));
 }
 
 .qe-btn--danger {
-  color: #922b21;
+  color: var(--danger-text, #922b21);
+  border-color: var(--danger, #e07474);
+  background: var(--danger-light, transparent);
+}
+
+.qe-btn--danger:hover:not(:disabled) {
+  background: var(--danger, #c0392b);
+  color: #fff;
+  border-color: var(--danger, #c0392b);
 }
 
 .qe-guide {
   margin: 0 0 16px;
   color: var(--color-secondary);
-}
-
-.qe-btn--primary {
-  color: var(--btn-primary-text, #0d0e10);
 }
 
 .qe-stage-pills {

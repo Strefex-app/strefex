@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
+import { useAccountRegistry } from '../store/accountRegistry'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
 import { getPlanById, getEffectiveLimits } from '../services/stripeService'
 import { isSupabaseConfigured } from '../config/supabase'
@@ -396,6 +397,7 @@ const Profile = () => {
   const tenant = useAuthStore((s) => s.tenant)
   const setUser = useAuthStore((s) => s.setUser)
   const setTenant = useAuthStore((s) => s.setTenant)
+  const updateRegistryAccount = useAccountRegistry((s) => s.updateAccount)
   const { t: tr } = useTranslation()
 
   /* ── Auth & subscription info ─────────────────────────────── */
@@ -1036,6 +1038,14 @@ const Profile = () => {
           company_summary: nextSummary || null,
         },
       })
+      if (user?.email) {
+        updateRegistryAccount(user.email, {
+          company: updatedCompany?.name || companyForm.companyName.trim(),
+          country: (updatedCompany?.country ?? companyForm.country.trim()) || '',
+          city: (updatedCompany?.city ?? companyForm.city.trim()) || '',
+          address: (updatedCompany?.address ?? nextAddress) || '',
+        })
+      }
       setProfileAttachmentFiles([])
       setPendingProfileAttachments([])
       setProfileAttachmentPathsToDelete([])

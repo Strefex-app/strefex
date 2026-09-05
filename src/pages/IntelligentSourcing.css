@@ -1,0 +1,128 @@
+/* Full-bleed inside AppLayout .app-main (cancels main padding so design fits the shell). */
+.intelligent-sourcing-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: -24px;
+  margin-bottom: calc(-100px - env(safe-area-inset-bottom, 0px));
+  width: calc(100% + 48px);
+  height: calc(100dvh);
+  background: var(--bg-primary, #f6f7f8);
+  overflow: hidden;
+}
+
+.intelligent-sourcing-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+  background: var(--bg-primary, #f6f7f8);
+}
+
+.intelligent-sourcing-error {
+  margin: 24px;
+  max-width: 40rem;
+}
+
+.intelligent-sourcing-rfq-banner {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  padding: 12px 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #d5dbe3);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(6, 24, 41, 0.12));
+  color: var(--color-primary);
+}
+
+.intelligent-sourcing-rfq-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.intelligent-sourcing-rfq-banner-actions button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-secondary, #5c6570);
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
+}
+
+/* Full-bleed RFQ panel — HTML canvas layout over the sourcing map */
+.intelligent-sourcing-rfq-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 24, 41, 0.42);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+html[data-theme="dark"] .intelligent-sourcing-rfq-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.intelligent-sourcing-rfq-panel {
+  width: min(1400px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  background: var(--bg-primary, #f6f7f8);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(6, 24, 41, 0.28));
+  padding: 20px 24px 28px;
+  box-sizing: border-box;
+  color: var(--color-primary);
+}
+
+.intelligent-sourcing-rfq-panel-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.intelligent-sourcing-rfq-close {
+  border: none;
+  background: transparent;
+  color: var(--color-muted, #5c6570);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Tablet: .app-main padding 16px */
+@media (max-width: 1024px) {
+  .intelligent-sourcing-page {
+    margin: -16px;
+    margin-bottom: calc(-80px - env(safe-area-inset-bottom, 0px));
+    width: calc(100% + 32px);
+  }
+}
+
+/* Mobile: .app-main uses top safe-area + 12px sides */
+@media (max-width: 768px) {
+  .intelligent-sourcing-page {
+    margin: calc(-64px - env(safe-area-inset-top, 0px)) -12px calc(-80px - env(safe-area-inset-bottom, 0px)) -12px;
+    width: calc(100% + 24px);
+    height: calc(100dvh - env(safe-area-inset-top, 0px));
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
+  }
+}

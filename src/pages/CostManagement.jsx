@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import useCostStore from '../store/costStore'
+import useIatfControlStore from '../store/iatfControlStore'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
+import { IATF_CONTROL_PATH } from '../data/iatfControlCatalog'
+import { buildItemMasterIndex } from '../utils/itemMaster'
 import './CostManagement.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
@@ -12,10 +15,19 @@ const CostManagement = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { products, scenarios, getCostSummary, costCategories } = useCostStore()
+  const parts = useIatfControlStore((s) => s.parts)
   const summary = getCostSummary()
   const role = useAuthStore((s) => s.role)
   const canEdit = role === 'manager' || role === 'admin' || role === 'superadmin'
   const [editModal, setEditModal] = useState(null)
+
+  const itemMaster = useMemo(
+    () => buildItemMasterIndex({ parts, products }),
+    [parts, products],
+  )
+  const linkedCount = itemMaster.filter((row) => row.part && row.product).length
+  const partOnlyCount = itemMaster.filter((row) => row.part && !row.product).length
+  const productOnlyCount = itemMaster.filter((row) => row.product && !row.part).length
 
   const subPages = [
     { id: 'calculator', label: 'Product Cost Calculator', description: 'Calculate and manage product costs with BOM', path: '/cost-management/calculator', icon: 'calculator' },
@@ -162,6 +174,64 @@ const CostManagement = () => {
               })}
             </div>
           </div>
+        </div>
+
+
+        {/* Shared item master: IATF parts ↔ Cost BOM */}
+        <div className="cost-mgmt-card cost-mgmt-item-master-card">
+          <div className="cost-mgmt-card-head">
+            <div className="min-width-0">
+              <h2 className="cost-mgmt-card-title">Shared item master</h2>
+              <p className="cost-mgmt-card-subtitle stx-text-wrap">
+                Part numbers from IATF Control match Cost BOM SKUs. Link missing items from either side.
+              </p>
+            </div>
+            <Link className="app-page-btn-outline app-page-btn-sm" to={IATF_CONTROL_PATH}>
+              Open IATF Control
+            </Link>
+          </div>
+          <div className="cost-mgmt-indicators" style={{ marginTop: 12 }}>
+            <div className="cost-mgmt-indicator-card">
+              <div>
+                <div className="cost-mgmt-indicator-value">{linkedCount}</div>
+                <div className="cost-mgmt-indicator-label">Linked</div>
+              </div>
+            </div>
+            <div className="cost-mgmt-indicator-card">
+              <div>
+                <div className="cost-mgmt-indicator-value">{partOnlyCount}</div>
+                <div className="cost-mgmt-indicator-label">IATF only</div>
+              </div>
+            </div>
+            <div className="cost-mgmt-indicator-card">
+              <div>
+                <div className="cost-mgmt-indicator-value">{productOnlyCount}</div>
+                <div className="cost-mgmt-indicator-label">Cost only</div>
+              </div>
+            </div>
+          </div>
+          {itemMaster.length === 0 ? (
+            <p className="stx-text-caption">No parts or cost products yet.</p>
+          ) : (
+            <div className="cost-mgmt-item-master-list">
+              {itemMaster.slice(0, 8).map((row) => {
+                const status = row.part && row.product
+                  ? 'Linked'
+                  : row.part
+                    ? 'IATF only'
+                    : 'Cost only'
+                return (
+                  <div key={row.key} className="cost-mgmt-item-master-row">
+                    <div className="min-width-0">
+                      <strong className="stx-text-wrap">{row.partNumber}</strong>
+                      <span className="stx-text-caption stx-text-wrap">{row.name || '—'}</span>
+                    </div>
+                    <span className="stx-text-caption">{status}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Cost Categories Overview */}

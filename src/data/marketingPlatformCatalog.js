@@ -169,11 +169,11 @@ export const MARKETING_MANAGEMENT_CLUSTERS = [
   {
     id: 'sourcing',
     label: 'Sourcing',
-    description: 'RFQ intelligence, procurement register, vendors, and POs.',
+    description: 'Price calculator, Vendor Master, and Procurement.',
     icon: 'procurement',
     color: '#8e44ad',
     modules: [
-      { icon: 'procurement', label: 'Sourcing workspace', description: 'RFQs, POs, approvals' },
+      { icon: 'cost', label: 'Price calculator', description: 'Unit cost & plant rates' },
       { icon: 'vendors', label: 'Vendor Master', description: 'Supplier records' },
       { icon: 'procurement', label: 'Procurement', description: 'Requisitions & trail' },
     ],
@@ -295,7 +295,7 @@ export const MARKETING_MODE_COMPARISON = {
       {
         label: 'Commercial',
         icon: 'procurement',
-        items: ['Sourcing workspace', 'Vendors', 'Contracts', 'Cost'],
+        items: ['Price calculator', 'Vendors', 'Procurement', 'Contracts'],
       },
     ],
   },

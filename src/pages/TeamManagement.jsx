@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAccountRegistry } from '../store/accountRegistry'
@@ -9,6 +9,9 @@ import { supabaseAuth, isSupabaseConfigured } from '../services/supabaseService'
 import { analytics } from '../services/analytics'
 import AppLayout from '../components/AppLayout'
 import EmptyState from '../components/EmptyState'
+import useHrSpaceStore from '../store/hrSpaceStore'
+import { DEPARTMENTS_PATH, matchTeamToEmployees } from '../utils/departmentHome'
+import { hrCanon } from '../data/companyWorkflows'
 import './TeamManagement.css'
 
 /**
@@ -75,17 +78,28 @@ export default function TeamManagement() {
       role: m.role,
       is_active: m.status === 'active' || m.status === 'pending',
       created_at: m.invitedAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+      employeeId: m.employeeId || '',
     })),
   ]), [adminMember, registryMembers])
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState('user')
+  const [inviteCreateHr, setInviteCreateHr] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
   const isAdmin = hasRole('admin')
+  const employees = useHrSpaceStore((s) => s.employees)
+  const createEmployee = useHrSpaceStore((s) => s.createEmployee)
+  const linkTeamLogin = useHrSpaceStore((s) => s.linkTeamLogin)
+  const unlinkTeamLogin = useHrSpaceStore((s) => s.unlinkTeamLogin)
+  const hrMatch = useMemo(() => matchTeamToEmployees(members, employees), [members, employees])
+  const pairByMemberId = useMemo(
+    () => new Map((hrMatch.pairs || []).map((row) => [row.member.id, row.employee])),
+    [hrMatch.pairs],
+  )
 
   // Get domain for current account
   const currentDomain = businessAccount?.email?.split('@')[1]?.toLowerCase()
@@ -130,37 +144,59 @@ export default function TeamManagement() {
     }
 
     setLoading(true)
+    const email = inviteEmail
+    const name = inviteName || inviteEmail.split('@')[0]
+    const role = inviteRole
+    const alsoHr = inviteCreateHr
     try {
       // Keep invited users in the same account directory (seller/buyer/service provider).
       inviteTeamMember(businessAccount.id, {
-        name: inviteName || inviteEmail.split('@')[0],
-        email: inviteEmail,
-        role: inviteRole,
+        name,
+        email,
+        role,
         accountType,
         companyId: businessAccount.id,
       })
 
       if (isSupabaseConfigured) {
         const inviteResult = await supabaseAuth.inviteTeamUser({
-          email: inviteEmail,
-          fullName: inviteName || inviteEmail.split('@')[0],
-          role: inviteRole,
+          email,
+          fullName: name,
+          role,
           companyId: businessAccount.id,
           accountType,
         })
         if (inviteResult?.alreadyExists) {
-          setSuccess(`Added ${inviteEmail} to team. Account already exists, so no new confirmation email was sent.`)
+          setSuccess(`Added ${email} to team. Account already exists, so no new confirmation email was sent.`)
         } else {
-          setSuccess(`Invitation sent to ${inviteEmail}. They must confirm email before first login.`)
+          setSuccess(`Invitation sent to ${email}. They must confirm email before first login.`)
         }
       } else {
         // Fallback API invitation endpoint for non-Supabase deployments.
         await usersApi.create({
-          email: inviteEmail,
-          full_name: inviteName || inviteEmail.split('@')[0],
-          role: inviteRole,
+          email,
+          full_name: name,
+          role,
         })
-        setSuccess(`Invited ${inviteEmail} as ${inviteRole}`)
+        setSuccess(`Invited ${email} as ${role}`)
+      }
+
+      if (alsoHr) {
+        const existing = useHrSpaceStore.getState().employees.find(
+          (row) => String(row.email || '').toLowerCase() === email.toLowerCase(),
+        )
+        const employeeId = existing?.id || createEmployee({
+          name,
+          email,
+          role: role === 'user' ? 'Employee' : role,
+          department: 'Production',
+        })
+        const created = useAccountRegistry.getState().getTeamMembers(businessAccount.id)
+          .find((row) => row.email === email)
+        if (employeeId && created) {
+          updateTeamMember(businessAccount.id, email, { employeeId })
+          linkTeamLogin(employeeId, { teamMemberId: created.id, teamEmail: email })
+        }
       }
     } catch (err) {
       setError(err.detail || err.message || 'Failed to invite user')
@@ -169,9 +205,10 @@ export default function TeamManagement() {
       setInviteEmail('')
       setInviteName('')
       setInviteRole('user')
+      setInviteCreateHr(true)
       setShowInvite(false)
     }
-    analytics.track('team_invite', { role: inviteRole })
+    analytics.track('team_invite', { role })
   }
 
   const handleRoleChange = async (memberId, newRole) => {
@@ -199,6 +236,24 @@ export default function TeamManagement() {
       removeTeamMember(businessAccount.id, member.email)
     }
     analytics.track('team_remove')
+  }
+
+  const handleHrLink = (member, employeeId) => {
+    if (!businessAccount || member.isOwner) {
+      if (employeeId) {
+        linkTeamLogin(employeeId, { teamMemberId: member.id, teamEmail: member.email })
+      } else {
+        const prev = pairByMemberId.get(member.id)
+        if (prev) unlinkTeamLogin(prev.id)
+      }
+      return
+    }
+    const prev = pairByMemberId.get(member.id)
+    if (prev && prev.id !== employeeId) unlinkTeamLogin(prev.id)
+    updateTeamMember(businessAccount.id, member.email, { employeeId: employeeId || '' })
+    if (employeeId) {
+      linkTeamLogin(employeeId, { teamMemberId: member.id, teamEmail: member.email })
+    }
   }
 
   const handleToggleActive = async (memberId) => {
@@ -237,6 +292,20 @@ export default function TeamManagement() {
         {error && <div className="tm-alert tm-alert-error">{error}</div>}
         {success && <div className="tm-alert tm-alert-success">{success}</div>}
 
+        {businessAccount && (hrMatch.teamWithoutEmployee.length > 0 || hrMatch.employeesWithoutLogin.length > 0) && (
+          <div className="tm-domain-info">
+            <div className="tm-domain-main">
+              <span className="stx-text-wrap">
+                {hrMatch.teamWithoutEmployee.length} team login{hrMatch.teamWithoutEmployee.length === 1 ? '' : 's'} not in HR
+                {' · '}
+                {hrMatch.employeesWithoutLogin.length} employee{hrMatch.employeesWithoutLogin.length === 1 ? '' : 's'} without a team login.
+                {' '}
+                <Link to={DEPARTMENTS_PATH}>Open departments</Link>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Business domain info banner */}
         {currentDomain && (
           <div className="tm-domain-info">
@@ -269,6 +338,7 @@ export default function TeamManagement() {
               <thead>
                 <tr>
                   <th>Member</th>
+                  <th>HR employee</th>
                   <th>Role</th>
                   <th>Status</th>
                   <th>Joined</th>
@@ -284,6 +354,44 @@ export default function TeamManagement() {
                         {m.isOwner && <span className="tm-owner-badge">Owner</span>}
                       </div>
                       <div className="tm-member-email">{m.email}</div>
+                    </td>
+                    <td>
+                      {(() => {
+                        const linked = pairByMemberId.get(m.id)
+                        const options = [
+                          ...(linked ? [linked] : []),
+                          ...hrMatch.employeesWithoutLogin,
+                        ]
+                        return (
+                          <div>
+                            {isAdmin ? (
+                              <select
+                                className="tm-role-select"
+                                value={linked?.id || ''}
+                                onChange={(e) => handleHrLink(m, e.target.value)}
+                              >
+                                <option value="">Not linked</option>
+                                {options.map((emp) => (
+                                  <option key={emp.id} value={emp.id}>
+                                    {emp.name} · {emp.employeeNumber || emp.email || emp.id}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="stx-text-caption">
+                                {linked ? linked.name : 'Not linked'}
+                              </span>
+                            )}
+                            {linked && (
+                              <div>
+                                <Link className="tm-member-email" to={hrCanon(`employees/${linked.id}`)}>
+                                  Open HR profile
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td>
                       {isAdmin && m.id !== currentUser?.id && !m.isOwner ? (
@@ -370,6 +478,14 @@ export default function TeamManagement() {
                     <option key={r.value} value={r.value}>{r.label} — {r.desc}</option>
                   ))}
                 </select>
+              </label>
+              <label className="tm-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={inviteCreateHr}
+                  onChange={(e) => setInviteCreateHr(e.target.checked)}
+                />
+                <span className="stx-text-wrap">Also create an HR employee and start onboarding</span>
               </label>
               <div className="tm-form-actions">
                 <button className="tm-btn tm-btn-secondary" onClick={() => setShowInvite(false)}>Cancel</button>

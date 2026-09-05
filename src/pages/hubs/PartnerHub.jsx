@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import { useAuthStore } from '../../store/authStore'
 import { useSubscriptionStore } from '../../services/featureFlags'
@@ -35,11 +36,13 @@ export default function PartnerHub() {
     <AppLayout>
       <div className="app-page hub-landing">
         <div className="app-page-card">
-          <h1 className="hub-landing__title">Manufacturers</h1>
+          <h1 className="hub-landing__title">Quoting tools</h1>
           <p className="hub-landing__subtitle stx-text-wrap">
             {isServiceProvider
-              ? 'Register your service categories, then manage incoming work and track orders you place.'
-              : 'Register the industries you serve, then manage your profile, RFQs, and service delivery.'}
+              ? 'Day-to-day incoming work lives on Home. Use this page for profile, trust setup, and service requests.'
+              : 'Incoming RFQs and award feedback live on Home. Use this page for trust setup, company profile, and services.'}
+            {' '}
+            <Link to="/main-menu">Open Home quoting desk</Link>
           </p>
         </div>
 
@@ -66,7 +69,14 @@ export default function PartnerHub() {
                   icon="document"
                   iconStyle={ICON.rfq}
                   title="RFQ inbox"
-                  description="See invitations, respond to buyer RFQs, and check notifications."
+                  description="See invitations, respond to buyer RFQs, and check awards."
+                />
+                <HubToolCard
+                  to="/management/ops/trust-setup"
+                  icon="check-square"
+                  iconStyle={ICON.overview}
+                  title="Trust setup"
+                  description="15-minute wizard: industry, primary certificate, and publish your Network reliability card."
                 />
                 <HubToolCard
                   to="/supplier-dashboard"
@@ -75,15 +85,6 @@ export default function PartnerHub() {
                   title="Company profile & catalog"
                   description="Update what buyers see — company info, products, certifications, and equipment."
                 />
-                {(accountType === 'seller' || isSuperAdmin) && (
-                  <HubToolCard
-                    to="/seller-dashboard"
-                    icon="management"
-                    iconStyle={ICON.overview}
-                    title="Activity overview"
-                    description="Summary of RFQs received, awards, and recent seller activity."
-                  />
-                )}
               </div>
             </div>
           )}

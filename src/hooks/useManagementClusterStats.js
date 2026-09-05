@@ -11,6 +11,7 @@ import useEnterpriseStore from '../store/enterpriseStore'
 import useCostStore from '../store/costStore'
 import useProductionStore from '../store/productionStore'
 import useQualityExcellenceStore from '../store/qualityExcellenceStore'
+import useIatfControlStore from '../store/iatfControlStore'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { tenantKey } from '../utils/tenantStorage'
 
@@ -37,6 +38,8 @@ function loadForumCounts() {
 export function useManagementClusterStats() {
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const employees = useHrSpaceStore((s) => s.employees)
+  const hrDepartments = useHrSpaceStore((s) => s.departments)
+  const openPositions = useHrSpaceStore((s) => s.openPositions)
   const vendors = useVendorStore((s) => s.vendors)
   const opportunities = useProcurementStore((s) => s.opportunities)
   const purchaseOrders = useProcurementStore((s) => s.purchaseOrders)
@@ -49,6 +52,9 @@ export function useManagementClusterStats() {
   const costScenarios = useCostStore((s) => s.scenarios)
   const oeeData = useProductionStore((s) => s.oeeData)
   const qualityRecords = useQualityExcellenceStore((s) => s.records)
+  const iatfLots = useIatfControlStore((s) => s.lots)
+  const iatfDocs = useIatfControlStore((s) => s.documents)
+  const iatfFolders = useIatfControlStore((s) => s.folders)
   const rfqQuotes = useRfqIntelligenceStore((s) => s.quotes)
 
   return useMemo(() => {
@@ -78,7 +84,9 @@ export function useManagementClusterStats() {
     return {
       people: [
         { label: 'Team members', value: teamMembers },
+        { label: 'Departments', value: (hrDepartments || []).length },
         { label: 'Employees', value: employees.length },
+        { label: 'Open roles', value: (openPositions || []).filter((row) => row.status === 'open').length },
         { label: 'Forum posts', value: forum.announcements + forum.lessons },
       ],
       sourcing: [
@@ -101,6 +109,9 @@ export function useManagementClusterStats() {
         { label: 'Active', value: activeProjects },
         { label: 'Avg OEE', value: avgOee != null ? `${avgOee}%` : '—' },
         { label: 'Quality records', value: qualityRecords.length },
+        { label: 'IATF lots', value: iatfLots.length },
+        { label: 'QMS docs', value: iatfDocs.length },
+        { label: 'QMS folders', value: (iatfFolders || []).length },
       ],
       platform: [
         { label: 'Audit program', value: auditProAudits?.length || 0 },
@@ -111,6 +122,8 @@ export function useManagementClusterStats() {
   }, [
     registryAccounts,
     employees,
+    hrDepartments,
+    openPositions,
     vendors,
     opportunities,
     purchaseOrders,
@@ -123,6 +136,9 @@ export function useManagementClusterStats() {
     costScenarios,
     oeeData,
     qualityRecords,
+    iatfLots,
+    iatfDocs,
+    iatfFolders,
     rfqQuotes,
   ])
 }

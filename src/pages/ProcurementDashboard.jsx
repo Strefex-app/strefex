@@ -15,6 +15,7 @@ import './ProcurementDashboard.css'
 import '../styles/projectControl.css'
 import '../styles/managementShell.css'
 import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
+import CompanyWorkflowRail from '../components/company/CompanyWorkflowRail'
 import { useTranslation } from '../i18n/useTranslation'
 
 const STATUS_META = {
@@ -345,6 +346,8 @@ export default function ProcurementDashboard() {
         </div>
 
         <AiInsightsCtaStrip context="procurement" />
+
+        <CompanyWorkflowRail chainId="sourcing-award" />
 
         {renderKPIs()}
 

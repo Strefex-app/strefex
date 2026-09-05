@@ -1,7 +1,7 @@
 /** RFQ Intelligence palette · keep in sync with `index.css` + `index.html`. */
 export const THEME_META = {
   light: {
-    themeColor: '#192a56',
+    themeColor: '#0a2540',
     colorScheme: 'light dark',
     rootScheme: 'light',
   },
@@ -30,6 +30,12 @@ export function syncDomTheme(theme) {
 
   root.setAttribute('data-theme', t)
   root.style.colorScheme = meta.rootScheme
+
+  try {
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } }))
+  } catch {
+    /* ignore */
+  }
 
   const themeColorMeta = document.querySelector('meta[name="theme-color"]')
   if (themeColorMeta) themeColorMeta.setAttribute('content', meta.themeColor)

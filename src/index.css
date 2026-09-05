@@ -124,59 +124,101 @@
   --callout-warn-border: rgba(255, 171, 0, 0.35);
   --callout-warn-text: #ffe8b8;
   --surface-danger-soft: rgba(255, 61, 87, 0.12);
+
+  /* Intelligent Sourcing supplier-map canvas (locked hexes; same in day/night) */
+  --map-ocean: #eef0f2;
+  --map-land: #dce1e6;
+  --map-land-stroke: #f6f7f8;
+  --map-graticule: #dde1e4;
+  --map-plant: #0a2540;
+  --map-plant-stroke: #ffffff;
+  --map-plant-label: #0a2540;
+  --map-lane: #0a2540;
+  --map-lane-faint: #7a8794;
+  --map-tip-bg: #0a2540;
+  --map-tip-muted: #9db1c8;
+  --map-tip-text: #ffffff;
+  --map-chart-bg: #eef0f2;
+  --map-chart-border: #e2e5e7;
+  --map-pin-stroke: #ffffff;
+  --map-pin-stroke-hot: #0a2540;
+  --map-graticule-width: 0.6;
+
+  /* ── STREFEX Home chrome (shared widgets / indicators) ─── */
+  --stx-navy-800: #0a2540;
+  --stx-navy-700: #133154;
+  --stx-steel-100: #f6f7f8;
+  --stx-steel-200: #eef0f2;
+  --stx-steel-300: #e2e5e7;
+  --stx-steel-500: #b6bbbe;
+  --stx-steel-700: #6e767c;
+  --stx-ink: #0a2540;
+  --stx-ink-body: #2a3b4d;
+  --stx-ink-muted: #6e767c;
+  --stx-ink-faint: #8b9298;
+  --stx-border-hairline: #e2e5e7;
+  --stx-border-strong: #b6bbbe;
+  --stx-surface-card: #ffffff;
+  --stx-signal-ok: #5fb85c;
+  --stx-signal-watch: #e0a23b;
+  --stx-signal-critical: #d2483f;
+  --stx-signal-data: #3aa6c9;
+  --stx-radius: 6px;
+  --stx-shadow-sm: 0 1px 3px rgba(6, 24, 41, 0.08), 0 1px 2px rgba(6, 24, 41, 0.04);
+  --stx-ease: cubic-bezier(0.2, 0, 0.1, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Day mode (Settings: night mode off) — light surfaces & nav brand bar
    ═══════════════════════════════════════════════════════════════ */
 html[data-theme="light"] {
-  /* Navy-led chrome (classic STREFEX day mode): menu shell, CTAs, icons */
-  --navy-deep: #192a56;
-  --navy-mid: #243a73;
+  /* Navy-led chrome — Home / Sourcing navy (#0a2540) */
+  --navy-deep: #0a2540;
+  --navy-mid: #133154;
   --navy-accent: #3d5a96;
 
-  --bg-primary: #f1f5f9;
+  --bg-primary: #f6f7f8;
   --bg-card: #ffffff;
-  --bg-surface: #f8fafc;
-  --bg-surface-hover: #f1f5f9;
+  --bg-surface: #eef0f2;
+  --bg-surface-hover: #e2e5e7;
   --bg-input: #ffffff;
 
-  --color-primary: #0f172a;
-  --color-secondary: #475569;
-  --color-muted: #64748b;
+  --color-primary: #0a2540;
+  --color-secondary: #2a3b4d;
+  --color-muted: #6e767c;
   --color-icon: var(--navy-deep);
-  --nav-bg: linear-gradient(180deg, #1a2d58 0%, #192a56 40%, #152447 100%);
+  --nav-bg: linear-gradient(180deg, #133154 0%, #0a2540 40%, #081c30 100%);
   --nav-text: rgba(248, 250, 252, 0.92);
   --nav-text-hover: #ffffff;
   --nav-active-bg: rgba(255, 255, 255, 0.12);
   --btn-primary-bg: var(--navy-deep);
   --btn-primary-text: #ffffff;
   --btn-primary-hover: var(--navy-mid);
-  --active-indicator: #7eb3ff;
+  --active-indicator: #3aa6c9;
 
   --accent: var(--navy-deep);
-  --accent-hover: #0f1c3a;
-  --accent-light: rgba(25, 42, 86, 0.12);
+  --accent-hover: #081c30;
+  --accent-light: rgba(10, 37, 64, 0.1);
   --accent-text: var(--navy-mid);
 
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --danger-light: rgba(220, 38, 38, 0.12);
-  --danger-text: #b91c1c;
+  --danger: #d2483f;
+  --danger-hover: #b33c35;
+  --danger-light: rgba(210, 72, 63, 0.12);
+  --danger-text: #b33c35;
 
-  --border-color: rgba(15, 23, 42, 0.1);
-  --border-light: rgba(15, 23, 42, 0.06);
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.1);
-  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --border-color: #e2e5e7;
+  --border-light: #eef0f2;
+  --shadow-sm: 0 1px 3px rgba(6, 24, 41, 0.08), 0 1px 2px rgba(6, 24, 41, 0.04);
+  --shadow-md: 0 4px 14px rgba(6, 24, 41, 0.1);
+  --shadow-lg: 0 8px 24px rgba(6, 24, 41, 0.12);
 
   --link-color: var(--navy-accent);
 
-  --input-border: rgba(15, 23, 42, 0.14);
+  --input-border: #b6bbbe;
   --input-focus: var(--navy-deep);
-  --input-placeholder: #94a3b8;
+  --input-placeholder: #8b9298;
 
-  --toggle-off: #cbd5e1;
+  --toggle-off: #b6bbbe;
   --toggle-on: var(--navy-deep);
 
   --gc-bg: var(--bg-surface);
@@ -185,19 +227,19 @@ html[data-theme="light"] {
   --gc-text: var(--color-primary);
   --gc-text-2: var(--color-secondary);
   --gc-hover: var(--bg-surface-hover);
-  --gc-tl-line: rgba(15, 23, 42, 0.08);
+  --gc-tl-line: rgba(10, 37, 64, 0.08);
 
-  --badge-success-bg: rgba(16, 185, 129, 0.12);
-  --badge-success-text: #047857;
-  --badge-warning-bg: rgba(245, 158, 11, 0.12);
-  --badge-warning-text: #b45309;
-  --callout-warn-bg: rgba(245, 158, 11, 0.08);
-  --callout-warn-border: rgba(245, 158, 11, 0.35);
-  --callout-warn-text: #92400e;
-  --surface-danger-soft: rgba(239, 68, 68, 0.1);
+  --badge-success-bg: rgba(95, 184, 92, 0.14);
+  --badge-success-text: #2f7a2c;
+  --badge-warning-bg: rgba(224, 162, 59, 0.14);
+  --badge-warning-text: #9a6b14;
+  --callout-warn-bg: rgba(224, 162, 59, 0.1);
+  --callout-warn-border: rgba(224, 162, 59, 0.35);
+  --callout-warn-text: #9a6b14;
+  --surface-danger-soft: rgba(210, 72, 63, 0.1);
 
   color-scheme: light;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: #b6bbbe #f6f7f8;
 
   --rfqi-bg: var(--bg-primary);
   --rfqi-s1: var(--bg-card);
@@ -208,7 +250,46 @@ html[data-theme="light"] {
   --rfqi-text: var(--color-primary);
   --rfqi-muted: var(--color-muted);
   --rfqi-dim: var(--input-placeholder);
-  --rfqi-cyan: var(--accent);
+  --rfqi-cyan: var(--stx-signal-data);
+  --rfqi-green: var(--stx-signal-ok);
+  --rfqi-amber: var(--stx-signal-watch);
+  --rfqi-red: var(--stx-signal-critical);
+
+  /* Intelligent Sourcing supplier-map — day (exact canvas hexes) */
+  --map-ocean: #eef0f2;
+  --map-land: #dce1e6;
+  --map-land-stroke: #f6f7f8;
+  --map-graticule: #dde1e4;
+  --map-plant: #0a2540;
+  --map-plant-stroke: #ffffff;
+  --map-plant-label: #0a2540;
+  --map-lane: #0a2540;
+  --map-lane-faint: #7a8794;
+  --map-tip-bg: #0a2540;
+  --map-tip-muted: #9db1c8;
+  --map-tip-text: #ffffff;
+  --map-chart-bg: #eef0f2;
+  --map-chart-border: #e2e5e7;
+  --map-pin-stroke: #ffffff;
+  --map-pin-stroke-hot: #0a2540;
+  --map-graticule-width: 0.6;
+
+  /* Home chrome aliases (day) */
+  --stx-navy-800: #0a2540;
+  --stx-navy-700: #133154;
+  --stx-steel-100: #f6f7f8;
+  --stx-steel-200: #eef0f2;
+  --stx-steel-300: #e2e5e7;
+  --stx-steel-500: #b6bbbe;
+  --stx-steel-700: #6e767c;
+  --stx-ink: #0a2540;
+  --stx-ink-body: #2a3b4d;
+  --stx-ink-muted: #6e767c;
+  --stx-ink-faint: #8b9298;
+  --stx-border-hairline: #e2e5e7;
+  --stx-border-strong: #b6bbbe;
+  --stx-surface-card: #ffffff;
+  --stx-shadow-sm: var(--shadow-sm);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -289,12 +370,47 @@ html[data-theme="dark"] {
   --rfqi-muted: var(--color-muted);
   --rfqi-dim: var(--input-placeholder);
   --rfqi-cyan: var(--accent);
-}
 
-/* ═══════════════════════════════════════════════════════════════
-   Shared "dark-list" pattern (Menu pages etc.)
-   Now powered by design tokens
-   ═══════════════════════════════════════════════════════════════ */
+  /* Map canvas — night: darker globe lines, higher-contrast land */
+  --map-ocean: #08090b;
+  --map-land: #2f3644;
+  --map-land-stroke: #1c212b;
+  --map-graticule: rgba(0, 0, 0, 0.55);
+  --map-graticule-width: 0.95;
+  --map-plant: #00d4ff;
+  --map-plant-stroke: #08090b;
+  --map-plant-label: #e8eaf2;
+  --map-lane: #00d4ff;
+  --map-lane-faint: #4b5563;
+  --map-tip-bg: #1a1d24;
+  --map-tip-muted: #9db1c8;
+  --map-tip-text: #e8eaf2;
+  --map-chart-bg: #0d0e10;
+  --map-chart-border: rgba(255, 255, 255, 0.07);
+  --map-pin-stroke: #08090b;
+  --map-pin-stroke-hot: #00d4ff;
+
+  /* Home chrome → Management-balanced night (surfaces + cyan accent) */
+  --stx-navy-800: #00d4ff;
+  --stx-navy-700: #5ce1ff;
+  --stx-steel-100: var(--bg-primary);
+  --stx-steel-200: var(--bg-surface);
+  --stx-steel-300: rgba(255, 255, 255, 0.07);
+  --stx-steel-500: rgba(255, 255, 255, 0.13);
+  --stx-steel-700: var(--color-muted);
+  --stx-ink: var(--color-primary);
+  --stx-ink-body: var(--color-secondary);
+  --stx-ink-muted: var(--color-muted);
+  --stx-ink-faint: var(--color-muted);
+  --stx-border-hairline: var(--border-color);
+  --stx-border-strong: var(--input-border);
+  --stx-surface-card: var(--bg-card);
+  --stx-signal-ok: #34d399;
+  --stx-signal-watch: #fbbf24;
+  --stx-signal-critical: #f87171;
+  --stx-signal-data: #00d4ff;
+  --stx-shadow-sm: var(--shadow-sm);
+}
 .dark-list-container {
   background-color: var(--bg-surface);
   border-radius: 12px;

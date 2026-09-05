@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import WorldMap from '../components/WorldMap'
 import { 
@@ -13,7 +13,10 @@ import {
   augmentSupplierListForSuperadminPlatformView,
 } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
-import { rfqIntelligenceUrl } from '../constants/rfqPaths'
+import { buyerWorkspaceUrl, rfqIntelligenceUrl } from '../constants/rfqPaths'
+import {
+  DEFAULT_ASK_REQUIREMENTS,
+} from '../utils/standardRfqSchema'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
@@ -23,9 +26,14 @@ import { useAuthStore } from '../store/authStore'
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { tenantKey } from '../utils/tenantStorage'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import useSourcingPlantStore from '../store/sourcingPlantStore'
+import { buildBuyerRfqInitialDraft, createAndSendNetworkRfq } from '../utils/networkRfqCreate'
 import { getInjectionMachineIntelRows, toneClass } from '../data/immInjectionMachineProfiles'
 import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import BuyerRfqCreateForm from '../components/buyer/BuyerRfqCreateForm'
+import CapabilityCompareTable from '../components/CapabilityCompareTable'
+import { normalizeCapabilityCompareRows } from '../utils/capabilityCompare'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -44,7 +52,9 @@ function ExecMetricBar({ pct, fillColor }) {
 
 const ExecutiveSummary = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { industryId, categoryId } = useParams()
+  const receivingPlant = useSourcingPlantStore((s) => s.plant)
 
   /* ── Plan-based visibility ──────────────────────────────── */
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
@@ -70,22 +80,15 @@ const ExecutiveSummary = () => {
     : null
   const categoryLabel = categoryObj ? categoryObj.name : categoryId || ''
   
-  const { getRfqsByIndustry, addRfq, sendRfq, addAttachment, removeAttachment } = useRfqStore()
+  const { getRfqsByIndustry, addAttachment, removeAttachment } = useRfqStore()
   const storeRfqs = useRfqStore((s) => s.rfqs)
   
   // State
   const [selectedSupplier, setSelectedSupplier] = useState(null)
   const [showRfqModal, setShowRfqModal] = useState(false)
+  const [rfqTargetSupplierId, setRfqTargetSupplierId] = useState(null)
   const [selectedForRfq, setSelectedForRfq] = useState(new Set()) // multi-select for RFQ comparison
   const [dbRegisteredSellers, setDbRegisteredSellers] = useState([])
-  const [newRfq, setNewRfq] = useState({
-    title: '',
-    categoryId: categoryId || '',
-    requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0, maxRisk: 50 },
-    attachments: [],
-  })
-  const [attachments, setAttachments] = useState([])
-  const fileInputRef = useRef(null)
   
   // Registered sellers from the persistent account registry
   // If categoryId is present, filter by both industry AND category
@@ -280,7 +283,7 @@ const ExecutiveSummary = () => {
     return mergedLocs
   }, [industryId, categoryId, registeredSellers, dbRegisteredSellers, canSeeNames, showMarketplaceCatalog, isSuperAdmin, suppliers])
 
-  const metrics = useMemo(
+  const directoryMetrics = useMemo(
     () =>
       getIndustryMetrics(industryId, categoryId, {
         excludeMarketplaceCatalog: !showMarketplaceCatalog,
@@ -288,6 +291,48 @@ const ExecutiveSummary = () => {
       }),
     [industryId, categoryId, showMarketplaceCatalog, isSuperAdmin],
   )
+
+  /** Eight headline indicators from the same supplier rows shown in the table (supplier-stated fields). */
+  const metrics = useMemo(() => {
+    const rows = Array.isArray(suppliers) ? suppliers : []
+    const n = rows.length
+    const avg = (pick) => {
+      if (!n) return 0
+      const sum = rows.reduce((a, s) => a + (Number(pick(s)) || 0), 0)
+      return Math.round(sum / n)
+    }
+    const avgFit = avg((s) => s.fitLevel)
+    const avgRisk = avg((s) => s.riskLevel)
+    const avgCapacity = avg((s) => s.capacityLevel)
+    const avgRating = n
+      ? Math.round((rows.reduce((a, s) => a + (Number(s.rating) || 0), 0) / n) * 10) / 10
+      : 0
+    const avgLead = avg((s) => s.leadTimeDays)
+    const avgDelivery = avg((s) => s.deliveryTimeDays)
+    const avgPrice = avg((s) => s.priceIndex)
+    const certShare = n
+      ? Math.round(rows.filter((s) => (s.certifications || []).length > 0).length / n * 100)
+      : 0
+    const capacityNote = avgCapacity > 90
+      ? 'High utilisation — clarify investment / capacity expansion with the manufacturer'
+      : avgCapacity > 80
+        ? 'Tight headroom — confirm ramp with manufacturers'
+        : 'Enough capacity for requested volume'
+    return {
+      ...directoryMetrics,
+      totalSuppliers: n || directoryMetrics.totalSuppliers || 0,
+      sampleSize: n,
+      avgFit,
+      avgRisk,
+      avgCapacity,
+      avgRating,
+      avgLead,
+      avgDelivery,
+      avgPrice,
+      certShare,
+      capacityNote,
+    }
+  }, [suppliers, directoryMetrics])
 
   const immIntelRows = useMemo(
     () => getInjectionMachineIntelRows(selectedSupplier),
@@ -302,7 +347,34 @@ const ExecutiveSummary = () => {
       email: provider.email || '',
     }))
   }, [registeredServiceProviders])
-  const categories = allCategories
+  const categoryOptions = useMemo(() => {
+    const merged = [...allCategories, ...productCategories]
+    return [...new Map(merged.map((c) => [c.id, c])).values()]
+  }, [allCategories, productCategories])
+
+  const lockedSupplierIds = useMemo(() => {
+    if (selectedForRfq.size > 0) return [...selectedForRfq]
+    if (rfqTargetSupplierId) return [rfqTargetSupplierId]
+    const matched = matchSuppliersToRfq({
+      industryId,
+      categoryId: categoryId || categoryOptions[0]?.id || '',
+      requirements: DEFAULT_ASK_REQUIREMENTS,
+      excludeMarketplaceCatalog: !showMarketplaceCatalog,
+      superadminPlatformView: isSuperAdmin,
+    }).slice(0, 5).map((s) => s.id)
+    if (matched.length > 0) return matched
+    return suppliers.slice(0, 5).map((s) => s.id)
+  }, [
+    selectedForRfq,
+    rfqTargetSupplierId,
+    industryId,
+    categoryId,
+    categoryOptions,
+    showMarketplaceCatalog,
+    isSuperAdmin,
+    suppliers,
+  ])
+
   const rfqs = useMemo(() => getRfqsByIndustry(industryId), [industryId, getRfqsByIndustry, storeRfqs])
   const rfqStats = useMemo(() => {
     const list = Array.isArray(rfqs) ? rfqs : []
@@ -315,22 +387,15 @@ const ExecutiveSummary = () => {
       responses: list.reduce((sum, r) => sum + (r.responses || 0), 0),
     }
   }, [rfqs])
-  
-  // Matched suppliers for new RFQ
-  const matchedSuppliers = useMemo(() => {
-    if (!newRfq.categoryId) return suppliers
-    return matchSuppliersToRfq({
-      industryId,
-      categoryId: newRfq.categoryId,
-      requirements: newRfq.requirements,
-      excludeMarketplaceCatalog: !showMarketplaceCatalog,
-      superadminPlatformView: isSuperAdmin,
-    })
-  }, [newRfq.categoryId, newRfq.requirements, industryId, suppliers, showMarketplaceCatalog, isSuperAdmin])
 
   const comparedSuppliers = useMemo(
     () => suppliers.filter((s) => selectedForRfq.has(s.id)),
     [suppliers, selectedForRfq]
+  )
+
+  const capabilityCompareRows = useMemo(
+    () => normalizeCapabilityCompareRows(comparedSuppliers, industryId),
+    [comparedSuppliers, industryId],
   )
   
   /* ── Anonymized display name for non-premium buyers ────── */
@@ -351,7 +416,49 @@ const ExecutiveSummary = () => {
 
   const handleSendMultiRfq = () => {
     if (selectedForRfq.size === 0) return
+    setRfqTargetSupplierId(null)
     setShowRfqModal(true)
+  }
+
+  const openRfqModal = (supplierId = null) => {
+    setRfqTargetSupplierId(supplierId)
+    if (supplierId) {
+      setSelectedForRfq(new Set([supplierId]))
+    }
+    setShowRfqModal(true)
+  }
+
+  // Deep-link from Intelligent Sourcing: open RFQ + apply shortlist names (once per landing)
+  const openedFromSourcing = useRef(false)
+  useEffect(() => {
+    if (searchParams.get('openRfq') !== '1' || openedFromSourcing.current) return
+    openedFromSourcing.current = true
+    const shortlist = String(searchParams.get('shortlist') || '')
+      .split('|')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (shortlist.length && suppliers?.length) {
+      const ids = suppliers
+        .filter((s) => shortlist.some((n) => String(s.name || '').toLowerCase() === n.toLowerCase()))
+        .map((s) => s.id)
+      if (ids.length) setSelectedForRfq(new Set(ids))
+    }
+    setShowRfqModal(true)
+  }, [searchParams, suppliers])
+
+  const plantLocation = useMemo(() => {
+    if (!receivingPlant || receivingPlant.lat == null || receivingPlant.lon == null) return null
+    return {
+      id: `plant-${receivingPlant.id || 'home'}`,
+      name: receivingPlant.name || 'Receiving plant',
+      coordinates: [Number(receivingPlant.lon), Number(receivingPlant.lat)],
+      kind: 'plant',
+    }
+  }, [receivingPlant])
+
+  const closeRfqModal = () => {
+    setShowRfqModal(false)
+    setRfqTargetSupplierId(null)
   }
 
   // Handle marker click on map
@@ -360,55 +467,19 @@ const ExecutiveSummary = () => {
     setSelectedSupplier(supplier)
   }
   
-  // Handle file attachment
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files)
-    const newAttachments = files.map(f => ({
-      name: f.name,
-      size: f.size,
-      type: f.type,
-    }))
-    setAttachments([...attachments, ...newAttachments])
-    e.target.value = ''
-  }
-  
-  const handleRemoveAttachment = (index) => {
-    setAttachments(attachments.filter((_, i) => i !== index))
-  }
-  
-  // Handle RFQ creation — includes manually selected suppliers when multi-selecting
-  const handleCreateRfq = () => {
-    const targetSupplierIds = selectedForRfq.size > 0
-      ? Array.from(selectedForRfq)
-      : matchedSuppliers.slice(0, 5).map(s => s.id)
-    const rfq = {
-      ...newRfq,
-      industryId,
-      suppliers: targetSupplierIds,
-      attachments: attachments.map(a => a.name),
+  // Handle RFQ creation — same form + rfqStore as Intelligent Sourcing / Buyer Workspace
+  const handleSendRfqDraft = (draft) => {
+    const result = createAndSendNetworkRfq(draft, {
+      industryId: draft.industryId || industryId || '',
       buyerEmail: user?.email || '',
       buyerCompany: user?.companyName || user?.company || user?.email || 'Buyer',
-    }
-    const created = addRfq(rfq)
-    if (created?.id) sendRfq(created.id)
-    setShowRfqModal(false)
-    setSelectedForRfq(new Set())
-    setNewRfq({
-      title: '',
-      categoryId: '',
-      requirements: { quantity: 1, maxLeadTime: 90, maxPrice: 110, minRating: 4.0, maxRisk: 50 },
-      attachments: [],
+      plant: receivingPlant,
+      source: 'executive-summary',
     })
-    setAttachments([])
+    if (!result.ok) return
+    closeRfqModal()
+    setSelectedForRfq(new Set())
   }
-  
-  // Format file size
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-  
   // Get risk color
   const getRiskColor = (risk) => {
     if (risk <= 10) return '#4CAF50'
@@ -448,25 +519,21 @@ const ExecutiveSummary = () => {
                   <span className="exec-tooltip-panel" role="tooltip">
                     <span className="exec-tooltip-inner">
                       <p>
-                        The three headline bars are <strong>averages from the STREFEX supplier directory</strong>{' '}
-                        scoped to this industry
+                        The eight headline cards are <strong>averages of supplier-stated fields</strong> from the
+                        rows listed below for this industry
                         {categoryLabel ? (
                           <>
                             {' '}
-                            and <strong>{categoryLabel}</strong>
+                            / <strong>{categoryLabel}</strong>
                           </>
                         ) : null}
-                        , counting only listings with a <strong>non-zero star rating</strong>. Rows in the table may
-                        also show <strong>registered</strong> accounts; directory and registered sellers each
-                        expose Fit, Risk, and Capacity on their profiles (often alongside certifications, geography,
-                        ratings, lead time, delivery, and price signals).
+                        . <strong>n</strong> on each card is the sample size — how many suppliers are included in
+                        that average. Capacity above 90% prompts clarifying investment with the manufacturer;
+                        lower utilisation means enough capacity for requested volume.
                       </p>
                       <p>
                         When you <strong>Create RFQ</strong>, suggested suppliers are <strong>ranked by a match
-                        score</strong>: it starts from each supplier&apos;s fit level, then adds points when your RFQ
-                        constraints are met (within max lead time, at or below the price-index ceiling, at or above
-                        minimum rating, within max risk)—capped at 100%. Selected suppliers in the modal show that
-                        score; the summary table stays in browsing order unless you evaluate via RFQ ranking.
+                        score</strong>: fit level plus lead-time and ISO / IATF quality alignment — capped at 100%.
                       </p>
                     </span>
                   </span>
@@ -475,6 +542,13 @@ const ExecutiveSummary = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, maxWidth: '100%' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="exec-rfq-btn exec-rfq-btn--outline"
+                  onClick={() => navigate(buyerWorkspaceUrl({ tab: 'track' }))}
+                >
+                  Track quotes
+                </button>
                 <button
                   type="button"
                   className="exec-rfq-btn exec-rfq-btn--outline"
@@ -489,7 +563,7 @@ const ExecutiveSummary = () => {
                 <button
                   type="button"
                   className="exec-rfq-btn"
-                  onClick={() => setShowRfqModal(true)}
+                  onClick={() => openRfqModal()}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -502,78 +576,110 @@ const ExecutiveSummary = () => {
           </div>
         </div>
 
-        {/* Main Indicators - Fit, Risk, Capacity */}
+        {/* Eight supplier-stated indicators — 4 columns × 2 rows */}
         <div className="exec-main-indicators">
-          <div className="exec-indicator-card">
-            <span className="exec-indicator-label exec-indicator-label-row">
-              SUPPLIER FIT LEVEL
-              <span className="exec-tooltip exec-tooltip--indicator">
-                <span className="exec-tooltip-marker" aria-hidden="true">
-                  ?
-                </span>
-                <span className="exec-tooltip-panel" role="tooltip">
-                  <span className="exec-tooltip-inner">
-                    How closely a supplier aligns with this industry/category and expected capabilities. It is a
-                    composite profile score (not a live audit); use it with certifications and qualitative due diligence.
+          {[
+            {
+              key: 'fit',
+              label: 'SUPPLIER FIT',
+              value: `${metrics.avgFit}%`,
+              pct: metrics.avgFit,
+              fill: 'fit',
+              sub: 'From supplier capability profiles',
+              tip: `Average fit level each supplier stated for this industry/category (0–100). n=${metrics.sampleSize} means the average uses ${metrics.sampleSize} supplier row${metrics.sampleSize === 1 ? '' : 's'} currently listed below.`,
+            },
+            {
+              key: 'risk',
+              label: 'RISK LEVEL',
+              value: `${metrics.avgRisk}%`,
+              pct: metrics.avgRisk,
+              fill: 'risk',
+              sub: 'Higher % = higher stated risk',
+              tip: `Average risk % from supplier profile data (directory or registered account). n=${metrics.sampleSize} = number of suppliers included in this average.`,
+            },
+            {
+              key: 'capacity',
+              label: 'CAPACITY USED',
+              value: `${metrics.avgCapacity}%`,
+              pct: metrics.avgCapacity,
+              fill: 'capacity',
+              sub: metrics.capacityNote,
+              tip: `Average utilisation % suppliers entered on their plant profile. Above 90%: clarify investment with the manufacturer. At/below 80%: enough capacity for requested volume. n=${metrics.sampleSize} suppliers in the average.`,
+            },
+            {
+              key: 'rating',
+              label: 'RATING',
+              value: `${metrics.avgRating} ★`,
+              pct: Math.min(100, Math.round((Number(metrics.avgRating) || 0) / 5 * 100)),
+              fill: 'fit',
+              sub: 'Supplier / directory rating',
+              tip: `Average star rating from supplier records shown in the table. n=${metrics.sampleSize} = suppliers averaged.`,
+            },
+            {
+              key: 'lead',
+              label: 'LEAD TIME',
+              value: `${metrics.avgLead}d`,
+              pct: Math.min(100, Math.round((Number(metrics.avgLead) || 0) / 1.5)),
+              fill: 'capacity',
+              sub: 'Stated production lead (ex-works)',
+              tip: `Average production lead time (days) stated by suppliers. n=${metrics.sampleSize} suppliers included.`,
+            },
+            {
+              key: 'delivery',
+              label: 'DELIVERY',
+              value: `${metrics.avgDelivery}d`,
+              pct: Math.min(100, Math.round((Number(metrics.avgDelivery) || 0) * 4)),
+              fill: 'capacity',
+              sub: 'Stated delivery / transit days',
+              tip: `Average delivery time (days) from supplier profile data. n=${metrics.sampleSize} = sample size for this average.`,
+            },
+            {
+              key: 'price',
+              label: 'PRICE INDEX',
+              value: String(metrics.avgPrice),
+              pct: Math.min(100, Number(metrics.avgPrice) || 0),
+              fill: 'risk',
+              sub: '100 = market average (supplier index)',
+              tip: `Average price index stated on supplier profiles (100 ≈ market). n=${metrics.sampleSize} suppliers in the average.`,
+            },
+            {
+              key: 'certs',
+              label: 'STANDARDS ON FILE',
+              value: `${metrics.certShare}%`,
+              pct: metrics.certShare,
+              fill: 'fit',
+              sub: 'Share with declared certifications',
+              tip: `Share of listed suppliers that declared at least one certification in their account/directory data. n=${metrics.sampleSize} suppliers checked.`,
+            },
+          ].map((card) => (
+            <div key={card.key} className="exec-indicator-card">
+              <span className="exec-indicator-label exec-indicator-label-row">
+                {card.label}
+                <span className="exec-tooltip exec-tooltip--indicator">
+                  <span className="exec-tooltip-marker" aria-hidden="true">?</span>
+                  <span className="exec-tooltip-panel" role="tooltip">
+                    <span className="exec-tooltip-inner">{card.tip}</span>
                   </span>
                 </span>
               </span>
-            </span>
-            <div className="exec-indicator-bar">
-              <div 
-                className="exec-indicator-fill fit"
-                style={{ width: `${metrics.avgFit}%` }}
-              />
+              <div className="exec-indicator-bar">
+                <div
+                  className={`exec-indicator-fill ${card.fill}`}
+                  style={{ width: `${Math.min(100, Math.max(0, card.pct || 0))}%` }}
+                />
+              </div>
+              <div className="exec-indicator-value-row">
+                <span className="exec-indicator-value">{card.value}</span>
+                <span
+                  className="exec-indicator-n"
+                  title={`n=${metrics.sampleSize}: number of suppliers included in this average from the table below.`}
+                >
+                  n={metrics.sampleSize}
+                </span>
+              </div>
+              <p className="exec-indicator-sub stx-text-wrap">{card.sub}</p>
             </div>
-            <span className="exec-indicator-value">{metrics.avgFit}%</span>
-          </div>
-          <div className="exec-indicator-card">
-            <span className="exec-indicator-label exec-indicator-label-row">
-              RISK LEVEL
-              <span className="exec-tooltip exec-tooltip--indicator">
-                <span className="exec-tooltip-marker" aria-hidden="true">
-                  ?
-                </span>
-                <span className="exec-tooltip-panel" role="tooltip">
-                  <span className="exec-tooltip-inner">
-                    A relative indicator of assessed supply volatility or exposure (higher % = higher displayed risk
-                    band). Derived from seeded directory data or supplier profile inputs—pair with your own
-                    continuity and compliance checks.
-                  </span>
-                </span>
-              </span>
-            </span>
-            <div className="exec-indicator-bar">
-              <div 
-                className="exec-indicator-fill risk"
-                style={{ width: `${metrics.avgRisk}%` }}
-              />
-            </div>
-            <span className="exec-indicator-value">{metrics.avgRisk}%</span>
-          </div>
-          <div className="exec-indicator-card">
-            <span className="exec-indicator-label exec-indicator-label-row">
-              CAPACITY LEVEL
-              <span className="exec-tooltip exec-tooltip--indicator">
-                <span className="exec-tooltip-marker" aria-hidden="true">
-                  ?
-                </span>
-                <span className="exec-tooltip-panel" role="tooltip">
-                  <span className="exec-tooltip-inner">
-                    An estimate of throughput &amp; headroom versus typical demand signals in profile data (scale,
-                    timelines, utilization hints). Confirm against concrete capacity and capex plans before awards.
-                  </span>
-                </span>
-              </span>
-            </span>
-            <div className="exec-indicator-bar">
-              <div 
-                className="exec-indicator-fill capacity"
-                style={{ width: `${metrics.avgCapacity}%` }}
-              />
-            </div>
-            <span className="exec-indicator-value">{metrics.avgCapacity}%</span>
-          </div>
+          ))}
         </div>
 
         {/* Map and RFQ Stats Row */}
@@ -588,6 +694,7 @@ const ExecutiveSummary = () => {
               <WorldMap
                 variant="executive"
                 locations={supplierLocations}
+                plantLocation={plantLocation}
                 onMarkerClick={handleMarkerClick}
                 selectedId={selectedSupplier?.id}
               />
@@ -596,6 +703,12 @@ const ExecutiveSummary = () => {
               <span className="legend-item">
                 <span className="legend-dot champagne" /> Supplier location (approximate pin)
               </span>
+              {plantLocation && (
+                <span className="legend-item">
+                  <span className="legend-dot" style={{ background: '#192A56', borderRadius: 2 }} /> Receiving plant
+                  {receivingPlant?.name ? ` · ${receivingPlant.name}` : ''}
+                </span>
+              )}
             </div>
           </div>
 
@@ -806,7 +919,11 @@ const ExecutiveSummary = () => {
                       </span>
                     </td>
                     <td>
-                      <span className="capacity-cell exec-metric-cell">
+                      <span className="capacity-cell exec-metric-cell" title={
+                        supplier.capacityLevel > 90
+                          ? 'High capacity used — clarify investment with manufacturer'
+                          : 'Enough capacity for requested volume'
+                      }>
                         <ExecMetricBar pct={supplier.capacityLevel} fillColor="#FF9800" />
                         <span className="capacity-value">{supplier.capacityLevel}%</span>
                       </span>
@@ -831,7 +948,7 @@ const ExecutiveSummary = () => {
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedSupplier(supplier)
-                          setShowRfqModal(true)
+                          openRfqModal(supplier.id)
                         }}
                       >
                         RFQ
@@ -847,143 +964,18 @@ const ExecutiveSummary = () => {
         {comparedSuppliers.length >= 2 && (
           <div className="app-page-card exec-supplier-comparison">
             <h3 className="exec-section-title">
-              Supplier comparison ({comparedSuppliers.length})
+              Capability compare ({comparedSuppliers.length})
             </h3>
             <p className="exec-cmp-intro">
-              Selected via checkboxes — same layout as IMM criterion comparison: criteria in rows,
-              suppliers in columns.
+              Selected via checkboxes — same columns as Buyer Workspace Discover compare
+              (location, capacity, lead, standards, evidence, PPAP / trace).
             </p>
-            <div className="exec-cmp-wrap">
-              <table className="exec-cmp-table">
-                <thead>
-                  <tr>
-                    <th className="exec-cmp-criterion-col">Criterion</th>
-                    {comparedSuppliers.map((s) => (
-                      <th key={s.id} className="exec-cmp-supplier-col">
-                        <div className="exec-cmp-brand">
-                          {getDisplayName(s, suppliers.indexOf(s))}
-                        </div>
-                        <div className="exec-cmp-hq">
-                          {s.city}, {s.country}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">Location</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span className="exec-cmp-mono">{s.country}</span> · {s.city}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Founded</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>{canSeeNames && s.established != null ? s.established : '—'}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Employees</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        {canSeeNames && s.employees != null ? `~${Number(s.employees).toLocaleString()}` : '—'}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Rating</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span style={{ color: getRatingColor(s.rating), fontWeight: 600 }}>
-                          {s.rating} ★
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Risk level</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span className="exec-cmp-metric-inline">
-                          <ExecMetricBar pct={s.riskLevel} fillColor={getRiskColor(s.riskLevel)} />
-                          <span className="exec-cmp-metric-num">{s.riskLevel}%</span>
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Fit level</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span className="exec-cmp-metric-inline">
-                          <ExecMetricBar pct={s.fitLevel} fillColor="#4CAF50" />
-                          <span className="exec-cmp-metric-num">{s.fitLevel}%</span>
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Capacity</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span className="exec-cmp-metric-inline">
-                          <ExecMetricBar pct={s.capacityLevel} fillColor="#FF9800" />
-                          <span className="exec-cmp-metric-num">{s.capacityLevel}%</span>
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Lead time</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>{s.leadTimeDays} days</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Delivery</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>{s.deliveryTimeDays} days</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Price index</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        <span
-                          className="exec-cmp-mono"
-                          style={{
-                            color:
-                              s.priceIndex <= 100 ? '#4CAF50' : s.priceIndex <= 110 ? '#FF9800' : '#f44336',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {s.priceIndex}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Certifications</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        {canSeeNames ? s.certifications?.join(' · ') || '—' : '—'}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Industries</th>
-                    {comparedSuppliers.map((s) => (
-                      <td key={s.id}>
-                        {s.industries?.map((i) => INDUSTRY_LABELS[i] || i).join(', ') || '—'}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <CapabilityCompareTable
+              rows={capabilityCompareRows}
+              industryId={industryId}
+              canSeeDetails={canSeeNames}
+              maskName={(row, index) => getDisplayName(comparedSuppliers[index] || row, suppliers.indexOf(comparedSuppliers[index] || row))}
+            />
           </div>
         )}
 
@@ -1132,201 +1124,39 @@ const ExecutiveSummary = () => {
                 <span className="metric-label">Capacity</span>
               </div>
             </div>
+            <p className="exec-indicator-sub stx-text-wrap" style={{ marginTop: 12 }}>
+              {selectedSupplier.capacityLevel > 90
+                ? 'High capacity used — clarify investment / capacity expansion with the manufacturer before awarding volume.'
+                : 'Enough capacity for requested volume based on this supplier’s stated utilisation.'}
+            </p>
           </div>
         )}
 
         {/* RFQ Modal */}
         {showRfqModal && (
-          <div className="exec-modal-overlay" onClick={() => setShowRfqModal(false)}>
-            <div className="exec-modal" onClick={e => e.stopPropagation()}>
+          <div className="exec-modal-overlay" onClick={closeRfqModal}>
+            <div className="exec-modal exec-modal--rfq" onClick={e => e.stopPropagation()}>
               <div className="exec-modal-header">
                 <h3>Create New RFQ</h3>
-                <button type="button" className="close-btn" onClick={() => setShowRfqModal(false)}>×</button>
+                <button type="button" className="close-btn" onClick={closeRfqModal}>×</button>
               </div>
               <div className="exec-modal-body">
-                <div className="exec-form-group">
-                  <label>RFQ Title</label>
-                  <input 
-                    type="text"
-                    value={newRfq.title}
-                    onChange={e => setNewRfq({ ...newRfq, title: e.target.value })}
-                    placeholder="Enter RFQ title..."
-                  />
-                </div>
-                <div className="exec-form-group">
-                  <label>Equipment Category</label>
-                  <select 
-                    value={newRfq.categoryId}
-                    onChange={e => setNewRfq({ ...newRfq, categoryId: e.target.value })}
-                  >
-                    <option value="">Select category...</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="exec-form-row">
-                  <div className="exec-form-group">
-                    <label>Quantity</label>
-                    <input 
-                      type="number"
-                      min="1"
-                      value={newRfq.requirements.quantity}
-                      onChange={e => setNewRfq({
-                        ...newRfq,
-                        requirements: { ...newRfq.requirements, quantity: parseInt(e.target.value) || 1 }
-                      })}
-                    />
-                  </div>
-                  <div className="exec-form-group">
-                    <label>Max Lead Time (days)</label>
-                    <input 
-                      type="number"
-                      min="1"
-                      value={newRfq.requirements.maxLeadTime}
-                      onChange={e => setNewRfq({
-                        ...newRfq,
-                        requirements: { ...newRfq.requirements, maxLeadTime: parseInt(e.target.value) || 90 }
-                      })}
-                    />
-                  </div>
-                </div>
-                <div className="exec-form-row">
-                  <div className="exec-form-group">
-                    <label>Max Price Index</label>
-                    <input 
-                      type="number"
-                      min="50"
-                      max="200"
-                      value={newRfq.requirements.maxPrice}
-                      onChange={e => setNewRfq({
-                        ...newRfq,
-                        requirements: { ...newRfq.requirements, maxPrice: parseInt(e.target.value) || 110 }
-                      })}
-                    />
-                  </div>
-                  <div className="exec-form-group">
-                    <label>Min Rating</label>
-                    <input 
-                      type="number"
-                      min="1"
-                      max="5"
-                      step="0.1"
-                      value={newRfq.requirements.minRating}
-                      onChange={e => setNewRfq({
-                        ...newRfq,
-                        requirements: { ...newRfq.requirements, minRating: parseFloat(e.target.value) || 4.0 }
-                      })}
-                    />
-                  </div>
-                  <div className="exec-form-group">
-                    <label>Max supplier risk (%)</label>
-                    <input 
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newRfq.requirements.maxRisk ?? ''}
-                      onChange={e => setNewRfq({
-                        ...newRfq,
-                        requirements: {
-                          ...newRfq.requirements,
-                          maxRisk:
-                            e.target.value === ''
-                              ? undefined
-                              : Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)),
-                        },
-                      })}
-                    />
-                  </div>
-                </div>
-                
-                {/* File Attachments */}
-                <div className="exec-form-group">
-                  <label>Attachments</label>
-                  <div className="exec-attachments">
-                    <input 
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      multiple
-                      style={{ display: 'none' }}
-                    />
-                    <button 
-                      type="button"
-                      className="exec-attach-btn"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Attach Files
-                    </button>
-                    {attachments.length > 0 && (
-                      <div className="exec-attachment-list">
-                        {attachments.map((file, index) => (
-                          <div key={index} className="exec-attachment-item">
-                            <span className="attachment-name">{file.name}</span>
-                            <span className="attachment-size">{formatFileSize(file.size)}</span>
-                            <button 
-                              type="button"
-                              className="attachment-remove"
-                              onClick={() => handleRemoveAttachment(index)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Matched / Selected Suppliers Preview */}
-                <div className="exec-form-group">
-                  <label>
-                    {selectedForRfq.size > 0
-                      ? `Selected Suppliers (${selectedForRfq.size})`
-                      : `Matched Suppliers (${matchedSuppliers.length})`
-                    }
-                  </label>
-                  {selectedForRfq.size === 0 && (
-                    <p className="exec-matched-suppliers-note">
-                      Listed in <strong>match score</strong> order: each row starts from fit level, then adds
-                      points when your RFQ limits on lead time, price index, minimum rating, and max risk are
-                      satisfied (capped at 100%).
-                    </p>
-                  )}
-                  <div className="exec-matched-suppliers">
-                    {(selectedForRfq.size > 0
-                      ? suppliers.filter(s => selectedForRfq.has(s.id))
-                      : matchedSuppliers.slice(0, 5)
-                    ).map((supplier, idx) => (
-                      <div key={supplier.id} className="exec-matched-item">
-                        <span className="matched-name">
-                          {canSeeNames ? supplier.name : getDisplayName(supplier, suppliers.indexOf(supplier))}
-                        </span>
-                        <span className="matched-score">{supplier.matchScore || supplier.fitLevel}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="exec-modal-footer">
-                <button 
-                  type="button"
-                  className="exec-btn-secondary"
-                  onClick={() => setShowRfqModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button"
-                  className="exec-btn-primary"
-                  onClick={handleCreateRfq}
-                  disabled={!newRfq.title}
-                >
-                  Send RFQ
-                </button>
+                <BuyerRfqCreateForm
+                  categoryOptions={categoryOptions}
+                  initialDraft={buildBuyerRfqInitialDraft({
+                    supplierIds: lockedSupplierIds,
+                    title: 'Network RFQ',
+                  })}
+                  shortlisted={suppliers}
+                  showMarketplaceCatalog={showMarketplaceCatalog}
+                  isSuperAdmin={isSuperAdmin}
+                  canSeeDetails={canSeeNames}
+                  hideSupplierPicker={lockedSupplierIds.length > 0}
+                  lockedSupplierIds={lockedSupplierIds.length > 0 ? lockedSupplierIds : null}
+                  submitLabel="Send RFQ"
+                  onCancel={closeRfqModal}
+                  onContinue={handleSendRfqDraft}
+                />
               </div>
             </div>
           </div>

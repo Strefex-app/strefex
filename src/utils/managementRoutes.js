@@ -1,6 +1,7 @@
 import { MANAGEMENT_MODULE_CLUSTERS, MANAGEMENT_MODULES } from '../data/managementModuleGroups'
 import { getModuleSlug, MANAGEMENT_OVERVIEW_PATH } from '../constants/managementPaths'
 import { QUALITY_EXCELLENCE_TOOLS } from '../data/qualityExcellenceCatalog'
+import { COMPANY_DATABASE_SPACES } from '../data/companyDatabaseSpaces'
 
 /** Child segment labels for nested module pages. */
 export const MANAGEMENT_CHILD_LABELS = {
@@ -83,6 +84,31 @@ export function resolveManagementBreadcrumb(pathname) {
   if (!pathname.startsWith('/management')) return null
 
   const root = { label: 'Management', to: MANAGEMENT_OVERVIEW_PATH }
+
+  if (pathname.startsWith('/management/company-database')) {
+    const segments = pathname.split('/').filter(Boolean)
+    const opsCluster = MANAGEMENT_MODULE_CLUSTERS.find((c) => c.id === 'ops')
+    const mod = MANAGEMENT_MODULES.find((m) => m.id === 'company-database')
+    const trail = [
+      { label: 'Overview', to: MANAGEMENT_OVERVIEW_PATH },
+      { label: opsCluster?.label || 'Operations', to: opsCluster?.path },
+      { label: mod?.label || 'Company Database', to: '/management/company-database/plant-qms' },
+    ]
+    const space = segments[2]
+    if (space) {
+      const spaceMeta = COMPANY_DATABASE_SPACES.find((row) => row.id === space)
+      trail.push({
+        label: spaceMeta?.label || titleFromSlug(space),
+        to: segments.length > 3 ? `/management/company-database/${space}` : undefined,
+      })
+    }
+    const folderId = segments[3]
+    if (folderId) {
+      trail.push({ label: titleFromSlug(folderId.replace(/^folder-/, '')) })
+    }
+    return { root, trail }
+  }
+
   const segments = pathname.split('/').filter(Boolean)
 
   if (segments.length === 1) {
@@ -142,8 +168,10 @@ export function isManagementCustomLayout(pathname) {
     return true
   }
   if (pathname === '/management/sourcing/workspace') return true
+  if (pathname === '/management/sourcing/price-calculator') return true
   if (pathname.startsWith('/management/sourcing/register')) return true
   if (pathname.startsWith('/management/sourcing/intelligence')) return true
+  if (pathname === '/management/ops/manufacturing-calculator') return true
   if (pathname.startsWith('/management/contracts-compliance/auditors/overview')) return true
   if (pathname.startsWith('/management/ops/projects/new-project')) return true
   if (pathname.startsWith('/management/ops/projects/project/') && pathname.endsWith('/control')) {

@@ -6,6 +6,10 @@ import industrialIntelligenceService from '../services/industrialIntelligenceSer
 import supplierOwnershipService from '../services/supplierOwnershipService'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n/useTranslation'
+import { ManufacturerRfqInbox } from './SellerDashboard'
+import EvidenceInboxPanel from '../components/trust/EvidenceInboxPanel'
+import './SellerDashboard.css'
+import './QualityExcellence.css'
 import '../styles/app-page.css'
 
 function getAuthSnapshot() {
@@ -20,6 +24,7 @@ export default function SupplierWorkspace() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const [tab, setTab] = useState('inbox')
   const [memberships, setMemberships] = useState([])
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [rfqLinks, setRfqLinks] = useState([])
@@ -92,8 +97,24 @@ export default function SupplierWorkspace() {
     <AppLayout>
       <div className="app-page">
         <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/partner')}>
-          ← Manufacturers
+          ← Quoting
         </button>
+        <div className="qe-stage-pills" style={{ marginBottom: 12 }}>
+          <button type="button" className={`qe-pill${tab === 'inbox' ? ' is-active' : ''}`} onClick={() => setTab('inbox')}>
+            RFQ inbox
+          </button>
+          <button type="button" className={`qe-pill${tab === 'memberships' ? ' is-active' : ''}`} onClick={() => setTab('memberships')}>
+            Memberships
+          </button>
+        </div>
+        {tab === 'inbox' && (
+          <>
+            <EvidenceInboxPanel compact />
+            <ManufacturerRfqInbox />
+          </>
+        )}
+        {tab === 'memberships' && (
+        <>
         <div className="app-page-card">
           <h2 className="app-page-title">{t('supplierWorkspace.title')}</h2>
           <p className="app-page-subtitle">{t('supplierWorkspace.subtitle')}</p>
@@ -195,6 +216,8 @@ export default function SupplierWorkspace() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </AppLayout>
   )

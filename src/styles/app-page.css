@@ -14,11 +14,12 @@
 
 .app-page-card {
   background: var(--bg-card);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 10px;
+  padding: 20px 22px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  font-family: var(--font-sans);
 }
 
 .app-page-card:last-child {
@@ -283,18 +284,36 @@ a.app-page-btn-secondary {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 40px;
   padding: 10px 18px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: var(--text-body);
   font-weight: var(--font-semibold);
   line-height: var(--leading-tight);
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   text-decoration: none;
   box-sizing: border-box;
-  border: 2px solid transparent;
+  border: 1.5px solid transparent;
   line-height: 1.2;
+  white-space: nowrap;
+}
+
+.app-page-btn-primary:focus-visible,
+.app-page-btn-outline:focus-visible,
+.app-page-btn-secondary:focus-visible,
+.app-page-btn-danger:focus-visible,
+.app-page-btn-ghost:focus-visible {
+  outline: 2px solid var(--accent, #00d4ff);
+  outline-offset: 2px;
+}
+
+.app-page-btn-primary:active:not(:disabled),
+.app-page-btn-outline:active:not(:disabled),
+.app-page-btn-secondary:active:not(:disabled),
+.app-page-btn-danger:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .app-page-btn-primary {
@@ -335,16 +354,19 @@ a.app-page-btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 8px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: var(--link-color);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-small, 0.875rem);
+  font-weight: var(--font-semibold, 600);
   font-family: inherit;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 .app-page-btn-ghost:hover:not(:disabled) {
@@ -365,9 +387,11 @@ a.app-page-btn-secondary {
 }
 
 .app-page-btn-sm {
+  min-height: 32px;
   padding: 6px 12px;
   font-size: var(--text-small);
   font-weight: var(--font-semibold);
+  border-radius: 8px;
 }
 
 .app-page-btn-primary:disabled,

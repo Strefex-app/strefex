@@ -12,6 +12,8 @@ export const useRfqIntelligenceStore = create(
       lastToolingEUR: 0,
       /** Last calculator snapshot from Calculator tab */
       lastCalculatorSnapshot: null,
+      /** Last should-cost estimate for Send RFQ prefill (Network path) */
+      lastEstimateForRfq: null,
 
       getIncomingList: () => DEFAULT_INCOMING_RFQS,
 
@@ -40,6 +42,10 @@ export const useRfqIntelligenceStore = create(
       setLastToolingEUR: (n) => set({ lastToolingEUR: typeof n === 'number' ? n : 0 }),
 
       setLastCalculatorSnapshot: (snap) => set({ lastCalculatorSnapshot: snap }),
+
+      setLastEstimateForRfq: (estimate) => set({
+        lastEstimateForRfq: estimate ? { ...estimate, savedAt: new Date().toISOString() } : null,
+      }),
     }),
     {
       name: 'strefex-rfq-intelligence',
@@ -49,6 +55,7 @@ export const useRfqIntelligenceStore = create(
         quotes: s.quotes,
         lastToolingEUR: s.lastToolingEUR,
         lastCalculatorSnapshot: s.lastCalculatorSnapshot,
+        lastEstimateForRfq: s.lastEstimateForRfq,
       }),
     },
   ),

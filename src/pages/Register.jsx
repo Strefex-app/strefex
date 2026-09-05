@@ -10,6 +10,8 @@ import stripeService, { PLANS, ACCOUNT_TYPES, getPlansForAccountType, getPlanPri
 import { rememberOfficialRegistrationCode, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import AuthPageShell from '../components/AuthPageShell'
+import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
+import { useSubscriptionStore } from '../services/featureFlags'
 import './Login.css'
 import './Register.css'
 
@@ -47,6 +49,9 @@ function RegisterForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [company, setCompany] = useState('')
+  const [country, setCountry] = useState('')
+  const [city, setCity] = useState('')
+  const [address, setAddress] = useState('')
   const [accountTypes, setAccountTypes] = useState(['seller'])
   const [selectedPlan, setSelectedPlan] = useState('start')
   const [selectedIndustry, setSelectedIndustry] = useState('')
@@ -69,6 +74,19 @@ function RegisterForm() {
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 
+  const goAfterAuth = () => {
+    const auth = useAuthStore.getState()
+    const accountType = useSubscriptionStore.getState().accountType || primaryAccountType
+    const accountTypesFromUser = Array.isArray(auth.user?.accountTypes) && auth.user.accountTypes.length > 0
+      ? auth.user.accountTypes
+      : (accountTypes.length ? accountTypes : [accountType].filter(Boolean))
+    navigate(resolveWorkspaceLandingPath({
+      accountType,
+      accountTypes: accountTypesFromUser,
+      isSuperAdmin: auth.role === 'superadmin',
+    }), { replace: true })
+  }
+
   const getDefaultPlanForAccountType = (type) => {
     const plansForType = getPlansForAccountType(type)
     if (type === 'buyer') return plansForType.find((p) => p.id === 'basic')?.id || plansForType[0]?.id || 'basic'
@@ -88,8 +106,8 @@ function RegisterForm() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/main-menu', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (isAuthenticated) goAfterAuth()
+  }, [isAuthenticated])
 
   // Deep-link from marketing CTAs: /register?type=buyer | supplier | seller | manufacturer
   useEffect(() => {
@@ -253,6 +271,9 @@ function RegisterForm() {
         status: registrationStatus,
         industries: [primaryIndustry],
         categories: {},
+        country: country.trim(),
+        city: city.trim(),
+        address: address.trim(),
         serviceCategories: primaryAccountType === 'service_provider' ? selectedServiceCategories : [],
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
@@ -278,7 +299,7 @@ function RegisterForm() {
         return
       }
 
-      navigate('/main-menu')
+      goAfterAuth()
     } catch (err) {
       const msg = err?.message || err?.detail || 'Registration failed. Please try again.'
       setError(msg)
@@ -355,6 +376,41 @@ function RegisterForm() {
                 <label htmlFor="company">Company (optional)</label>
                 <input type="text" id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your Company" disabled={loading} />
               </div>
+              <div className="form-group">
+                <label htmlFor="reg-country">Country {accountTypes.includes('seller') || accountTypes.includes('service_provider') || accountTypes.includes('buyer') ? '(for map & sourcing)' : ''}</label>
+                <input
+                  type="text"
+                  id="reg-country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Germany"
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="reg-city">City / plant location</label>
+                <input
+                  type="text"
+                  id="reg-city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Stuttgart"
+                  disabled={loading}
+                />
+              </div>
+              {(accountTypes.includes('seller') || accountTypes.includes('service_provider')) && (
+                <div className="form-group">
+                  <label htmlFor="reg-address">Plant / site address</label>
+                  <input
+                    type="text"
+                    id="reg-address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Street, site, or industrial zone"
+                    disabled={loading}
+                  />
+                </div>
+              )}
               <div className="form-group">
                 <label>Account Type</label>
                 <div className="reg-account-type-toggle reg-account-type-3col">

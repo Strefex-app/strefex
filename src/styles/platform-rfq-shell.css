@@ -17,6 +17,8 @@ html .app-sidebar {
 
 html .home-card,
 html .home-indicator-card,
+html .home-w,
+html .stx-w,
 html .production-card,
 html .production-indicator-card,
 html .production-header,
@@ -38,21 +40,42 @@ html .smp-content,
 html .sysmgmt-header,
 html .sysmgmt-card,
 html .payment-card,
-html .payment-header {
+html .payment-header,
+html .mgmt-hub-record,
+html .mgmt-dash-kpi,
+html .phd,
+html .home-dash__topbar,
+html .home-plants-panel__sheet {
   background: var(--bg-card);
   border-color: var(--border-color);
   color: var(--color-primary);
 }
 
-html .home-card-title,
+html .home-w__kpi-label,
+html .mgmt-dash-kpi__label,
+html .indicator-label,
+html .home-indicator-label,
+html .smp-kpi-label {
+  color: var(--color-muted);
+}
+
+html .home-w__kpi-value,
+html .mgmt-dash-kpi__value,
+html .indicator-value,
 html .home-indicator-value,
+html .smp-kpi-value,
+html .home-w__main-title {
+  color: var(--color-primary);
+}
+
+html .home-card-title,
 html .production-title,
 html .production-card-title,
-html .indicator-value,
 html .cost-mgmt-title,
 html .enterprise-title,
 html .industry-hub-title,
 html .app-page-title,
+html .page-title,
 html .smp-title,
 html .smp-section-title,
 html .sysmgmt-title,
@@ -61,9 +84,9 @@ html .prof-card-title,
 html .prof-name,
 html .page-item-name,
 html .smp-step-title,
-html .smp-kpi-value,
 html .smp-req-domain,
 html .smp-box-title,
+html .home-dash__crumb--current,
 html h1,
 html h2,
 html h3 {

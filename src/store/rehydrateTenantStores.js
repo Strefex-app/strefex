@@ -50,6 +50,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         companyRecognitionMod,
         myCalendarMod,
         qualityExcellenceMod,
+        iatfControlMod,
       ] = await Promise.all([
         import('./projectStore'),
         import('./productionStore'),
@@ -65,6 +66,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         import('./companyRecognitionStore'),
         import('./myCalendarStore'),
         import('./qualityExcellenceStore'),
+        import('./iatfControlStore'),
       ])
 
       const persistStores = [
@@ -82,6 +84,7 @@ export function scheduleRehydrateTenantStores(getAuthState) {
         companyRecognitionMod.useCompanyRecognitionStore,
         myCalendarMod.useMyCalendarStore,
         qualityExcellenceMod.default,
+        iatfControlMod.default,
       ]
       persistStores.forEach((store) => {
         try { store?.persist?.rehydrate?.() } catch { /* silent */ }

@@ -8,6 +8,7 @@ import {
 } from '../utils/buyerRequestNumbers'
 import { filterByCompanyRole, canEdit as guardCanEdit, isAuditor } from '../utils/companyGuard'
 import { isSupabaseConfigured, rfqsService } from '../services/supabaseService'
+import { normalizeRfqBid } from '../utils/standardRfqSchema'
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 const toArray = (value) => (Array.isArray(value) ? value : [])
@@ -221,7 +222,10 @@ const useRfqStore = create(
         const generatedReceived = invited.map((supplier, idx) => {
           const sellerSplitRef = formatBuyerSplitRef(buyerBase, idx + 1, splitTotal)
           if (typeof supplier === 'string') {
-            const resolvedEmail = findAccountEmailById(supplier)
+            const inviteEmail = supplier.startsWith('invite:') && supplier.includes('@')
+              ? supplier.slice('invite:'.length).toLowerCase()
+              : ''
+            const resolvedEmail = findAccountEmailById(supplier) || inviteEmail
             return {
               id: `rrfq-${Date.now()}-${idx}`,
               rfqId: target.id,
@@ -306,7 +310,7 @@ const useRfqStore = create(
                 status: 'responded',
                 sellerEmail: normalizeEmail(r.sellerEmail || responderEmail),
                 myResponse: {
-                  ...response,
+                  ...normalizeRfqBid(response),
                   respondedAt,
                 },
               }
@@ -324,10 +328,7 @@ const useRfqStore = create(
             sellerId: target.sellerId || responderEmail,
             sellerName: target.sellerName || target.sellerCompany || target.sellerEmail || responderEmail || 'Seller',
             sellerEmail: normalizeEmail(target.sellerEmail || responderEmail),
-            price: Number(response?.price || 0),
-            leadTime: Number(response?.leadTime || 0),
-            warranty: response?.warranty || '',
-            notes: response?.notes || '',
+            ...normalizeRfqBid(response),
             respondedAt,
           })
           return {
@@ -374,6 +375,40 @@ const useRfqStore = create(
         void persistRfqsToDatabase(rfqs)
         return { receivedRfqs, rfqs }
       }),
+
+      awardRfq: (rfqId, sellerId) => {
+        const current = get()
+        const target = current.rfqs.find((rfq) => rfq.id === rfqId)
+        if (!target) return null
+        const winner = toArray(target.sellerResponses).find((row) => String(row.sellerId) === String(sellerId))
+        if (!winner || winner.status === 'declined') return null
+        if (target.status === 'awarded' && String(target.awardedSellerId) === String(sellerId)) {
+          return target
+        }
+        const now = new Date().toISOString()
+        const sellerResponses = toArray(target.sellerResponses).map((row) => ({
+          ...row,
+          awardStatus: String(row.sellerId) === String(sellerId)
+            ? 'awarded'
+            : (row.status === 'declined' ? 'declined' : 'not_awarded'),
+        }))
+        const rfqs = current.rfqs.map((rfq) => (
+          rfq.id === rfqId
+            ? { ...rfq, status: 'awarded', awardedSellerId: sellerId, awardedAt: now, sellerResponses }
+            : rfq
+        ))
+        const receivedRfqs = current.receivedRfqs.map((row) => {
+          if (row.rfqId !== rfqId) return row
+          const win = String(row.sellerId) === String(sellerId)
+          return {
+            ...row,
+            status: win ? 'awarded' : (row.status === 'declined' ? 'declined' : 'not_awarded'),
+          }
+        })
+        set({ rfqs, receivedRfqs })
+        void persistRfqsToDatabase(rfqs)
+        return rfqs.find((rfq) => rfq.id === rfqId) || null
+      },
     }),
     {
       name: 'strefex-rfq-storage',

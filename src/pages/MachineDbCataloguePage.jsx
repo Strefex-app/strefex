@@ -65,10 +65,6 @@ export default function MachineDbCataloguePage() {
     }
   }, [catalogueId, isCutDb])
 
-  if (role !== 'superadmin') {
-    return <Navigate to="/profile" replace />
-  }
-
   const pageTitle = isCutDb ? CUT_DB_CATALOG.shortName : machineCatalog?.shortName
   const pageSubtitle = isCutDb ? CUT_DB_CATALOG.title : machineCatalog?.title
   const overviewStats = useMemo(() => {
@@ -78,6 +74,10 @@ export default function MachineDbCataloguePage() {
   const overviewLabel = isCutDb
     ? 'CutDB overview'
     : `${machineCatalog?.shortName || 'Database'} overview`
+
+  if (role !== 'superadmin') {
+    return <Navigate to="/profile" replace />
+  }
 
   if (!isCutDb && loadingMachineCatalog) {
     return (
