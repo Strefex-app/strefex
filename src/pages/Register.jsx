@@ -175,6 +175,16 @@ function RegisterForm() {
     if (!/[0-9]/.test(password)) return 'Password must contain at least one number'
     if (password !== confirmPassword) return 'Passwords do not match'
     if (!accountTypes.length) return 'Please select at least one account type'
+    const needsMapLocation = accountTypes.some((t) => t === 'seller' || t === 'service_provider' || t === 'buyer')
+    if (needsMapLocation && !country.trim()) {
+      return 'Please enter your country so your company can appear on the sourcing map'
+    }
+    if (needsMapLocation && !city.trim()) {
+      return 'Please enter your city / plant location for the sourcing map'
+    }
+    if (accountTypes.some((t) => t === 'seller' || t === 'service_provider') && !address.trim()) {
+      return 'Please enter your plant / site address for manufacturer registration'
+    }
     if (!agreedToTerms) return 'You must accept the Platform Agreement & NDA to continue'
     return null
   }
@@ -230,6 +240,9 @@ function RegisterForm() {
         selectedServiceCategories,
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         selectedTier,
+        country: country.trim(),
+        city: city.trim(),
+        address: address.trim(),
       })
 
       const registrationStatus = result?.emailConfirmationPending
@@ -377,7 +390,12 @@ function RegisterForm() {
                 <input type="text" id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your Company" disabled={loading} />
               </div>
               <div className="form-group">
-                <label htmlFor="reg-country">Country {accountTypes.includes('seller') || accountTypes.includes('service_provider') || accountTypes.includes('buyer') ? '(for map & sourcing)' : ''}</label>
+                <label htmlFor="reg-country">
+                  Country
+                  {(accountTypes.includes('seller') || accountTypes.includes('service_provider') || accountTypes.includes('buyer'))
+                    ? ' (required for map & sourcing)'
+                    : ''}
+                </label>
                 <input
                   type="text"
                   id="reg-country"
@@ -385,10 +403,11 @@ function RegisterForm() {
                   onChange={(e) => setCountry(e.target.value)}
                   placeholder="Germany"
                   disabled={loading}
+                  required={accountTypes.includes('seller') || accountTypes.includes('service_provider') || accountTypes.includes('buyer')}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="reg-city">City / plant location</label>
+                <label htmlFor="reg-city">City / plant location (required for map)</label>
                 <input
                   type="text"
                   id="reg-city"
@@ -396,11 +415,12 @@ function RegisterForm() {
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Stuttgart"
                   disabled={loading}
+                  required={accountTypes.includes('seller') || accountTypes.includes('service_provider') || accountTypes.includes('buyer')}
                 />
               </div>
               {(accountTypes.includes('seller') || accountTypes.includes('service_provider')) && (
                 <div className="form-group">
-                  <label htmlFor="reg-address">Plant / site address</label>
+                  <label htmlFor="reg-address">Plant / site address (required)</label>
                   <input
                     type="text"
                     id="reg-address"
@@ -408,6 +428,7 @@ function RegisterForm() {
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Street, site, or industrial zone"
                     disabled={loading}
+                    required
                   />
                 </div>
               )}

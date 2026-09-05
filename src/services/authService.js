@@ -713,6 +713,9 @@ const authService = {
     selectedServiceCategories = null,
     auditorDocuments = '',
     selectedTier = 'free',
+    country = '',
+    city = '',
+    address = '',
   }) {
     const normalizedEmail = normalizeEmail(email)
     if (!isBusinessEmail(normalizedEmail)) {
@@ -742,6 +745,9 @@ const authService = {
       const effectiveServiceCategories = primaryAccountType === 'auditor'
         ? ['supplier-audit']
         : normalizedServiceCategories
+      const normalizedCountry = String(country || '').trim()
+      const normalizedCity = String(city || '').trim()
+      const normalizedAddress = String(address || '').trim()
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -758,6 +764,9 @@ const authService = {
           auditor_documents: normalizedAuditorDocuments,
           auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
           tier: normalizedTier,
+          country: normalizedCountry || null,
+          city: normalizedCity || null,
+          address: normalizedAddress || null,
         },
       })
       const user = signUpData?.user
@@ -805,6 +814,9 @@ const authService = {
                 auditor_documents: normalizedAuditorDocuments,
                 auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
                 tier: normalizedTier,
+                country: normalizedCountry || null,
+                city: normalizedCity || null,
+                address: normalizedAddress || null,
               },
               email_verified: false,
               phone_verified: false,

@@ -13,6 +13,7 @@ import ExecutiveLocationMap from '../components/ExecutiveLocationMap'
 import { BUYER_WORKSPACE_PATH, buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { buildBuyerPlants } from '../utils/intelligentSourcingData'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 import { getSupplierLocations } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import {
@@ -188,6 +189,7 @@ export default function Home() {
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
+  const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
   const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
@@ -201,6 +203,10 @@ export default function Home() {
     accountTypes: user?.accountTypes,
     isSuperAdmin,
   })
+
+  useEffect(() => {
+    ensureAllAccountsSourcingFields()
+  }, [ensureAllAccountsSourcingFields])
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
@@ -318,11 +324,10 @@ export default function Home() {
   }, 0) ?? 0
 
   const networkLocations = useMemo(() => {
-    const registrySellers = accounts.filter(
-      (a) => a.accountType === 'seller' || a.accountType === 'service_provider',
-    )
+    const registrySellers = mergeNetworkManufacturersWithAccounts(accounts)
     const fromRegistry = registrySellers.map((a) => {
       const coords = a.coordinates?.length === 2
+        && !(Number(a.coordinates[0]) === 0 && Number(a.coordinates[1]) === 0)
         ? a.coordinates
         : getApproximateLngLatOrFallback({
           country: a.country,

@@ -155,6 +155,14 @@ export function scheduleRehydrateTenantStores(getAuthState) {
     }
 
     try {
+      const registryMod = await import('./accountRegistry')
+      registryMod.useAccountRegistry.getState().rehydrateRegistryFromStorage?.()
+      registryMod.useAccountRegistry.getState().ensureAllAccountsSourcingFields?.()
+    } catch (err) {
+      devWarn('account registry sourcing rehydrate skipped', err)
+    }
+
+    try {
       const { useAuthStore } = await import('./authStore')
       useAuthStore.getState().markTenantReady?.()
     } catch {

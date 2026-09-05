@@ -16,6 +16,7 @@ import {
   buildPlatformSourcingPayload,
   serializeSourcingRfqList,
 } from '../utils/intelligentSourcingData'
+import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 import {
   createAndSendNetworkRfq,
   sourcingRfqOpenContext,
@@ -291,6 +292,7 @@ export default function IntelligentSourcingPage() {
   const role = useAuthStore((s) => s.role)
   const isSuperAdmin = role === 'superadmin'
   const accounts = useAccountRegistry((s) => s.accounts)
+  const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
@@ -301,6 +303,10 @@ export default function IntelligentSourcingPage() {
     || isSeededSupplierDirectoryEnabled()
     || isSuperAdmin
 
+  useEffect(() => {
+    ensureAllAccountsSourcingFields()
+  }, [ensureAllAccountsSourcingFields])
+
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
     if (!email) return null
@@ -308,7 +314,7 @@ export default function IntelligentSourcingPage() {
   }, [accounts, user?.email])
 
   const registrySellers = useMemo(
-    () => accounts.filter((a) => a.accountType === 'seller' || a.accountType === 'service_provider'),
+    () => mergeNetworkManufacturersWithAccounts(accounts),
     [accounts],
   )
 

@@ -18,7 +18,12 @@
  */
 import { create } from 'zustand'
 
-import { ensureSourcingFieldPlaceholders } from '../utils/accountSourcingCompleteness'
+import {
+  ensureSourcingFieldPlaceholders,
+  mergeNetworkManufacturersWithAccounts,
+  publishAccountsToNetworkDirectory,
+  registerExistingAccountsOntoSourcingNetwork,
+} from '../utils/accountSourcingCompleteness'
 
 const REGISTRY_KEY = 'strefex-account-registry'
 const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
@@ -225,6 +230,8 @@ export const useAccountRegistry = create((set, get) => ({
     try {
       saveRegistry(next)
     } catch { /* */ }
+    publishAccountsToNetworkDirectory(next)
+    registerExistingAccountsOntoSourcingNetwork()
     return next.length
   },
 
@@ -245,10 +252,14 @@ export const useAccountRegistry = create((set, get) => ({
     saveRegistry(next)
     mergeRegistryIndex(next)
     set({ accounts: next })
+    publishAccountsToNetworkDirectory([next[idx >= 0 ? idx : next.length - 1]])
     return next[idx >= 0 ? idx : next.length - 1]
   },
 
-  /** Fill empty country/city/address/industries keys on every account (no invented values). */
+  /**
+   * Fill sourcing placeholders, backfill map coordinates, and publish sellers
+   * into the shared manufacturer directory (map + sourcing list).
+   */
   ensureAllAccountsSourcingFields: () => {
     const accounts = get().accounts
     let changed = false
@@ -257,11 +268,14 @@ export const useAccountRegistry = create((set, get) => ({
       if (ensured !== a) changed = true
       return ensured
     })
-    if (!changed) return 0
-    saveRegistry(next)
-    mergeRegistryIndex(next)
-    set({ accounts: next })
-    return next.length
+    if (changed) {
+      saveRegistry(next)
+      mergeRegistryIndex(next)
+      set({ accounts: next })
+    }
+    publishAccountsToNetworkDirectory(next)
+    const harvested = registerExistingAccountsOntoSourcingNetwork()
+    return harvested.visible || next.length
   },
 
   updateAccount: (idOrEmail, updates) => {
@@ -269,10 +283,15 @@ export const useAccountRegistry = create((set, get) => ({
     const idx = accounts.findIndex((a) => a.id === idOrEmail || a.email === idOrEmail)
     if (idx < 0) return null
     const next = [...accounts]
-    next[idx] = { ...next[idx], ...updates, updatedAt: new Date().toISOString() }
+    next[idx] = ensureSourcingFieldPlaceholders({
+      ...next[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    })
     saveRegistry(next)
     mergeRegistryIndex(next)
     set({ accounts: next })
+    publishAccountsToNetworkDirectory([next[idx]])
     return next[idx]
   },
 
@@ -412,6 +431,15 @@ export const useAccountRegistry = create((set, get) => ({
     let sellers = get().accounts.filter((a) =>
       (a.accountType === 'seller' || a.accountType === 'service_provider') && a.status !== 'canceled'
     )
+    if (industryId) {
+      sellers = sellers.filter((a) => (a.industries || []).includes(industryId))
+    }
+    return sellers
+  },
+
+  /** Sellers visible on maps / sourcing list (scoped + shared network directory). */
+  getNetworkManufacturersForMap: (industryId = null) => {
+    let sellers = mergeNetworkManufacturersWithAccounts(get().accounts)
     if (industryId) {
       sellers = sellers.filter((a) => (a.industries || []).includes(industryId))
     }

@@ -716,6 +716,8 @@ import { useWorkspaceSellerCorpusStore } from '../store/workspaceSellerCorpusSto
 import { normSellerRegistryEmail } from '../services/supplierSellerRegistrySync'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { collectWorkspaceSellerAccountsFromAllTenants } from '../utils/superadminLocalPlatformAggregation'
+import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
+import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 
 /**
  * Merge workspace seller corpus from other tenant localStorage slices (same browser).
@@ -762,17 +764,29 @@ export function augmentSupplierListForSuperadminPlatformView(suppliers, industry
 function registrySellerToSupplier(acct) {
   // Flatten all categories into a single array for backward compatibility
   const allCats = Object.values(acct.categories || {}).flat()
+  const coordinates = (
+    Array.isArray(acct.coordinates)
+    && acct.coordinates.length === 2
+    && !(Number(acct.coordinates[0]) === 0 && Number(acct.coordinates[1]) === 0)
+  )
+    ? acct.coordinates
+    : getApproximateLngLatOrFallback({
+      country: acct.country,
+      city: acct.city,
+      address: acct.address,
+      seed: String(acct.id || acct.email || acct.company || ''),
+    })
   return {
     id: acct.id,
     name: acct.company || acct.contactName || 'Unknown',
     country: acct.country || '—',
     city: acct.city || '—',
     accountType: acct.accountType || 'seller',
-    coordinates: acct.coordinates || [0, 0],
+    coordinates,
     industries: acct.industries || [],
     categories: allCats,
-    source: 'registered',          // distinguish from static 'database' entries
-    rating: acct.rating ?? 0,      // new registrations start with 0 until rated
+    source: acct.source === 'network_directory' ? 'registered' : (acct.source || 'registered'),
+    rating: acct.rating ?? 0,
     riskLevel: acct.riskLevel ?? 50,
     fitLevel: acct.fitLevel ?? 50,
     capacityLevel: acct.capacityLevel ?? 50,
@@ -780,9 +794,8 @@ function registrySellerToSupplier(acct) {
     leadTimeDays: acct.leadTimeDays ?? 0,
     deliveryTimeDays: acct.deliveryTimeDays ?? 0,
     priceIndex: acct.priceIndex ?? 100,
-    established: acct.established ?? new Date(acct.registeredAt).getFullYear(),
+    established: acct.established ?? new Date(acct.registeredAt || Date.now()).getFullYear(),
     employees: acct.employees ?? 0,
-    // Extra fields for display
     email: acct.email,
     contactName: acct.contactName,
     plan: acct.plan,
@@ -803,7 +816,9 @@ function getAllSuppliers() {
   const corpusAccounts = ws.getCorpusAccountsForSupplierMerge()
 
   const registry = useAccountRegistry.getState()
-  const sessionSignupSellers = registry.getRegisteredSellers()
+  const sessionSignupSellers = mergeNetworkManufacturersWithAccounts(
+    registry.getRegisteredSellers(),
+  )
 
   const corpusEmails = new Set(
     corpusAccounts.map((a) => normSellerRegistryEmail(a.email)).filter(Boolean),

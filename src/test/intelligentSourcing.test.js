@@ -8,6 +8,10 @@ import {
   ensureSourcingFieldPlaceholders,
   getAccountSourcingGaps,
   accountVisibleOnSourcingMap,
+  publishAccountsToNetworkDirectory,
+  loadNetworkManufacturers,
+  mergeNetworkManufacturersWithAccounts,
+  NETWORK_MANUFACTURERS_KEY,
 } from '../utils/accountSourcingCompleteness'
 
 describe('intelligentSourcingData', () => {
@@ -50,6 +54,21 @@ describe('accountSourcingCompleteness', () => {
     expect(ensured.city).toBe('')
     expect(ensured.address).toBe('')
     expect(ensured.industries).toEqual([])
+    expect(ensured.coordinates).toBeUndefined()
+  })
+
+  it('backfills map coordinates when country is present', () => {
+    const ensured = ensureSourcingFieldPlaceholders({
+      id: 'y',
+      email: 'forge@acme.de',
+      accountType: 'seller',
+      country: 'Germany',
+      city: 'Stuttgart',
+      industries: ['automotive'],
+    })
+    expect(ensured.coordinates).toHaveLength(2)
+    expect(Number.isFinite(ensured.coordinates[0])).toBe(true)
+    expect(Number.isFinite(ensured.coordinates[1])).toBe(true)
   })
 
   it('reports gaps for sellers missing map fields', () => {
@@ -62,5 +81,25 @@ describe('accountSourcingCompleteness', () => {
     expect(gaps).toEqual(expect.arrayContaining(['country', 'city', 'address', 'industries']))
     expect(accountVisibleOnSourcingMap({ accountType: 'seller', country: '' })).toBe(false)
     expect(accountVisibleOnSourcingMap({ accountType: 'seller', country: 'DE' })).toBe(true)
+  })
+
+  it('publishes visible sellers into the shared manufacturer directory', () => {
+    localStorage.removeItem(NETWORK_MANUFACTURERS_KEY)
+    publishAccountsToNetworkDirectory([
+      {
+        id: 'm1',
+        email: 'plant@maker.de',
+        company: 'Maker GmbH',
+        accountType: 'seller',
+        status: 'active',
+        country: 'Germany',
+        city: 'Munich',
+        industries: ['automotive'],
+      },
+    ])
+    const dir = loadNetworkManufacturers()
+    expect(dir.some((r) => r.email === 'plant@maker.de')).toBe(true)
+    const merged = mergeNetworkManufacturersWithAccounts([])
+    expect(merged.some((r) => r.company === 'Maker GmbH')).toBe(true)
   })
 })
