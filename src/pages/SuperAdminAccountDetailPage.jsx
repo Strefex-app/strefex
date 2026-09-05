@@ -38,8 +38,64 @@ function emptyForm() {
   }
 }
 
+function decodeParam(raw) {
+  if (!raw) return ''
+  try {
+    return decodeURIComponent(String(raw))
+  } catch {
+    return String(raw)
+  }
+}
+
+function findRegistryAccount(key) {
+  const k = String(key || '').trim().toLowerCase()
+  if (!k) return null
+  const accounts = useAccountRegistry.getState().accounts || []
+  return (
+    accounts.find((a) => {
+      const email = String(a?.email || '').trim().toLowerCase()
+      const id = String(a?.id || '').trim().toLowerCase()
+      const lookup = String(a?.registryLookupKey || '').trim().toLowerCase()
+      const cid = String(a?.companyId || a?.company_id || '').trim().toLowerCase()
+      return k === email || k === id || k === lookup || (cid && k === cid)
+    }) || null
+  )
+}
+
+/** Map local registry row into the company-shaped object the form expects. */
+function companyFromRegistryAccount(acct) {
+  if (!acct) return null
+  return {
+    id: acct.companyId || acct.company_id || null,
+    name: acct.company || acct.name || '',
+    email: acct.email || '',
+    phone: acct.phone || '',
+    website: acct.website || '',
+    country: acct.country || '',
+    city: acct.city || '',
+    address: acct.address || '',
+    account_type: acct.accountType || 'seller',
+    plan: acct.plan || 'start',
+    registration_code: acct.registrationCode || '',
+    visibility_tier: acct.visibilityTier || acct.visibility_tier || 'basic',
+    external_audit_status: acct.externalAuditStatus || 'none',
+    external_audit_notes: acct.externalAuditNotes || '',
+    external_audit_passed_at: acct.externalAuditPassedAt || null,
+    profile_attachments: Array.isArray(acct.profileAttachments) ? acct.profileAttachments : [],
+    metadata: {
+      ...(acct.metadata || {}),
+      address: acct.address || null,
+      receiving_plants: acct.receivingPlants || acct.metadata?.receiving_plants || [],
+    },
+    _local: true,
+    _registryKey: acct.email || acct.id,
+    _contactName: acct.name || '',
+    _contactPhone: acct.phone || '',
+  }
+}
+
 export default function SuperAdminAccountDetailPage() {
-  const { companyId } = useParams()
+  const { companyId: companyIdParam, accountKey: accountKeyParam } = useParams()
   const navigate = useNavigate()
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const [company, setCompany] = useState(null)
@@ -54,8 +110,23 @@ export default function SuperAdminAccountDetailPage() {
   const [openPath, setOpenPath] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [plants, setPlants] = useState([])
+  const [registryKey, setRegistryKey] = useState('')
 
-  const validId = useMemo(() => Boolean(companyId && UUID_RE.test(companyId)), [companyId])
+  const companyId = useMemo(() => {
+    const raw = decodeParam(companyIdParam)
+    return UUID_RE.test(raw) ? raw : ''
+  }, [companyIdParam])
+
+  const localLookupKey = useMemo(() => {
+    const fromLocalRoute = decodeParam(accountKeyParam)
+    if (fromLocalRoute) return fromLocalRoute
+    const raw = decodeParam(companyIdParam)
+    if (raw && !UUID_RE.test(raw)) return raw
+    return ''
+  }, [accountKeyParam, companyIdParam])
+
+  const isCloud = Boolean(companyId)
+  const isLocal = Boolean(localLookupKey) && !isCloud
 
   const syncFormFromCompany = useCallback((c, plist) => {
     const primary = Array.isArray(plist) && plist.length ? plist[0] : null
@@ -69,8 +140,8 @@ export default function SuperAdminAccountDetailPage() {
       address: c?.address || c?.metadata?.address || '',
       account_type: c?.account_type || 'buyer',
       plan: c?.plan || 'start',
-      contactName: primary?.full_name || '',
-      contactPhone: primary?.phone || '',
+      contactName: primary?.full_name || c?._contactName || '',
+      contactPhone: primary?.phone || c?._contactPhone || '',
       contactProfileId: primary?.id || '',
     })
     const saved = readReceivingPlantsFromAccount(
@@ -81,19 +152,50 @@ export default function SuperAdminAccountDetailPage() {
   }, [])
 
   const load = useCallback(async () => {
-    if (!isSupabaseConfigured || !validId) {
-      setLoading(false)
-      setError(!isSupabaseConfigured ? 'Supabase is not configured.' : 'Invalid company id.')
-      return
-    }
     setLoading(true)
     setError('')
+    setSavedMsg('')
+
+    if (isLocal) {
+      const acct = findRegistryAccount(localLookupKey)
+      if (!acct) {
+        setCompany(null)
+        setProfiles([])
+        setRegistryKey('')
+        setLoading(false)
+        setError('Account not found in the local registry.')
+        return
+      }
+      const shaped = companyFromRegistryAccount(acct)
+      setCompany(shaped)
+      setRegistryKey(acct.email || acct.id || localLookupKey)
+      setProfiles([])
+      setAuditStatus(shaped.external_audit_status || 'none')
+      setAuditNotes(shaped.external_audit_notes || '')
+      syncFormFromCompany(shaped, [])
+      setLoading(false)
+      return
+    }
+
+    if (!isCloud) {
+      setLoading(false)
+      setError('Invalid company id.')
+      return
+    }
+
+    if (!isSupabaseConfigured) {
+      setLoading(false)
+      setError('Supabase is not configured.')
+      return
+    }
+
     try {
       const [c, plist] = await Promise.all([
         companiesService.getById(companyId),
         profilesService.listForCompany(companyId),
       ])
       setCompany(c)
+      setRegistryKey((c?.email || '').trim().toLowerCase())
       setProfiles(Array.isArray(plist) ? plist : [])
       setAuditStatus(c?.external_audit_status || 'none')
       setAuditNotes(c?.external_audit_notes || '')
@@ -105,7 +207,7 @@ export default function SuperAdminAccountDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [companyId, syncFormFromCompany, validId])
+  }, [companyId, isCloud, isLocal, localLookupKey, syncFormFromCompany])
 
   useEffect(() => {
     void load()
@@ -142,7 +244,7 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const openAttachment = async (path) => {
-    if (!path || !isSupabaseConfigured) return
+    if (!path || !isSupabaseConfigured || isLocal) return
     setOpenPath(path)
     try {
       const url = await companyProfileAttachmentsService.getSignedUrl(path, 3600)
@@ -155,7 +257,7 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const saveAccountProfile = async () => {
-    if (!company || !validId) return
+    if (!company || (!isCloud && !isLocal)) return
     if (!form.name.trim()) {
       setError('Company name is required.')
       return
@@ -165,6 +267,38 @@ export default function SuperAdminAccountDetailPage() {
     setSavedMsg('')
     try {
       const nextAddress = form.address.trim()
+      const emailKey = (form.email || company.email || registryKey || '').trim().toLowerCase()
+      const lookup = registryKey || emailKey || company._registryKey
+
+      if (isLocal) {
+        if (!lookup) throw new Error('Missing local account key.')
+        const updatedLocal = updateAccount(lookup, {
+          company: form.name.trim(),
+          name: form.contactName.trim() || undefined,
+          email: emailKey || undefined,
+          phone: form.phone.trim() || form.contactPhone.trim() || '',
+          website: form.website.trim() || '',
+          country: form.country.trim() || '',
+          city: form.city.trim() || '',
+          address: nextAddress || '',
+          accountType: form.account_type || undefined,
+          plan: form.plan || undefined,
+          receivingPlants: normalizeReceivingPlants(plants),
+        })
+        if (!updatedLocal) throw new Error('Could not update local account registry.')
+        await saveReceivingPlantsToAccount({
+          plants,
+          email: emailKey || lookup,
+          companyId: updatedLocal.companyId || updatedLocal.company_id || null,
+          updateAccount,
+          tenant: null,
+        })
+        setCompany(companyFromRegistryAccount(updatedLocal))
+        setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
+        setSavedMsg('Account profile saved to local registry.')
+        return
+      }
+
       const companyPayload = {
         name: form.name.trim(),
         email: form.email.trim() || null,
@@ -209,7 +343,6 @@ export default function SuperAdminAccountDetailPage() {
         }
       }
 
-      const emailKey = (form.email || company.email || '').trim().toLowerCase()
       if (emailKey) {
         updateAccount(emailKey, {
           company: form.name.trim(),
@@ -240,10 +373,31 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const saveAudit = async () => {
-    if (!company || !validId) return
+    if (!company) return
     setSaving(true)
     setError('')
     try {
+      if (isLocal) {
+        const lookup = registryKey || company._registryKey || company.email
+        if (!lookup) throw new Error('Missing local account key.')
+        const updatedLocal = updateAccount(lookup, {
+          externalAuditStatus: auditStatus,
+          externalAuditNotes: auditNotes.trim() || '',
+          externalAuditPassedAt: auditStatus === 'passed'
+            ? (company.external_audit_passed_at || new Date().toISOString())
+            : null,
+          visibilityTier: auditStatus === 'passed' ? 'verified' : undefined,
+        })
+        if (!updatedLocal) throw new Error('Could not update local account registry.')
+        const shaped = companyFromRegistryAccount(updatedLocal)
+        setCompany(shaped)
+        setAuditStatus(shaped.external_audit_status || 'none')
+        setAuditNotes(shaped.external_audit_notes || '')
+        setSavedMsg('Audit status saved to local registry.')
+        return
+      }
+
+      if (!isCloud) return
       const next = {
         ...company,
         external_audit_status: auditStatus,
@@ -302,6 +456,12 @@ export default function SuperAdminAccountDetailPage() {
                       <span className="saad-type">{company.account_type}</span>
                     </>
                   )}
+                  {isLocal && (
+                    <>
+                      {' · '}
+                      <span className="saad-type">Local registry</span>
+                    </>
+                  )}
                 </p>
               </div>
             </header>
@@ -310,8 +470,9 @@ export default function SuperAdminAccountDetailPage() {
               <section className="saad-card saad-card-wide">
                 <h2>Account profile (editable)</h2>
                 <p className="saad-muted">
-                  Superadmin can correct buyer and user company data for sourcing geo accuracy.
-                  Changes sync to the platform company record and the local account registry.
+                  {isLocal
+                    ? 'This manufacturer is stored in the local account registry (no cloud company UUID yet). Edits save locally and feed Intelligent Sourcing.'
+                    : 'Superadmin can correct buyer and user company data for sourcing geo accuracy. Changes sync to the platform company record and the local account registry.'}
                 </p>
                 <div className="saad-form-grid">
                   <label className="saad-field">
@@ -437,9 +598,10 @@ export default function SuperAdminAccountDetailPage() {
 
               <section className="saad-card">
                 <h2>Attachments</h2>
-                {attachments.length === 0 && <p className="saad-muted">No files.</p>}
+                {isLocal && <p className="saad-muted">Cloud attachments require a linked company UUID.</p>}
+                {!isLocal && attachments.length === 0 && <p className="saad-muted">No files.</p>}
                 <ul className="saad-files">
-                  {attachments.map((a) => (
+                  {!isLocal && attachments.map((a) => (
                     <li key={a.id || a.path}>
                       <span className="saad-fname">{a.name || a.path}</span>
                       <span className="saad-fslot">{PROFILE_ATTACHMENT_SLOT_LABELS[a.profile_slot] || a.profile_slot || 'other'}</span>
@@ -460,7 +622,11 @@ export default function SuperAdminAccountDetailPage() {
 
               <section className="saad-card">
                 <h2>Users (profiles)</h2>
-                {profiles.length === 0 && <p className="saad-muted">No linked profiles.</p>}
+                {profiles.length === 0 && (
+                  <p className="saad-muted">
+                    {isLocal ? 'No cloud profiles linked to this local account yet.' : 'No linked profiles.'}
+                  </p>
+                )}
                 <ul className="saad-profiles">
                   {profiles.map((p) => (
                     <li key={p.id}>
@@ -475,8 +641,8 @@ export default function SuperAdminAccountDetailPage() {
               <section className="saad-card saad-card-wide">
                 <h2>External audit (verified seller / provider)</h2>
                 <p className="saad-muted">
-                  When status is <strong>Passed</strong>, the company receives the verified label and visibility tier
-                  is set to <code>verified</code> (after save).
+                  When status is <strong>Passed</strong>, the company receives the verified label
+                  {isLocal ? ' in the local registry' : ' and visibility tier is set to verified (after save)'}.
                 </p>
                 <label className="saad-field">
                   Audit status
@@ -498,7 +664,7 @@ export default function SuperAdminAccountDetailPage() {
                   />
                 </label>
                 <button type="button" className="saad-primary" disabled={saving} onClick={() => void saveAudit()}>
-                  {saving ? 'Saving…' : 'Save audit & recompute visibility'}
+                  {saving ? 'Saving…' : isLocal ? 'Save audit (local)' : 'Save audit & recompute visibility'}
                 </button>
               </section>
             </div>
