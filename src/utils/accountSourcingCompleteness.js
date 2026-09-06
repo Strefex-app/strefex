@@ -25,8 +25,17 @@ function hasValue(account, field) {
 }
 
 function isSellerLike(account) {
-  const type = String(account?.accountType || '').toLowerCase()
-  return type === 'seller' || type === 'service_provider'
+  const types = new Set()
+  const primary = String(account?.accountType || account?.account_type || '').toLowerCase()
+  if (primary) types.add(primary)
+  const arr = account?.accountTypes || account?.account_types
+  if (Array.isArray(arr)) {
+    arr.forEach((t) => {
+      const id = String(t || '').toLowerCase()
+      if (id) types.add(id)
+    })
+  }
+  return types.has('seller') || types.has('service_provider')
 }
 
 function hasUsableCoordinates(coords) {
@@ -107,12 +116,19 @@ export function describeSourcingGaps(gaps) {
 
 function manufacturerDirectoryRow(account) {
   const ensured = ensureSourcingFieldPlaceholders(account)
+  const accountType = (() => {
+    const types = Array.isArray(ensured.accountTypes) ? ensured.accountTypes : []
+    if (types.includes('seller')) return 'seller'
+    if (types.includes('service_provider')) return 'service_provider'
+    return ensured.accountType || 'seller'
+  })()
   return {
     id: ensured.id,
     email: ensured.email || '',
     company: ensured.company || ensured.name || '',
     contactName: ensured.contactName || '',
-    accountType: ensured.accountType || 'seller',
+    accountType,
+    accountTypes: Array.isArray(ensured.accountTypes) ? ensured.accountTypes : [accountType],
     status: ensured.status || 'active',
     country: ensured.country || '',
     city: ensured.city || '',

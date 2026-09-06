@@ -3441,13 +3441,19 @@ transitFor(sup) {
 
     /* ── step 5 ── */
     const catSuppliers = sub ? sub.suppliers : cat ? cat.suppliers : 86;
-    /* only verified, published accounts are visible to the buyer — stages 1–4 are invisible */
+    /* only verified, published accounts are visible to the buyer — stages 1–4 are invisible.
+       Platform-registered suppliers set published explicitly; fall back to stage / source. */
     const registry = dd.SUPPLIERS || [];
-    const all = registry.filter(x => x.published);
-    const hidden = registry.filter(x => !x.published);
+    const all = registry.filter(x => {
+      if (x.published === true) return true;
+      if (x.published === false) return false;
+      if (typeof x.stage === "number") return x.stage >= 5;
+      return x.source === "registered";
+    });
+    const hidden = registry.filter(x => all.indexOf(x) < 0);
     /* a supplier list only ever contains suppliers that serve this industry — the subset
        rotates through that pool by hash so late entries are reachable, never truncated */
-    const pool = all.filter(x => x.industries.indexOf(industryName) >= 0);
+    const pool = all.filter(x => (x.industries || []).indexOf(industryName) >= 0);
     let sups = pool;
     if (sub && pool.length) {
       let h = 0;

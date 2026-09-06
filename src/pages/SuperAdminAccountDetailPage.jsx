@@ -625,6 +625,7 @@ export default function SuperAdminAccountDetailPage() {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+          visibilityTier: company.visibility_tier || company.visibilityTier || undefined,
         }
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
         if (!updatedLocal && emailKey) {
@@ -647,25 +648,39 @@ export default function SuperAdminAccountDetailPage() {
           updateAccount,
           tenant: null,
         })
-        if (form.contactProfileId && isSupabaseConfigured) {
+        if (isSupabaseConfigured) {
           try {
-            const existingProfile = profiles.find((p) => p.id === form.contactProfileId)
-            await profilesService.updateProfilePrivileged({
-              id: form.contactProfileId,
-              full_name: form.contactName.trim() || null,
-              phone: form.contactPhone.trim() || null,
-              metadata: {
-                ...(existingProfile?.metadata || company.metadata || {}),
-                account_type: primaryAccountType,
-                account_types: nextAccountTypes,
-                industries: nextIndustries,
-                categories: nextCategories,
-                product_categories: nextProductCategories,
-                equipment_subcategories: nextEquipmentSubcategories,
-                product_subcategories: nextProductSubcategories,
-                service_categories: nextServiceCategories,
-              },
-            })
+            let profileId = form.contactProfileId || company._profileId || ''
+            if (!profileId && emailKey) {
+              const row = await profilesService.getByEmailWithCompany(emailKey)
+              profileId = row?.id || ''
+            }
+            if (profileId) {
+              const existingProfile = profiles.find((p) => p.id === profileId)
+                || (await profilesService.getByIdWithCompany(profileId))
+              const linkCompanyId = UUID_RE.test(String(company.id || ''))
+                ? String(company.id)
+                : (UUID_RE.test(String(updatedLocal.companyId || ''))
+                  ? String(updatedLocal.companyId)
+                  : null)
+              await profilesService.updateProfilePrivileged({
+                id: profileId,
+                ...(linkCompanyId ? { company_id: linkCompanyId } : {}),
+                full_name: form.contactName.trim() || null,
+                phone: form.contactPhone.trim() || null,
+                metadata: {
+                  ...(existingProfile?.metadata || company.metadata || {}),
+                  account_type: primaryAccountType,
+                  account_types: nextAccountTypes,
+                  industries: nextIndustries,
+                  categories: nextCategories,
+                  product_categories: nextProductCategories,
+                  equipment_subcategories: nextEquipmentSubcategories,
+                  product_subcategories: nextProductSubcategories,
+                  service_categories: nextServiceCategories,
+                },
+              })
+            }
           } catch {
             /* profile privileged update may be restricted */
           }
@@ -712,11 +727,28 @@ export default function SuperAdminAccountDetailPage() {
       const updated = await companiesService.update(companyId, companyPayload)
       setCompany(updated)
 
-      if (form.contactProfileId) {
-        try {
-          const existingProfile = profiles.find((p) => p.id === form.contactProfileId)
+      let profileSyncWarning = ''
+      try {
+        let profileId = form.contactProfileId || ''
+        let existingProfile = profiles.find((p) => p.id === profileId) || null
+        if (!profileId && emailKey) {
+          const row = await profilesService.getByEmailWithCompany(emailKey)
+          if (row?.id) {
+            profileId = row.id
+            existingProfile = row
+          }
+        }
+        if (!profileId && profiles[0]?.id) {
+          profileId = profiles[0].id
+          existingProfile = profiles[0]
+        }
+        if (profileId) {
+          if (!existingProfile) {
+            existingProfile = await profilesService.getByIdWithCompany(profileId)
+          }
           await profilesService.updateProfilePrivileged({
-            id: form.contactProfileId,
+            id: profileId,
+            company_id: companyId,
             full_name: form.contactName.trim() || null,
             phone: form.contactPhone.trim() || null,
             metadata: {
@@ -731,29 +763,49 @@ export default function SuperAdminAccountDetailPage() {
               service_categories: nextServiceCategories,
             },
           })
-          setProfiles((prev) => prev.map((p) => (
-            p.id === form.contactProfileId
-              ? {
-                ...p,
+          setProfiles((prev) => {
+            const nextMeta = {
+              account_type: primaryAccountType,
+              account_types: nextAccountTypes,
+              industries: nextIndustries,
+              categories: nextCategories,
+              product_categories: nextProductCategories,
+              equipment_subcategories: nextEquipmentSubcategories,
+              product_subcategories: nextProductSubcategories,
+              service_categories: nextServiceCategories,
+            }
+            const found = prev.some((p) => p.id === profileId)
+            if (!found) {
+              return [{
+                id: profileId,
                 full_name: form.contactName.trim(),
                 phone: form.contactPhone.trim(),
-                metadata: {
-                  ...(p.metadata || {}),
-                  account_type: primaryAccountType,
-                  account_types: nextAccountTypes,
-                  industries: nextIndustries,
-                  categories: nextCategories,
-                  product_categories: nextProductCategories,
-                  equipment_subcategories: nextEquipmentSubcategories,
-                  product_subcategories: nextProductSubcategories,
-                  service_categories: nextServiceCategories,
-                },
-              }
-              : p
-          )))
-        } catch {
-          /* privileged update may be restricted; company save still applies */
+                company_id: companyId,
+                email: emailKey || form.email,
+                metadata: { ...(existingProfile?.metadata || {}), ...nextMeta },
+              }, ...prev]
+            }
+            return prev.map((p) => (
+              p.id === profileId
+                ? {
+                  ...p,
+                  full_name: form.contactName.trim(),
+                  phone: form.contactPhone.trim(),
+                  company_id: companyId,
+                  metadata: {
+                    ...(p.metadata || {}),
+                    ...nextMeta,
+                  },
+                }
+                : p
+            ))
+          })
+          setForm((prev) => ({ ...prev, contactProfileId: profileId }))
         }
+      } catch (profileErr) {
+        profileSyncWarning = profileErr?.message
+          ? ` Company saved; profile sync failed: ${profileErr.message}`
+          : ' Company saved; profile directory sync failed.'
       }
 
       if (emailKey) {
@@ -770,6 +822,9 @@ export default function SuperAdminAccountDetailPage() {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+          companyId,
+          visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
+          plan: form.plan || company.plan || 'start',
         })
         if (!existing) {
           registerAccount({
@@ -789,6 +844,7 @@ export default function SuperAdminAccountDetailPage() {
             equipmentSubcategories: nextEquipmentSubcategories,
             productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
+            visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
           })
         }
       }
@@ -803,7 +859,7 @@ export default function SuperAdminAccountDetailPage() {
         })
       }
 
-      setSavedMsg('Account profile saved.')
+      setSavedMsg(`Account profile saved.${profileSyncWarning}`)
       await load()
     } catch (e) {
       setError(e?.message || 'Failed to save account profile.')

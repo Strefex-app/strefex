@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { PLANS, getPlanById, BUYER_TRIAL_DAYS } from '../services/stripeService'
 import { PROMO_CODES } from '../services/featureFlags'
@@ -317,12 +317,61 @@ function MiniBarChart({ items, maxVal }) {
   )
 }
 
+function hasCategoryMap(map) {
+  return Boolean(map && typeof map === 'object' && Object.keys(map).length)
+}
+
+function countCategorySelections(categories, productCategories, serviceCategories = []) {
+  const eq = Object.values(categories || {}).flat().filter(Boolean).length
+  const prod = Object.values(productCategories || {}).flat().filter(Boolean).length
+  const svc = Array.isArray(serviceCategories) ? serviceCategories.filter(Boolean).length : 0
+  return eq + prod + svc
+}
+
+/** Prefer non-empty registry fields after SuperAdmin edits (localStorage) over stale directory rows. */
+function overlayRegistryOntoStub(stub, reg) {
+  if (!reg) return stub
+  const regIndustries = Array.isArray(reg.industries) ? reg.industries.filter(Boolean) : []
+  const regCategories = hasCategoryMap(reg.categories) ? reg.categories : null
+  const regProduct = hasCategoryMap(reg.productCategories || reg.product_categories)
+    ? (reg.productCategories || reg.product_categories)
+    : null
+  const regService = Array.isArray(reg.serviceCategories || reg.service_categories)
+    ? (reg.serviceCategories || reg.service_categories)
+    : null
+  const regVisibility = reg.visibilityTier || reg.visibility_tier || null
+  const teamUsers = 1 + (Array.isArray(reg.teamMembers) ? reg.teamMembers.length : 0)
+  return {
+    ...stub,
+    company: stub.company || reg.company || reg.companyName || '',
+    name: stub.name || reg.name || reg.contactName || stub.contactName,
+    contactName: stub.contactName || reg.contactName || reg.name,
+    accountType: reg.accountType || stub.accountType,
+    accountTypes: Array.isArray(reg.accountTypes) && reg.accountTypes.length
+      ? reg.accountTypes
+      : stub.accountTypes,
+    plan: reg.plan || stub.plan,
+    industries: regIndustries.length ? regIndustries : stub.industries,
+    categories: regCategories || stub.categories,
+    productCategories: regProduct || stub.productCategories,
+    serviceCategories: (regService && regService.length) ? regService : stub.serviceCategories,
+    visibilityTier: regVisibility || stub.visibilityTier,
+    users: Math.max(Number(stub.users || 0), Number(reg.users || 0), teamUsers),
+    companyId: stub.companyId || reg.companyId || reg.company_id || null,
+    _registryOverlay: true,
+  }
+}
+
 function profileRowToAccountStub(p) {
   const coRaw = p?.companies
   const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
   const md = p?.metadata && typeof p.metadata === 'object' ? p.metadata : {}
   const coMd = co?.metadata && typeof co.metadata === 'object' ? co.metadata : {}
-  const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
+  const types = Array.isArray(md.account_types) && md.account_types.length
+    ? md.account_types
+    : Array.isArray(coMd.account_types) && coMd.account_types.length
+      ? coMd.account_types
+      : [md.account_type || coMd.account_type || co?.account_type].filter(Boolean)
   const accountType = types[0] || co?.account_type || 'seller'
   const industries = Array.isArray(md.industries) && md.industries.length
     ? md.industries
@@ -330,7 +379,9 @@ function profileRowToAccountStub(p) {
       ? coMd.industries
       : md.industry
         ? [md.industry]
-        : []
+        : coMd.industry
+          ? [coMd.industry]
+          : []
   const contactEmail =
     String(p.email || co?.email || '')
       .trim()
@@ -340,28 +391,38 @@ function profileRowToAccountStub(p) {
   const categories = (md.categories && typeof md.categories === 'object' && Object.keys(md.categories).length)
     ? md.categories
     : (coMd.categories && typeof coMd.categories === 'object' ? coMd.categories : {})
+  const productCategories = (md.product_categories && typeof md.product_categories === 'object' && Object.keys(md.product_categories).length)
+    ? md.product_categories
+    : (coMd.product_categories && typeof coMd.product_categories === 'object' ? coMd.product_categories : {})
   const serviceCategories = Array.isArray(md.service_categories) && md.service_categories.length
     ? md.service_categories
     : (Array.isArray(coMd.service_categories) ? coMd.service_categories : [])
+  const dirSnap = coMd.profile_directory && typeof coMd.profile_directory === 'object'
+    ? coMd.profile_directory
+    : null
+  const visibilityTier =
+    co?.visibility_tier
+    || dirSnap?.visibilityTier
+    || md.visibility_tier
+    || null
   return {
     id: p.id,
     companyId,
     registrationCode: co?.registration_code || null,
-    visibilityTier: co?.visibility_tier || null,
+    visibilityTier,
     email: contactEmail,
     company: co?.name || md.company_name || '',
     contactName: p.full_name,
     fullName: p.full_name,
     phone: p.phone || co?.phone || '',
     accountType,
-    accountTypes: Array.isArray(md.account_types) && md.account_types.length
-      ? md.account_types
-      : [accountType],
+    accountTypes: Array.isArray(types) && types.length ? types : [accountType],
     plan: co?.plan || 'start',
     status: co?.status === 'active' ? 'active' : p.status || 'active',
     registeredAt: p.created_at || new Date().toISOString(),
     industries,
     categories,
+    productCategories,
     serviceCategories,
     auditorDocuments: md.auditor_documents || '',
     auditorVerificationStatus: md.auditor_verification_status || null,
@@ -401,6 +462,7 @@ function profilesToPlatformUserRows(rows) {
  * ═══════════════════════════════════════════════════════ */
 export default function SuperAdminDashboard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [accounts] = useState(loadDemoAccounts)
   const [tab, setTab] = useState('overview')     // overview | accounts | security | transactions | service-requests | roles | rfq-analytics | feature-grants
   const [search, setSearch] = useState('')
@@ -440,27 +502,21 @@ export default function SuperAdminDashboard() {
     }
   }, [])
 
-  useEffect(() => {
-    rehydrateRegistryFromStorage()
-  }, [rehydrateRegistryFromStorage])
-
-  useEffect(() => {
+  const reloadProfileDirectory = useCallback(() => {
     if (authRole !== 'superadmin' && authRole !== 'auditor_external') return
     if (!isSupabaseConfigured) return
     let cancelled = false
     setProfilesDbLoading(true)
     void fetchProfileDirectoryPage(0)
       .then(({ rows, hasMore }) => {
-        if (!cancelled) {
-          setSupabaseProfileRows(rows)
-          setProfilesDbHasMore(hasMore)
-        }
+        if (cancelled) return
+        setSupabaseProfileRows(rows)
+        setProfilesDbHasMore(hasMore)
       })
       .catch(() => {
-        if (!cancelled) {
-          setSupabaseProfileRows([])
-          setProfilesDbHasMore(false)
-        }
+        if (cancelled) return
+        setSupabaseProfileRows([])
+        setProfilesDbHasMore(false)
       })
       .finally(() => {
         if (!cancelled) setProfilesDbLoading(false)
@@ -469,6 +525,23 @@ export default function SuperAdminDashboard() {
       cancelled = true
     }
   }, [authRole, fetchProfileDirectoryPage])
+
+  useEffect(() => {
+    rehydrateRegistryFromStorage()
+  }, [rehydrateRegistryFromStorage])
+
+  useEffect(() => {
+    const cancel = reloadProfileDirectory()
+    return typeof cancel === 'function' ? cancel : undefined
+  }, [reloadProfileDirectory, location.key])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') reloadProfileDirectory()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [reloadProfileDirectory])
 
   const loadMoreProfilesFromDb = useCallback(() => {
     if (!isSupabaseConfigured || profilesDbLoading || !profilesDbHasMore) return
@@ -545,13 +618,37 @@ export default function SuperAdminDashboard() {
   ), [featureGrants])
 
   const normalizedAccounts = useMemo(() => {
-    const fromDb = supabaseProfileRows.map(profileRowToAccountStub)
-    // With Supabase, the directory is Postgres only — excludes local demo
-    // (strefex-admin-accounts) and client registry fillers (market / Add Supplier, etc.).
-    const merged =
-      isSupabaseConfigured
-        ? fromDb
-        : [...accounts, ...registryAccounts, ...fromDb]
+    const usersByCompany = new Map()
+    for (const p of supabaseProfileRows) {
+      const cid = p?.company_id
+      if (!cid) continue
+      usersByCompany.set(cid, (usersByCompany.get(cid) || 0) + 1)
+    }
+
+    const fromDb = supabaseProfileRows.map((p) => {
+      const stub = profileRowToAccountStub(p)
+      const cid = stub.companyId
+      stub.users = cid
+        ? (usersByCompany.get(cid) || 1)
+        : 1
+      return stub
+    })
+
+    const registryByEmail = new Map()
+    for (const r of registryAccounts || []) {
+      const email = String(r?.email || '').trim().toLowerCase()
+      if (email) registryByEmail.set(email, r)
+    }
+
+    // With Supabase: directory is Postgres, but overlay local registry so SuperAdmin
+    // edits (and profiles missing company joins) still show industries / categories.
+    const merged = isSupabaseConfigured
+      ? fromDb.map((stub) => {
+        const email = String(stub.email || '').trim().toLowerCase()
+        const reg = email ? registryByEmail.get(email) : null
+        return reg ? overlayRegistryOntoStub(stub, reg) : stub
+      })
+      : [...accounts, ...registryAccounts, ...fromDb]
     const dedup = new Map()
     let seq = 0
     for (const a of merged) {
@@ -577,6 +674,9 @@ export default function SuperAdminDashboard() {
               ? [a.industry]
               : [],
         categories: a.categories || {},
+        productCategories: a.productCategories || a.product_categories || {},
+        serviceCategories: a.serviceCategories || a.service_categories || [],
+        visibilityTier: a.visibilityTier || a.visibility_tier || null,
         users: Number(a.users || 0),
         projects: Number(a.projects || 0),
         auditorDocuments: a.auditorDocuments || a.metadata?.auditor_documents || '',
@@ -592,17 +692,32 @@ export default function SuperAdminDashboard() {
       }
       const prevIsUuid = String(prev.id || '').length === 36 && !String(prev.id).startsWith('pending')
       const nextIsUuid = String(row.id || '').length === 36 && !String(row.id).startsWith('pending')
-      const merged =
+      const mergedRow =
         nextIsUuid && !prevIsUuid
           ? { ...prev, ...row, id: row.id }
           : { ...row, ...prev, id: prevIsUuid ? prev.id : row.id }
 
-      merged.registrationCode = mergeRegistrationPreference(
+      // Keep richer industry / category / visibility from either side after dedup.
+      if (!(mergedRow.industries || []).length && (row.industries || []).length) {
+        mergedRow.industries = row.industries
+      }
+      if (!hasCategoryMap(mergedRow.categories) && hasCategoryMap(row.categories)) {
+        mergedRow.categories = row.categories
+      }
+      if (!hasCategoryMap(mergedRow.productCategories) && hasCategoryMap(row.productCategories)) {
+        mergedRow.productCategories = row.productCategories
+      }
+      if (!mergedRow.visibilityTier && row.visibilityTier) {
+        mergedRow.visibilityTier = row.visibilityTier
+      }
+      mergedRow.users = Math.max(Number(mergedRow.users || 0), Number(row.users || 0), Number(prev.users || 0))
+
+      mergedRow.registrationCode = mergeRegistrationPreference(
         coerceAccountRegistrationCode(prev),
         coerceAccountRegistrationCode(row),
       )
 
-      dedup.set(key, merged)
+      dedup.set(key, mergedRow)
     }
     return [...dedup.values()].map((acct) => {
       const fromRow = coerceAccountRegistrationCode(acct)
@@ -1272,7 +1387,9 @@ export default function SuperAdminDashboard() {
                     </div>
                   </td>
                   <td>
-                    <span className="sad-equip-count">{Object.values(a.categories || {}).flat().length} cat.</span>
+                    <span className="sad-equip-count">
+                      {countCategorySelections(a.categories, a.productCategories, a.serviceCategories)} cat.
+                    </span>
                   </td>
                   <td className="sad-cell-num">{a.users}</td>
                   <td className="sad-cell-num">{a.projects}</td>

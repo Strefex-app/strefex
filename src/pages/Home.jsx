@@ -373,6 +373,8 @@ export default function Home() {
         coordinates: coords,
         country: a.country || '—',
         city: a.city || '—',
+        industries: Array.isArray(a.industries) ? a.industries : [],
+        categories: a.categories && typeof a.categories === 'object' ? a.categories : {},
         rating: a.rating ?? 0,
         riskLevel: a.riskLevel ?? 50,
         fitLevel: a.fitLevel ?? 50,

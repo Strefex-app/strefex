@@ -59,4 +59,32 @@ describe('companyProfileVisibilityService', () => {
     })
     expect(u.visibility_tier).toBe(VISIBILITY_TIER.VERIFIED)
   })
+
+  it('reads industries from metadata when top-level industries missing', () => {
+    const snap = evaluateCompanyProfileDirectory({
+      account_type: 'seller',
+      name: 'ACME GmbH',
+      address: '123 Industrial Way, Suite 400',
+      country: 'Germany',
+      city: 'Munich',
+      email: 'sales@acme.com',
+      phone: '+49891234567',
+      website: 'https://acme.com',
+      metadata: {
+        company_summary: 'x'.repeat(45),
+        industries: ['automotive'],
+      },
+      profile_attachments: [
+        {
+          id: '1',
+          path: 'c/p/a.pdf',
+          name: 'deck.pdf',
+          mime_type: 'application/pdf',
+          profile_slot: PROFILE_ATTACHMENT_SLOT.COMPANY_PRESENTATION,
+        },
+      ],
+    })
+    expect(snap.mandatory.industries).toBe(true)
+    expect(snap.mandatoryComplete).toBe(true)
+  })
 })

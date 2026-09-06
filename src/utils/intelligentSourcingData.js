@@ -79,6 +79,27 @@ function countryCodeFromName(country) {
   return map[c.toLowerCase()] || 'XX'
 }
 
+function flattenCategoryIds(map) {
+  if (!map || typeof map !== 'object') return []
+  return [...new Set(Object.values(map).flat().filter(Boolean).map(String))]
+}
+
+function flattenSubcategoryIds(nested) {
+  if (!nested || typeof nested !== 'object') return []
+  const out = []
+  Object.values(nested).forEach((byParent) => {
+    if (!byParent || typeof byParent !== 'object') return
+    Object.entries(byParent).forEach(([parentId, list]) => {
+      if (parentId) out.push(String(parentId))
+      if (!Array.isArray(list)) return
+      list.forEach((id) => {
+        if (id && id !== '*') out.push(String(id))
+      })
+    })
+  })
+  return [...new Set(out)]
+}
+
 /**
  * @param {object} account registry seller / service provider
  */
@@ -94,10 +115,24 @@ export function accountToSourcingSupplier(account) {
   const certs = Array.isArray(account.certifications) ? account.certifications : []
   const incomplete = !account.country || !account.city || !(account.industries || []).length
   const isService = account.accountType === 'service_provider'
+    || (Array.isArray(account.accountTypes) && account.accountTypes.includes('service_provider')
+      && !account.accountTypes.includes('seller'))
   const serviceCat = Array.isArray(account.serviceCategories) ? account.serviceCategories[0] : ''
   const lead = isService
     ? (account.leadTimeDays || serviceEngagementDays(serviceCat || 'audit', name))
     : (account.leadTimeDays || Math.round(20 + hash01(`${name}|lead`) * 50))
+  const categoryIds = [
+    ...flattenCategoryIds(account.categories),
+    ...flattenCategoryIds(account.productCategories || account.product_categories),
+    ...(Array.isArray(account.serviceCategories) ? account.serviceCategories.map(String) : []),
+  ]
+  const subcategoryIds = [
+    ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories),
+    ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories),
+  ]
+  /* stage 5+ is buyer-visible on the Intelligent Sourcing map; mirror mock dataset rule */
+  const stage = incomplete ? 4 : 6
+  const published = account.published === true || stage >= 5
   return {
     name,
     city: account.city || '—',
@@ -119,7 +154,10 @@ export function accountToSourcingSupplier(account) {
     tariff: 'None',
     tier2: incomplete ? 'Unknown' : 'Partial',
     industries: industryLabelsForAccount(account),
-    stage: incomplete ? 4 : 6,
+    categoryIds,
+    subcategoryIds,
+    stage,
+    published,
     platformId: account.id || null,
     source: 'registered',
     incomplete: !!incomplete,

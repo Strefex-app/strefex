@@ -29,12 +29,28 @@ describe('intelligentSourcingData', () => {
       city: 'Stuttgart',
       industries: ['automotive'],
       accountType: 'seller',
+      categories: { automotive: ['mold-makers'] },
     })
     expect(row.name).toBe('Test Forge')
     expect(row.cc).toBe('DE')
     expect(typeof row.lat).toBe('number')
     expect(typeof row.lon).toBe('number')
     expect(row.platformId).toBe('a1')
+    expect(row.published).toBe(true)
+    expect(row.stage).toBe(6)
+    expect(row.industries).toContain('Automotive')
+    expect(row.categoryIds).toContain('mold-makers')
+  })
+
+  it('keeps incomplete profiles unpublished until geo + industry are set', () => {
+    const row = accountToSourcingSupplier({
+      id: 'a2',
+      company: 'Bare Co',
+      accountType: 'seller',
+      industries: [],
+    })
+    expect(row.published).toBe(false)
+    expect(row.stage).toBe(4)
   })
 
   it('uses buyer account location as receiving plant when present', () => {
@@ -81,6 +97,14 @@ describe('accountSourcingCompleteness', () => {
     expect(gaps).toEqual(expect.arrayContaining(['country', 'city', 'address', 'industries']))
     expect(accountVisibleOnSourcingMap({ accountType: 'seller', country: '' })).toBe(false)
     expect(accountVisibleOnSourcingMap({ accountType: 'seller', country: 'DE' })).toBe(true)
+  })
+
+  it('treats dual-role accounts with seller as map-eligible', () => {
+    expect(accountVisibleOnSourcingMap({
+      accountType: 'buyer',
+      accountTypes: ['buyer', 'seller'],
+      country: 'Germany',
+    })).toBe(true)
   })
 
   it('publishes visible sellers into the shared manufacturer directory', () => {

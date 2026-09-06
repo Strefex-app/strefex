@@ -64,7 +64,9 @@ export function evaluateCompanyProfileDirectory(company) {
     }
   }
 
-  const industries = Array.isArray(company?.industries) ? company.industries : []
+  const industries = Array.isArray(company?.industries) && company.industries.length
+    ? company.industries
+    : (Array.isArray(md.industries) ? md.industries : [])
   const summary = norm(md.company_summary)
   const addrLine = norm(company?.address || md.address)
   const geoOk = norm(company?.country) && norm(company?.city)
