@@ -49,6 +49,11 @@
   pointer-events: none;
 }
 
+.map-supplier-label {
+  letter-spacing: 0.04em;
+  opacity: 0.92;
+}
+
 .map-lane-label {
   font-family: var(--font-sans);
   pointer-events: none;

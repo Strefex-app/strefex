@@ -409,6 +409,18 @@ const WorldMap = ({
                         strokeWidth={isSelected || isHovered ? 2.6 : 1.6}
                         className={`map-marker map-marker--executive ${isSelected ? 'selected' : ''}`}
                       />
+                      {label ? (
+                        <text
+                          y={labelDy}
+                          textAnchor="middle"
+                          className="map-plant-label map-supplier-label"
+                          fill={palette.plantLabel}
+                        >
+                          {String(label).length > 18
+                            ? `${String(label).slice(0, 16).trim().toUpperCase()}…`
+                            : String(label).toUpperCase()}
+                        </text>
+                      ) : null}
                     </>
                   )}
                 </Marker>

@@ -108,7 +108,7 @@ export default function ProductExecutiveSummary() {
       })
       .map((a) => ({
         id: a.id,
-        name: a.company || a.contactName || a.email || 'Supplier',
+        name: a.company || a.companyName || a.contactName || a.name || a.email || 'Supplier',
         email: a.email || '',
         country: a.country || '',
         city: a.city || '',

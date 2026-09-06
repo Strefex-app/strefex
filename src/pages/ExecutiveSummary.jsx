@@ -182,16 +182,22 @@ const ExecutiveSummary = () => {
     // Convert registered sellers to the same shape, avoiding duplicates by company name
     const staticNames = new Set(staticSuppliers.map((s) => s.name.toLowerCase()))
     const fromRegistry = registeredSellers
-      .filter((a) => !staticNames.has(a.company.toLowerCase()))
+      .filter((a) => {
+        const key = String(a.company || a.companyName || a.email || '').toLowerCase()
+        return key && !staticNames.has(key)
+      })
       .map((a) => ({
         id: a.id,
-        name: a.company,
+        name: a.company || a.companyName || a.contactName || a.name || a.email || 'Supplier',
         country: a.country || '—',
         city: a.city || '—',
         address: a.address || '',
         coordinates: a.coordinates || null,
         industries: a.industries || [],
-        categories: Object.values(a.categories || {}).flat(),
+        categories: [
+          ...Object.values(a.categories || {}).flat(),
+          ...Object.values(a.productCategories || {}).flat(),
+        ],
         source: 'registered',
         rating: a.rating ?? 0,
         riskLevel: a.riskLevel ?? 50,
@@ -244,7 +250,7 @@ const ExecutiveSummary = () => {
         const coords = approximateFor(a)
         return {
           id: a.id,
-          name: a.company || a.name || 'Supplier',
+          name: a.company || a.companyName || a.name || a.contactName || 'Supplier',
           coordinates: coords,
           country: a.country || '—',
           city: a.city || '—',

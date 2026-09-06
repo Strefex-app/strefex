@@ -21,6 +21,21 @@
     });
   }
 
+  function escapeXml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function shortLabel(name) {
+    var raw = String(name || "").trim();
+    if (!raw) return "";
+    if (raw.length <= 18) return raw;
+    return raw.slice(0, 16).trim() + "…";
+  }
+
   var TONE = {
     low: { fill: "#5FB85C", ring: "rgba(95,184,92,.25)" },
     medium: { fill: "#E0A23B", ring: "rgba(224,162,59,.25)" },
@@ -74,8 +89,6 @@
       var host = this;
       var all = (window.SOURCING_DATA && window.SOURCING_DATA.SUPPLIERS) || [];
       var only = (this.getAttribute("names") || "").split("|").filter(function (n) { return n; });
-      var data = only.length ? all.filter(function (s) { return only.indexOf(s.name) >= 0; }) : all;
-
       var metric = this.getAttribute("metric") || "risk";
       var focusKey = this.getAttribute("focus") || "all";
       var highlight = this.getAttribute("highlight") || "";
@@ -86,6 +99,44 @@
       var buyer = this.json("buyer", null);
       var laneBy = {};
       lanes.forEach(function (l) { laneBy[l.name] = l; });
+
+      function findSupplier(nm) {
+        var lower = String(nm || "").toLowerCase();
+        if (!lower) return null;
+        for (var i = 0; i < all.length; i += 1) {
+          if (String(all[i].name || "").toLowerCase() === lower) return all[i];
+        }
+        return null;
+      }
+
+      /* Prefer lanes (name + lat/lon from the host list) so renamed/registered plants
+         still pin even when SOURCING_DATA name matching is fragile. */
+      var data;
+      if (lanes.length) {
+        data = lanes.map(function (l) {
+          var s = findSupplier(l.name) || {};
+          var lat = l.lat != null ? Number(l.lat) : Number(s.lat);
+          var lon = l.lon != null ? Number(l.lon) : Number(s.lon);
+          return {
+            name: l.name || s.name || "Supplier",
+            city: s.city || "—",
+            cc: s.cc || "—",
+            lat: lat,
+            lon: lon,
+            fit: s.fit != null ? s.fit : 70,
+            risk: s.risk != null ? s.risk : 40,
+            cap: s.cap != null ? s.cap : 70,
+            spend: s.spend != null ? s.spend : 2,
+            lead: l.lead != null ? l.lead : s.lead
+          };
+        }).filter(function (s) {
+          return Number.isFinite(s.lat) && Number.isFinite(s.lon);
+        });
+      } else if (only.length) {
+        data = only.map(findSupplier).filter(Boolean);
+      } else {
+        data = all.slice();
+      }
 
       var W = 1000;
       var proj = d3.geoNaturalEarth1();
@@ -133,27 +184,34 @@
         /* every lane is drawn once in both states; hover only flips opacity, so
            pointing at a pin never triggers a repaint of the 179 land paths */
         var laneLayer = data.map(function (s) {
-          var faint = laneMarkup(s, false), strong = laneMarkup(s, true);
-          if (!faint && !strong) return "";
+          var faint = laneMarkup(s, false), strongMk = laneMarkup(s, true);
+          if (!faint && !strongMk) return "";
           var showFaint = showAll || s.name === highlight;
-          return '<g data-lane="' + s.name + '">' +
+          return '<g data-lane="' + escapeXml(s.name) + '">' +
             '<g data-lane-faint style="opacity:' + (showFaint && s.name !== highlight ? 1 : 0) + '">' + faint + '</g>' +
-            '<g data-lane-strong style="opacity:' + (s.name === highlight ? 1 : 0) + '">' + strong + '</g></g>';
+            '<g data-lane-strong style="opacity:' + (s.name === highlight ? 1 : 0) + '">' + strongMk + '</g></g>';
         }).join("");
         svg.push('<g data-lanes>' + laneLayer + '</g>');
       }
 
-      /* ── pins ── */
+      /* ── pins + company name labels ── */
       data.forEach(function (s) {
         var p = proj([s.lon, s.lat]);
         if (!p) return;
         var t = TONE[toneOf(s, metric)];
-        var r = 5 + Math.sqrt(s.spend) * 2.1;
-        var strong = highlight === s.name;
+        var spend = Number(s.spend);
+        if (!Number.isFinite(spend) || spend < 0) spend = 2;
+        var r = 5 + Math.sqrt(spend) * 2.1;
+        var isStrong = highlight === s.name;
+        var pinLabel = shortLabel(s.name);
         svg.push(
-          '<g data-name="' + s.name + '" style="cursor:pointer">' +
+          '<g data-name="' + escapeXml(s.name) + '" style="cursor:pointer">' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (r + 7).toFixed(1) + '" fill="' + t.ring + '"/>' +
-          '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + t.fill + '" stroke="' + (strong ? "#0A2540" : "#fff") + '" stroke-width="' + (strong ? 2.6 : 1.6) + '"/>' +
+          '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + t.fill + '" stroke="' + (isStrong ? "#0A2540" : "#fff") + '" stroke-width="' + (isStrong ? 2.6 : 1.6) + '"/>' +
+          (pinLabel
+            ? '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] - r - 9).toFixed(1) + '" text-anchor="middle" font-family="\'IBM Plex Sans Condensed\',system-ui" font-weight="600" font-size="11" letter-spacing=".4" fill="#0A2540">' +
+              escapeXml(pinLabel.toUpperCase()) + '</text>'
+            : '') +
           '</g>'
         );
       });
@@ -164,7 +222,7 @@
         if (b) svg.push(
           '<g><rect x="' + (b[0] - 7).toFixed(1) + '" y="' + (b[1] - 7).toFixed(1) + '" width="14" height="14" rx="2" fill="#0A2540" stroke="#fff" stroke-width="2"/>' +
           '<text x="' + b[0].toFixed(1) + '" y="' + (b[1] - 13).toFixed(1) + '" text-anchor="middle" font-family="\'IBM Plex Sans Condensed\',system-ui" font-weight="600" font-size="11" letter-spacing="1" fill="#0A2540">' +
-          (buyer.name || "").toUpperCase() + '</text></g>'
+          escapeXml((buyer.name || "").toUpperCase()) + '</text></g>'
         );
       }
       svg.push("</svg>");
@@ -198,10 +256,10 @@
           if (!s) return;
           var l = laneBy[nm] || {};
           tip.innerHTML =
-            '<strong style="font-weight:600">' + s.name + '</strong> · ' + s.city + ', ' + s.cc +
+            '<strong style="font-weight:600">' + escapeXml(s.name) + '</strong> · ' + escapeXml(s.city) + ', ' + escapeXml(s.cc) +
             '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#9DB1C8">' +
-            'lead ' + (l.lead || s.lead) + ' d · transit ' + (l.transit || "—") + ' d ' + (l.mode || "") + '</span>' +
-            '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#fff">delivery ' + (l.eta || "—") +
+            'lead ' + (l.lead || s.lead) + ' d · transit ' + (l.transit || "—") + ' d ' + escapeXml(l.mode || "") + '</span>' +
+            '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#fff">delivery ' + escapeXml(l.eta || "—") +
             ' <span style="color:#9DB1C8">(' + ((l.lead || 0) + (l.transit || 0)) + ' d total, ref)</span></span>' +
             '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#9DB1C8">fit ' + s.fit + ' · risk ' + s.risk + ' · cap ' + s.cap + '%</span>';
           tip.style.opacity = "1";

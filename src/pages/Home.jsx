@@ -369,7 +369,7 @@ export default function Home() {
         })
       return {
         id: a.id,
-        name: a.company || a.name || 'Manufacturer',
+        name: a.company || a.companyName || a.name || a.contactName || 'Manufacturer',
         coordinates: coords,
         country: a.country || '—',
         city: a.city || '—',

@@ -28,6 +28,63 @@ import {
 const REGISTRY_KEY = 'strefex-account-registry'
 const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
 
+function isSellerLikeAccount(account) {
+  const types = new Set()
+  const primary = String(account?.accountType || account?.account_type || '').toLowerCase()
+  if (primary) types.add(primary)
+  const arr = account?.accountTypes || account?.account_types
+  if (Array.isArray(arr)) {
+    arr.forEach((t) => {
+      const id = String(t || '').toLowerCase()
+      if (id) types.add(id)
+    })
+  }
+  return types.has('seller') || types.has('service_provider')
+}
+
+function accountActive(account) {
+  return account && String(account.status || '').toLowerCase() !== 'canceled'
+}
+
+/** Parent equipment / product category membership for an industry. */
+function accountHasCategory(account, industryId, categoryId) {
+  if (!industryId || !categoryId) return false
+  const equipmentCats = account?.categories?.[industryId] || []
+  const productCats = account?.productCategories?.[industryId] || []
+  if (equipmentCats.includes(categoryId) || productCats.includes(categoryId)) return true
+  const eqSubs = account?.equipmentSubcategories?.[industryId]?.[categoryId]
+  const prodSubs = account?.productSubcategories?.[industryId]?.[categoryId]
+  return (Array.isArray(eqSubs) && eqSubs.length > 0)
+    || (Array.isArray(prodSubs) && prodSubs.length > 0)
+}
+
+/**
+ * Match subcategory (process) pages.
+ * Parent selected with no explicit sub list (or '*') = all subcategories under that parent.
+ */
+function accountHasSubcategory(account, industryId, categoryId, subcategoryId) {
+  if (!accountHasCategory(account, industryId, categoryId)
+    && !(account?.industries || []).includes(industryId)) {
+    return false
+  }
+  if (!(account?.industries || []).includes(industryId)) return false
+  if (!accountHasCategory(account, industryId, categoryId)) return false
+  if (!subcategoryId) return true
+
+  const eqSubs = account?.equipmentSubcategories?.[industryId]?.[categoryId] || []
+  const prodSubs = account?.productSubcategories?.[industryId]?.[categoryId] || []
+  if (eqSubs.includes(subcategoryId) || prodSubs.includes(subcategoryId)) return true
+  if (
+    eqSubs.includes('*') || prodSubs.includes('*')
+    || eqSubs.includes('__all__') || prodSubs.includes('__all__')
+  ) {
+    return true
+  }
+  // Parent checked, no specific subs persisted → treat as all processes in that category
+  if (eqSubs.length === 0 && prodSubs.length === 0) return true
+  return false
+}
+
 const sanitizeScope = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9._\-]/g, '')
 
 const getSessionPrimaryAccountType = (user) => {
@@ -428,9 +485,7 @@ export const useAccountRegistry = create((set, get) => ({
   /* ── Queries ──────────────────────────────────────────── */
 
   getRegisteredSellers: (industryId = null) => {
-    let sellers = get().accounts.filter((a) =>
-      (a.accountType === 'seller' || a.accountType === 'service_provider') && a.status !== 'canceled'
-    )
+    let sellers = get().accounts.filter((a) => isSellerLikeAccount(a) && accountActive(a))
     if (industryId) {
       sellers = sellers.filter((a) => (a.industries || []).includes(industryId))
     }
@@ -447,35 +502,27 @@ export const useAccountRegistry = create((set, get) => ({
   },
 
   getSellersByCategory: (industryId, categoryId) => {
-    return get().accounts.filter((a) => {
-      if (!(a.accountType === 'seller' || a.accountType === 'service_provider')) return false
-      if (a.status === 'canceled') return false
-      if (!(a.industries || []).includes(industryId)) return false
-      const equipmentCats = a.categories?.[industryId] || []
-      const productCats = a.productCategories?.[industryId] || []
-      return equipmentCats.includes(categoryId) || productCats.includes(categoryId)
-    })
+    return get().accounts.filter((a) => (
+      isSellerLikeAccount(a)
+      && accountActive(a)
+      && (a.industries || []).includes(industryId)
+      && accountHasCategory(a, industryId, categoryId)
+    ))
   },
 
   getSellersBySubcategory: (industryId, categoryId, subcategoryId) => {
-    return get().accounts.filter((a) => {
-      if (!(a.accountType === 'seller' || a.accountType === 'service_provider')) return false
-      if (a.status === 'canceled') return false
-      if (!(a.industries || []).includes(industryId)) return false
-      const eqSubs = a.equipmentSubcategories?.[industryId]?.[categoryId] || []
-      const prodSubs = a.productSubcategories?.[industryId]?.[categoryId] || []
-      if (subcategoryId) {
-        return eqSubs.includes(subcategoryId) || prodSubs.includes(subcategoryId)
-      }
-      const equipmentCats = a.categories?.[industryId] || []
-      const productCats = a.productCategories?.[industryId] || []
-      return equipmentCats.includes(categoryId) || productCats.includes(categoryId)
-        || eqSubs.length > 0 || prodSubs.length > 0
-    })
+    return get().accounts.filter((a) => (
+      isSellerLikeAccount(a)
+      && accountActive(a)
+      && accountHasSubcategory(a, industryId, categoryId, subcategoryId)
+    ))
   },
 
   getRegisteredServiceProviders: (industryId = null) => {
-    let sps = get().accounts.filter((a) => a.accountType === 'service_provider' && a.status !== 'canceled')
+    let sps = get().accounts.filter((a) => {
+      const types = Array.isArray(a.accountTypes) ? a.accountTypes : [a.accountType]
+      return types.includes('service_provider') && accountActive(a)
+    })
     if (industryId) {
       sps = sps.filter((a) => (a.industries || []).includes(industryId))
     }
@@ -527,12 +574,15 @@ export const useAccountRegistry = create((set, get) => ({
 
   getSellerCountByCategory: (industryId) => {
     const sellers = get().accounts.filter((a) =>
-      (a.accountType === 'seller' || a.accountType === 'service_provider') && a.status !== 'canceled' &&
-      (a.industries || []).includes(industryId)
+      isSellerLikeAccount(a) && accountActive(a) && (a.industries || []).includes(industryId),
     )
     const counts = {}
     sellers.forEach((a) => {
-      (a.categories?.[industryId] || []).forEach((cat) => {
+      const cats = new Set([
+        ...(a.categories?.[industryId] || []),
+        ...(a.productCategories?.[industryId] || []),
+      ])
+      cats.forEach((cat) => {
         counts[cat] = (counts[cat] || 0) + 1
       })
     })

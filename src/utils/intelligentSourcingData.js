@@ -104,7 +104,7 @@ function flattenSubcategoryIds(nested) {
  * @param {object} account registry seller / service provider
  */
 export function accountToSourcingSupplier(account) {
-  const name = account.company || account.name || account.email || 'Supplier'
+  const name = account.company || account.companyName || account.name || account.contactName || account.email || 'Supplier'
   const [lon, lat] = getApproximateLngLatOrFallback({
     country: account.country,
     city: account.city,
