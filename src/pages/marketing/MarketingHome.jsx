@@ -1,7 +1,7 @@
 /**
  * Public www.strefex.pro landing — content lives in public/marketing-site/
- * (ported from the STREFEX Website.html design). Auth CTAs use target=_top
- * to /login and /register.
+ * (ported from STREFEX Website v6.1). Auth CTAs use target=_top to /login,
+ * /register, /register?type=buyer, and /register?type=seller.
  *
  * Loaded via srcDoc (not iframe src) so X-Frame-Options / frame-ancestors
  * cannot blank the landing. Requires vercel rewrite exclusion for
@@ -24,7 +24,12 @@ export default function MarketingHome() {
       .then((html) => {
         if (cancelled) return
         // Guard: SPA rewrite misconfig returns the React shell instead of marketing HTML.
-        if (!html.includes('Strategic Supplier Intelligence') && !html.includes('data-i18n-ui')) {
+        const looksLikeMarketing =
+          html.includes('Manufacturers You Can') ||
+          html.includes('Strategic Supplier Intelligence') ||
+          html.includes('data-i18n-ui') ||
+          html.includes('tForkACta')
+        if (!looksLikeMarketing) {
           throw new Error('Marketing HTML not served (check vercel marketing-site rewrite)')
         }
         const withBase = html.replace(
