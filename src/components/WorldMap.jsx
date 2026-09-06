@@ -126,12 +126,17 @@ export function toneKeyForLocation(loc, metric = 'risk') {
   return 'medium'
 }
 
-function pinRadius(loc) {
+function pinRadius(loc, compact = false) {
   const spend = Number(loc?.spend)
-  if (Number.isFinite(spend) && spend > 0) return 5 + Math.sqrt(spend) * 2.1
-  const count = Number(loc?.count)
-  if (Number.isFinite(count) && count > 1) return 5 + Math.sqrt(count) * 1.4
-  return 6.5
+  let r
+  if (Number.isFinite(spend) && spend > 0) r = 5 + Math.sqrt(spend) * 2.1
+  else {
+    const count = Number(loc?.count)
+    if (Number.isFinite(count) && count > 1) r = 5 + Math.sqrt(count) * 1.4
+    else r = 6.5
+  }
+  /* Phone: keep pins readable after the world map is scaled down */
+  return compact ? Math.max(7.5, r * 1.15) : r
 }
 
 function makeFittedProjection(width, height) {
@@ -155,6 +160,7 @@ function useMapFrameSize(defaultWidth = 800, defaultHeight = 360) {
 
     const update = () => {
       const { width: cw, height: ch } = el.getBoundingClientRect()
+      /* Keep last good size if the frame is momentarily collapsed (common on phone flex). */
       if (cw < 8 || ch < 8) return
       const width = Math.round(cw)
       const height = Math.round(ch)
@@ -166,7 +172,11 @@ function useMapFrameSize(defaultWidth = 800, defaultHeight = 360) {
     update()
     const ro = new ResizeObserver(() => update())
     ro.observe(el)
-    return () => ro.disconnect()
+    window.addEventListener('orientationchange', update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('orientationchange', update)
+    }
   }, [])
 
   return { containerRef, ...size }
@@ -210,11 +220,15 @@ const WorldMap = ({
   fit = null,
 }) => {
   const isExecutive = variant === 'executive' || variant === 'sourcing'
-  const aspect = fit || (isExecutive ? 'xMidYMid slice' : 'xMidYMid meet')
   const palette = useMapPalette()
   const [hoveredMarker, setHoveredMarker] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const { containerRef, width: mapWidth, height: mapHeight } = useMapFrameSize()
+  const narrowMap = mapWidth > 0 && mapWidth < 720
+  /* `slice` crops pins off the sides on phone; `meet` keeps the full world + sellers visible */
+  const aspect = fit || (isExecutive
+    ? (narrowMap ? 'xMidYMid meet' : 'xMidYMid slice')
+    : 'xMidYMid meet')
 
   const displayLocations = locations || defaultLocations
 
@@ -360,8 +374,9 @@ const WorldMap = ({
               const tone = MAP_PIN_TONES[toneKeyForLocation(location, metric)]
               const fill = location.pinColor || (isPlantMarker ? palette.plant : tone.fill)
               const ring = location.pinRing || tone.ring
-              const r = pinRadius(location)
+              const r = pinRadius(location, narrowMap)
               const label = location.label || location.name
+              const showLabel = !narrowMap || isSelected || isHovered || isPlantMarker
               const labelDy = Number.isFinite(Number(location.labelDy))
                 ? Number(location.labelDy)
                 : (isPlantMarker ? ((index % 2 === 0) ? -13 : 22) : -13)
@@ -370,11 +385,16 @@ const WorldMap = ({
                 <Marker
                   key={location.id || index}
                   coordinates={location.coordinates}
-                  onClick={() => onMarkerClick && onMarkerClick(location)}
+                  onClick={() => {
+                    setHoveredMarker(index)
+                    if (onMarkerClick) onMarkerClick(location)
+                  }}
                   onMouseEnter={() => setHoveredMarker(index)}
                   onMouseLeave={() => setHoveredMarker(null)}
                   style={{ cursor: onMarkerClick ? 'pointer' : 'default' }}
                 >
+                  {/* Invisible hit target for finger taps */}
+                  <circle r={Math.max(r + 12, 18)} fill="transparent" />
                   {isPlantMarker ? (
                     <>
                       <rect
@@ -388,7 +408,7 @@ const WorldMap = ({
                         strokeWidth={isSelected || isHovered ? 2.4 : 2}
                         className={`map-marker map-marker--executive ${isSelected ? 'selected' : ''}`}
                       />
-                      {label ? (
+                      {showLabel && label ? (
                         <text
                           y={labelDy}
                           textAnchor="middle"
@@ -409,7 +429,7 @@ const WorldMap = ({
                         strokeWidth={isSelected || isHovered ? 2.6 : 1.6}
                         className={`map-marker map-marker--executive ${isSelected ? 'selected' : ''}`}
                       />
-                      {label ? (
+                      {showLabel && label ? (
                         <text
                           y={labelDy}
                           textAnchor="middle"

@@ -222,7 +222,34 @@ function buildEmbedShellCss(theme = 'light') {
 <style id="strefex-embed-shell">
   aside { display: none !important; width: 0 !important; min-width: 0 !important; padding: 0 !important; overflow: hidden !important; }
   button[aria-label="Menu"] { display: none !important; }
-  main > header { box-sizing: border-box !important; height: 77px !important; min-height: 77px !important; max-height: 77px !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-left: 24px !important; padding-right: 24px !important; align-items: center !important; flex-wrap: nowrap !important; }
+  main > header {
+    box-sizing: border-box !important;
+    min-height: 56px !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 10px 16px !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px 12px !important;
+  }
+  @media (min-width: 901px) {
+    main > header {
+      height: 77px !important;
+      min-height: 77px !important;
+      max-height: 77px !important;
+      padding: 0 24px !important;
+      flex-wrap: nowrap !important;
+    }
+  }
+  html, body { max-width: 100%; overflow-x: clip; }
+  @media (max-width: 640px) {
+    main > header { padding: 8px 12px !important; }
+    [data-stx-supplier-table] { display: none !important; }
+    [data-stx-supplier-cards] { display: flex !important; }
+  }
+  @media (min-width: 641px) {
+    [data-stx-supplier-cards] { display: none !important; }
+  }
   :root {
     --font-serif: ${PLATFORM_FONT_STACK} !important;
     --font-serif-text: ${PLATFORM_FONT_STACK} !important;

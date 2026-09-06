@@ -4,12 +4,14 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin: 0 -24px;
+  margin: 0 calc(-1 * var(--stx-page-pad-x, 24px));
   margin-bottom: calc(-100px - env(safe-area-inset-bottom, 0px));
-  width: calc(100% + 48px);
+  width: calc(100% + 2 * var(--stx-page-pad-x, 24px));
   height: calc(100dvh);
+  max-height: 100dvh;
   background: var(--bg-primary, #f6f7f8);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 html[data-theme="dark"] .intelligent-sourcing-page {
@@ -24,6 +26,9 @@ html[data-theme="dark"] .intelligent-sourcing-page {
   border: 0;
   display: block;
   background: var(--bg-primary, #f6f7f8);
+  /* iOS: allow the iframe document to scroll when content is taller than the frame */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 html[data-theme="dark"] .intelligent-sourcing-frame {
@@ -133,21 +138,40 @@ html[data-theme="dark"] .intelligent-sourcing-rfq-overlay {
   padding: 4px 8px;
 }
 
-/* Tablet: .app-main padding 16px */
-@media (max-width: 1024px) {
+/* Tablet: icon rail + condensed pad (AppLayout ≤900) */
+@media (max-width: 900px) {
   .intelligent-sourcing-page {
-    margin: -16px;
     margin-bottom: calc(-80px - env(safe-area-inset-bottom, 0px));
-    width: calc(100% + 32px);
+  }
+
+  .intelligent-sourcing-rfq-panel {
+    padding: 16px;
   }
 }
 
-/* Mobile: .app-main uses top safe-area + 12px sides */
-@media (max-width: 768px) {
+/* Phone: hamburger chrome (AppLayout ≤640) — keep iframe usable, no double top padding */
+@media (max-width: 640px) {
   .intelligent-sourcing-page {
-    margin: calc(-64px - env(safe-area-inset-top, 0px)) -12px calc(-80px - env(safe-area-inset-bottom, 0px)) -12px;
-    width: calc(100% + 24px);
-    height: calc(100dvh - env(safe-area-inset-top, 0px));
-    padding-top: calc(56px + env(safe-area-inset-top, 0px));
+    /* Cancel app-main top pad for hamburger without shrinking the iframe to zero */
+    margin-top: calc(-64px - env(safe-area-inset-top, 0px));
+    height: 100dvh;
+    max-height: 100dvh;
+    padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  }
+
+  .intelligent-sourcing-rfq-banner {
+    left: 10px;
+    right: 10px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 12px;
+  }
+
+  .intelligent-sourcing-rfq-overlay {
+    padding: 8px;
+  }
+
+  .intelligent-sourcing-rfq-panel {
+    padding: 12px 12px 20px;
+    border-radius: 6px;
   }
 }

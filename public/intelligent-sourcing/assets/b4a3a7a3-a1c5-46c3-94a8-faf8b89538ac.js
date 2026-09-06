@@ -65,6 +65,15 @@
         'border:1px solid #E2E5E7;border-radius:6px;font:600 12px/1 \'IBM Plex Sans Condensed\',system-ui;' +
         'letter-spacing:.12em;text-transform:uppercase;color:#8B9298">Loading supplier geography…</div>';
       this.boot();
+      var host = this;
+      if (typeof ResizeObserver !== "undefined") {
+        var t = null;
+        this._ro = new ResizeObserver(function () {
+          if (t) clearTimeout(t);
+          t = setTimeout(function () { if (host._land) host.paint(); }, 120);
+        });
+        this._ro.observe(this);
+      }
     }
     attributeChangedCallback() { if (this._land) this.paint(); }
 
@@ -112,6 +121,9 @@
       /* Prefer lanes (name + lat/lon from the host list) so renamed/registered plants
          still pin even when SOURCING_DATA name matching is fragile. */
       var data;
+      function hasCoords(s) {
+        return Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon));
+      }
       if (lanes.length) {
         data = lanes.map(function (l) {
           var s = findSupplier(l.name) || {};
@@ -129,14 +141,21 @@
             spend: s.spend != null ? s.spend : 2,
             lead: l.lead != null ? l.lead : s.lead
           };
-        }).filter(function (s) {
-          return Number.isFinite(s.lat) && Number.isFinite(s.lon);
-        });
+        }).filter(hasCoords);
       } else if (only.length) {
-        data = only.map(findSupplier).filter(Boolean);
+        data = only.map(findSupplier).filter(function (s) { return s && hasCoords(s); });
       } else {
-        data = all.slice();
+        data = all.filter(hasCoords);
       }
+      /* Never leave the map blank when the host has geo-tagged suppliers */
+      if (!data.length && all.length) {
+        data = all.filter(hasCoords);
+      }
+
+      var hostW = (host.getBoundingClientRect && host.getBoundingClientRect().width) || 1000;
+      var compact = hostW > 0 && hostW < 720;
+      if (compact && H < 320) H = 320;
+      var pinScale = compact ? 1.25 : 1;
 
       var W = 1000;
       var proj = d3.geoNaturalEarth1();
@@ -151,7 +170,7 @@
       }
       var path = d3.geoPath(proj);
 
-      var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:' + H + 'px;display:block;background:#EEF0F2;border-radius:6px" role="img" aria-label="Supplier locations">'];
+      var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:' + H + 'px;display:block;background:#EEF0F2;border-radius:6px;touch-action:manipulation" role="img" aria-label="Supplier locations — ' + data.length + ' plants">'];
       svg.push('<path d="' + path({ type: "Sphere" }) + '" fill="#EEF0F2"/>');
       svg.push('<path d="' + path(d3.geoGraticule10()) + '" fill="none" stroke="#DDE1E4" stroke-width=".6"/>');
       this._land.features.forEach(function (f) {
@@ -201,11 +220,14 @@
         var t = TONE[toneOf(s, metric)];
         var spend = Number(s.spend);
         if (!Number.isFinite(spend) || spend < 0) spend = 2;
-        var r = 5 + Math.sqrt(spend) * 2.1;
+        var r = (5 + Math.sqrt(spend) * 2.1) * pinScale;
+        if (compact) r = Math.max(7.5, r);
         var isStrong = highlight === s.name;
-        var pinLabel = shortLabel(s.name);
+        var pinLabel = compact ? "" : shortLabel(s.name);
+        var hit = Math.max(r + 14, 22);
         svg.push(
           '<g data-name="' + escapeXml(s.name) + '" style="cursor:pointer">' +
+          '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + hit.toFixed(1) + '" fill="transparent"/>' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (r + 7).toFixed(1) + '" fill="' + t.ring + '"/>' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + t.fill + '" stroke="' + (isStrong ? "#0A2540" : "#fff") + '" stroke-width="' + (isStrong ? 2.6 : 1.6) + '"/>' +
           (pinLabel
@@ -251,7 +273,7 @@
       var tip = this.querySelector("[data-tip]");
       this.querySelectorAll("g[data-name]").forEach(function (g) {
         var nm = g.getAttribute("data-name");
-        g.addEventListener("mouseenter", function () {
+        function showTip(clientX, clientY) {
           var s = data.filter(function (x) { return x.name === nm; })[0];
           if (!s) return;
           var l = laneBy[nm] || {};
@@ -263,25 +285,41 @@
             ' <span style="color:#9DB1C8">(' + ((l.lead || 0) + (l.transit || 0)) + ' d total, ref)</span></span>' +
             '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#9DB1C8">fit ' + s.fit + ' · risk ' + s.risk + ' · cap ' + s.cap + '%</span>';
           tip.style.opacity = "1";
+          tip.style.whiteSpace = "normal";
+          tip.style.maxWidth = "min(260px, 86vw)";
+          var bb = host.getBoundingClientRect();
+          tip.style.left = Math.min(Math.max(8, (clientX || 0) - bb.left + 14), Math.max(8, bb.width - 180)) + "px";
+          tip.style.top = Math.max(8, (clientY || 0) - bb.top - 12) + "px";
           host.querySelectorAll("g[data-lane]").forEach(function (lg) {
             var mine = lg.getAttribute("data-lane") === nm;
             lg.querySelector("[data-lane-strong]").style.opacity = mine ? 1 : 0;
             lg.querySelector("[data-lane-faint]").style.opacity = (!mine && showAll) ? 1 : 0;
           });
-        });
-        g.addEventListener("mousemove", function (ev) {
-          var bb = host.getBoundingClientRect();
-          tip.style.left = Math.min(ev.clientX - bb.left + 14, bb.width - 240) + "px";
-          tip.style.top = (ev.clientY - bb.top - 12) + "px";
-        });
-        g.addEventListener("mouseleave", function () {
+          host.dispatchEvent(new CustomEvent("pin-hover", { detail: { name: nm }, bubbles: true }));
+        }
+        function hideTip() {
           tip.style.opacity = "0";
           host.querySelectorAll("g[data-lane]").forEach(function (lg) {
             var isHot = lg.getAttribute("data-lane") === highlight;
             lg.querySelector("[data-lane-strong]").style.opacity = isHot ? 1 : 0;
             lg.querySelector("[data-lane-faint]").style.opacity = (showAll && !isHot) ? 1 : 0;
           });
+        }
+        g.addEventListener("mouseenter", function (ev) { showTip(ev.clientX, ev.clientY); });
+        g.addEventListener("mousemove", function (ev) {
+          var bb = host.getBoundingClientRect();
+          tip.style.left = Math.min(ev.clientX - bb.left + 14, bb.width - 180) + "px";
+          tip.style.top = (ev.clientY - bb.top - 12) + "px";
         });
+        g.addEventListener("mouseleave", hideTip);
+        g.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          showTip(ev.clientX, ev.clientY);
+        });
+        g.addEventListener("touchstart", function (ev) {
+          var t = ev.changedTouches && ev.changedTouches[0];
+          if (t) showTip(t.clientX, t.clientY);
+        }, { passive: true });
       });
     }
   }

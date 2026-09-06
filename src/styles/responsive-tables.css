@@ -1,19 +1,22 @@
 /**
- * Narrow viewports: align data tables with HR-style behavior — fit width, wrap text,
- * drop forced horizontal scroll inside wrappers. Import after page-specific CSS where needed.
+ * Narrow viewports: make dense tables readable without crushing wide
+ * supplier/comparison grids into zero-width columns.
+ *
+ * - Simple admin/HR tables: wrap text, fit width (no forced min-width scroll).
+ * - Wide seller / RFQ / comparison tables: keep horizontal scroll + natural min-width
+ *   so phone users can still find and select rows (swipe sideways).
  */
 @media (max-width: 720px) {
+  /* Fluid wrappers — wrap in place */
   .buyer-dir-table-wrap,
   .vm-table-wrap,
   .ad-table-wrap,
   .sad-table-wrap,
   .gc-table-wrap,
-  .exec-table-wrapper,
   .comp-reg-table-wrap,
   .rc-table-wrap,
   .aud-table-wrap,
   .sa-table-wrap,
-  .sp-comparison-table-wrap,
   .eg-table-wrap,
   .qm-table-wrapper,
   .hrdoc-table-wrap,
@@ -22,7 +25,6 @@
   .invoice-table-wrapper,
   .products-table-wrapper,
   .bom-table-wrapper,
-  .comparison-table-wrapper,
   .cost-table-wrapper,
   .wco-table-wrap,
   .ahp-table-wrap,
@@ -32,16 +34,25 @@
     max-width: 100%;
   }
 
+  /* Wide seller / plan / comparison grids — scroll, do not crush */
+  .exec-table-wrapper,
+  .sp-comparison-table-wrap,
+  .comparison-table-wrapper,
+  .bd-rfq-track-wrap,
+  .stx-scroll-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
   .vm-table,
   .ad-table,
   .sad-table,
   .gc-table,
-  .exec-table,
   .comp-reg-table,
   .rc-table,
   .aud-table,
   .sa-table,
-  .sp-comparison-table,
   .eg-table,
   .qm-table,
   .hrdoc-table,
@@ -50,12 +61,10 @@
   .invoice-table,
   .products-table,
   .product-bom-table,
-  .comparison-table,
   .cost-table,
   .wco-table,
   .ahp-table,
   .tm-table,
-  .bd-rfq-track-table,
   .stx-fluid-table,
   .metrics-table,
   .std-table,
@@ -64,6 +73,17 @@
     min-width: 0 !important;
     width: 100% !important;
     table-layout: fixed;
+  }
+
+  /* Keep natural width so seller rows remain readable on phone */
+  .exec-table,
+  .sp-comparison-table,
+  .comparison-table,
+  .bd-rfq-track-table {
+    table-layout: auto;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
   }
 
   .sad-table {
@@ -83,8 +103,6 @@
   .sad-table td,
   .gc-table th,
   .gc-table td,
-  .exec-table th,
-  .exec-table td,
   .comp-reg-table th,
   .comp-reg-table td,
   .rc-table th,
@@ -93,8 +111,6 @@
   .aud-table td,
   .sa-table th,
   .sa-table td,
-  .sp-comparison-table th,
-  .sp-comparison-table td,
   .eg-table th,
   .eg-table td,
   .qm-table th,
@@ -111,8 +127,6 @@
   .products-table td,
   .product-bom-table th,
   .product-bom-table td,
-  .comparison-table th,
-  .comparison-table td,
   .cost-table th,
   .cost-table td,
   .wco-table th,
@@ -121,8 +135,6 @@
   .ahp-table td,
   .tm-table th,
   .tm-table td,
-  .bd-rfq-track-table th,
-  .bd-rfq-track-table td,
   .stx-fluid-table th,
   .stx-fluid-table td,
   .metrics-table th,
@@ -139,6 +151,27 @@
     padding: 8px 6px !important;
     font-size: 12px;
     line-height: 1.35;
+  }
+
+  .exec-table th,
+  .exec-table td,
+  .sp-comparison-table th,
+  .sp-comparison-table td,
+  .comparison-table th,
+  .comparison-table td,
+  .bd-rfq-track-table th,
+  .bd-rfq-track-table td {
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 10px 8px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .exec-table .supplier-name,
+  .exec-table .supplier-name-text {
+    white-space: normal;
+    max-width: 160px;
   }
 
   .sad-cell-company,

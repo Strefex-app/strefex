@@ -18,7 +18,20 @@
     }
     var s = document.createElement('style');
     s.id = 'strefex-embed-shell-early';
-    s.textContent = 'aside{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important}button[aria-label="Menu"]{display:none!important}main>header{box-sizing:border-box!important;height:77px!important;min-height:77px!important;max-height:77px!important;padding-top:0!important;padding-bottom:0!important;padding-left:24px!important;padding-right:24px!important;align-items:center!important;flex-wrap:nowrap!important}html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}';
+    s.textContent = [
+      'aside{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important}',
+      'button[aria-label="Menu"]{display:none!important}',
+      'main>header{box-sizing:border-box!important;min-height:56px!important;height:auto!important;max-height:none!important;padding:10px 16px!important;align-items:center!important;flex-wrap:wrap!important;gap:8px 12px!important}',
+      '@media (min-width:901px){main>header{height:77px!important;min-height:77px!important;max-height:77px!important;padding:0 24px!important;flex-wrap:nowrap!important}}',
+      'html,body{max-width:100%;overflow-x:clip}',
+      'html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}',
+      '@media (max-width:640px){',
+      'main>header{padding:8px 12px!important}',
+      '[data-stx-supplier-table]{display:none!important}',
+      '[data-stx-supplier-cards]{display:flex!important}',
+      '}',
+      '@media (min-width:641px){[data-stx-supplier-cards]{display:none!important}}'
+    ].join('');
     document.documentElement.appendChild(s);
   } catch (e) { /* */ }
 })();
@@ -1605,6 +1618,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   a { color: var(--navy-600); text-decoration: none; }
   a:hover { color: var(--navy-800); text-decoration: underline; }
   ::selection { background: rgba(46,86,133,.18); }
+  @media (max-width: 640px) {
+    [data-stx-supplier-table] { display: none !important; }
+    [data-stx-supplier-cards] { display: flex !important; }
+  }
+  @media (min-width: 641px) {
+    [data-stx-supplier-cards] { display: none !important; }
+  }
 </style>
 </helmet>
 
@@ -2171,7 +2191,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   <button style="font-family:var(--font-sans); font-weight:600; font-size:13px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:6px; padding:8px 13px; cursor:pointer" style-hover="background:var(--steel-200)" sc-camel-on-click="{{ onAddFilter }}">Add filter</button>
                 </div>
               </div>
-              <div style="overflow-x:auto">
+              <div data-stx-supplier-table style="overflow-x:auto; -webkit-overflow-scrolling:touch">
                 <sc-raw-table style="width:100%; border-collapse:collapse; min-width:1180px">
                   <sc-raw-thead>
                     <sc-raw-tr>
@@ -2207,6 +2227,28 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                     </sc-for>
                   </sc-raw-tbody>
                 </sc-raw-table>
+              </div>
+              <div data-stx-supplier-cards style="display:none; flex-direction:column; gap:10px; padding-bottom:12px">
+                <sc-for list="{{ rows }}" as="s" hint-placeholder-count="8">
+                  <div sc-camel-on-click="{{ s.onFocus }}" style="border:1px solid var(--border-hairline); border-radius:8px; padding:12px 14px; background:{{ s.rowBg }}; cursor:pointer">
+                    <div style="display:flex; align-items:flex-start; gap:12px">
+                      <span sc-camel-on-click="{{ s.onToggle }}" style="display:block; width:20px; height:20px; margin-top:4px; border-radius:4px; border:1.5px solid {{ s.boxBorder }}; background:{{ s.boxBg }}; flex:none; cursor:pointer"></span>
+                      <span style="width:36px; height:36px; border-radius:6px; background:var(--steel-200); color:var(--navy-700); font-family:var(--font-mono); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none">{{ s.initials }}</span>
+                      <div style="min-width:0; flex:1">
+                        <div style="font-weight:600; font-size:15px; color:var(--navy-800)">{{ s.name }}</div>
+                        <div style="font-size:12.5px; color:var(--text-faint); margin-top:2px">{{ s.city }} · {{ s.cc }} · ${{ s.spend }}M</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; font-family:var(--font-mono); font-size:12px; color:var(--text-body)">
+                          <span>Fit {{ s.fit }}</span>
+                          <span>Risk {{ s.risk }}</span>
+                          <span>Cap {{ s.cap }}%</span>
+                          <span>Lead {{ s.lead }}d</span>
+                          <span>{{ s.transitDays }}d {{ s.transitMode }}</span>
+                        </div>
+                        <div style="margin-top:8px; font-size:11.5px; color:var(--text-faint)">{{ s.certs }} · {{ s.auditLabel }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
               </div>
             </div>
 
@@ -4048,7 +4090,7 @@ transitFor(sup) {
       formCols2: phone ? "1fr" : "repeat(2,minmax(0,1fr))",
       formCols3: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(3,minmax(0,1fr))",
       formCols4: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(4,minmax(0,1fr))",
-      mapHeight: phone ? 300 : narrow ? 420 : 560,
+      mapHeight: phone ? 340 : narrow ? 420 : 560,
       onToggleNav: () => this.setState(p => ({ navOpen: !p.navOpen })),
       navOpen: s.navOpen,
       onCloseNav: () => this.setState({ navOpen: false }),

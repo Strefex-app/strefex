@@ -1469,10 +1469,24 @@
   .exec-detail-metrics {
     flex-wrap: wrap;
   }
+  .exec-content-row {
+    --exec-map-static-height: 260px;
+  }
+  .exec-map-card .exec-map-container:not(.exec-map-container--landscape) {
+    height: var(--exec-map-static-height, 260px);
+    min-height: 220px;
+  }
+  .exec-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -4px;
+    padding-bottom: 4px;
+  }
   .exec-table {
     font-size: 12px;
+    min-width: 720px;
   }
   .exec-table th, .exec-table td {
-    padding: 8px 6px;
+    padding: 10px 8px;
   }
 }

@@ -147,6 +147,6 @@ html[data-theme="dark"] .exec-loc-map__legend,
 
 @media (max-width: 640px) {
   .exec-loc-map {
-    --exec-map-static-height: 220px;
+    --exec-map-static-height: 260px;
   }
 }
