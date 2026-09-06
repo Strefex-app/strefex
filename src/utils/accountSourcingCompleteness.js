@@ -71,6 +71,7 @@ export function ensureSourcingFieldPlaceholders(account) {
   if (!('address' in next) || next.address == null) { next.address = ''; changed = true }
   if (!Array.isArray(next.industries)) { next.industries = []; changed = true }
   if (!next.categories || typeof next.categories !== 'object') { next.categories = {}; changed = true }
+  if (!Array.isArray(next.serviceCategories)) { next.serviceCategories = []; changed = true }
   const withCoords = ensureAccountMapCoordinates(next)
   if (withCoords !== next) {
     next = withCoords
@@ -118,6 +119,7 @@ function manufacturerDirectoryRow(account) {
     address: ensured.address || '',
     industries: Array.isArray(ensured.industries) ? ensured.industries : [],
     categories: ensured.categories && typeof ensured.categories === 'object' ? ensured.categories : {},
+    serviceCategories: Array.isArray(ensured.serviceCategories) ? ensured.serviceCategories : [],
     coordinates: hasUsableCoordinates(ensured.coordinates) ? ensured.coordinates : null,
     certifications: Array.isArray(ensured.certifications) ? ensured.certifications : [],
     plan: ensured.plan || null,

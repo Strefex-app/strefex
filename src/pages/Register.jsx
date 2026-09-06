@@ -12,6 +12,9 @@ import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import AuthPageShell from '../components/AuthPageShell'
 import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
 import { useSubscriptionStore } from '../services/featureFlags'
+import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import { useIndustryStore } from '../store/industryStore'
+import { useServiceStore } from '../store/serviceStore'
 import './Login.css'
 import './Register.css'
 
@@ -55,6 +58,7 @@ function RegisterForm() {
   const [accountTypes, setAccountTypes] = useState(['seller'])
   const [selectedPlan, setSelectedPlan] = useState('start')
   const [selectedIndustry, setSelectedIndustry] = useState('')
+  const [selectedEquipmentCategories, setSelectedEquipmentCategories] = useState([])
   const [selectedServiceCategories, setSelectedServiceCategories] = useState([])
   const [auditorDocuments, setAuditorDocuments] = useState('')
   const [error, setError] = useState('')
@@ -71,6 +75,8 @@ function RegisterForm() {
 
   const primaryAccountType = accountTypes[0] || 'seller'
   const primaryIndustry = selectedIndustry
+  const industryCategoryOptions = getEquipmentCategoriesForIndustry(primaryIndustry)
+  const needsEquipmentCategories = primaryAccountType === 'seller' || primaryAccountType === 'service_provider' || primaryAccountType === 'buyer'
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 
@@ -151,6 +157,19 @@ function RegisterForm() {
     )
   }
 
+  const toggleEquipmentCategory = (categoryId) => {
+    setSelectedEquipmentCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
+
+  const chooseIndustry = (industryId) => {
+    setSelectedIndustry(industryId)
+    setSelectedEquipmentCategories([])
+  }
+
   const accountTypeLabels = accountTypes
     .map((type) => ACCOUNT_TYPES.find((t) => t.id === type)?.label || type)
     .join(', ')
@@ -206,6 +225,10 @@ function RegisterForm() {
       setError('Please choose one industry.')
       return
     }
+    if (needsEquipmentCategories && industryCategoryOptions.length > 0 && selectedEquipmentCategories.length === 0) {
+      setError('Please select at least one category for your industry (checkmarks below).')
+      return
+    }
     if (!availablePlans.some((plan) => plan.id === selectedPlan)) {
       setError('Please choose a valid plan for this account type.')
       return
@@ -227,6 +250,10 @@ function RegisterForm() {
 
     setLoading(true)
     try {
+      const categoriesPayload = selectedEquipmentCategories.length
+        ? { [primaryIndustry]: [...selectedEquipmentCategories] }
+        : {}
+
       const result = await authService.register({
         fullName: fullName.trim(),
         email: email.trim().toLowerCase(),
@@ -237,6 +264,7 @@ function RegisterForm() {
         accountType: primaryAccountType,
         accountTypes,
         selectedIndustry: primaryIndustry,
+        selectedCategories: categoriesPayload,
         selectedServiceCategories,
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         selectedTier,
@@ -283,15 +311,33 @@ function RegisterForm() {
         plan: selectedPlan,
         status: registrationStatus,
         industries: [primaryIndustry],
-        categories: {},
+        categories: categoriesPayload,
         country: country.trim(),
         city: city.trim(),
         address: address.trim(),
-        serviceCategories: primaryAccountType === 'service_provider' ? selectedServiceCategories : [],
+        serviceCategories: primaryAccountType === 'service_provider'
+          ? selectedServiceCategories
+          : primaryAccountType === 'auditor'
+            ? ['supplier-audit']
+            : [],
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
         registrationCode: platformRegistrationLabel,
       })
+
+      try {
+        useIndustryStore.getState().applySelections(
+          [primaryIndustry],
+          categoriesPayload,
+          { syncCloud: false },
+        )
+        if (primaryAccountType === 'service_provider' && selectedServiceCategories.length) {
+          useServiceStore.getState().setServices(selectedServiceCategories)
+        }
+        if (primaryAccountType === 'auditor') {
+          useServiceStore.getState().setServices(['supplier-audit'])
+        }
+      } catch { /* store seed is best-effort */ }
 
       if (result?.emailConfirmationPending) {
         setStep(3)
@@ -565,7 +611,7 @@ function RegisterForm() {
                         key={industry.id}
                         type="button"
                         className={`reg-account-type-btn ${active ? 'active' : ''}`}
-                        onClick={() => setSelectedIndustry(industry.id)}
+                        onClick={() => chooseIndustry(industry.id)}
                         disabled={loading}
                         style={{ minHeight: 62 }}
                       >
@@ -578,38 +624,56 @@ function RegisterForm() {
                   })}
                 </div>
                 <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                  Registration is one industry at a time. After login, choose categories in your industry dashboard according to your plan.
+                  Choose one industry, then check the categories you serve. Selected categories appear in the Executive Summary and on the map.
                 </div>
                 <div className="reg-domain-hint" style={{ marginTop: 6 }}>
-                  Selected industry: <strong>{INDUSTRIES.find((x) => x.id === primaryIndustry)?.label || primaryIndustry}</strong>
+                  Selected industry: <strong>{INDUSTRIES.find((x) => x.id === primaryIndustry)?.label || primaryIndustry || '—'}</strong>
                 </div>
               </div>
+
+              {needsEquipmentCategories && selectedIndustry && industryCategoryOptions.length > 0 && (
+                <div className="form-group">
+                  <label>Categories</label>
+                  <div className="reg-category-checklist">
+                    {industryCategoryOptions.map((cat) => (
+                      <ToggleCheckButton
+                        key={cat.id}
+                        checked={selectedEquipmentCategories.includes(cat.id)}
+                        onChange={() => toggleEquipmentCategory(cat.id)}
+                        disabled={loading}
+                        className="reg-category-check"
+                      >
+                        <span className="reg-category-check-title">{cat.name}</span>
+                        {cat.description ? (
+                          <span className="reg-category-check-desc">{cat.description}</span>
+                        ) : null}
+                      </ToggleCheckButton>
+                    ))}
+                  </div>
+                  <div className="reg-domain-hint" style={{ marginTop: 8 }}>
+                    Select every category where your company should appear (Executive Summary filters and map).
+                  </div>
+                </div>
+              )}
 
               {primaryAccountType === 'service_provider' && (
                 <div className="form-group">
                   <label>Service Expertise</label>
-                  <div className="reg-account-type-toggle reg-account-type-3col">
-                    {SERVICE_EXPERTISE_OPTIONS.map((service) => {
-                      const active = selectedServiceCategories.includes(service.id)
-                      return (
-                        <button
-                          key={service.id}
-                          type="button"
-                          className={`reg-account-type-btn ${active ? 'active' : ''}`}
-                          onClick={() => toggleServiceCategory(service.id)}
-                          disabled={loading}
-                          style={{ minHeight: 62 }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                            <div className="reg-account-type-label">{service.label}</div>
-                            {active && <span className="home-industry-badge">Selected</span>}
-                          </div>
-                        </button>
-                      )
-                    })}
+                  <div className="reg-category-checklist">
+                    {SERVICE_EXPERTISE_OPTIONS.map((service) => (
+                      <ToggleCheckButton
+                        key={service.id}
+                        checked={selectedServiceCategories.includes(service.id)}
+                        onChange={() => toggleServiceCategory(service.id)}
+                        disabled={loading}
+                        className="reg-category-check"
+                      >
+                        {service.label}
+                      </ToggleCheckButton>
+                    ))}
                   </div>
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                    Select what your company provides (project management, supplier services, quality/buy-off).
+                    Checked service categories appear in the Service Executive Summary for your industry.
                   </div>
                 </div>
               )}

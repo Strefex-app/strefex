@@ -179,6 +179,17 @@ export const useIndustryStore = create((set, get) => ({
   isCategorySelected: (industryId, categoryId) =>
     (get().selectedCategories[industryId] || []).includes(categoryId),
 
+  /** Replace industries + categories (registration / profile / admin). */
+  applySelections: (industries, categories, { syncCloud = true } = {}) => {
+    const nextIndustries = Array.isArray(industries) ? [...industries] : []
+    const nextCategories = categories && typeof categories === 'object' ? { ...categories } : {}
+    save(IND_BASE, nextIndustries)
+    save(CAT_BASE, nextCategories)
+    set({ selectedIndustries: nextIndustries, selectedCategories: nextCategories })
+    syncToRegistry(nextIndustries, nextCategories)
+    if (syncCloud) syncToSupabase(nextIndustries, nextCategories)
+  },
+
   /**
    * Hydrate local industry/category selections from Supabase metadata.
    * Called after login/session restore to keep cross-device state consistent.

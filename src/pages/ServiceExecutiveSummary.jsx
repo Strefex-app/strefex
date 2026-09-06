@@ -69,8 +69,6 @@ export default function ServiceExecutiveSummary() {
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(selectedIndustry))
   const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors(selectedIndustry, { onlyVerified: true }))
-  const allRegisteredServiceProvidersForMap = useAccountRegistry((s) => s.getRegisteredServiceProviders())
-  const allRegisteredAuditorsForMap = useAccountRegistry((s) => s.getRegisteredAuditors(null, { onlyVerified: false }))
 
   const serviceProviderRows = useMemo(() => {
     const all = Array.isArray(registeredServiceProviders) ? registeredServiceProviders : []
@@ -83,6 +81,7 @@ export default function ServiceExecutiveSummary() {
       country: provider.country || '',
       city: provider.city || '',
       address: provider.address || '',
+      rating: provider.rating,
     }))
   }, [registeredServiceProviders])
   const auditorRows = useMemo(() => {
@@ -96,6 +95,7 @@ export default function ServiceExecutiveSummary() {
       country: auditor.country || '',
       city: auditor.city || '',
       address: auditor.address || '',
+      rating: auditor.rating,
     }))
   }, [registeredAuditors])
   const providerRows = useMemo(() => {
@@ -107,40 +107,24 @@ export default function ServiceExecutiveSummary() {
   }, [providerRows, selectedServiceCategory])
 
   const registryMapAccounts = useMemo(() => {
-    const sps = Array.isArray(allRegisteredServiceProvidersForMap) ? allRegisteredServiceProvidersForMap : []
-    const aud = Array.isArray(allRegisteredAuditorsForMap) ? allRegisteredAuditorsForMap : []
     const seen = new Set()
     const out = []
-    for (const provider of sps) {
+    for (const provider of filteredProviderRows) {
       if (!provider?.id || seen.has(provider.id)) continue
       seen.add(provider.id)
       out.push({
         id: provider.id,
-        company: provider.company || provider.contactName || provider.email || 'Service Provider',
+        company: provider.company,
         country: provider.country || '',
         city: provider.city || '',
         address: provider.address || '',
         email: provider.email || '',
         rating: provider.rating,
-        providerType: 'service_provider',
-      })
-    }
-    for (const auditor of aud) {
-      if (!auditor?.id || seen.has(auditor.id)) continue
-      seen.add(auditor.id)
-      out.push({
-        id: auditor.id,
-        company: auditor.company || auditor.contactName || auditor.email || 'Auditor',
-        country: auditor.country || '',
-        city: auditor.city || '',
-        address: auditor.address || '',
-        email: auditor.email || '',
-        rating: auditor.rating,
-        providerType: 'auditor',
+        providerType: provider.providerType,
       })
     }
     return out
-  }, [allRegisteredServiceProvidersForMap, allRegisteredAuditorsForMap])
+  }, [filteredProviderRows])
 
   const providerMapLocations = useMemo(
     () =>

@@ -735,7 +735,25 @@ const authService = {
       const primaryIndustry = String(selectedIndustry || 'general').trim().toLowerCase() || 'general'
       const normalizedIndustries = [primaryIndustry]
       const normalizedCategories = (() => {
-        void selectedCategories
+        if (selectedCategories && typeof selectedCategories === 'object' && !Array.isArray(selectedCategories)) {
+          const out = {}
+          for (const [ind, cats] of Object.entries(selectedCategories)) {
+            const key = String(ind || '').trim().toLowerCase()
+            if (!key) continue
+            const list = Array.isArray(cats)
+              ? [...new Set(cats.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+              : []
+            if (list.length) out[key] = list
+          }
+          return out
+        }
+        if (Array.isArray(selectedCategories) && selectedCategories.length && primaryIndustry) {
+          return {
+            [primaryIndustry]: [...new Set(
+              selectedCategories.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean),
+            )],
+          }
+        }
         return {}
       })()
       const normalizedServiceCategories = Array.isArray(selectedServiceCategories)
@@ -788,9 +806,18 @@ const authService = {
             slug: `${companySlug}-${Date.now().toString(36)}`,
             email: normalizedEmail,
             phone: phone || null,
+            country: normalizedCountry || null,
+            city: normalizedCity || null,
+            address: normalizedAddress || null,
             account_type: primaryAccountType,
             plan: selectedPlan,
             status: 'active',
+            metadata: {
+              industries: normalizedIndustries,
+              categories: normalizedCategories,
+              service_categories: effectiveServiceCategories,
+              address: normalizedAddress || null,
+            },
           })
 
           if (newCompany?.registration_code) {

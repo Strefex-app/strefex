@@ -11,6 +11,8 @@ import {
   VISIBILITY_TIER_LABELS,
 } from '../constants/companyProfileDirectory'
 import { useAccountRegistry } from '../store/accountRegistry'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import {
   normalizeReceivingPlants,
   readReceivingPlantsFromAccount,
@@ -20,6 +22,49 @@ import '../styles/app-page.css'
 import './SuperAdminAccountDetailPage.css'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const PLATFORM_INDUSTRY_OPTIONS = [
+  { id: 'general', label: 'General / Other' },
+  { id: 'automotive', label: 'Automotive' },
+  { id: 'machinery', label: 'Machinery' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'medical', label: 'Medical' },
+  { id: 'raw-materials', label: 'Raw Materials' },
+  { id: 'oil-gas', label: 'Oil & Gas' },
+  { id: 'green-energy', label: 'Green Energy' },
+  { id: 'household-products', label: 'Household Products' },
+  { id: 'nuclear', label: 'Nuclear' },
+]
+
+const SERVICE_EXPERTISE_OPTIONS = [
+  { id: 'project-management', label: 'Project Management' },
+  { id: 'supplier-services', label: 'Supplier Services' },
+  { id: 'quality-services', label: 'Quality & Compliance' },
+  { id: 'supplier-audit', label: 'Supplier Audit' },
+]
+
+function readIndustryFromSource(source) {
+  const md = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {}
+  if (Array.isArray(md.industries) && md.industries[0]) return String(md.industries[0])
+  if (Array.isArray(source?.industries) && source.industries[0]) return String(source.industries[0])
+  return ''
+}
+
+function readEquipmentCategoriesFromSource(source, industryId) {
+  const md = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {}
+  const cats = (md.categories && typeof md.categories === 'object')
+    ? md.categories
+    : (source?.categories && typeof source.categories === 'object' ? source.categories : {})
+  if (!industryId) return []
+  return Array.isArray(cats[industryId]) ? [...cats[industryId]] : []
+}
+
+function readServiceCategoriesFromSource(source) {
+  const md = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {}
+  if (Array.isArray(md.service_categories)) return [...md.service_categories]
+  if (Array.isArray(source?.serviceCategories)) return [...source.serviceCategories]
+  return []
+}
 
 function emptyForm() {
   return {
@@ -35,6 +80,9 @@ function emptyForm() {
     contactName: '',
     contactPhone: '',
     contactProfileId: '',
+    industryId: '',
+    equipmentCategories: [],
+    serviceCategories: [],
   }
 }
 
@@ -65,6 +113,9 @@ function findRegistryAccount(key) {
 /** Map local registry row into the company-shaped object the form expects. */
 function companyFromRegistryAccount(acct) {
   if (!acct) return null
+  const industries = Array.isArray(acct.industries) ? acct.industries : []
+  const categories = acct.categories && typeof acct.categories === 'object' ? acct.categories : {}
+  const serviceCategories = Array.isArray(acct.serviceCategories) ? acct.serviceCategories : []
   return {
     id: acct.companyId || acct.company_id || null,
     name: acct.company || acct.name || '',
@@ -82,10 +133,16 @@ function companyFromRegistryAccount(acct) {
     external_audit_notes: acct.externalAuditNotes || '',
     external_audit_passed_at: acct.externalAuditPassedAt || null,
     profile_attachments: Array.isArray(acct.profileAttachments) ? acct.profileAttachments : [],
+    industries,
+    categories,
+    serviceCategories,
     metadata: {
       ...(acct.metadata || {}),
       address: acct.address || null,
       receiving_plants: acct.receivingPlants || acct.metadata?.receiving_plants || [],
+      industries,
+      categories,
+      service_categories: serviceCategories,
     },
     _local: true,
     _registryKey: acct.email || acct.id,
@@ -99,6 +156,9 @@ function companyFromRegistryAccount(acct) {
 function companyFromAccountStub(stub) {
   if (!stub) return null
   const profileId = UUID_RE.test(String(stub.id || '')) ? stub.id : null
+  const industries = Array.isArray(stub.industries) ? stub.industries : []
+  const categories = stub.categories && typeof stub.categories === 'object' ? stub.categories : {}
+  const serviceCategories = Array.isArray(stub.serviceCategories) ? stub.serviceCategories : []
   return {
     id: stub.companyId || stub.company_id || null,
     name: stub.company || stub.companyName || '',
@@ -116,10 +176,16 @@ function companyFromAccountStub(stub) {
     external_audit_notes: stub.externalAuditNotes || '',
     external_audit_passed_at: stub.externalAuditPassedAt || null,
     profile_attachments: [],
+    industries,
+    categories,
+    serviceCategories,
     metadata: {
       ...(stub.metadata || {}),
       address: stub.address || null,
       receiving_plants: stub.receivingPlants || stub.metadata?.receiving_plants || [],
+      industries,
+      categories,
+      service_categories: serviceCategories,
     },
     _local: true,
     _fromStub: true,
@@ -183,6 +249,7 @@ export default function SuperAdminAccountDetailPage() {
 
   const syncFormFromCompany = useCallback((c, plist) => {
     const primary = Array.isArray(plist) && plist.length ? plist[0] : null
+    const industryId = readIndustryFromSource(c) || readIndustryFromSource(primary) || ''
     setForm({
       name: c?.name || '',
       email: c?.email || '',
@@ -196,6 +263,17 @@ export default function SuperAdminAccountDetailPage() {
       contactName: primary?.full_name || c?._contactName || '',
       contactPhone: primary?.phone || c?._contactPhone || '',
       contactProfileId: primary?.id || c?._profileId || '',
+      industryId,
+      equipmentCategories: (() => {
+        const fromCompany = readEquipmentCategoriesFromSource(c, industryId)
+        if (fromCompany.length) return fromCompany
+        return readEquipmentCategoriesFromSource(primary, industryId)
+      })(),
+      serviceCategories: (() => {
+        const fromCompany = readServiceCategoriesFromSource(c)
+        if (fromCompany.length) return fromCompany
+        return readServiceCategoriesFromSource(primary)
+      })(),
     })
     const saved = readReceivingPlantsFromAccount(
       { receivingPlants: c?.metadata?.receiving_plants },
@@ -417,6 +495,14 @@ export default function SuperAdminAccountDetailPage() {
       const nextAddress = form.address.trim()
       const emailKey = (form.email || company.email || registryKey || '').trim().toLowerCase()
       const lookup = registryKey || emailKey || company._registryKey
+      const nextIndustryId = String(form.industryId || '').trim()
+      const nextIndustries = nextIndustryId ? [nextIndustryId] : []
+      const nextCategories = nextIndustryId && Array.isArray(form.equipmentCategories) && form.equipmentCategories.length
+        ? { [nextIndustryId]: [...form.equipmentCategories] }
+        : {}
+      const nextServiceCategories = Array.isArray(form.serviceCategories)
+        ? [...form.serviceCategories]
+        : []
 
       if (isLocal || (company._local && !companyId)) {
         if (!lookup && !emailKey) throw new Error('Missing local account key.')
@@ -433,6 +519,9 @@ export default function SuperAdminAccountDetailPage() {
           plan: form.plan || undefined,
           receivingPlants: normalizeReceivingPlants(plants),
           companyId: company.id || undefined,
+          industries: nextIndustries,
+          categories: nextCategories,
+          serviceCategories: nextServiceCategories,
         }
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
         if (!updatedLocal && emailKey) {
@@ -457,10 +546,17 @@ export default function SuperAdminAccountDetailPage() {
         })
         if (form.contactProfileId && isSupabaseConfigured) {
           try {
+            const existingProfile = profiles.find((p) => p.id === form.contactProfileId)
             await profilesService.updateProfilePrivileged({
               id: form.contactProfileId,
               full_name: form.contactName.trim() || null,
               phone: form.contactPhone.trim() || null,
+              metadata: {
+                ...(existingProfile?.metadata || company.metadata || {}),
+                industries: nextIndustries,
+                categories: nextCategories,
+                service_categories: nextServiceCategories,
+              },
             })
           } catch {
             /* profile privileged update may be restricted */
@@ -485,11 +581,15 @@ export default function SuperAdminAccountDetailPage() {
         metadata: {
           ...(company.metadata || {}),
           address: nextAddress || null,
+          industries: nextIndustries,
+          categories: nextCategories,
+          service_categories: nextServiceCategories,
         },
       }
       const merged = {
         ...company,
         ...companyPayload,
+        industries: nextIndustries,
         profile_attachments: company.profile_attachments,
       }
       const vis = buildCompanyVisibilityUpdate(merged)
@@ -501,14 +601,31 @@ export default function SuperAdminAccountDetailPage() {
 
       if (form.contactProfileId) {
         try {
+          const existingProfile = profiles.find((p) => p.id === form.contactProfileId)
           await profilesService.updateProfilePrivileged({
             id: form.contactProfileId,
             full_name: form.contactName.trim() || null,
             phone: form.contactPhone.trim() || null,
+            metadata: {
+              ...(existingProfile?.metadata || company.metadata || {}),
+              industries: nextIndustries,
+              categories: nextCategories,
+              service_categories: nextServiceCategories,
+            },
           })
           setProfiles((prev) => prev.map((p) => (
             p.id === form.contactProfileId
-              ? { ...p, full_name: form.contactName.trim(), phone: form.contactPhone.trim() }
+              ? {
+                ...p,
+                full_name: form.contactName.trim(),
+                phone: form.contactPhone.trim(),
+                metadata: {
+                  ...(p.metadata || {}),
+                  industries: nextIndustries,
+                  categories: nextCategories,
+                  service_categories: nextServiceCategories,
+                },
+              }
               : p
           )))
         } catch {
@@ -523,6 +640,9 @@ export default function SuperAdminAccountDetailPage() {
           city: form.city.trim() || '',
           address: nextAddress || '',
           accountType: form.account_type || undefined,
+          industries: nextIndustries,
+          categories: nextCategories,
+          serviceCategories: nextServiceCategories,
         })
         if (!existing) {
           registerAccount({
@@ -535,6 +655,9 @@ export default function SuperAdminAccountDetailPage() {
             address: nextAddress || '',
             accountType: form.account_type || 'seller',
             plan: form.plan || 'start',
+            industries: nextIndustries,
+            categories: nextCategories,
+            serviceCategories: nextServiceCategories,
           })
         }
       }
@@ -725,7 +848,88 @@ export default function SuperAdminAccountDetailPage() {
                     Contact phone
                     <input value={form.contactPhone} onChange={(e) => setField('contactPhone', e.target.value)} disabled={savingProfile} />
                   </label>
+                  <label className="saad-field">
+                    Industry
+                    <select
+                      value={form.industryId || ''}
+                      disabled={savingProfile}
+                      onChange={(e) => {
+                        const industryId = e.target.value
+                        setForm((prev) => ({
+                          ...prev,
+                          industryId,
+                          equipmentCategories: [],
+                        }))
+                      }}
+                    >
+                      <option value="">Select industry…</option>
+                      {PLATFORM_INDUSTRY_OPTIONS.map((ind) => (
+                        <option key={ind.id} value={ind.id}>{ind.label}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
+
+                {form.industryId && getEquipmentCategoriesForIndustry(form.industryId).length > 0 && (
+                  <>
+                    <h3 className="saad-h3">Equipment / product categories</h3>
+                    <p className="saad-muted">Checked categories appear in Executive Summary filters and on the map for this industry.</p>
+                    <div className="saad-category-checklist">
+                      {getEquipmentCategoriesForIndustry(form.industryId).map((cat) => (
+                        <ToggleCheckButton
+                          key={cat.id}
+                          checked={(form.equipmentCategories || []).includes(cat.id)}
+                          disabled={savingProfile}
+                          onChange={(checked) => {
+                            setForm((prev) => {
+                              const list = Array.isArray(prev.equipmentCategories) ? prev.equipmentCategories : []
+                              return {
+                                ...prev,
+                                equipmentCategories: checked
+                                  ? [...list, cat.id]
+                                  : list.filter((id) => id !== cat.id),
+                              }
+                            })
+                          }}
+                        >
+                          {cat.name}
+                        </ToggleCheckButton>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {(form.account_type === 'service_provider' || form.account_type === 'auditor') && (
+                  <>
+                    <h3 className="saad-h3">Service expertise</h3>
+                    <p className="saad-muted">Checked services appear in the Service Executive Summary for the selected industry.</p>
+                    <div className="saad-category-checklist">
+                      {(form.account_type === 'auditor'
+                        ? SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id === 'supplier-audit')
+                        : SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id !== 'supplier-audit')
+                      ).map((svc) => (
+                        <ToggleCheckButton
+                          key={svc.id}
+                          checked={(form.serviceCategories || []).includes(svc.id)}
+                          disabled={savingProfile || form.account_type === 'auditor'}
+                          onChange={(checked) => {
+                            setForm((prev) => {
+                              const list = Array.isArray(prev.serviceCategories) ? prev.serviceCategories : []
+                              return {
+                                ...prev,
+                                serviceCategories: checked
+                                  ? [...list, svc.id]
+                                  : list.filter((id) => id !== svc.id),
+                              }
+                            })
+                          }}
+                        >
+                          {svc.label}
+                        </ToggleCheckButton>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <h3 className="saad-h3">Receiving plants</h3>
                 <p className="saad-muted">Used by Intelligent Sourcing map and transit estimates.</p>

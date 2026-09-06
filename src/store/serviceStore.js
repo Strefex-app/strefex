@@ -11,6 +11,8 @@
 import { create } from 'zustand'
 import { useAccountRegistry } from './accountRegistry'
 import { tenantKey } from '../utils/tenantStorage'
+import { isSupabaseConfigured, profilesService, companiesService } from '../services/supabaseService'
+import { isDemoModeActive } from '../config/demoAccount'
 
 const SVC_BASE = 'strefex-selected-services'
 
@@ -27,6 +29,30 @@ const syncToRegistry = (serviceCategories) => {
       registry.updateAccount(email, { serviceCategories: [...serviceCategories] })
     }
   } catch { /* silent — registry sync is best-effort */ }
+}
+
+const syncToSupabase = async (serviceCategories) => {
+  if (isDemoModeActive()) return
+  if (!isSupabaseConfigured) return
+  try {
+    const profile = await profilesService.getMyProfile()
+    if (!profile) return
+    const nextMetadata = {
+      ...(profile.metadata || {}),
+      service_categories: [...serviceCategories],
+    }
+    await profilesService.updateProfile({ metadata: nextMetadata })
+    if (profile.company_id) {
+      await companiesService.update(profile.company_id, {
+        metadata: {
+          ...(profile.companies?.metadata || {}),
+          service_categories: [...serviceCategories],
+        },
+      }).catch(() => {})
+    }
+  } catch {
+    /* silent */
+  }
 }
 
 const getStored = (baseKey, fallback) => {
@@ -57,6 +83,7 @@ export const useServiceStore = create((set, get) => ({
     save(SVC_BASE, next)
     set({ selectedServices: next })
     syncToRegistry(next)
+    syncToSupabase(next)
     return true
   },
 
@@ -65,12 +92,15 @@ export const useServiceStore = create((set, get) => ({
     save(SVC_BASE, next)
     set({ selectedServices: next })
     syncToRegistry(next)
+    syncToSupabase(next)
   },
 
   setServices: (ids) => {
-    save(SVC_BASE, ids)
-    set({ selectedServices: ids })
-    syncToRegistry(ids)
+    const next = Array.isArray(ids) ? [...ids] : []
+    save(SVC_BASE, next)
+    set({ selectedServices: next })
+    syncToRegistry(next)
+    syncToSupabase(next)
   },
 
   isServiceSelected: (serviceId) => get().selectedServices.includes(serviceId),

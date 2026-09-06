@@ -321,15 +321,28 @@ function profileRowToAccountStub(p) {
   const coRaw = p?.companies
   const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
   const md = p?.metadata && typeof p.metadata === 'object' ? p.metadata : {}
+  const coMd = co?.metadata && typeof co.metadata === 'object' ? co.metadata : {}
   const types = Array.isArray(md.account_types) ? md.account_types : [md.account_type].filter(Boolean)
   const accountType = types[0] || co?.account_type || 'seller'
-  const industries = Array.isArray(md.industries) ? md.industries : md.industry ? [md.industry] : []
+  const industries = Array.isArray(md.industries) && md.industries.length
+    ? md.industries
+    : Array.isArray(coMd.industries) && coMd.industries.length
+      ? coMd.industries
+      : md.industry
+        ? [md.industry]
+        : []
   const contactEmail =
     String(p.email || co?.email || '')
       .trim()
       .toLowerCase()
   // Prefer joined company row; fall back to profile.company_id when the join is empty (RLS / orphan).
   const companyId = co?.id || p.company_id || null
+  const categories = (md.categories && typeof md.categories === 'object' && Object.keys(md.categories).length)
+    ? md.categories
+    : (coMd.categories && typeof coMd.categories === 'object' ? coMd.categories : {})
+  const serviceCategories = Array.isArray(md.service_categories) && md.service_categories.length
+    ? md.service_categories
+    : (Array.isArray(coMd.service_categories) ? coMd.service_categories : [])
   return {
     id: p.id,
     companyId,
@@ -345,8 +358,8 @@ function profileRowToAccountStub(p) {
     status: co?.status === 'active' ? 'active' : p.status || 'active',
     registeredAt: p.created_at || new Date().toISOString(),
     industries,
-    categories: md.categories && typeof md.categories === 'object' ? md.categories : {},
-    serviceCategories: Array.isArray(md.service_categories) ? md.service_categories : [],
+    categories,
+    serviceCategories,
     auditorDocuments: md.auditor_documents || '',
     auditorVerificationStatus: md.auditor_verification_status || null,
     _source: 'supabase',

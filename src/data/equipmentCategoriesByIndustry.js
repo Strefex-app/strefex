@@ -3,6 +3,13 @@
  * Replace or extend with your database later.
  */
 export const EQUIPMENT_CATEGORIES_BY_INDUSTRY = {
+  general: [
+    { id: 'general-equipment', name: 'General Equipment', description: 'General manufacturing and production equipment' },
+    { id: 'tooling', name: 'Tooling & Fixtures', description: 'Tools, jigs, and fixtures' },
+    { id: 'automation-general', name: 'Automation', description: 'General automation and handling' },
+    { id: 'testing-general', name: 'Testing & Inspection', description: 'Quality testing and inspection' },
+    { id: 'other-equipment', name: 'Other', description: 'Other equipment and categories' },
+  ],
   automotive: [
     { id: 'mold-makers', name: 'Mold Makers', description: 'Molds and tooling for automotive parts' },
     { id: 'automation', name: 'Automation', description: 'Assembly and production automation' },

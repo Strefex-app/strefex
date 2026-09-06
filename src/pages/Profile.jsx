@@ -25,6 +25,10 @@ import {
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import { useIndustryStore } from '../store/industryStore'
+import { useServiceStore } from '../store/serviceStore'
 import {
   isHeicLike,
   normalizeImageForOcr,
@@ -324,6 +328,25 @@ const INDUSTRIES = [
   'Plastic', 'Metal', 'Chemical', 'Aerospace', 'Energy', 'Other',
 ]
 
+const PLATFORM_INDUSTRY_OPTIONS = [
+  { id: 'general', label: 'General / Other' },
+  { id: 'automotive', label: 'Automotive' },
+  { id: 'machinery', label: 'Machinery' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'medical', label: 'Medical' },
+  { id: 'raw-materials', label: 'Raw Materials' },
+  { id: 'oil-gas', label: 'Oil & Gas' },
+  { id: 'green-energy', label: 'Green Energy' },
+  { id: 'household-products', label: 'Household Products' },
+  { id: 'nuclear', label: 'Nuclear' },
+]
+
+const SERVICE_EXPERTISE_OPTIONS = [
+  { id: 'project-management', label: 'Project Management' },
+  { id: 'supplier-services', label: 'Supplier Services' },
+  { id: 'quality-services', label: 'Quality & Compliance' },
+]
+
 /* ── SVG helper icons ───────────────────────────────────────── */
 const Icon = ({ name, size = 20, stroke = 'currentColor' }) => {
   switch (name) {
@@ -398,6 +421,9 @@ const Profile = () => {
   const setUser = useAuthStore((s) => s.setUser)
   const setTenant = useAuthStore((s) => s.setTenant)
   const updateRegistryAccount = useAccountRegistry((s) => s.updateAccount)
+  const getAccountByEmail = useAccountRegistry((s) => s.getAccountByEmail)
+  const applyIndustrySelections = useIndustryStore((s) => s.applySelections)
+  const setServiceSelections = useServiceStore((s) => s.setServices)
   const { t: tr } = useTranslation()
 
   /* ── Auth & subscription info ─────────────────────────────── */
@@ -523,6 +549,13 @@ const Profile = () => {
     phone: '',
     companyName: '',
     companyAddress: '',
+    country: '',
+    city: '',
+    website: '',
+    companySummary: '',
+    industryId: '',
+    equipmentCategories: [],
+    serviceCategories: [],
   })
   const [profileAttachmentFiles, setProfileAttachmentFiles] = useState([])
   const [pendingProfileAttachments, setPendingProfileAttachments] = useState([])
@@ -546,17 +579,36 @@ const Profile = () => {
   const companyProfileFileRef = useRef(null)
 
   useEffect(() => {
+    const registryAcct = user?.email ? getAccountByEmail?.(user.email) : null
+    const md = tenant?.metadata && typeof tenant.metadata === 'object' ? tenant.metadata : {}
+    const industries = Array.isArray(md.industries) && md.industries.length
+      ? md.industries
+      : (Array.isArray(registryAcct?.industries) ? registryAcct.industries : [])
+    const industryId = industries[0] || ''
+    const catsByIndustry = (md.categories && typeof md.categories === 'object')
+      ? md.categories
+      : (registryAcct?.categories && typeof registryAcct.categories === 'object' ? registryAcct.categories : {})
+    const equipmentCategories = industryId && Array.isArray(catsByIndustry[industryId])
+      ? catsByIndustry[industryId]
+      : []
+    const serviceCategories = Array.isArray(md.service_categories)
+      ? md.service_categories
+      : (Array.isArray(registryAcct?.serviceCategories) ? registryAcct.serviceCategories : [])
+
     setCompanyForm({
       fullName: user?.fullName || '',
       phone: user?.phone || '',
       companyName: tenant?.name || '',
       companyAddress: tenant?.address || tenant?.metadata?.address || '',
-      country: tenant?.country || '',
-      city: tenant?.city || '',
+      country: tenant?.country || registryAcct?.country || '',
+      city: tenant?.city || registryAcct?.city || '',
       website: tenant?.website || '',
       companySummary: tenant?.metadata?.company_summary || '',
+      industryId,
+      equipmentCategories,
+      serviceCategories,
     })
-  }, [tenant, user])
+  }, [tenant, user, getAccountByEmail])
 
   useEffect(() => {
     if (!showEditCompany || !tenant?.id) return undefined
@@ -955,6 +1007,25 @@ const Profile = () => {
       const nextCity = companyForm.city.trim()
       const nextName = companyForm.companyName.trim()
       const nextSummary = companyForm.companySummary.trim()
+      const nextIndustryId = String(companyForm.industryId || '').trim()
+      const nextIndustries = nextIndustryId ? [nextIndustryId] : []
+      const nextCategories = nextIndustryId && Array.isArray(companyForm.equipmentCategories) && companyForm.equipmentCategories.length
+        ? { [nextIndustryId]: [...companyForm.equipmentCategories] }
+        : {}
+      const nextServiceCategories = Array.isArray(companyForm.serviceCategories)
+        ? [...companyForm.serviceCategories]
+        : []
+
+      const persistLocalCategoryState = () => {
+        try {
+          applyIndustrySelections(nextIndustries, nextCategories, { syncCloud: false })
+          if (accountType === 'service_provider' || accountType === 'auditor') {
+            setServiceSelections(
+              accountType === 'auditor' ? ['supplier-audit'] : nextServiceCategories,
+            )
+          }
+        } catch { /* best-effort */ }
+      }
 
       // Offline / registry-only accounts — still persist local profile + geo.
       if (!tenant?.id) {
@@ -978,6 +1049,9 @@ const Profile = () => {
               ...(tenant.metadata || {}),
               address: nextAddress || null,
               company_summary: nextSummary || null,
+              industries: nextIndustries,
+              categories: nextCategories,
+              service_categories: nextServiceCategories,
             },
           })
         }
@@ -987,8 +1061,12 @@ const Profile = () => {
             country: nextCountry || '',
             city: nextCity || '',
             address: nextAddress || '',
+            industries: nextIndustries,
+            categories: nextCategories,
+            serviceCategories: nextServiceCategories,
           })
         }
+        persistLocalCategoryState()
         setShowEditCompany(false)
         return
       }
@@ -1016,6 +1094,9 @@ const Profile = () => {
           ...(tenant.metadata || {}),
           address: nextAddress || null,
           company_summary: nextSummary || null,
+          industries: nextIndustries,
+          categories: nextCategories,
+          service_categories: nextServiceCategories,
         },
       }
       if (canAttachCompanyProfile && nextProfileAttachments != null) {
@@ -1026,7 +1107,7 @@ const Profile = () => {
         ...tenant,
         ...companyPayload,
         account_type: accountType,
-        industries: tenant?.industries ?? companyPayload.industries ?? [],
+        industries: nextIndustries,
         profile_attachments:
           nextProfileAttachments != null ? nextProfileAttachments : tenant?.profile_attachments,
       }
@@ -1049,6 +1130,12 @@ const Profile = () => {
       await profilesService.updateProfile({
         full_name: companyForm.fullName.trim(),
         phone: companyForm.phone.trim() || null,
+        metadata: {
+          ...(tenant?.metadata || {}),
+          industries: nextIndustries,
+          categories: nextCategories,
+          service_categories: nextServiceCategories,
+        },
       })
       setUser({
         ...(user || {}),
@@ -1073,6 +1160,9 @@ const Profile = () => {
           ...(updatedCompany?.metadata || {}),
           address: nextAddress || null,
           company_summary: nextSummary || null,
+          industries: nextIndustries,
+          categories: nextCategories,
+          service_categories: nextServiceCategories,
         },
       })
       if (user?.email) {
@@ -1081,8 +1171,12 @@ const Profile = () => {
           country: (updatedCompany?.country ?? nextCountry) || '',
           city: (updatedCompany?.city ?? nextCity) || '',
           address: (updatedCompany?.address ?? nextAddress) || '',
+          industries: nextIndustries,
+          categories: nextCategories,
+          serviceCategories: nextServiceCategories,
         })
       }
+      persistLocalCategoryState()
       setProfileAttachmentFiles([])
       setPendingProfileAttachments([])
       setProfileAttachmentPathsToDelete([])
@@ -1464,6 +1558,81 @@ const Profile = () => {
                       placeholder="What you manufacture or deliver, key capabilities, certifications, markets…"
                     />
                   </div>
+                  <div className="prof-form-group full">
+                    <label className="prof-form-label">Industry</label>
+                    <select
+                      className="prof-form-input"
+                      value={companyForm.industryId || ''}
+                      disabled={savingCompany}
+                      onChange={(e) => {
+                        const industryId = e.target.value
+                        setCompanyForm((p) => ({
+                          ...p,
+                          industryId,
+                          equipmentCategories: [],
+                        }))
+                      }}
+                    >
+                      <option value="">Select industry…</option>
+                      {PLATFORM_INDUSTRY_OPTIONS.map((ind) => (
+                        <option key={ind.id} value={ind.id}>{ind.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {companyForm.industryId && getEquipmentCategoriesForIndustry(companyForm.industryId).length > 0 && (
+                    <div className="prof-form-group full">
+                      <label className="prof-form-label">Categories (Executive Summary &amp; map)</label>
+                      <div className="prof-category-checklist">
+                        {getEquipmentCategoriesForIndustry(companyForm.industryId).map((cat) => (
+                          <ToggleCheckButton
+                            key={cat.id}
+                            checked={(companyForm.equipmentCategories || []).includes(cat.id)}
+                            disabled={savingCompany}
+                            onChange={(checked) => {
+                              setCompanyForm((p) => {
+                                const prev = Array.isArray(p.equipmentCategories) ? p.equipmentCategories : []
+                                return {
+                                  ...p,
+                                  equipmentCategories: checked
+                                    ? [...prev, cat.id]
+                                    : prev.filter((id) => id !== cat.id),
+                                }
+                              })
+                            }}
+                          >
+                            {cat.name}
+                          </ToggleCheckButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {accountType === 'service_provider' && (
+                    <div className="prof-form-group full">
+                      <label className="prof-form-label">Service expertise</label>
+                      <div className="prof-category-checklist">
+                        {SERVICE_EXPERTISE_OPTIONS.map((svc) => (
+                          <ToggleCheckButton
+                            key={svc.id}
+                            checked={(companyForm.serviceCategories || []).includes(svc.id)}
+                            disabled={savingCompany}
+                            onChange={(checked) => {
+                              setCompanyForm((p) => {
+                                const prev = Array.isArray(p.serviceCategories) ? p.serviceCategories : []
+                                return {
+                                  ...p,
+                                  serviceCategories: checked
+                                    ? [...prev, svc.id]
+                                    : prev.filter((id) => id !== svc.id),
+                                }
+                              })
+                            }}
+                          >
+                            {svc.label}
+                          </ToggleCheckButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {canAttachCompanyProfile && (
                     <div className="prof-form-group full prof-profile-attachments-block">
                       <label className="prof-form-label">Profile attachments</label>

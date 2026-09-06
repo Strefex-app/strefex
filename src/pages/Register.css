@@ -424,3 +424,32 @@
   transition: background .15s;
 }
 .reg-agreement-accept-btn:hover { background: var(--btn-primary-hover); }
+
+.reg-category-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.reg-category-check {
+  width: 100%;
+  align-items: flex-start;
+}
+.reg-category-check .stx-check-btn__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.reg-category-check-title {
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+}
+.reg-category-check-desc {
+  font-size: var(--text-caption, 12px);
+  color: var(--color-secondary);
+  line-height: 1.35;
+}
