@@ -3,47 +3,44 @@
  * (ported from STREFEX Website v6.1). Auth CTAs use target=_top to /login,
  * /register, /register?type=buyer, and /register?type=seller.
  *
- * Loaded via srcDoc (not iframe src) so X-Frame-Options / frame-ancestors
- * cannot blank the landing. Requires vercel rewrite exclusion for
- * /marketing-site/* so fetch() receives the real HTML (not the SPA shell).
+ * Embed via iframe src (not srcDoc). Production allows SAMEORIGIN framing for
+ * /marketing-site/*, and a real document URL loads Design Canvas + local React.
+ * The iframe starts immediately; a parallel fetch only flips to the error
+ * fallback if the marketing HTML is missing or rewritten to the SPA shell.
  */
 import { useEffect, useState } from 'react'
 
+const MARKETING_SRC = '/marketing-site/index.html'
+
+function looksLikeMarketingHtml(html) {
+  return (
+    html.includes('Manufacturers You Can') ||
+    html.includes('Strategic Supplier Intelligence') ||
+    html.includes('data-i18n-ui') ||
+    html.includes('tForkACta') ||
+    html.includes('window.__resources')
+  )
+}
+
 export default function MarketingHome() {
-  const [srcDoc, setSrcDoc] = useState('')
   const [status, setStatus] = useState('loading') // loading | ready | error
 
   useEffect(() => {
     let cancelled = false
-    setStatus('loading')
-    fetch('/marketing-site/index.html', { cache: 'no-cache' })
+    fetch(MARKETING_SRC, { cache: 'no-cache' })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.text()
       })
       .then((html) => {
         if (cancelled) return
-        // Guard: SPA rewrite misconfig returns the React shell instead of marketing HTML.
-        const looksLikeMarketing =
-          html.includes('Manufacturers You Can') ||
-          html.includes('Strategic Supplier Intelligence') ||
-          html.includes('data-i18n-ui') ||
-          html.includes('tForkACta')
-        if (!looksLikeMarketing) {
+        if (!looksLikeMarketingHtml(html)) {
           throw new Error('Marketing HTML not served (check vercel marketing-site rewrite)')
         }
-        const withBase = html.replace(
-          /<head([^>]*)>/i,
-          '<head$1><base href="/marketing-site/">',
-        )
-        setSrcDoc(withBase)
         setStatus('ready')
       })
       .catch(() => {
-        if (!cancelled) {
-          setSrcDoc('')
-          setStatus('error')
-        }
+        if (!cancelled) setStatus('error')
       })
     return () => {
       cancelled = true
@@ -58,7 +55,7 @@ export default function MarketingHome() {
           The public landing could not load. Open the site files directly or sign in to the platform.
         </p>
         <p>
-          <a href="/marketing-site/index.html">Open landing</a>
+          <a href={MARKETING_SRC}>Open landing</a>
           {' · '}
           <a href="/login">Sign in</a>
           {' · '}
@@ -72,7 +69,8 @@ export default function MarketingHome() {
     <iframe
       className="mkt-site-frame"
       title="STREFEX"
-      srcDoc={status === 'ready' ? srcDoc : undefined}
+      src={MARKETING_SRC}
+      onLoad={() => setStatus((s) => (s === 'error' ? s : 'ready'))}
     />
   )
 }

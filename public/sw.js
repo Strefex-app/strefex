@@ -13,7 +13,7 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v14'
+const CACHE_VERSION = 'strefex-v15'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 const SHELL_URL = '/index.html'

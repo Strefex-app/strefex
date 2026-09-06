@@ -44,9 +44,9 @@ if [[ "$missing" -ne 0 ]]; then
   exit 1
 fi
 
-# Guard: MarketingHome must use srcDoc (iframe src blanks under frame-deny headers)
-if ! grep -q 'srcDoc' "$ROOT/src/pages/marketing/MarketingHome.jsx"; then
-  echo "ERROR: MarketingHome.jsx must use srcDoc embedding" >&2
+# Guard: MarketingHome must embed marketing HTML (iframe src or srcDoc)
+if ! grep -qE 'srcDoc|MARKETING_SRC|/marketing-site/index.html' "$ROOT/src/pages/marketing/MarketingHome.jsx"; then
+  echo "ERROR: MarketingHome.jsx must embed /marketing-site/index.html" >&2
   exit 1
 fi
 # Guard: vercel must exclude marketing-site from SPA rewrite

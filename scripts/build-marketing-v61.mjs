@@ -45,6 +45,30 @@ for (const [uuid, entry] of Object.entries(manifest)) {
 }
 html = html.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '')
 
+// Prefer local React UMDs (already unpacked from the Design Canvas bundle).
+const reactFile = fs.readdirSync(assetDir).find((f) => {
+  if (!f.endsWith('.js')) return false
+  const head = fs.readFileSync(path.join(assetDir, f), 'utf8').slice(0, 120)
+  return head.includes('react.production.min.js') && !head.includes('react-dom')
+})
+const reactDomFile = fs.readdirSync(assetDir).find((f) => {
+  if (!f.endsWith('.js')) return false
+  const head = fs.readFileSync(path.join(assetDir, f), 'utf8').slice(0, 120)
+  return head.includes('react-dom.production.min.js')
+})
+if (reactFile && reactDomFile) {
+  const resourceBoot = `<script>
+window.__resources = Object.assign({}, window.__resources, {
+  "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "assets-v61/${reactFile}",
+  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "assets-v61/${reactDomFile}"
+});
+</script>`
+  html = html.replace(
+    /(<script src="assets-v61\/[^"]+\.js"><\/script>)/i,
+    `${resourceBoot}\n$1`,
+  )
+}
+
 const linkBtn = (href, label, variant = 'primary', size = 'md') => {
   const base = "display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;border-radius:4px;box-sizing:border-box;line-height:1.2;letter-spacing:0;white-space:nowrap"
   const sizes = {
