@@ -1,0 +1,241 @@
+/**
+ * Platform-wide responsive layout (web / iPad / phone).
+ * Breakpoints aligned with AppLayout:
+ *   > 900px  desktop shell
+ *   ≤ 900px  tablet / narrow desktop (icon rail or condensed chrome)
+ *   ≤ 640px  phone (drawer + compact page chrome)
+ *   ≤ 480px  small phone
+ */
+:root {
+  --stx-bp-tablet: 900px;
+  --stx-bp-phone: 640px;
+  --stx-bp-phone-sm: 480px;
+  --stx-page-pad-x: 24px;
+  --stx-page-pad-x-tablet: 16px;
+  --stx-page-pad-x-phone: 12px;
+  --stx-touch-min: 44px;
+}
+
+/* ── Global frame safety ─────────────────────────────────── */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#root {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* Prefer wrapping over horizontal page scroll for long labels */
+.stx-text-wrap,
+.app-page,
+.app-main,
+.mkt-main,
+.login-page,
+.reg-page,
+.home-page,
+.mgmt-hub,
+.industry-hub {
+  overflow-wrap: break-word;
+}
+
+/* Flex/grid children must shrink inside shells */
+.app-layout,
+.app-main,
+.app-page,
+.home-page,
+.mgmt-hub,
+.industry-hub,
+.login-card,
+.reg-card {
+  min-width: 0;
+}
+
+/* ── Shared fluid grids / stacks ─────────────────────────── */
+.stx-grid-auto,
+.app-page-grid,
+.home-widgets-grid,
+.mgmt-hub-grid,
+.industry-hub-grid,
+.mgmt-cluster-widgets,
+.mgmt-dash-kpis,
+.mgmt-dash-charts {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --stx-page-pad-x: var(--stx-page-pad-x-tablet);
+  }
+
+  /* Multi-column form / filter rows → stack */
+  .app-page-form-row,
+  .app-page-filters,
+  .reg-form-row,
+  .login-form-row,
+  .prof-form-row,
+  .cs-form-row,
+  .tm-form-row,
+  .filter-row,
+  .toolbar-row,
+  .app-page-header-row,
+  .app-page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-page-form-row > *,
+  .filter-row > *,
+  .toolbar-row > *,
+  .app-page-toolbar > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Hub / widget grids: fluid columns that wrap instead of overflowing */
+  .mgmt-hub-grid,
+  .industry-hub-grid,
+  .mgmt-cluster-widgets,
+  .home-widgets-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  }
+
+  /* Dense horizontal chip / tab strips stay scrollable, not page-breaking */
+  .app-page-tabs,
+  .comp-tabs,
+  .vd-tabs,
+  .mkt-nav__links,
+  .stx-chip-row,
+  .qe-tool-tags,
+  .sp-plan-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    gap: 8px;
+    scrollbar-width: thin;
+  }
+
+  /* Breadcrumb bar follows page pad */
+  .app-page-breadcrumb-bar {
+    margin-left: calc(-1 * var(--stx-page-pad-x));
+    margin-right: calc(-1 * var(--stx-page-pad-x));
+    padding-left: var(--stx-page-pad-x);
+    padding-right: var(--stx-page-pad-x);
+  }
+
+  /* Auth cards: use viewport safely */
+  .login-card,
+  .reg-card,
+  .auth-card {
+    max-width: min(100%, 480px);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .login-page,
+  .reg-page,
+  .auth-page {
+    padding-left: var(--stx-page-pad-x);
+    padding-right: var(--stx-page-pad-x);
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --stx-page-pad-x: var(--stx-page-pad-x-phone);
+  }
+
+  /* Touch-friendly controls */
+  button:not(.sidebar-pill-toggle):not(.sidebar-lang-select-inner),
+  .app-page-btn-primary,
+  .app-page-btn-outline,
+  .app-page-btn-secondary,
+  .login-button,
+  .reg-submit-btn,
+  a.app-page-btn-primary,
+  a.app-page-btn-outline {
+    min-height: var(--stx-touch-min);
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* avoid iOS zoom on focus */
+  }
+
+  /* Modals / drawers: use viewport width safely */
+  .modal,
+  .modal-content,
+  .app-modal,
+  .app-modal__dialog,
+  .dialog,
+  .drawer-panel,
+  .tm-modal {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  /* Marketing intro / React marketing pages */
+  .mkt-section,
+  .mkt-intro__hero,
+  .mkt-intro__body {
+    padding-left: var(--stx-page-pad-x);
+    padding-right: var(--stx-page-pad-x);
+  }
+
+  .mkt-nav {
+    padding-left: var(--stx-page-pad-x);
+    padding-right: var(--stx-page-pad-x);
+    gap: 10px 12px;
+  }
+
+  .mkt-nav__brand img,
+  .mkt-nav__logo {
+    max-height: 28px;
+    width: auto;
+  }
+
+  /* KPI strips: 2-up then stack via existing page CSS; ensure min width */
+  .mgmt-dash-kpis,
+  .home-dash__kpis,
+  .home-dash__kpis--4,
+  .home-dash__kpis--5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mgmt-dash-bar-row {
+    grid-template-columns: minmax(0, 1fr) 1.4fr 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-page-title,
+  .stx-text-page-title,
+  .home-card-title {
+    font-size: var(--text-section);
+  }
+
+  .mgmt-dash-kpis,
+  .home-dash__kpis,
+  .home-dash__kpis--4,
+  .home-dash__kpis--5,
+  .home-dash__pulse-col {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-nav-item span {
+    font-size: 10px;
+  }
+}

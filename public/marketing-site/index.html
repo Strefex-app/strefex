@@ -7,6 +7,82 @@
   a[href="/register"]:hover, a[href="/register?type=buyer"]:hover { background:#6FC8E4 !important; border-color:#6FC8E4 !important; }
   a[href="/register?type=seller"]:hover { background:#D8582C !important; border-color:#D8582C !important; }
 </style>
+<style id="stx-responsive">
+  /* Keep decorative / tour media inside the frame on all sizes */
+  #dc-root img { max-width: 100%; height: auto; }
+  #dc-root img[style*="width:980px"],
+  #dc-root img[style*="width:420px"] {
+    width: min(100%, 980px) !important;
+    max-width: 100% !important;
+  }
+  html, body, #dc-root, #dc-root > .sc-host { overflow-x: clip; }
+
+  @media (max-width: 1100px) {
+    .stx-header-inner,
+    #dc-root .stx-pad {
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+  }
+
+  /* Tablet + phone: collapse fixed left rail so content can use full width */
+  @media (max-width: 900px) {
+    .stx-shell {
+      padding-left: 0 !important;
+    }
+    .stx-rail {
+      display: none !important;
+    }
+    .stx-header-inner {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      gap: 10px !important;
+      height: auto !important;
+      min-height: 56px;
+      flex-wrap: wrap;
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+    }
+    .stx-header img[alt="STREFEX"] {
+      height: 28px !important;
+      width: auto !important;
+      max-width: 120px !important;
+    }
+    .stx-header a[href="/login"],
+    .stx-header a[href="/register"] {
+      padding: 7px 12px !important;
+      font-size: 12px !important;
+    }
+    #dc-root [style*="padding: 0px 44px"],
+    #dc-root [style*="padding:0 44px"],
+    #dc-root [style*="padding: 76px 44px"],
+    #dc-root [style*="padding:76px 44px"],
+    #dc-root [style*="padding: 32px 44px"],
+    #dc-root [style*="padding:32px 44px"],
+    #dc-root [style*="padding: 56px 44px"],
+    #dc-root [style*="padding:56px 44px"],
+    #dc-root [style*="padding: 34px 32px"],
+    #dc-root [style*="padding:34px 32px"] {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    #dc-root [style*="grid-template-columns"] {
+      grid-template-columns: 1fr !important;
+    }
+    #dc-root h1 {
+      font-size: clamp(34px, 9vw, 52px) !important;
+    }
+    #dc-root h2 {
+      font-size: clamp(26px, 6.5vw, 40px) !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stx-header-inner {
+      gap: 8px !important;
+    }
+  }
+</style>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
@@ -1552,9 +1628,9 @@ a:hover{color:#A6DEF0}
 </style>
 </helmet>
 
-<div style="background:#04101C;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#DCE6F0;padding-left:76px">
+<div class="stx-shell" style="background:#04101C;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#DCE6F0;padding-left:76px">
 
-<div style="position:fixed;left:0;top:0;bottom:0;width:76px;box-sizing:border-box;overflow:visible;z-index:80;background:#020A12;border-right:1px solid rgba(154,174,199,.18);display:flex;flex-direction:column;align-items:center;padding:18px 0 16px">
+<div class="stx-rail" style="position:fixed;left:0;top:0;bottom:0;width:76px;box-sizing:border-box;overflow:visible;z-index:80;background:#020A12;border-right:1px solid rgba(154,174,199,.18);display:flex;flex-direction:column;align-items:center;padding:18px 0 16px">
 <img src="assets-v61/63f2d3eb-4662-477d-a4e1-f6d8bfb55517.svg" alt="" style="width:22px;height:22px;flex:none;filter:brightness(0) invert(1);opacity:.9">
 <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:13px;padding:12px 0">
 <sc-for list="{{ railItems }}" as="rl" hint-placeholder-count="6">
@@ -1577,8 +1653,8 @@ a:hover{color:#A6DEF0}
 </button></div>
 </div>
 
-<header style="position:sticky;top:0;z-index:60;background:rgba(4,16,28,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(154,174,199,.16)">
-<div style="max-width:1300px;margin:0 auto;padding:0 44px;height:68px;display:flex;align-items:center;gap:36px">
+<header class="stx-header" style="position:sticky;top:0;z-index:60;background:rgba(4,16,28,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(154,174,199,.16)">
+<div class="stx-header-inner" style="max-width:1300px;margin:0 auto;padding:0 44px;height:68px;display:flex;align-items:center;gap:36px">
 <img src="assets-v61/4c5830fc-3fa0-49d6-9673-c64ae55e3b4a.png" alt="STREFEX" style="height: 36px; width: 104px; display: block">
 <span style="flex:1"></span>
 <div style="display:inline-flex"><a href="/login" target="_top" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;border-radius:4px;box-sizing:border-box;line-height:1.2;letter-spacing:0;white-space:nowrap;font-size:13px;font-weight:600;padding:8px 16px;color:#E7EEF6;background:transparent;border:1px solid rgba(154,174,199,.34)">{{ tSignIn }}</a></div>

@@ -40,8 +40,8 @@
   min-height: var(--stx-chrome-top-h, 77px);
   max-height: var(--stx-chrome-top-h, 77px);
   /* Full-bleed via negative margins only — do not also widen width (that overflows app-main grids) */
-  margin: 0 -24px 20px;
-  padding: 0 24px;
+  margin: 0 calc(-1 * var(--stx-page-pad-x, 24px)) 20px;
+  padding: 0 var(--stx-page-pad-x, 24px);
   width: auto;
   max-width: none;
   background: var(--bg-card, var(--surface-card, #fff));
@@ -56,10 +56,19 @@
   white-space: nowrap;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .app-page-breadcrumb-bar {
-    margin: 0 -16px 16px;
-    padding: 0 16px;
+    margin-bottom: 16px;
+    height: auto;
+    min-height: 48px;
+    max-height: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .app-page-breadcrumb-bar .mgmt-breadcrumb {
+    flex-wrap: wrap;
+    white-space: normal;
   }
 }
 

@@ -154,6 +154,24 @@ html = html.replace(
   '<a href="/register?type=seller" target="_top" style="font-size:14px;color:#7E96B4">{{ tFootLink4 }}</a>',
 )
 
+// Stable hooks for responsive CSS (Design Canvas rewrites inline style values).
+html = html.replace(
+  /<div style="background:#04101C;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#DCE6F0;padding-left:76px">/,
+  `<div class="stx-shell" style="background:#04101C;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#DCE6F0;padding-left:76px">`,
+)
+html = html.replace(
+  /<div style="position:fixed;left:0;top:0;bottom:0;width:76px;/,
+  `<div class="stx-rail" style="position:fixed;left:0;top:0;bottom:0;width:76px;`,
+)
+html = html.replace(
+  /<header style="position:sticky;top:0;z-index:60;/,
+  `<header class="stx-header" style="position:sticky;top:0;z-index:60;`,
+)
+html = html.replace(
+  /<div style="max-width:1300px;margin:0 auto;padding:0 44px;height:68px;display:flex;align-items:center;gap:36px">/,
+  `<div class="stx-header-inner" style="max-width:1300px;margin:0 auto;padding:0 44px;height:68px;display:flex;align-items:center;gap:36px">`,
+)
+
 const injectCss = `<style id="stx-auth-cta">
   a[href="/login"], a[href="/register"], a[href^="/register?"] {
     transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
@@ -161,6 +179,24 @@ const injectCss = `<style id="stx-auth-cta">
   a[href="/login"]:hover { border-color:#58C8F5 !important; color:#fff !important; }
   a[href="/register"]:hover, a[href="/register?type=buyer"]:hover { background:#6FC8E4 !important; border-color:#6FC8E4 !important; }
   a[href="/register?type=seller"]:hover { background:#D8582C !important; border-color:#D8582C !important; }
+</style>
+<style id="stx-responsive">
+  #dc-root img { max-width: 100%; height: auto; }
+  html, body, #dc-root, #dc-root > .sc-host { overflow-x: clip; }
+  @media (max-width: 900px) {
+    .stx-shell { padding-left: 0 !important; }
+    .stx-rail { display: none !important; }
+    .stx-header-inner {
+      padding-left: 16px !important; padding-right: 16px !important;
+      gap: 10px !important; height: auto !important; min-height: 56px;
+      flex-wrap: wrap; padding-top: 10px !important; padding-bottom: 10px !important;
+    }
+    .stx-header img[alt="STREFEX"] { height: 28px !important; width: auto !important; max-width: 120px !important; }
+    .stx-header a[href="/login"], .stx-header a[href="/register"] { padding: 7px 12px !important; font-size: 12px !important; }
+    #dc-root [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+    #dc-root h1 { font-size: clamp(34px, 9vw, 52px) !important; }
+    #dc-root h2 { font-size: clamp(26px, 6.5vw, 40px) !important; }
+  }
 </style>`
 html = html.replace(/<head([^>]*)>/i, `<head$1>${injectCss}`)
 if (!/<title>/i.test(html)) {

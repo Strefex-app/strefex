@@ -7,6 +7,7 @@ import './styles/typography.css'
 /* After index + typography so RFQ overrides (incl. #root headings) reliably when .rfqi-scope is present */
 import './styles/rfq-intelligence-dark.css'
 import './styles/responsive-tables.css'
+import './styles/responsive-layout.css'
 import './styles/managementShell.css'
 import './styles/stx-chrome.css'
 /* After all routes — RFQ shell beats legacy light hex in lazily-loaded page CSS */

@@ -322,7 +322,7 @@
   color: var(--color-primary);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .mgmt-cluster-widgets {
     grid-template-columns: 1fr;
   }

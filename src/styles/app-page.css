@@ -485,9 +485,21 @@ a.app-page-btn-secondary {
   }
 }
 
+@media (max-width: 900px) {
+  .app-page-card {
+    padding: 18px 16px;
+  }
+
+  .app-page-section {
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+  }
+}
+
 @media (max-width: 640px) {
   .app-page-card {
-    padding: 20px;
+    padding: 16px 14px;
+    border-radius: 10px;
   }
 
   .app-page-btn-primary,

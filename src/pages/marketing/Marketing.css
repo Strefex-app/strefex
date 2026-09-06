@@ -1609,6 +1609,10 @@
     width: 100%;
   }
 
+  .mkt-nav__actions {
+    margin-left: auto;
+  }
+
   .mkt-hero {
     min-height: 72vh;
   }
@@ -1619,6 +1623,32 @@
 
   .mkt-hero__title {
     max-width: none;
+  }
+
+  .mkt-intro__hero,
+  .mkt-intro__body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .mkt-section {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mkt-nav {
+    padding: 10px 12px;
+  }
+
+  .mkt-nav__cta,
+  .mkt-nav a[href="/login"],
+  .mkt-nav a[href="/register"],
+  .mkt-nav a[href^="/register?"] {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 40px;
   }
 }
 

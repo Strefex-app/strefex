@@ -807,12 +807,12 @@ button.home-w--inverse:hover {
 
 @media (max-width: 720px) {
   .home-dash {
-    margin: 0 -16px;
-    width: calc(100% + 32px);
+    margin: 0 calc(-1 * var(--stx-page-pad-x, 16px));
+    width: calc(100% + 2 * var(--stx-page-pad-x, 16px));
   }
 
   .home-dash__topbar {
-    padding: 0 16px;
+    padding: 0 var(--stx-page-pad-x, 16px);
     height: auto;
     min-height: var(--stx-chrome-top-h, 77px);
     max-height: none;
@@ -820,7 +820,7 @@ button.home-w--inverse:hover {
   }
 
   .home-dash__inner {
-    padding: 20px 16px 32px;
+    padding: 20px var(--stx-page-pad-x, 16px) 32px;
   }
 
   .home-dash__plant-label {
