@@ -1,0 +1,21 @@
+<view class="session-card {{compact ? 'session-card--compact' : ''}}" bindtap="onTap">
+  <view class="session-card__header">
+    <text class="session-card__title">{{session.title}}</text>
+    <text class="tag tag-green">{{session.level}}</text>
+  </view>
+  <view class="session-card__meta">
+    <text class="text-muted text-small">{{session.coach_name}}</text>
+    <text class="text-muted text-small"> · {{session.venue_name}}</text>
+  </view>
+  <view class="session-card__footer flex-between">
+    <view>
+      <text class="text-small text-muted">{{session.date}} {{session.start_time}}</text>
+      <text class="text-small text-muted"> · {{session.duration_minutes}} min</text>
+    </view>
+    <text class="price">¥{{session.price_yuan}}</text>
+  </view>
+  <view wx:if="{{session.spots_left <= 3 && session.spots_left > 0}}" class="session-card__urgent">
+    Only {{session.spots_left}} spots left
+  </view>
+  <view wx:if="{{session.spots_left === 0}}" class="session-card__full">Fully booked</view>
+</view>

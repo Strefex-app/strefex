@@ -1,0 +1,54 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/schedule/schedule",
+    "pages/sessions/sessions",
+    "pages/session-detail/session-detail",
+    "pages/booking/booking",
+    "pages/payment/payment",
+    "pages/bookings/bookings",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0B3D2E",
+    "navigationBarTitleText": "PitchBook",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F4F7F5",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#6B7C75",
+    "selectedColor": "#0B3D2E",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "Home",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/schedule/schedule",
+        "text": "Schedule",
+        "iconPath": "assets/icons/calendar.png",
+        "selectedIconPath": "assets/icons/calendar-active.png"
+      },
+      {
+        "pagePath": "pages/bookings/bookings",
+        "text": "Bookings",
+        "iconPath": "assets/icons/bookings.png",
+        "selectedIconPath": "assets/icons/bookings-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "Profile",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

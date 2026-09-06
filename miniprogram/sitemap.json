@@ -1,0 +1,9 @@
+{
+  "desc": "PitchBook football training mini program sitemap",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

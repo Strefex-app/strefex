@@ -384,6 +384,12 @@ const Login = () => {
             </div>
           )}
 
+          <div style={{ textAlign: 'center', marginTop: 14, fontSize: 14 }}>
+            <Link to="/pitchbook" style={{ color: '#1a6b4f', fontWeight: 500, textDecoration: 'none' }}>
+              ⚽ Try PitchBook football training demo
+            </Link>
+          </div>
+
         </div>
       </div>
     </AuthPageShell>

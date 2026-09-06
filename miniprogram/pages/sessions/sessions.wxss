@@ -1,0 +1,20 @@
+.filters {
+  padding: 20rpx 28rpx;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-label {
+  font-size: 26rpx;
+  color: #6B7C75;
+}
+
+.filter-value {
+  font-size: 28rpx;
+  color: #0B3D2E;
+  font-weight: 500;
+}

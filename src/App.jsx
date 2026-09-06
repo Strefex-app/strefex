@@ -188,6 +188,7 @@ import {
   TemplateLibrary,
   AuditLogs,
   NotFoundPage,
+  PitchBookDemo,
 } from './routes/lazyPages'
 
 function RouteLoadingFallback() {
@@ -387,6 +388,7 @@ function App() {
           </Route>
 
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/pitchbook" element={<PitchBookDemo />} />
 
           {/* ── Core pages ────────────────────────────────── */}
           <Route path="/main-menu" element={<P><Home /></P>} />
