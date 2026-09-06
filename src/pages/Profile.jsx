@@ -26,7 +26,9 @@ import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '.
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
-import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import CategorySubcategoryChecklist, { sanitizeSubMap } from '../components/CategorySubcategoryChecklist'
+import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
+import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import {
@@ -554,7 +556,8 @@ const Profile = () => {
     website: '',
     companySummary: '',
     industryId: '',
-    equipmentCategories: [],
+    productSubs: {},
+    equipmentSubs: {},
     serviceCategories: [],
   })
   const [profileAttachmentFiles, setProfileAttachmentFiles] = useState([])
@@ -585,12 +588,32 @@ const Profile = () => {
       ? md.industries
       : (Array.isArray(registryAcct?.industries) ? registryAcct.industries : [])
     const industryId = industries[0] || ''
-    const catsByIndustry = (md.categories && typeof md.categories === 'object')
+    const eqCats = (md.categories && typeof md.categories === 'object')
       ? md.categories
       : (registryAcct?.categories && typeof registryAcct.categories === 'object' ? registryAcct.categories : {})
-    const equipmentCategories = industryId && Array.isArray(catsByIndustry[industryId])
-      ? catsByIndustry[industryId]
-      : []
+    const prodCats = (md.product_categories && typeof md.product_categories === 'object')
+      ? md.product_categories
+      : (registryAcct?.productCategories && typeof registryAcct.productCategories === 'object' ? registryAcct.productCategories : {})
+    const eqSubsRaw = (md.equipment_subcategories && typeof md.equipment_subcategories === 'object')
+      ? md.equipment_subcategories
+      : (registryAcct?.equipmentSubcategories || {})
+    const prodSubsRaw = (md.product_subcategories && typeof md.product_subcategories === 'object')
+      ? md.product_subcategories
+      : (registryAcct?.productSubcategories || {})
+    const toSubMap = (parentsByIndustry, subsByIndustry) => {
+      const parents = Array.isArray(parentsByIndustry?.[industryId]) ? parentsByIndustry[industryId] : []
+      const subs = (subsByIndustry?.[industryId] && typeof subsByIndustry[industryId] === 'object')
+        ? subsByIndustry[industryId]
+        : {}
+      const map = {}
+      for (const parentId of parents) {
+        map[parentId] = Array.isArray(subs[parentId]) && subs[parentId].length ? [...subs[parentId]] : ['*']
+      }
+      for (const [parentId, list] of Object.entries(subs)) {
+        if (!map[parentId] && Array.isArray(list) && list.length) map[parentId] = [...list]
+      }
+      return map
+    }
     const serviceCategories = Array.isArray(md.service_categories)
       ? md.service_categories
       : (Array.isArray(registryAcct?.serviceCategories) ? registryAcct.serviceCategories : [])
@@ -605,7 +628,8 @@ const Profile = () => {
       website: tenant?.website || '',
       companySummary: tenant?.metadata?.company_summary || '',
       industryId,
-      equipmentCategories,
+      productSubs: toSubMap(prodCats, prodSubsRaw),
+      equipmentSubs: toSubMap(eqCats, eqSubsRaw),
       serviceCategories,
     })
   }, [tenant, user, getAccountByEmail])
@@ -1009,8 +1033,19 @@ const Profile = () => {
       const nextSummary = companyForm.companySummary.trim()
       const nextIndustryId = String(companyForm.industryId || '').trim()
       const nextIndustries = nextIndustryId ? [nextIndustryId] : []
-      const nextCategories = nextIndustryId && Array.isArray(companyForm.equipmentCategories) && companyForm.equipmentCategories.length
-        ? { [nextIndustryId]: [...companyForm.equipmentCategories] }
+      const productSanitized = sanitizeSubMap(companyForm.productSubs)
+      const equipmentSanitized = sanitizeSubMap(companyForm.equipmentSubs)
+      const nextCategories = equipmentSanitized.parents.length
+        ? { [nextIndustryId]: [...equipmentSanitized.parents] }
+        : {}
+      const nextProductCategories = productSanitized.parents.length
+        ? { [nextIndustryId]: [...productSanitized.parents] }
+        : {}
+      const nextEquipmentSubcategories = Object.keys(equipmentSanitized.subs).length
+        ? { [nextIndustryId]: equipmentSanitized.subs }
+        : {}
+      const nextProductSubcategories = Object.keys(productSanitized.subs).length
+        ? { [nextIndustryId]: productSanitized.subs }
         : {}
       const nextServiceCategories = Array.isArray(companyForm.serviceCategories)
         ? [...companyForm.serviceCategories]
@@ -1018,7 +1053,12 @@ const Profile = () => {
 
       const persistLocalCategoryState = () => {
         try {
-          applyIndustrySelections(nextIndustries, nextCategories, { syncCloud: false })
+          applyIndustrySelections(nextIndustries, nextCategories, {
+            syncCloud: false,
+            productCategories: nextProductCategories,
+            equipmentSubcategories: nextEquipmentSubcategories,
+            productSubcategories: nextProductSubcategories,
+          })
           if (accountType === 'service_provider' || accountType === 'auditor') {
             setServiceSelections(
               accountType === 'auditor' ? ['supplier-audit'] : nextServiceCategories,
@@ -1051,6 +1091,9 @@ const Profile = () => {
               company_summary: nextSummary || null,
               industries: nextIndustries,
               categories: nextCategories,
+              product_categories: nextProductCategories,
+              equipment_subcategories: nextEquipmentSubcategories,
+              product_subcategories: nextProductSubcategories,
               service_categories: nextServiceCategories,
             },
           })
@@ -1063,6 +1106,9 @@ const Profile = () => {
             address: nextAddress || '',
             industries: nextIndustries,
             categories: nextCategories,
+            productCategories: nextProductCategories,
+            equipmentSubcategories: nextEquipmentSubcategories,
+            productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
           })
         }
@@ -1096,6 +1142,9 @@ const Profile = () => {
           company_summary: nextSummary || null,
           industries: nextIndustries,
           categories: nextCategories,
+          product_categories: nextProductCategories,
+          equipment_subcategories: nextEquipmentSubcategories,
+          product_subcategories: nextProductSubcategories,
           service_categories: nextServiceCategories,
         },
       }
@@ -1134,6 +1183,9 @@ const Profile = () => {
           ...(tenant?.metadata || {}),
           industries: nextIndustries,
           categories: nextCategories,
+          product_categories: nextProductCategories,
+          equipment_subcategories: nextEquipmentSubcategories,
+          product_subcategories: nextProductSubcategories,
           service_categories: nextServiceCategories,
         },
       })
@@ -1162,6 +1214,9 @@ const Profile = () => {
           company_summary: nextSummary || null,
           industries: nextIndustries,
           categories: nextCategories,
+          product_categories: nextProductCategories,
+          equipment_subcategories: nextEquipmentSubcategories,
+          product_subcategories: nextProductSubcategories,
           service_categories: nextServiceCategories,
         },
       })
@@ -1173,6 +1228,9 @@ const Profile = () => {
           address: (updatedCompany?.address ?? nextAddress) || '',
           industries: nextIndustries,
           categories: nextCategories,
+          productCategories: nextProductCategories,
+          equipmentSubcategories: nextEquipmentSubcategories,
+          productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
         })
       }
@@ -1569,7 +1627,8 @@ const Profile = () => {
                         setCompanyForm((p) => ({
                           ...p,
                           industryId,
-                          equipmentCategories: [],
+                          productSubs: {},
+                          equipmentSubs: {},
                         }))
                       }}
                     >
@@ -1579,32 +1638,33 @@ const Profile = () => {
                       ))}
                     </select>
                   </div>
-                  {companyForm.industryId && getEquipmentCategoriesForIndustry(companyForm.industryId).length > 0 && (
-                    <div className="prof-form-group full">
-                      <label className="prof-form-label">Categories (Executive Summary &amp; map)</label>
-                      <div className="prof-category-checklist">
-                        {getEquipmentCategoriesForIndustry(companyForm.industryId).map((cat) => (
-                          <ToggleCheckButton
-                            key={cat.id}
-                            checked={(companyForm.equipmentCategories || []).includes(cat.id)}
+                  {companyForm.industryId && (accountType === 'seller' || accountType === 'buyer' || accountType === 'service_provider') && (
+                    <>
+                      {accountType === 'seller' && getProductCategoryTreeForIndustry(companyForm.industryId).length > 0 && (
+                        <div className="prof-form-group full">
+                          <label className="prof-form-label">Product &amp; Component categories</label>
+                          <p className="prof-profile-attachments-hint">Check a category, then pick subcategory combinations (molds + fixtures, molds + die making, etc.).</p>
+                          <CategorySubcategoryChecklist
+                            categories={getProductCategoryTreeForIndustry(companyForm.industryId)}
+                            selectedSubs={companyForm.productSubs || {}}
+                            onChange={(next) => setCompanyForm((p) => ({ ...p, productSubs: next }))}
                             disabled={savingCompany}
-                            onChange={(checked) => {
-                              setCompanyForm((p) => {
-                                const prev = Array.isArray(p.equipmentCategories) ? p.equipmentCategories : []
-                                return {
-                                  ...p,
-                                  equipmentCategories: checked
-                                    ? [...prev, cat.id]
-                                    : prev.filter((id) => id !== cat.id),
-                                }
-                              })
-                            }}
-                          >
-                            {cat.name}
-                          </ToggleCheckButton>
-                        ))}
-                      </div>
-                    </div>
+                          />
+                        </div>
+                      )}
+                      {getEquipmentCategoryTreeForIndustry(companyForm.industryId).length > 0 && (
+                        <div className="prof-form-group full">
+                          <label className="prof-form-label">Equipment categories</label>
+                          <p className="prof-profile-attachments-hint">Select equipment families and the specific subcategories you supply.</p>
+                          <CategorySubcategoryChecklist
+                            categories={getEquipmentCategoryTreeForIndustry(companyForm.industryId)}
+                            selectedSubs={companyForm.equipmentSubs || {}}
+                            onChange={(next) => setCompanyForm((p) => ({ ...p, equipmentSubs: next }))}
+                            disabled={savingCompany}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                   {accountType === 'service_provider' && (
                     <div className="prof-form-group full">

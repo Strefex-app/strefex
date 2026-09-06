@@ -37,6 +37,31 @@
   overflow-y: auto;
   margin-bottom: 8px;
 }
+.saad-account-type-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+.saad-account-type-check {
+  width: 100%;
+  align-items: flex-start;
+}
+.saad-primary-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.saad-primary-type-row select {
+  min-width: 160px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--color-primary);
+}
 .saad-dl { margin: 0; display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 14px; }
 .saad-dl dt { color: var(--color-muted); margin: 0; }
 .saad-dl dd { margin: 0; }

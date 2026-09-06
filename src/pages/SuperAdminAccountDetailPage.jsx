@@ -12,7 +12,10 @@ import {
 } from '../constants/companyProfileDirectory'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
-import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import CategorySubcategoryChecklist, { sanitizeSubMap } from '../components/CategorySubcategoryChecklist'
+import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
+import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
+import { ACCOUNT_TYPES } from '../services/stripeService'
 import {
   normalizeReceivingPlants,
   readReceivingPlantsFromAccount,
@@ -66,6 +69,36 @@ function readServiceCategoriesFromSource(source) {
   return []
 }
 
+const ACCOUNT_TYPE_ORDER = ACCOUNT_TYPES.map((t) => t.id)
+
+function readAccountTypesFromSource(source, profile) {
+  const md = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {}
+  const pmd = profile?.metadata && typeof profile.metadata === 'object' ? profile.metadata : {}
+  const fromMeta = Array.isArray(md.account_types) ? md.account_types : null
+  const fromProfile = Array.isArray(pmd.account_types) ? pmd.account_types : null
+  const fromRegistry = Array.isArray(source?.accountTypes) ? source.accountTypes : null
+  const list = (fromMeta && fromMeta.length)
+    ? fromMeta
+    : (fromProfile && fromProfile.length)
+      ? fromProfile
+      : (fromRegistry && fromRegistry.length)
+        ? fromRegistry
+        : [source?.account_type || source?.accountType || pmd.account_type || 'seller']
+  const normalized = [...new Set(
+    list.map((v) => String(v || '').trim().toLowerCase()).filter((v) => ACCOUNT_TYPE_ORDER.includes(v)),
+  )]
+  if (!normalized.length) return ['seller']
+  const primary = String(
+    source?.account_type || source?.accountType || pmd.account_type || normalized[0],
+  ).trim().toLowerCase()
+  const ordered = []
+  if (ACCOUNT_TYPE_ORDER.includes(primary) && normalized.includes(primary)) ordered.push(primary)
+  ACCOUNT_TYPE_ORDER.forEach((id) => {
+    if (normalized.includes(id) && !ordered.includes(id)) ordered.push(id)
+  })
+  return ordered
+}
+
 function emptyForm() {
   return {
     name: '',
@@ -75,13 +108,14 @@ function emptyForm() {
     country: '',
     city: '',
     address: '',
-    account_type: 'buyer',
+    account_types: ['seller'],
     plan: 'start',
     contactName: '',
     contactPhone: '',
     contactProfileId: '',
     industryId: '',
-    equipmentCategories: [],
+    productSubs: {},
+    equipmentSubs: {},
     serviceCategories: [],
   }
 }
@@ -126,6 +160,9 @@ function companyFromRegistryAccount(acct) {
     city: acct.city || '',
     address: acct.address || '',
     account_type: acct.accountType || 'seller',
+    account_types: Array.isArray(acct.accountTypes) && acct.accountTypes.length
+      ? acct.accountTypes
+      : [acct.accountType || 'seller'],
     plan: acct.plan || 'start',
     registration_code: acct.registrationCode || '',
     visibility_tier: acct.visibilityTier || acct.visibility_tier || 'basic',
@@ -169,6 +206,9 @@ function companyFromAccountStub(stub) {
     city: stub.city || '',
     address: stub.address || '',
     account_type: stub.accountType || 'seller',
+    account_types: Array.isArray(stub.accountTypes) && stub.accountTypes.length
+      ? stub.accountTypes
+      : [stub.accountType || 'seller'],
     plan: stub.plan || 'start',
     registration_code: stub.registrationCode || '',
     visibility_tier: stub.visibilityTier || stub.visibility_tier || 'basic',
@@ -250,6 +290,13 @@ export default function SuperAdminAccountDetailPage() {
   const syncFormFromCompany = useCallback((c, plist) => {
     const primary = Array.isArray(plist) && plist.length ? plist[0] : null
     const industryId = readIndustryFromSource(c) || readIndustryFromSource(primary) || ''
+    const accountTypes = readAccountTypesFromSource(c, primary)
+    setCompany((prev) => ({
+      ...(prev && prev.id === c?.id ? prev : {}),
+      ...c,
+      account_types: accountTypes,
+      account_type: accountTypes[0] || c?.account_type || 'seller',
+    }))
     setForm({
       name: c?.name || '',
       email: c?.email || '',
@@ -258,16 +305,45 @@ export default function SuperAdminAccountDetailPage() {
       country: c?.country || '',
       city: c?.city || '',
       address: c?.address || c?.metadata?.address || '',
-      account_type: c?.account_type || 'buyer',
+      account_types: accountTypes,
       plan: c?.plan || 'start',
       contactName: primary?.full_name || c?._contactName || '',
       contactPhone: primary?.phone || c?._contactPhone || '',
       contactProfileId: primary?.id || c?._profileId || '',
       industryId,
-      equipmentCategories: (() => {
+      productSubs: (() => {
+        const md = c?.metadata && typeof c.metadata === 'object' ? c.metadata : {}
+        const parents = Array.isArray(md.product_categories?.[industryId])
+          ? md.product_categories[industryId]
+          : (Array.isArray(c?.productCategories?.[industryId]) ? c.productCategories[industryId] : [])
+        const subs = (md.product_subcategories?.[industryId] && typeof md.product_subcategories[industryId] === 'object')
+          ? md.product_subcategories[industryId]
+          : (c?.productSubcategories?.[industryId] || {})
+        const map = {}
+        for (const parentId of parents) {
+          map[parentId] = Array.isArray(subs[parentId]) && subs[parentId].length ? [...subs[parentId]] : ['*']
+        }
+        for (const [parentId, list] of Object.entries(subs || {})) {
+          if (!map[parentId] && Array.isArray(list) && list.length) map[parentId] = [...list]
+        }
+        return map
+      })(),
+      equipmentSubs: (() => {
         const fromCompany = readEquipmentCategoriesFromSource(c, industryId)
-        if (fromCompany.length) return fromCompany
-        return readEquipmentCategoriesFromSource(primary, industryId)
+        const fromProfile = readEquipmentCategoriesFromSource(primary, industryId)
+        const parents = fromCompany.length ? fromCompany : fromProfile
+        const md = c?.metadata && typeof c.metadata === 'object' ? c.metadata : {}
+        const subs = (md.equipment_subcategories?.[industryId] && typeof md.equipment_subcategories[industryId] === 'object')
+          ? md.equipment_subcategories[industryId]
+          : (c?.equipmentSubcategories?.[industryId] || {})
+        const map = {}
+        for (const parentId of parents) {
+          map[parentId] = Array.isArray(subs[parentId]) && subs[parentId].length ? [...subs[parentId]] : ['*']
+        }
+        for (const [parentId, list] of Object.entries(subs || {})) {
+          if (!map[parentId] && Array.isArray(list) && list.length) map[parentId] = [...list]
+        }
+        return map
       })(),
       serviceCategories: (() => {
         const fromCompany = readServiceCategoriesFromSource(c)
@@ -497,12 +573,35 @@ export default function SuperAdminAccountDetailPage() {
       const lookup = registryKey || emailKey || company._registryKey
       const nextIndustryId = String(form.industryId || '').trim()
       const nextIndustries = nextIndustryId ? [nextIndustryId] : []
-      const nextCategories = nextIndustryId && Array.isArray(form.equipmentCategories) && form.equipmentCategories.length
-        ? { [nextIndustryId]: [...form.equipmentCategories] }
+      const productSanitized = sanitizeSubMap(form.productSubs)
+      const equipmentSanitized = sanitizeSubMap(form.equipmentSubs)
+      const nextCategories = equipmentSanitized.parents.length
+        ? { [nextIndustryId]: [...equipmentSanitized.parents] }
+        : {}
+      const nextProductCategories = productSanitized.parents.length
+        ? { [nextIndustryId]: [...productSanitized.parents] }
+        : {}
+      const nextEquipmentSubcategories = Object.keys(equipmentSanitized.subs).length
+        ? { [nextIndustryId]: equipmentSanitized.subs }
+        : {}
+      const nextProductSubcategories = Object.keys(productSanitized.subs).length
+        ? { [nextIndustryId]: productSanitized.subs }
         : {}
       const nextServiceCategories = Array.isArray(form.serviceCategories)
         ? [...form.serviceCategories]
         : []
+      const nextAccountTypes = (() => {
+        const raw = Array.isArray(form.account_types) ? form.account_types : []
+        const cleaned = [...new Set(
+          raw.map((v) => String(v || '').trim().toLowerCase()).filter((v) => ACCOUNT_TYPE_ORDER.includes(v)),
+        )]
+        if (!cleaned.length) throw new Error('Select at least one account type (seller, buyer, etc.).')
+        // Keep form order (first checked primary), then fill remaining in platform order.
+        const ordered = []
+        cleaned.forEach((id) => { if (!ordered.includes(id)) ordered.push(id) })
+        return ordered
+      })()
+      const primaryAccountType = nextAccountTypes[0]
 
       if (isLocal || (company._local && !companyId)) {
         if (!lookup && !emailKey) throw new Error('Missing local account key.')
@@ -515,12 +614,16 @@ export default function SuperAdminAccountDetailPage() {
           country: form.country.trim() || '',
           city: form.city.trim() || '',
           address: nextAddress || '',
-          accountType: form.account_type || undefined,
+          accountType: primaryAccountType,
+          accountTypes: nextAccountTypes,
           plan: form.plan || undefined,
           receivingPlants: normalizeReceivingPlants(plants),
           companyId: company.id || undefined,
           industries: nextIndustries,
           categories: nextCategories,
+          productCategories: nextProductCategories,
+          equipmentSubcategories: nextEquipmentSubcategories,
+          productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
         }
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
@@ -532,7 +635,7 @@ export default function SuperAdminAccountDetailPage() {
             id: company._profileId || `local-${Date.now()}`,
             email: emailKey || lookup,
             ...patch,
-            accountType: form.account_type || 'seller',
+            accountType: primaryAccountType,
             plan: form.plan || 'start',
           })
         }
@@ -553,8 +656,13 @@ export default function SuperAdminAccountDetailPage() {
               phone: form.contactPhone.trim() || null,
               metadata: {
                 ...(existingProfile?.metadata || company.metadata || {}),
+                account_type: primaryAccountType,
+                account_types: nextAccountTypes,
                 industries: nextIndustries,
                 categories: nextCategories,
+                product_categories: nextProductCategories,
+                equipment_subcategories: nextEquipmentSubcategories,
+                product_subcategories: nextProductSubcategories,
                 service_categories: nextServiceCategories,
               },
             })
@@ -576,13 +684,18 @@ export default function SuperAdminAccountDetailPage() {
         country: form.country.trim() || null,
         city: form.city.trim() || null,
         address: nextAddress || null,
-        account_type: form.account_type || company.account_type,
+        account_type: primaryAccountType,
         plan: form.plan || company.plan,
         metadata: {
           ...(company.metadata || {}),
           address: nextAddress || null,
+          account_type: primaryAccountType,
+          account_types: nextAccountTypes,
           industries: nextIndustries,
           categories: nextCategories,
+          product_categories: nextProductCategories,
+          equipment_subcategories: nextEquipmentSubcategories,
+          product_subcategories: nextProductSubcategories,
           service_categories: nextServiceCategories,
         },
       }
@@ -608,8 +721,13 @@ export default function SuperAdminAccountDetailPage() {
             phone: form.contactPhone.trim() || null,
             metadata: {
               ...(existingProfile?.metadata || company.metadata || {}),
+              account_type: primaryAccountType,
+              account_types: nextAccountTypes,
               industries: nextIndustries,
               categories: nextCategories,
+              product_categories: nextProductCategories,
+              equipment_subcategories: nextEquipmentSubcategories,
+              product_subcategories: nextProductSubcategories,
               service_categories: nextServiceCategories,
             },
           })
@@ -621,8 +739,13 @@ export default function SuperAdminAccountDetailPage() {
                 phone: form.contactPhone.trim(),
                 metadata: {
                   ...(p.metadata || {}),
+                  account_type: primaryAccountType,
+                  account_types: nextAccountTypes,
                   industries: nextIndustries,
                   categories: nextCategories,
+                  product_categories: nextProductCategories,
+                  equipment_subcategories: nextEquipmentSubcategories,
+                  product_subcategories: nextProductSubcategories,
                   service_categories: nextServiceCategories,
                 },
               }
@@ -639,9 +762,13 @@ export default function SuperAdminAccountDetailPage() {
           country: form.country.trim() || '',
           city: form.city.trim() || '',
           address: nextAddress || '',
-          accountType: form.account_type || undefined,
+          accountType: primaryAccountType,
+          accountTypes: nextAccountTypes,
           industries: nextIndustries,
           categories: nextCategories,
+          productCategories: nextProductCategories,
+          equipmentSubcategories: nextEquipmentSubcategories,
+          productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
         })
         if (!existing) {
@@ -653,10 +780,14 @@ export default function SuperAdminAccountDetailPage() {
             country: form.country.trim() || '',
             city: form.city.trim() || '',
             address: nextAddress || '',
-            accountType: form.account_type || 'seller',
+            accountType: primaryAccountType,
+            accountTypes: nextAccountTypes,
             plan: form.plan || 'start',
             industries: nextIndustries,
             categories: nextCategories,
+            productCategories: nextProductCategories,
+            equipmentSubcategories: nextEquipmentSubcategories,
+            productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
           })
         }
@@ -769,10 +900,15 @@ export default function SuperAdminAccountDetailPage() {
                   <span className="saad-code">{company.registration_code || '—'}</span>
                   {' · '}
                   <span>{VISIBILITY_TIER_LABELS[company.visibility_tier] || company.visibility_tier}</span>
-                  {company.account_type && (
+                  {(Array.isArray(company.account_types) ? company.account_types : (company.account_type ? [company.account_type] : [])).length > 0 && (
                     <>
                       {' · '}
-                      <span className="saad-type">{company.account_type}</span>
+                      <span className="saad-type">
+                        {(Array.isArray(company.account_types) && company.account_types.length
+                          ? company.account_types
+                          : [company.account_type]
+                        ).join(' + ')}
+                      </span>
                     </>
                   )}
                   {isLocal && (
@@ -822,14 +958,71 @@ export default function SuperAdminAccountDetailPage() {
                     Address / plant address
                     <input value={form.address} onChange={(e) => setField('address', e.target.value)} disabled={savingProfile} />
                   </label>
-                  <label className="saad-field">
-                    Account type
-                    <select value={form.account_type} onChange={(e) => setField('account_type', e.target.value)} disabled={savingProfile}>
-                      <option value="buyer">Buyer</option>
-                      <option value="seller">Seller</option>
-                      <option value="service_provider">Service provider</option>
-                      <option value="auditor">Auditor</option>
-                    </select>
+                  <label className="saad-field saad-field-span">
+                    Account types (dual accounts allowed)
+                    <div className="saad-account-type-checks">
+                      {ACCOUNT_TYPES.map((type) => {
+                        const selected = Array.isArray(form.account_types) ? form.account_types : []
+                        const checked = selected.includes(type.id)
+                        const isPrimary = selected[0] === type.id
+                        return (
+                          <ToggleCheckButton
+                            key={type.id}
+                            checked={checked}
+                            disabled={savingProfile}
+                            className="saad-account-type-check"
+                            onChange={(on) => {
+                              setForm((prev) => {
+                                const cur = Array.isArray(prev.account_types) ? [...prev.account_types] : []
+                                let next
+                                if (on) {
+                                  next = cur.includes(type.id) ? cur : [...cur, type.id]
+                                } else {
+                                  next = cur.filter((id) => id !== type.id)
+                                  if (!next.length) next = [type.id]
+                                }
+                                return { ...prev, account_types: next }
+                              })
+                            }}
+                          >
+                            <span className="csc-title">
+                              {type.label}
+                              {isPrimary ? ' · primary' : ''}
+                            </span>
+                            <span className="csc-desc">{type.description}</span>
+                          </ToggleCheckButton>
+                        )
+                      })}
+                    </div>
+                    {Array.isArray(form.account_types) && form.account_types.length > 1 && (
+                      <div className="saad-primary-type-row">
+                        <span className="saad-muted">Primary type:</span>
+                        <select
+                          value={form.account_types[0] || 'seller'}
+                          disabled={savingProfile}
+                          onChange={(e) => {
+                            const primary = e.target.value
+                            setForm((prev) => {
+                              const cur = Array.isArray(prev.account_types) ? prev.account_types : []
+                              return {
+                                ...prev,
+                                account_types: [primary, ...cur.filter((id) => id !== primary)],
+                              }
+                            })
+                          }}
+                        >
+                          {form.account_types.map((id) => {
+                            const meta = ACCOUNT_TYPES.find((t) => t.id === id)
+                            return (
+                              <option key={id} value={id}>{meta?.label || id}</option>
+                            )
+                          })}
+                        </select>
+                      </div>
+                    )}
+                    <span className="saad-muted" style={{ display: 'block', marginTop: 6 }}>
+                      Check Seller and Buyer together for a dual account. Primary drives plan defaults and the first workspace landing.
+                    </span>
                   </label>
                   <label className="saad-field">
                     Plan
@@ -858,7 +1051,8 @@ export default function SuperAdminAccountDetailPage() {
                         setForm((prev) => ({
                           ...prev,
                           industryId,
-                          equipmentCategories: [],
+                          productSubs: {},
+                          equipmentSubs: {},
                         }))
                       }}
                     >
@@ -870,48 +1064,49 @@ export default function SuperAdminAccountDetailPage() {
                   </label>
                 </div>
 
-                {form.industryId && getEquipmentCategoriesForIndustry(form.industryId).length > 0 && (
+                {form.industryId && (
                   <>
-                    <h3 className="saad-h3">Equipment / product categories</h3>
-                    <p className="saad-muted">Checked categories appear in Executive Summary filters and on the map for this industry.</p>
-                    <div className="saad-category-checklist">
-                      {getEquipmentCategoriesForIndustry(form.industryId).map((cat) => (
-                        <ToggleCheckButton
-                          key={cat.id}
-                          checked={(form.equipmentCategories || []).includes(cat.id)}
+                    {(Array.isArray(form.account_types) ? form.account_types : []).includes('seller') && getProductCategoryTreeForIndustry(form.industryId).length > 0 && (
+                      <>
+                        <h3 className="saad-h3">Product &amp; Component categories</h3>
+                        <p className="saad-muted">Check a category, then select subcategory combinations (e.g. molds and checking fixtures).</p>
+                        <CategorySubcategoryChecklist
+                          categories={getProductCategoryTreeForIndustry(form.industryId)}
+                          selectedSubs={form.productSubs || {}}
+                          onChange={(next) => setForm((prev) => ({ ...prev, productSubs: next }))}
                           disabled={savingProfile}
-                          onChange={(checked) => {
-                            setForm((prev) => {
-                              const list = Array.isArray(prev.equipmentCategories) ? prev.equipmentCategories : []
-                              return {
-                                ...prev,
-                                equipmentCategories: checked
-                                  ? [...list, cat.id]
-                                  : list.filter((id) => id !== cat.id),
-                              }
-                            })
-                          }}
-                        >
-                          {cat.name}
-                        </ToggleCheckButton>
-                      ))}
-                    </div>
+                        />
+                      </>
+                    )}
+                    {getEquipmentCategoryTreeForIndustry(form.industryId).length > 0 && (
+                      <>
+                        <h3 className="saad-h3">Equipment categories</h3>
+                        <p className="saad-muted">Select equipment families and the specific subcategories this company supplies.</p>
+                        <CategorySubcategoryChecklist
+                          categories={getEquipmentCategoryTreeForIndustry(form.industryId)}
+                          selectedSubs={form.equipmentSubs || {}}
+                          onChange={(next) => setForm((prev) => ({ ...prev, equipmentSubs: next }))}
+                          disabled={savingProfile}
+                        />
+                      </>
+                    )}
                   </>
                 )}
 
-                {(form.account_type === 'service_provider' || form.account_type === 'auditor') && (
+                {((Array.isArray(form.account_types) ? form.account_types : []).includes('service_provider')
+                  || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
                   <>
                     <h3 className="saad-h3">Service expertise</h3>
                     <p className="saad-muted">Checked services appear in the Service Executive Summary for the selected industry.</p>
                     <div className="saad-category-checklist">
-                      {(form.account_type === 'auditor'
+                      {((Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')
                         ? SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id === 'supplier-audit')
                         : SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id !== 'supplier-audit')
                       ).map((svc) => (
                         <ToggleCheckButton
                           key={svc.id}
                           checked={(form.serviceCategories || []).includes(svc.id)}
-                          disabled={savingProfile || form.account_type === 'auditor'}
+                          disabled={savingProfile || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')}
                           onChange={(checked) => {
                             setForm((prev) => {
                               const list = Array.isArray(prev.serviceCategories) ? prev.serviceCategories : []

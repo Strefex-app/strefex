@@ -1,3 +1,5 @@
+import { getEquipmentCategoriesForIndustry } from './equipmentCategoriesByIndustry'
+
 /**
  * Equipment list by industry and category. Key: "industryId_categoryId".
  * Replace or extend with your database later.
@@ -9,8 +11,10 @@ function key(industryId, categoryId) {
 export const EQUIPMENT_BY_INDUSTRY_CATEGORY = {
   // Automotive
   [key('automotive', 'mold-makers')]: [
-    { id: 'auto-mold-standard', name: 'Standard injection molds', description: 'Standard and custom molds' },
+    { id: 'auto-mold-standard', name: 'Injection molds', description: 'Standard and custom injection molds' },
     { id: 'auto-mold-multi', name: 'Multi-cavity molds', description: 'High-volume mold solutions' },
+    { id: 'auto-die-making', name: 'Die making', description: 'Stamping dies, progressive dies, forming dies' },
+    { id: 'auto-checking-fixtures', name: 'Checking fixtures', description: 'Gauges, CMM fixtures, and inspection fixtures' },
     { id: 'auto-mold-tooling', name: 'Mold tooling and components', description: 'Inserts, ejectors, slides' },
   ],
   [key('automotive', 'injection-machines')]: [
@@ -67,6 +71,8 @@ export const EQUIPMENT_BY_INDUSTRY_CATEGORY = {
   ],
   [key('machinery', 'mold-makers')]: [
     { id: 'mach-mold-cavity', name: 'Cavity and core sets', description: 'Mold components' },
+    { id: 'mach-die-making', name: 'Die making', description: 'Forming dies, blanking dies, and die sets' },
+    { id: 'mach-checking-fixtures', name: 'Checking fixtures', description: 'Gauges, holding fixtures, and inspection aids' },
     { id: 'mach-mold-hotrunner', name: 'Hot runner systems', description: 'For machinery molds' },
   ],
   [key('machinery', 'coolers')]: [
@@ -167,3 +173,21 @@ export function getEquipmentForIndustryCategory(industryId, categoryId) {
   const k = key(industryId, categoryId)
   return EQUIPMENT_BY_INDUSTRY_CATEGORY[k] || []
 }
+
+/**
+ * Equipment category tree for registration checklists:
+ * top-level equipment categories + per-category equipment items as subcategories.
+ */
+export function getEquipmentCategoryTreeForIndustry(industryId) {
+  return getEquipmentCategoriesForIndustry(industryId).map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    description: cat.description,
+    subcategories: getEquipmentForIndustryCategory(industryId, cat.id).map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+    })),
+  }))
+}
+

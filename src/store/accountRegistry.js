@@ -447,12 +447,31 @@ export const useAccountRegistry = create((set, get) => ({
   },
 
   getSellersByCategory: (industryId, categoryId) => {
-    return get().accounts.filter((a) =>
-      (a.accountType === 'seller' || a.accountType === 'service_provider') &&
-      a.status !== 'canceled' &&
-      (a.industries || []).includes(industryId) &&
-      (a.categories?.[industryId] || []).includes(categoryId)
-    )
+    return get().accounts.filter((a) => {
+      if (!(a.accountType === 'seller' || a.accountType === 'service_provider')) return false
+      if (a.status === 'canceled') return false
+      if (!(a.industries || []).includes(industryId)) return false
+      const equipmentCats = a.categories?.[industryId] || []
+      const productCats = a.productCategories?.[industryId] || []
+      return equipmentCats.includes(categoryId) || productCats.includes(categoryId)
+    })
+  },
+
+  getSellersBySubcategory: (industryId, categoryId, subcategoryId) => {
+    return get().accounts.filter((a) => {
+      if (!(a.accountType === 'seller' || a.accountType === 'service_provider')) return false
+      if (a.status === 'canceled') return false
+      if (!(a.industries || []).includes(industryId)) return false
+      const eqSubs = a.equipmentSubcategories?.[industryId]?.[categoryId] || []
+      const prodSubs = a.productSubcategories?.[industryId]?.[categoryId] || []
+      if (subcategoryId) {
+        return eqSubs.includes(subcategoryId) || prodSubs.includes(subcategoryId)
+      }
+      const equipmentCats = a.categories?.[industryId] || []
+      const productCats = a.productCategories?.[industryId] || []
+      return equipmentCats.includes(categoryId) || productCats.includes(categoryId)
+        || eqSubs.length > 0 || prodSubs.length > 0
+    })
   },
 
   getRegisteredServiceProviders: (industryId = null) => {

@@ -18,7 +18,7 @@ const IND_BASE = 'strefex-selected-industries'
 const CAT_BASE = 'strefex-selected-categories'
 
 /** Sync current selections to the account registry (best-effort). */
-const syncToRegistry = (industries, categories) => {
+const syncToRegistry = (industries, categories, extras = {}) => {
   try {
     const authRaw = localStorage.getItem('strefex-auth')
     const auth = authRaw ? JSON.parse(authRaw) : null
@@ -27,9 +27,16 @@ const syncToRegistry = (industries, categories) => {
     const subRaw = localStorage.getItem(tenantKey('strefex-subscription'))
     const sub = subRaw ? JSON.parse(subRaw) : {}
     const registry = useAccountRegistry.getState()
+    const patch = {
+      industries: [...industries],
+      categories: { ...categories },
+      ...(extras.productCategories ? { productCategories: extras.productCategories } : {}),
+      ...(extras.equipmentSubcategories ? { equipmentSubcategories: extras.equipmentSubcategories } : {}),
+      ...(extras.productSubcategories ? { productSubcategories: extras.productSubcategories } : {}),
+    }
     const existing = registry.getAccountByEmail(email)
     if (existing) {
-      registry.updateAccount(email, { industries: [...industries], categories: { ...categories } })
+      registry.updateAccount(email, patch)
     } else {
       registry.registerAccount({
         id: `reg-${Date.now()}`,
@@ -39,8 +46,7 @@ const syncToRegistry = (industries, categories) => {
         accountType: sub.accountType || 'seller',
         plan: sub.planId || 'start',
         status: 'active',
-        industries: [...industries],
-        categories: { ...categories },
+        ...patch,
         registeredAt: new Date().toISOString(),
         validUntil: null,
       })
@@ -64,7 +70,7 @@ const save = (baseKey, value) => {
 }
 
 /** Persist selected industries/categories to Supabase profile/company metadata (best-effort). */
-const syncToSupabase = async (industries, categories) => {
+const syncToSupabase = async (industries, categories, extras = {}) => {
   if (isDemoModeActive()) return
   if (!isSupabaseConfigured) return
   try {
@@ -75,6 +81,9 @@ const syncToSupabase = async (industries, categories) => {
       ...(profile.metadata || {}),
       industries: [...industries],
       categories: { ...categories },
+      ...(extras.productCategories ? { product_categories: extras.productCategories } : {}),
+      ...(extras.equipmentSubcategories ? { equipment_subcategories: extras.equipmentSubcategories } : {}),
+      ...(extras.productSubcategories ? { product_subcategories: extras.productSubcategories } : {}),
     }
 
     await profilesService.updateProfile({ metadata: nextMetadata })
@@ -85,6 +94,9 @@ const syncToSupabase = async (industries, categories) => {
           ...(profile.companies?.metadata || {}),
           industries: [...industries],
           categories: { ...categories },
+          ...(extras.productCategories ? { product_categories: extras.productCategories } : {}),
+          ...(extras.equipmentSubcategories ? { equipment_subcategories: extras.equipmentSubcategories } : {}),
+          ...(extras.productSubcategories ? { product_subcategories: extras.productSubcategories } : {}),
         },
       }).catch(() => {})
     }
@@ -180,14 +192,30 @@ export const useIndustryStore = create((set, get) => ({
     (get().selectedCategories[industryId] || []).includes(categoryId),
 
   /** Replace industries + categories (registration / profile / admin). */
-  applySelections: (industries, categories, { syncCloud = true } = {}) => {
+  applySelections: (industries, categories, opts = {}) => {
+    const {
+      syncCloud = true,
+      productCategories,
+      equipmentSubcategories,
+      productSubcategories,
+    } = opts
     const nextIndustries = Array.isArray(industries) ? [...industries] : []
     const nextCategories = categories && typeof categories === 'object' ? { ...categories } : {}
     save(IND_BASE, nextIndustries)
     save(CAT_BASE, nextCategories)
     set({ selectedIndustries: nextIndustries, selectedCategories: nextCategories })
-    syncToRegistry(nextIndustries, nextCategories)
-    if (syncCloud) syncToSupabase(nextIndustries, nextCategories)
+    syncToRegistry(nextIndustries, nextCategories, {
+      productCategories,
+      equipmentSubcategories,
+      productSubcategories,
+    })
+    if (syncCloud) {
+      syncToSupabase(nextIndustries, nextCategories, {
+        productCategories,
+        equipmentSubcategories,
+        productSubcategories,
+      })
+    }
   },
 
   /**

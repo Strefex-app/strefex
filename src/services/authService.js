@@ -100,11 +100,14 @@ function normalizeAccountTypes(values, preferredPrimary = 'seller') {
   const normalized = Array.isArray(values)
     ? values.map((v) => normalizeAccountType(v, '')).filter(Boolean)
     : []
-  // Always keep the resolved primary account type first.
-  // This prevents stale metadata arrays (e.g. ['seller']) from overriding
-  // superadmin-updated account direction (e.g. 'auditor').
-  const deduped = [primary, ...normalized.filter((v) => v !== primary)]
-  return deduped.slice(0, 1)
+  // Primary first, then any additional roles (e.g. seller + buyer dual accounts).
+  const deduped = []
+  const push = (v) => {
+    if (v && !deduped.includes(v)) deduped.push(v)
+  }
+  push(primary)
+  normalized.forEach(push)
+  return deduped.length ? deduped : [primary]
 }
 
 function normalizeRole(value, fallback = 'user') {
@@ -710,6 +713,9 @@ const authService = {
     selectedIndustry = 'general',
     selectedIndustries = null,
     selectedCategories = null,
+    selectedProductCategories = null,
+    selectedEquipmentSubcategories = null,
+    selectedProductSubcategories = null,
     selectedServiceCategories = null,
     auditorDocuments = '',
     selectedTier = 'free',
@@ -732,21 +738,43 @@ const authService = {
       const normalizedAccountTypes = normalizeAccountTypes(accountTypes, accountType)
       const primaryAccountType = normalizedAccountTypes[0] || normalizeAccountType(accountType)
       void selectedIndustries
+      const normalizeCategoryMap = (raw) => {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+        const out = {}
+        for (const [ind, cats] of Object.entries(raw)) {
+          const key = String(ind || '').trim().toLowerCase()
+          if (!key) continue
+          const list = Array.isArray(cats)
+            ? [...new Set(cats.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+            : []
+          if (list.length) out[key] = list
+        }
+        return out
+      }
+      const normalizeNestedSubMap = (raw) => {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+        const out = {}
+        for (const [ind, byCat] of Object.entries(raw)) {
+          const indKey = String(ind || '').trim().toLowerCase()
+          if (!indKey || !byCat || typeof byCat !== 'object') continue
+          const inner = {}
+          for (const [catId, subs] of Object.entries(byCat)) {
+            const cKey = String(catId || '').trim().toLowerCase()
+            if (!cKey) continue
+            const list = Array.isArray(subs)
+              ? [...new Set(subs.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
+              : []
+            if (list.length) inner[cKey] = list
+          }
+          if (Object.keys(inner).length) out[indKey] = inner
+        }
+        return out
+      }
       const primaryIndustry = String(selectedIndustry || 'general').trim().toLowerCase() || 'general'
       const normalizedIndustries = [primaryIndustry]
       const normalizedCategories = (() => {
-        if (selectedCategories && typeof selectedCategories === 'object' && !Array.isArray(selectedCategories)) {
-          const out = {}
-          for (const [ind, cats] of Object.entries(selectedCategories)) {
-            const key = String(ind || '').trim().toLowerCase()
-            if (!key) continue
-            const list = Array.isArray(cats)
-              ? [...new Set(cats.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
-              : []
-            if (list.length) out[key] = list
-          }
-          return out
-        }
+        const fromMap = normalizeCategoryMap(selectedCategories)
+        if (Object.keys(fromMap).length) return fromMap
         if (Array.isArray(selectedCategories) && selectedCategories.length && primaryIndustry) {
           return {
             [primaryIndustry]: [...new Set(
@@ -756,6 +784,9 @@ const authService = {
         }
         return {}
       })()
+      const normalizedProductCategories = normalizeCategoryMap(selectedProductCategories)
+      const normalizedEquipmentSubcategories = normalizeNestedSubMap(selectedEquipmentSubcategories)
+      const normalizedProductSubcategories = normalizeNestedSubMap(selectedProductSubcategories)
       const normalizedServiceCategories = Array.isArray(selectedServiceCategories)
         ? [...new Set(selectedServiceCategories.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean))]
         : []
@@ -766,6 +797,12 @@ const authService = {
       const normalizedCountry = String(country || '').trim()
       const normalizedCity = String(city || '').trim()
       const normalizedAddress = String(address || '').trim()
+      const categoryMetadata = {
+        categories: normalizedCategories,
+        product_categories: normalizedProductCategories,
+        equipment_subcategories: normalizedEquipmentSubcategories,
+        product_subcategories: normalizedProductSubcategories,
+      }
       const signUpData = await supabaseAuth.signUp({
         email: normalizedEmail,
         password,
@@ -777,7 +814,7 @@ const authService = {
           account_types: normalizedAccountTypes,
           industry: primaryIndustry,
           industries: normalizedIndustries,
-          categories: normalizedCategories,
+          ...categoryMetadata,
           service_categories: effectiveServiceCategories,
           auditor_documents: normalizedAuditorDocuments,
           auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
@@ -814,7 +851,7 @@ const authService = {
             status: 'active',
             metadata: {
               industries: normalizedIndustries,
-              categories: normalizedCategories,
+              ...categoryMetadata,
               service_categories: effectiveServiceCategories,
               address: normalizedAddress || null,
             },
@@ -836,7 +873,7 @@ const authService = {
                 account_types: normalizedAccountTypes,
                 industry: primaryIndustry,
                 industries: normalizedIndustries,
-                categories: normalizedCategories,
+                ...categoryMetadata,
                 service_categories: effectiveServiceCategories,
                 auditor_documents: normalizedAuditorDocuments,
                 auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,

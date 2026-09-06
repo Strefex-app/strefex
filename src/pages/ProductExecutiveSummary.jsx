@@ -15,6 +15,7 @@ import {
 } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
+import ServiceProviderAvailabilityCard from '../components/ServiceProviderAvailabilityCard'
 import '../styles/app-page.css'
 import './ExecutiveSummary.css'
 
@@ -76,6 +77,14 @@ export default function ProductExecutiveSummary() {
 
   const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
 
+  const getSellersByCategory = useAccountRegistry((s) => s.getSellersByCategory)
+  const getSellersBySubcategory = useAccountRegistry((s) => s.getSellersBySubcategory)
+  const registeredSellers = useMemo(() => (
+    processId
+      ? getSellersBySubcategory(industryId, categoryId, processId)
+      : getSellersByCategory(industryId, categoryId)
+  ), [processId, industryId, categoryId, getSellersByCategory, getSellersBySubcategory])
+
   // Merged suppliers: workspace corpus + account registry signup + optional seed (same as equipment executive summary DB)
   const mergedSuppliers = useMemo(() => {
     if (!industryId) return []
@@ -83,13 +92,31 @@ export default function ProductExecutiveSummary() {
       ? getSuppliersByIndustryAndCategory(industryId, categoryId)
       : getSuppliersByIndustry(industryId)
     const filtered = filterSuppliersRespectingCatalogVisibility(raw, showMarketplaceCatalog)
-    return augmentSupplierListForSuperadminPlatformView(
+    const fromDb = augmentSupplierListForSuperadminPlatformView(
       filtered,
       industryId,
       categoryId,
       isSuperAdmin,
     )
-  }, [industryId, categoryId, showMarketplaceCatalog, isSuperAdmin])
+    const seen = new Set(fromDb.map((s) => String(s.name || s.email || s.id || '').toLowerCase()).filter(Boolean))
+    const fromRegistry = (Array.isArray(registeredSellers) ? registeredSellers : [])
+      .filter((a) => {
+        const key = String(a.company || a.email || a.id || '').toLowerCase()
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map((a) => ({
+        id: a.id,
+        name: a.company || a.contactName || a.email || 'Supplier',
+        email: a.email || '',
+        country: a.country || '',
+        city: a.city || '',
+        address: a.address || '',
+        source: 'registry',
+      }))
+    return [...fromDb, ...fromRegistry]
+  }, [industryId, categoryId, processId, showMarketplaceCatalog, isSuperAdmin, registeredSellers])
 
   const registeredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders(industryId))
   const serviceProviderRows = useMemo(() => {

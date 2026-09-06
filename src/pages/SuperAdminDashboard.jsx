@@ -354,6 +354,9 @@ function profileRowToAccountStub(p) {
     fullName: p.full_name,
     phone: p.phone || co?.phone || '',
     accountType,
+    accountTypes: Array.isArray(md.account_types) && md.account_types.length
+      ? md.account_types
+      : [accountType],
     plan: co?.plan || 'start',
     status: co?.status === 'active' ? 'active' : p.status || 'active',
     registeredAt: p.created_at || new Date().toISOString(),

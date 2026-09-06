@@ -657,6 +657,20 @@ export function getProductCategoriesForIndustry(industryId) {
   return PRODUCT_CATEGORIES_BY_INDUSTRY[industryId] || []
 }
 
+/** Tree used by nested category / subcategory registration checklists. */
+export function getProductCategoryTreeForIndustry(industryId) {
+  return getProductCategoriesForIndustry(industryId).map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    description: cat.description,
+    subcategories: (cat.subcategories || []).map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      description: sub.description,
+    })),
+  }))
+}
+
 /**
  * Flat list for checkbox UIs: parent row (id = top-level category) + every subcategory
  * (id = `${parentId}::${subId}`) so selections are unique across the tree.

@@ -9,10 +9,15 @@ import authService from '../services/authService'
 import stripeService, { PLANS, ACCOUNT_TYPES, getPlansForAccountType, getPlanPrice, getPlanFeatures, BUYER_TRIAL_DAYS } from '../services/stripeService'
 import { rememberOfficialRegistrationCode, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
+import CategorySubcategoryChecklist, {
+  sanitizeSubMap,
+  subMapIsComplete,
+} from '../components/CategorySubcategoryChecklist'
 import AuthPageShell from '../components/AuthPageShell'
 import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
 import { useSubscriptionStore } from '../services/featureFlags'
-import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
+import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import './Login.css'
@@ -58,7 +63,8 @@ function RegisterForm() {
   const [accountTypes, setAccountTypes] = useState(['seller'])
   const [selectedPlan, setSelectedPlan] = useState('start')
   const [selectedIndustry, setSelectedIndustry] = useState('')
-  const [selectedEquipmentCategories, setSelectedEquipmentCategories] = useState([])
+  const [selectedProductSubs, setSelectedProductSubs] = useState({})
+  const [selectedEquipmentSubs, setSelectedEquipmentSubs] = useState({})
   const [selectedServiceCategories, setSelectedServiceCategories] = useState([])
   const [auditorDocuments, setAuditorDocuments] = useState('')
   const [error, setError] = useState('')
@@ -75,8 +81,13 @@ function RegisterForm() {
 
   const primaryAccountType = accountTypes[0] || 'seller'
   const primaryIndustry = selectedIndustry
-  const industryCategoryOptions = getEquipmentCategoriesForIndustry(primaryIndustry)
-  const needsEquipmentCategories = primaryAccountType === 'seller' || primaryAccountType === 'service_provider' || primaryAccountType === 'buyer'
+  const productCategoryTree = getProductCategoryTreeForIndustry(primaryIndustry)
+  const equipmentCategoryTree = getEquipmentCategoryTreeForIndustry(primaryIndustry)
+  const isManufacturerLike = primaryAccountType === 'seller'
+  const needsCategoryRegistration =
+    primaryAccountType === 'seller'
+    || primaryAccountType === 'service_provider'
+    || primaryAccountType === 'buyer'
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
 
@@ -157,17 +168,10 @@ function RegisterForm() {
     )
   }
 
-  const toggleEquipmentCategory = (categoryId) => {
-    setSelectedEquipmentCategories((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId]
-    )
-  }
-
   const chooseIndustry = (industryId) => {
     setSelectedIndustry(industryId)
-    setSelectedEquipmentCategories([])
+    setSelectedProductSubs({})
+    setSelectedEquipmentSubs({})
   }
 
   const accountTypeLabels = accountTypes
@@ -225,9 +229,26 @@ function RegisterForm() {
       setError('Please choose one industry.')
       return
     }
-    if (needsEquipmentCategories && industryCategoryOptions.length > 0 && selectedEquipmentCategories.length === 0) {
-      setError('Please select at least one category for your industry (checkmarks below).')
-      return
+    if (isManufacturerLike) {
+      const hasProduct = Object.keys(selectedProductSubs).length > 0
+      const hasEquipment = Object.keys(selectedEquipmentSubs).length > 0
+      if (!hasProduct && !hasEquipment) {
+        setError('Select Product & Component and/or Equipment categories, then check the matching subcategories.')
+        return
+      }
+      if (hasProduct && productCategoryTree.length > 0 && !subMapIsComplete(selectedProductSubs, productCategoryTree)) {
+        setError('For each Product & Component category, select at least one subcategory (e.g. molds and checking fixtures).')
+        return
+      }
+      if (hasEquipment && equipmentCategoryTree.length > 0 && !subMapIsComplete(selectedEquipmentSubs, equipmentCategoryTree)) {
+        setError('For each Equipment category, select at least one subcategory (combinations allowed).')
+        return
+      }
+    } else if (needsCategoryRegistration && equipmentCategoryTree.length > 0) {
+      if (!subMapIsComplete(selectedEquipmentSubs, equipmentCategoryTree)) {
+        setError('Please select equipment categories and at least one subcategory where options exist.')
+        return
+      }
     }
     if (!availablePlans.some((plan) => plan.id === selectedPlan)) {
       setError('Please choose a valid plan for this account type.')
@@ -250,8 +271,19 @@ function RegisterForm() {
 
     setLoading(true)
     try {
-      const categoriesPayload = selectedEquipmentCategories.length
-        ? { [primaryIndustry]: [...selectedEquipmentCategories] }
+      const productSanitized = sanitizeSubMap(selectedProductSubs)
+      const equipmentSanitized = sanitizeSubMap(selectedEquipmentSubs)
+      const categoriesPayload = equipmentSanitized.parents.length
+        ? { [primaryIndustry]: [...equipmentSanitized.parents] }
+        : {}
+      const productCategoriesPayload = productSanitized.parents.length
+        ? { [primaryIndustry]: [...productSanitized.parents] }
+        : {}
+      const equipmentSubcategoriesPayload = Object.keys(equipmentSanitized.subs).length
+        ? { [primaryIndustry]: equipmentSanitized.subs }
+        : {}
+      const productSubcategoriesPayload = Object.keys(productSanitized.subs).length
+        ? { [primaryIndustry]: productSanitized.subs }
         : {}
 
       const result = await authService.register({
@@ -265,6 +297,9 @@ function RegisterForm() {
         accountTypes,
         selectedIndustry: primaryIndustry,
         selectedCategories: categoriesPayload,
+        selectedProductCategories: productCategoriesPayload,
+        selectedEquipmentSubcategories: equipmentSubcategoriesPayload,
+        selectedProductSubcategories: productSubcategoriesPayload,
         selectedServiceCategories,
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         selectedTier,
@@ -312,6 +347,9 @@ function RegisterForm() {
         status: registrationStatus,
         industries: [primaryIndustry],
         categories: categoriesPayload,
+        productCategories: productCategoriesPayload,
+        equipmentSubcategories: equipmentSubcategoriesPayload,
+        productSubcategories: productSubcategoriesPayload,
         country: country.trim(),
         city: city.trim(),
         address: address.trim(),
@@ -329,7 +367,12 @@ function RegisterForm() {
         useIndustryStore.getState().applySelections(
           [primaryIndustry],
           categoriesPayload,
-          { syncCloud: false },
+          {
+            syncCloud: false,
+            productCategories: productCategoriesPayload,
+            equipmentSubcategories: equipmentSubcategoriesPayload,
+            productSubcategories: productSubcategoriesPayload,
+          },
         )
         if (primaryAccountType === 'service_provider' && selectedServiceCategories.length) {
           useServiceStore.getState().setServices(selectedServiceCategories)
@@ -631,27 +674,50 @@ function RegisterForm() {
                 </div>
               </div>
 
-              {needsEquipmentCategories && selectedIndustry && industryCategoryOptions.length > 0 && (
-                <div className="form-group">
-                  <label>Categories</label>
-                  <div className="reg-category-checklist">
-                    {industryCategoryOptions.map((cat) => (
-                      <ToggleCheckButton
-                        key={cat.id}
-                        checked={selectedEquipmentCategories.includes(cat.id)}
-                        onChange={() => toggleEquipmentCategory(cat.id)}
+              {isManufacturerLike && selectedIndustry && (
+                <>
+                  {productCategoryTree.length > 0 && (
+                    <div className="form-group">
+                      <label>Product &amp; Component categories</label>
+                      <div className="reg-domain-hint" style={{ marginBottom: 8 }}>
+                        Check a category, then select subcategory combinations (e.g. molds and checking fixtures, or molds and die making).
+                      </div>
+                      <CategorySubcategoryChecklist
+                        categories={productCategoryTree}
+                        selectedSubs={selectedProductSubs}
+                        onChange={setSelectedProductSubs}
                         disabled={loading}
-                        className="reg-category-check"
-                      >
-                        <span className="reg-category-check-title">{cat.name}</span>
-                        {cat.description ? (
-                          <span className="reg-category-check-desc">{cat.description}</span>
-                        ) : null}
-                      </ToggleCheckButton>
-                    ))}
-                  </div>
+                      />
+                    </div>
+                  )}
+                  {equipmentCategoryTree.length > 0 && (
+                    <div className="form-group">
+                      <label>Equipment categories</label>
+                      <div className="reg-domain-hint" style={{ marginBottom: 8 }}>
+                        Check equipment families and pick the equipment subcategories you supply.
+                      </div>
+                      <CategorySubcategoryChecklist
+                        categories={equipmentCategoryTree}
+                        selectedSubs={selectedEquipmentSubs}
+                        onChange={setSelectedEquipmentSubs}
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!isManufacturerLike && needsCategoryRegistration && selectedIndustry && equipmentCategoryTree.length > 0 && (
+                <div className="form-group">
+                  <label>Equipment categories</label>
+                  <CategorySubcategoryChecklist
+                    categories={equipmentCategoryTree}
+                    selectedSubs={selectedEquipmentSubs}
+                    onChange={setSelectedEquipmentSubs}
+                    disabled={loading}
+                  />
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                    Select every category where your company should appear (Executive Summary filters and map).
+                    Select categories and subcategories where your company should appear.
                   </div>
                 </div>
               )}
