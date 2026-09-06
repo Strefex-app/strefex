@@ -60,13 +60,63 @@ if (reactFile && reactDomFile) {
   const resourceBoot = `<script>
 window.__resources = Object.assign({}, window.__resources, {
   "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "assets-v61/${reactFile}",
-  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "assets-v61/${reactDomFile}"
+  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "assets-v61/${reactDomFile}",
+  tour1: "assets/screens/01-sourcing.png",
+  tour2: "assets/screens/02-industries.png",
+  tour3: "assets/screens/03-categories.png",
+  tour4: "assets/screens/04-summary.png",
+  tour5: "assets/screens/05-map.png"
 });
 </script>`
   html = html.replace(
     /(<script src="assets-v61\/[^"]+\.js"><\/script>)/i,
     `${resourceBoot}\n$1`,
   )
+}
+
+// Optional complete media pack (screens + uploads) from mockup zip / folder.
+const mediaPack = process.argv[3] || process.env.STREFEX_MEDIA_PACK || ''
+const syncMediaFrom = (root) => {
+  const screensSrc = path.join(root, 'assets/screens')
+  const uploadsSrc = path.join(root, 'uploads')
+  const assetsSrc = path.join(root, 'assets')
+  const screensDst = path.join(outDir, 'assets/screens')
+  const uploadsDst = path.join(outDir, 'uploads')
+  const assetsDst = path.join(outDir, 'assets')
+  fs.mkdirSync(screensDst, { recursive: true })
+  fs.mkdirSync(uploadsDst, { recursive: true })
+  if (fs.existsSync(screensSrc)) {
+    for (const f of fs.readdirSync(screensSrc)) {
+      if (/\.(png|jpe?g|webp|svg)$/i.test(f)) {
+        fs.copyFileSync(path.join(screensSrc, f), path.join(screensDst, f))
+      }
+    }
+  }
+  if (fs.existsSync(uploadsSrc)) {
+    for (const f of fs.readdirSync(uploadsSrc)) {
+      if (/\.(png|jpe?g|webp|svg)$/i.test(f)) {
+        fs.copyFileSync(path.join(uploadsSrc, f), path.join(uploadsDst, f))
+      }
+    }
+  }
+  if (fs.existsSync(assetsSrc)) {
+    for (const f of ['logo-white.png', 'logo-navy.png', 'mark.svg', 'circuit-traces.svg']) {
+      const src = path.join(assetsSrc, f)
+      if (fs.existsSync(src)) fs.copyFileSync(src, path.join(assetsDst, f))
+    }
+  }
+}
+if (mediaPack) {
+  if (mediaPack.endsWith('.zip')) {
+    // Expect caller to unzip first, or pass extracted folder.
+    console.warn('Pass an extracted mockup folder as argv[3], not the zip:', mediaPack)
+  } else if (fs.existsSync(mediaPack)) {
+    syncMediaFrom(mediaPack)
+    console.log('Synced media pack from', mediaPack)
+  }
+} else if (fs.existsSync('/tmp/strefex-mockup2/assets/screens')) {
+  syncMediaFrom('/tmp/strefex-mockup2')
+  console.log('Synced media pack from /tmp/strefex-mockup2')
 }
 
 const linkBtn = (href, label, variant = 'primary', size = 'md') => {

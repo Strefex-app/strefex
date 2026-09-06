@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-function IntroLayout({ kicker, title, lead, children }) {
+function IntroLayout({ kicker, title, lead, registerTo = '/register', children }) {
   return (
     <main className="mkt-main mkt-intro">
       <section className="mkt-intro__hero">
@@ -8,14 +8,14 @@ function IntroLayout({ kicker, title, lead, children }) {
         <h1 className="mkt-intro__title">{title}</h1>
         <p className="mkt-intro__lead">{lead}</p>
         <div className="mkt-hero__cta">
-          <Link to="/register" className="mkt-btn mkt-btn--primary mkt-btn--sm">Sign up</Link>
+          <Link to={registerTo} className="mkt-btn mkt-btn--primary mkt-btn--sm">Sign up</Link>
           <Link to="/login" className="mkt-btn mkt-btn--outline mkt-btn--sm">Sign in</Link>
         </div>
       </section>
       <section className="mkt-section mkt-intro__body">
         {children}
         <div className="mkt-section__cta">
-          <Link to="/register" className="mkt-btn mkt-btn--primary mkt-btn--sm">Sign up</Link>
+          <Link to={registerTo} className="mkt-btn mkt-btn--primary mkt-btn--sm">Sign up</Link>
           <Link to="/login" className="mkt-btn mkt-btn--outline mkt-btn--sm">Sign in</Link>
           <Link to="/" className="mkt-btn mkt-btn--ghost-dark mkt-btn--sm">← Back to home</Link>
         </div>
@@ -30,6 +30,7 @@ export function IntroBuyers() {
       kicker="For buyers"
       title="Find plants with quality evidence on file"
       lead="STREFEX helps procurement teams shortlist manufacturers by industry standards — then send RFQs in one guided flow."
+      registerTo="/register?type=buyer"
     >
       <ol className="mkt-steps">
         <li>
@@ -59,6 +60,7 @@ export function IntroManufacturers() {
       kicker="For manufacturers"
       title="Turn plant QMS into buyer-ready proof"
       lead="Publish a reliability card once. Keep plant files in order, close certification gaps, and answer RFQs with on-file vs gap hints — without leaking customer data."
+      registerTo="/register?type=seller"
     >
       <ol className="mkt-steps">
         <li>

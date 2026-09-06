@@ -10,10 +10,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
-/* Prefer local React UMDs so the landing does not depend on unpkg CDN. */
+/* Prefer local React UMDs so the landing does not depend on unpkg CDN.
+   Tour screens resolve via __resources or assets/screens/*.png. */
 window.__resources = Object.assign({}, window.__resources, {
   "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "assets-v61/23a3fbdf-cbaa-4ef9-af95-89e0d4ff2aa3.js",
-  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "assets-v61/4a299e4c-37ab-4213-801d-91bc692120fe.js"
+  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "assets-v61/4a299e4c-37ab-4213-801d-91bc692120fe.js",
+  tour1: "assets/screens/01-sourcing.png",
+  tour2: "assets/screens/02-industries.png",
+  tour3: "assets/screens/03-categories.png",
+  tour4: "assets/screens/04-summary.png",
+  tour5: "assets/screens/05-map.png"
 });
 </script>
 <script src="assets-v61/262fad76-9f6c-49a4-8f31-5d076d2aa874.js"></script>
