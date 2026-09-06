@@ -1570,15 +1570,12 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   applyPlatform: function (plat) {
     if (!plat || !window.SOURCING_DATA) return;
     var d = window.SOURCING_DATA;
-    if (Array.isArray(plat.suppliers) && plat.suppliers.length) {
-      var names = {};
-      plat.suppliers.forEach(function (s) { names[String(s.name || "").toLowerCase()] = true; });
-      d.SUPPLIERS = plat.suppliers.concat((d.SUPPLIERS || []).filter(function (s) {
-        return !names[String(s.name || "").toLowerCase()];
-      }));
+    /* Always replace mock/demo SUPPLIERS with platform registry accounts (may be empty). */
+    if (Array.isArray(plat.suppliers)) {
+      d.SUPPLIERS = plat.suppliers.slice();
     }
-    if (Array.isArray(plat.buyers) && plat.buyers.length) {
-      d.BUYERS = plat.buyers;
+    if (Array.isArray(plat.buyers)) {
+      d.BUYERS = plat.buyers.slice();
     }
     if (Array.isArray(plat.registeredIndustryIds) && d.INDUSTRIES) {
       var set = {};

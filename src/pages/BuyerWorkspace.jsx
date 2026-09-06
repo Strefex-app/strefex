@@ -90,10 +90,9 @@ export default function BuyerWorkspace() {
   const selectedCategories = useIndustryStore((s) => s.selectedCategories)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const hasExecutiveSummary = useSubscriptionStore((s) => s.hasFeature('executiveSummary'))
-  const catalogToggle = useMarketplaceCatalogVisibilityEffective()
-  // Network Sourcing must show the platform directory when seed is on; buyers are not
-  // superadmin so the ES toggle alone would leave Find + Send RFQ empty forever.
-  const showMarketplaceCatalog = catalogToggle || isSeededSupplierDirectoryEnabled()
+  // Seeded marketplace catalog is off unless VITE_SEED_SUPPLIER_DIRECTORY=true (or superadmin turns the toggle on).
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
+    || isSeededSupplierDirectoryEnabled()
   const [discoverScope, setDiscoverScope] = useState('category') // 'category' | 'industry'
 
   const isPreviewSession = useMemo(() => {

@@ -205,7 +205,7 @@ export function dbSupplierToSourcing(row) {
   }
 }
 
-export function buildSourcingSuppliers({ registrySellers = [], includeSeeded = true } = {}) {
+export function buildSourcingSuppliers({ registrySellers = [], includeSeeded = false } = {}) {
   const fromRegistry = registrySellers
     .filter((a) => a && a.status !== 'canceled')
     .map(accountToSourcingSupplier)
@@ -230,12 +230,7 @@ export function buildBuyerPlants({ tenant, user, account } = {}) {
   const address = account?.address || tenant?.address || ''
   const company = account?.company || tenant?.name || user?.companyName || 'Receiving plant'
   if (!country && !city) {
-    return [
-      { id: 'muc', name: 'Munich plant', cc: 'DE', lat: 48.14, lon: 11.58, cont: 'EU' },
-      { id: 'det', name: 'Detroit plant', cc: 'US', lat: 42.33, lon: -83.05, cont: 'NA' },
-      { id: 'qro', name: 'Querétaro plant', cc: 'MX', lat: 20.59, lon: -100.39, cont: 'NA' },
-      { id: 'sha', name: 'Shanghai plant', cc: 'CN', lat: 31.23, lon: 121.47, cont: 'APAC' },
-    ]
+    return []
   }
   const [lon, lat] = getApproximateLngLatOrFallback({
     country,
@@ -277,7 +272,10 @@ export function buildPlatformSourcingPayload({
   account,
   buyerIndustries = [],
 } = {}) {
-  const suppliers = buildSourcingSuppliers({ registrySellers, includeSeeded: true })
+  const suppliers = buildSourcingSuppliers({
+    registrySellers,
+    includeSeeded: isSeededSupplierDirectoryEnabled(),
+  })
   const buyers = buildBuyerPlants({ tenant, user, account })
   const registeredIndustryIds = [
     ...new Set([

@@ -5,6 +5,7 @@ import {
 } from './standardRfqSchema'
 import { platformIndustryFromSourcing } from './intelligentSourcingData'
 import { SUPPLIER_DATABASE } from '../data/supplierDatabase'
+import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { getIndustryQualityProfile } from '../data/industryQualityProfiles'
 
 /**
@@ -22,10 +23,12 @@ export function resolveSourcingInvitees(payload = {}, registryAccounts = []) {
     const n = String(a.company || a.name || '').trim().toLowerCase()
     if (n) byName.set(n, a.id || a.email)
   })
-  SUPPLIER_DATABASE.forEach((s) => {
-    const n = String(s.name || '').trim().toLowerCase()
-    if (n && !byName.has(n)) byName.set(n, s.id)
-  })
+  if (isSeededSupplierDirectoryEnabled()) {
+    SUPPLIER_DATABASE.forEach((s) => {
+      const n = String(s.name || '').trim().toLowerCase()
+      if (n && !byName.has(n)) byName.set(n, s.id)
+    })
+  }
 
   const ids = []
   const seen = new Set()

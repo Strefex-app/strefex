@@ -38,7 +38,7 @@ export function MarketplaceCatalogVisibilityControl({
       </ToggleCheckButton>
       {!compact && (
         <span className="stx-text-caption" style={{ color: 'var(--muted-foreground, #64748b)', maxWidth: 420 }}>
-          Superadmin only — off hides static directory seed; vendor master / audit / registry rows stay visible to permitted users.
+          Off by default. When on, includes the legacy seeded marketplace directory. Leave off to show only registered accounts, vendor master, and workspace imports.
         </span>
       )}
     </div>

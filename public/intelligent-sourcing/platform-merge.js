@@ -70,10 +70,17 @@
     try {
       if (!plat) return;
       window.__STREFEX_PLATFORM_SOURCING__ = plat;
+      /* Drop design-canvas demo suppliers/buyers as soon as the shell posts real accounts. */
+      if (window.SOURCING_DATA && Array.isArray(plat.suppliers)) {
+        window.SOURCING_DATA.SUPPLIERS = plat.suppliers.slice();
+      }
+      if (window.SOURCING_DATA && Array.isArray(plat.buyers)) {
+        window.SOURCING_DATA.BUYERS = plat.buyers.slice();
+      }
       if (window.__STREFEX_SOURCING_BRIDGE__ && typeof window.__STREFEX_SOURCING_BRIDGE__.applyPlatform === 'function') {
         window.__STREFEX_SOURCING_BRIDGE__.applyPlatform(plat);
       }
-    } catch (e) { /* keep mock data */ }
+    } catch (e) { /* keep mock data only if bridge missing */ }
   }
 
   function applyTheme(theme) {

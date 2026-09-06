@@ -11,7 +11,6 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
 import useSourcingPlantStore from '../store/sourcingPlantStore'
 import useRfqStore from '../store/rfqStore'
-import { useSubscriptionStore } from '../services/featureFlags'
 import {
   buildPlatformSourcingPayload,
   serializeSourcingRfqList,
@@ -24,6 +23,7 @@ import {
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
+import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { useSettingsStore } from '../store/settingsStore'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
@@ -312,9 +312,8 @@ export default function IntelligentSourcingPage() {
   const getSafeRfqs = useRfqStore((s) => s.getSafeRfqs)
   const theme = useSettingsStore((s) => s.theme)
   const setTenant = useAuthStore((s) => s.setTenant)
-  const showMarketplaceCatalog = useSubscriptionStore((s) => s.hasFeature('executiveSummary'))
+  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
     || isSeededSupplierDirectoryEnabled()
-    || isSuperAdmin
 
   useEffect(() => {
     ensureAllAccountsSourcingFields()
