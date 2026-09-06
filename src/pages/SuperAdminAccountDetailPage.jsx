@@ -21,6 +21,7 @@ import {
   readReceivingPlantsFromAccount,
   saveReceivingPlantsToAccount,
 } from '../utils/receivingPlantsPersist'
+import { buildCompanyTaxonomyWrite } from '../utils/companyTaxonomyPayload'
 import '../styles/app-page.css'
 import './SuperAdminAccountDetailPage.css'
 
@@ -691,6 +692,20 @@ export default function SuperAdminAccountDetailPage() {
         return
       }
 
+      const taxonomy = buildCompanyTaxonomyWrite({
+        industries: nextIndustries,
+        categories: nextCategories,
+        productCategories: nextProductCategories,
+        equipmentSubcategories: nextEquipmentSubcategories,
+        productSubcategories: nextProductSubcategories,
+        serviceCategories: nextServiceCategories,
+        accountType: primaryAccountType,
+        accountTypes: nextAccountTypes,
+        existingMetadata: {
+          ...(company.metadata || {}),
+          address: nextAddress || null,
+        },
+      })
       const companyPayload = {
         name: form.name.trim(),
         email: form.email.trim() || null,
@@ -699,20 +714,8 @@ export default function SuperAdminAccountDetailPage() {
         country: form.country.trim() || null,
         city: form.city.trim() || null,
         address: nextAddress || null,
-        account_type: primaryAccountType,
         plan: form.plan || company.plan,
-        metadata: {
-          ...(company.metadata || {}),
-          address: nextAddress || null,
-          account_type: primaryAccountType,
-          account_types: nextAccountTypes,
-          industries: nextIndustries,
-          categories: nextCategories,
-          product_categories: nextProductCategories,
-          equipment_subcategories: nextEquipmentSubcategories,
-          product_subcategories: nextProductSubcategories,
-          service_categories: nextServiceCategories,
-        },
+        ...taxonomy.companyColumns,
       }
       const merged = {
         ...company,
@@ -753,27 +756,11 @@ export default function SuperAdminAccountDetailPage() {
             phone: form.contactPhone.trim() || null,
             metadata: {
               ...(existingProfile?.metadata || company.metadata || {}),
-              account_type: primaryAccountType,
-              account_types: nextAccountTypes,
-              industries: nextIndustries,
-              categories: nextCategories,
-              product_categories: nextProductCategories,
-              equipment_subcategories: nextEquipmentSubcategories,
-              product_subcategories: nextProductSubcategories,
-              service_categories: nextServiceCategories,
+              ...taxonomy.metadataPatch,
             },
           })
           setProfiles((prev) => {
-            const nextMeta = {
-              account_type: primaryAccountType,
-              account_types: nextAccountTypes,
-              industries: nextIndustries,
-              categories: nextCategories,
-              product_categories: nextProductCategories,
-              equipment_subcategories: nextEquipmentSubcategories,
-              product_subcategories: nextProductSubcategories,
-              service_categories: nextServiceCategories,
-            }
+            const nextMeta = { ...taxonomy.metadataPatch }
             const found = prev.some((p) => p.id === profileId)
             if (!found) {
               return [{

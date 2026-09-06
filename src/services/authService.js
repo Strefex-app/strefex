@@ -849,10 +849,15 @@ const authService = {
             account_type: primaryAccountType,
             plan: selectedPlan,
             status: 'active',
+            industries: normalizedIndustries,
+            categories: normalizedCategories,
+            service_categories: effectiveServiceCategories,
             metadata: {
               industries: normalizedIndustries,
               ...categoryMetadata,
               service_categories: effectiveServiceCategories,
+              account_type: primaryAccountType,
+              account_types: normalizedAccountTypes,
               address: normalizedAddress || null,
             },
           })

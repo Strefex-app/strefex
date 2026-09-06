@@ -66,4 +66,74 @@ describe('accountRegistry category matching', () => {
     })
     expect(getSellersBySubcategory('automotive', 'mold-makers', 'auto-checking-fixtures')).toHaveLength(1)
   })
+
+  it('excludes pure service providers from seller category lists', () => {
+    useAccountRegistry.getState().registerAccount({
+      id: 'sp1',
+      email: 'audit@sp.de',
+      company: 'Audit SP',
+      accountType: 'service_provider',
+      accountTypes: ['service_provider'],
+      status: 'active',
+      industries: ['automotive'],
+      serviceCategories: ['quality-services'],
+      categories: { automotive: ['mold-makers'] },
+    })
+    useAccountRegistry.getState().registerAccount({
+      id: 's4',
+      email: 'sell@maker.de',
+      company: 'Seller Co',
+      accountType: 'seller',
+      accountTypes: ['seller'],
+      status: 'active',
+      industries: ['automotive'],
+      categories: { automotive: ['mold-makers'] },
+    })
+    const {
+      getSellersByCategory,
+      getRegisteredSellers,
+      getServiceProvidersByCategory,
+      getRegisteredServiceProviders,
+    } = useAccountRegistry.getState()
+    expect(getSellersByCategory('automotive', 'mold-makers')).toHaveLength(1)
+    expect(getRegisteredSellers('automotive')).toHaveLength(1)
+    expect(getServiceProvidersByCategory('quality-services')).toHaveLength(1)
+    expect(getRegisteredServiceProviders('automotive')).toHaveLength(1)
+  })
+
+  it('scopes seller category queries by product vs equipment domain', () => {
+    useAccountRegistry.getState().registerAccount({
+      id: 's5',
+      email: 'domain@maker.de',
+      company: 'Domain Co',
+      accountType: 'seller',
+      accountTypes: ['seller'],
+      status: 'active',
+      industries: ['automotive'],
+      categories: { automotive: ['mold-makers'] },
+      productCategories: { automotive: ['plastic'] },
+    })
+    const { getSellersByCategory } = useAccountRegistry.getState()
+    expect(getSellersByCategory('automotive', 'mold-makers', 'equipment')).toHaveLength(1)
+    expect(getSellersByCategory('automotive', 'mold-makers', 'product')).toHaveLength(0)
+    expect(getSellersByCategory('automotive', 'plastic', 'product')).toHaveLength(1)
+    expect(getSellersByCategory('automotive', 'plastic', 'equipment')).toHaveLength(0)
+  })
+
+  it('includes dual-role accounts in both seller and service pools', () => {
+    useAccountRegistry.getState().registerAccount({
+      id: 'dual1',
+      email: 'both@co.de',
+      company: 'Dual Co',
+      accountType: 'seller',
+      accountTypes: ['seller', 'service_provider'],
+      status: 'active',
+      industries: ['automotive'],
+      categories: { automotive: ['robots'] },
+      serviceCategories: ['project-management'],
+    })
+    const { getSellersByCategory, getServiceProvidersByCategory } = useAccountRegistry.getState()
+    expect(getSellersByCategory('automotive', 'robots')).toHaveLength(1)
+    expect(getServiceProvidersByCategory('project-management')).toHaveLength(1)
+  })
 })

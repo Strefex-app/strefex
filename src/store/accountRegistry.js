@@ -24,11 +24,12 @@ import {
   publishAccountsToNetworkDirectory,
   registerExistingAccountsOntoSourcingNetwork,
 } from '../utils/accountSourcingCompleteness'
+import { mergeSourcingNetworkIntoRegistry } from '../services/sourcingNetworkService'
 
 const REGISTRY_KEY = 'strefex-account-registry'
 const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
 
-function isSellerLikeAccount(account) {
+function collectAccountTypes(account) {
   const types = new Set()
   const primary = String(account?.accountType || account?.account_type || '').toLowerCase()
   if (primary) types.add(primary)
@@ -39,49 +40,62 @@ function isSellerLikeAccount(account) {
       if (id) types.add(id)
     })
   }
-  return types.has('seller') || types.has('service_provider')
+  return types
+}
+
+/** Manufacturer / product-equipment seller (excludes pure service providers). */
+function isManufacturerAccount(account) {
+  return collectAccountTypes(account).has('seller')
+}
+
+function isServiceProviderAccount(account) {
+  return collectAccountTypes(account).has('service_provider')
 }
 
 function accountActive(account) {
   return account && String(account.status || '').toLowerCase() !== 'canceled'
 }
 
-/** Parent equipment / product category membership for an industry. */
-function accountHasCategory(account, industryId, categoryId) {
+/** Parent category membership for an industry, optionally scoped to a sourcing domain. */
+function accountHasCategory(account, industryId, categoryId, domain = null) {
   if (!industryId || !categoryId) return false
   const equipmentCats = account?.categories?.[industryId] || []
   const productCats = account?.productCategories?.[industryId] || []
-  if (equipmentCats.includes(categoryId) || productCats.includes(categoryId)) return true
   const eqSubs = account?.equipmentSubcategories?.[industryId]?.[categoryId]
   const prodSubs = account?.productSubcategories?.[industryId]?.[categoryId]
-  return (Array.isArray(eqSubs) && eqSubs.length > 0)
+  const hasEquipment = equipmentCats.includes(categoryId)
+    || (Array.isArray(eqSubs) && eqSubs.length > 0)
+  const hasProduct = productCats.includes(categoryId)
     || (Array.isArray(prodSubs) && prodSubs.length > 0)
+  if (domain === 'equipment') return hasEquipment
+  if (domain === 'product') return hasProduct
+  if (domain === 'service') {
+    return (account?.serviceCategories || []).includes(categoryId)
+  }
+  return hasEquipment || hasProduct
 }
 
 /**
  * Match subcategory (process) pages.
  * Parent selected with no explicit sub list (or '*') = all subcategories under that parent.
  */
-function accountHasSubcategory(account, industryId, categoryId, subcategoryId) {
-  if (!accountHasCategory(account, industryId, categoryId)
-    && !(account?.industries || []).includes(industryId)) {
-    return false
-  }
+function accountHasSubcategory(account, industryId, categoryId, subcategoryId, domain = null) {
   if (!(account?.industries || []).includes(industryId)) return false
-  if (!accountHasCategory(account, industryId, categoryId)) return false
+  if (!accountHasCategory(account, industryId, categoryId, domain)) return false
   if (!subcategoryId) return true
 
   const eqSubs = account?.equipmentSubcategories?.[industryId]?.[categoryId] || []
   const prodSubs = account?.productSubcategories?.[industryId]?.[categoryId] || []
-  if (eqSubs.includes(subcategoryId) || prodSubs.includes(subcategoryId)) return true
-  if (
-    eqSubs.includes('*') || prodSubs.includes('*')
-    || eqSubs.includes('__all__') || prodSubs.includes('__all__')
-  ) {
-    return true
-  }
+  const useEq = domain !== 'product'
+  const useProd = domain !== 'equipment'
+  const subs = [
+    ...(useEq ? eqSubs : []),
+    ...(useProd ? prodSubs : []),
+  ]
+  if (subs.includes(subcategoryId)) return true
+  if (subs.includes('*') || subs.includes('__all__')) return true
   // Parent checked, no specific subs persisted → treat as all processes in that category
-  if (eqSubs.length === 0 && prodSubs.length === 0) return true
+  if (subs.length === 0) return true
   return false
 }
 
@@ -368,11 +382,12 @@ export const useAccountRegistry = create((set, get) => ({
     cats[industryId] = merged
     acct.categories = cats
     const next = [...accounts]
-    next[idx] = acct
+    next[idx] = ensureSourcingFieldPlaceholders(acct)
     saveRegistry(next)
     mergeRegistryIndex(next)
     set({ accounts: next })
-    return acct
+    publishAccountsToNetworkDirectory([next[idx]])
+    return next[idx]
   },
 
   /* ── Team Members ─────────────────────────────────────── */
@@ -485,7 +500,7 @@ export const useAccountRegistry = create((set, get) => ({
   /* ── Queries ──────────────────────────────────────────── */
 
   getRegisteredSellers: (industryId = null) => {
-    let sellers = get().accounts.filter((a) => isSellerLikeAccount(a) && accountActive(a))
+    let sellers = get().accounts.filter((a) => isManufacturerAccount(a) && accountActive(a))
     if (industryId) {
       sellers = sellers.filter((a) => (a.industries || []).includes(industryId))
     }
@@ -495,34 +510,32 @@ export const useAccountRegistry = create((set, get) => ({
   /** Sellers visible on maps / sourcing list (scoped + shared network directory). */
   getNetworkManufacturersForMap: (industryId = null) => {
     let sellers = mergeNetworkManufacturersWithAccounts(get().accounts)
+      .filter((a) => isManufacturerAccount(a) && accountActive(a))
     if (industryId) {
       sellers = sellers.filter((a) => (a.industries || []).includes(industryId))
     }
     return sellers
   },
 
-  getSellersByCategory: (industryId, categoryId) => {
+  getSellersByCategory: (industryId, categoryId, domain = null) => {
     return get().accounts.filter((a) => (
-      isSellerLikeAccount(a)
+      isManufacturerAccount(a)
       && accountActive(a)
       && (a.industries || []).includes(industryId)
-      && accountHasCategory(a, industryId, categoryId)
+      && accountHasCategory(a, industryId, categoryId, domain)
     ))
   },
 
-  getSellersBySubcategory: (industryId, categoryId, subcategoryId) => {
+  getSellersBySubcategory: (industryId, categoryId, subcategoryId, domain = null) => {
     return get().accounts.filter((a) => (
-      isSellerLikeAccount(a)
+      isManufacturerAccount(a)
       && accountActive(a)
-      && accountHasSubcategory(a, industryId, categoryId, subcategoryId)
+      && accountHasSubcategory(a, industryId, categoryId, subcategoryId, domain)
     ))
   },
 
   getRegisteredServiceProviders: (industryId = null) => {
-    let sps = get().accounts.filter((a) => {
-      const types = Array.isArray(a.accountTypes) ? a.accountTypes : [a.accountType]
-      return types.includes('service_provider') && accountActive(a)
-    })
+    let sps = get().accounts.filter((a) => isServiceProviderAccount(a) && accountActive(a))
     if (industryId) {
       sps = sps.filter((a) => (a.industries || []).includes(industryId))
     }
@@ -545,9 +558,9 @@ export const useAccountRegistry = create((set, get) => ({
 
   getServiceProvidersByCategory: (serviceCategoryId) => {
     return get().accounts.filter((a) =>
-      a.accountType === 'service_provider' &&
-      a.status !== 'canceled' &&
-      (a.serviceCategories || []).includes(serviceCategoryId)
+      isServiceProviderAccount(a)
+      && accountActive(a)
+      && (a.serviceCategories || []).includes(serviceCategoryId)
     )
   },
 
@@ -561,7 +574,7 @@ export const useAccountRegistry = create((set, get) => ({
 
   getSellerCountByIndustry: () => {
     const sellers = get().accounts.filter((a) =>
-      (a.accountType === 'seller' || a.accountType === 'service_provider') && a.status !== 'canceled'
+      isManufacturerAccount(a) && accountActive(a)
     )
     const counts = {}
     sellers.forEach((a) => {
@@ -574,7 +587,7 @@ export const useAccountRegistry = create((set, get) => ({
 
   getSellerCountByCategory: (industryId) => {
     const sellers = get().accounts.filter((a) =>
-      isSellerLikeAccount(a) && accountActive(a) && (a.industries || []).includes(industryId),
+      isManufacturerAccount(a) && accountActive(a) && (a.industries || []).includes(industryId),
     )
     const counts = {}
     sellers.forEach((a) => {
@@ -612,9 +625,19 @@ export const useAccountRegistry = create((set, get) => ({
 
   /** Replace registry from cloud sync (persists to scoped localStorage). */
   hydrateFromCloudSync: (accounts) => {
-    const next = Array.isArray(accounts) ? accounts : []
+    const next = (Array.isArray(accounts) ? accounts : []).map(ensureSourcingFieldPlaceholders)
     saveRegistry(next)
     mergeRegistryIndex(next)
     set({ accounts: next })
+    publishAccountsToNetworkDirectory(next)
+  },
+
+  /** Merge DB sourcing-network rows into the local registry (map + RFQ pools). */
+  mergeNetworkAccounts: (networkAccounts = []) => {
+    const merged = mergeSourcingNetworkIntoRegistry(get().accounts, networkAccounts)
+    saveRegistry(merged)
+    mergeRegistryIndex(merged)
+    set({ accounts: merged })
+    return merged.length
   },
 }))

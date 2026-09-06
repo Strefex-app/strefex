@@ -10,6 +10,7 @@ import {
   PRODUCT_CATEGORIES_BY_INDUSTRY,
   getProductCategoriesForIndustry,
 } from '../../data/productCategoriesByIndustry'
+import { SERVICE_CATALOG } from '../../data/serviceCatalog'
 import { matchesIndustryPrimaryStandard } from '../../utils/buyerSourcingReliability'
 import { defaultQualityLevelForIndustry } from '../../utils/networkRfqCreate'
 import { useAccountRegistry } from '../../store/accountRegistry'
@@ -81,8 +82,21 @@ function qualityTagFor(industryKey, qualityLevel) {
 }
 
 function categoriesForDomain(industryId, domain) {
-  if (!industryId) return []
+  if (!industryId && domain !== 'service') return []
   if (domain === 'equipment') return getEquipmentCategoriesForIndustry(industryId) || []
+  if (domain === 'service') {
+    const seen = new Set()
+    return SERVICE_CATALOG.filter((row) => {
+      if (!row?.id || seen.has(row.id)) return false
+      seen.add(row.id)
+      return true
+    }).map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description || '',
+      subcategories: [],
+    }))
+  }
   return getProductCategoriesForIndustry(industryId) || []
 }
 
@@ -145,6 +159,9 @@ export default function BuyerRfqCreateForm({
   const accounts = useAccountRegistry((s) => s.accounts)
   const getRegisteredSellers = useAccountRegistry((s) => s.getRegisteredSellers)
   const getSellersByCategory = useAccountRegistry((s) => s.getSellersByCategory)
+  const getSellersBySubcategory = useAccountRegistry((s) => s.getSellersBySubcategory)
+  const getRegisteredServiceProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders)
+  const getServiceProvidersByCategory = useAccountRegistry((s) => s.getServiceProvidersByCategory)
 
   const [step, setStep] = useState(1)
   const [title, setTitle] = useState(initialDraft?.title || '')
@@ -187,16 +204,32 @@ export default function BuyerRfqCreateForm({
 
   const registeredByIndustry = useMemo(() => {
     const counts = {}
+    const isService = rfqType === 'service'
     industries.forEach((row) => {
-      counts[row.id] = getRegisteredSellers(row.id).length
+      counts[row.id] = isService
+        ? getRegisteredServiceProviders(row.id).length
+        : getRegisteredSellers(row.id).length
     })
     return counts
-  }, [industries, getRegisteredSellers, accounts])
+  }, [industries, getRegisteredSellers, getRegisteredServiceProviders, accounts, rfqType])
 
   const registryShortlist = useMemo(() => {
-    if (!activeIndustry) return []
-    const bySub = subCategoryId ? getSellersByCategory(activeIndustry, subCategoryId) : []
-    const byParent = parentCategoryId ? getSellersByCategory(activeIndustry, parentCategoryId) : []
+    if (!activeIndustry && rfqType !== 'service') return []
+    if (rfqType === 'service') {
+      const byCat = parentCategoryId
+        ? getServiceProvidersByCategory(parentCategoryId)
+        : getRegisteredServiceProviders(activeIndustry || null)
+      const scoped = activeIndustry
+        ? byCat.filter((a) => (a.industries || []).includes(activeIndustry))
+        : byCat
+      return scoped.map(accountToInviteRow)
+    }
+    const bySub = (subCategoryId && parentCategoryId)
+      ? getSellersBySubcategory(activeIndustry, parentCategoryId, subCategoryId, rfqType || 'product')
+      : []
+    const byParent = parentCategoryId
+      ? getSellersByCategory(activeIndustry, parentCategoryId, rfqType || 'product')
+      : []
     const byIndustry = getRegisteredSellers(activeIndustry)
     const preferred = bySub.length
       ? bySub
@@ -208,8 +241,12 @@ export default function BuyerRfqCreateForm({
     activeIndustry,
     parentCategoryId,
     subCategoryId,
-    getRegisteredSellers,
+    rfqType,
     getSellersByCategory,
+    getSellersBySubcategory,
+    getRegisteredSellers,
+    getServiceProvidersByCategory,
+    getRegisteredServiceProviders,
     accounts,
   ])
 
@@ -544,7 +581,11 @@ export default function BuyerRfqCreateForm({
           ) : (
             <div className="stx-rfq-pick-grid stx-rfq-pick-grid--dense" style={{ marginTop: 14 }}>
               {domainCategories.map((cat) => {
-                const n = getSellersByCategory(activeIndustry, cat.id).length
+                const n = rfqType === 'service'
+                  ? getServiceProvidersByCategory(cat.id).filter((a) => (
+                    !activeIndustry || (a.industries || []).includes(activeIndustry)
+                  )).length
+                  : getSellersByCategory(activeIndustry, cat.id, rfqType || 'product').length
                 return (
                   <button
                     key={cat.id}
@@ -583,7 +624,12 @@ export default function BuyerRfqCreateForm({
           ) : (
             <div className="stx-rfq-pick-grid stx-rfq-pick-grid--dense" style={{ marginTop: 14 }}>
               {subcategories.map((sub) => {
-                const n = getSellersByCategory(activeIndustry, sub.id).length
+                const n = getSellersBySubcategory(
+                  activeIndustry,
+                  parentCategoryId,
+                  sub.id,
+                  rfqType || 'product',
+                ).length
                 return (
                   <button
                     key={sub.id}

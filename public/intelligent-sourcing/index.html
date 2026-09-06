@@ -3448,14 +3448,71 @@ transitFor(sup) {
       return x.source === "registered";
     });
     const hidden = registry.filter(x => all.indexOf(x) < 0);
-    /* a supplier list only ever contains suppliers that serve this industry — the subset
-       rotates through that pool by hash so late entries are reachable, never truncated */
-    const pool = all.filter(x => (x.industries || []).indexOf(industryName) >= 0);
+    /* Industry + domain role + category — sellers never appear on service requests;
+       service providers never appear on product/equipment requests unless dual-role. */
+    const domain = s.domain || "product";
+    const catId = s.category || null;
+    const subId = s.subcat || null;
+    const pool = all.filter(x => {
+      const inds = x.industries || [];
+      const ids = x.industryIds || [];
+      const inIndustry = inds.indexOf(industryName) >= 0
+        || ids.indexOf(s.industry) >= 0
+        || (s.industry && inds.some(function (lab) {
+          return String(lab || "").toLowerCase().indexOf(String(s.industry).toLowerCase()) >= 0;
+        }));
+      if (!inIndustry) return false;
+
+      const types = {};
+      (Array.isArray(x.accountTypes) && x.accountTypes.length
+        ? x.accountTypes
+        : [x.accountType || "seller"]
+      ).forEach(function (t) {
+        const k = String(t || "").toLowerCase();
+        if (k) types[k] = true;
+      });
+      /* Seeded/demo rows without accountTypes stay seller-only */
+      if (!Object.keys(types).length) types.seller = true;
+
+      function hasId(list, id) {
+        if (!id || !Array.isArray(list)) return false;
+        return list.map(String).indexOf(String(id)) >= 0;
+      }
+
+      if (domain === "service") {
+        if (!types.service_provider && !types.auditor) return false;
+        if (!catId) return true;
+        const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []);
+        return hasId(svc, catId);
+      }
+
+      if (!types.seller) return false;
+      const domainIds = domain === "equipment"
+        ? (x.equipmentCategoryIds || x.categoryIds || [])
+        : (x.productCategoryIds || x.categoryIds || []);
+      const subs = x.subcategoryIds || [];
+      if (subId) {
+        if (hasId(subs, subId)) return true;
+        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) {
+          var explicit = (subs || []).filter(function (id) {
+            return String(id) !== String(catId) && id !== "*" && id !== "__all__";
+          });
+          if (!explicit.length || hasId(subs, "*") || hasId(subs, "__all__")) return true;
+        }
+        return false;
+      }
+      if (!catId) return true;
+      if (hasId(domainIds, catId) || hasId(subs, catId)) return true;
+      /* Registered sellers with no categories for this domain stay out of specific lists */
+      if ((!domainIds || !domainIds.length) && (!subs || !subs.length)) return false;
+      return false;
+    });
     let sups = pool;
-    if (sub && pool.length) {
+    /* Prefer real category matches; only hash-sample when the pool is huge */
+    if (sub && pool.length > 18) {
       let h = 0;
       for (let i = 0; i < sub.id.length; i++) h = (h * 31 + sub.id.charCodeAt(i)) % 9973;
-      const keep = Math.min(pool.length, 6 + (h % 6));
+      const keep = Math.min(pool.length, 12 + (h % 6));
       const start = h % pool.length;
       sups = [];
       for (let i = 0; i < keep; i++) sups.push(pool[(start + i) % pool.length]);

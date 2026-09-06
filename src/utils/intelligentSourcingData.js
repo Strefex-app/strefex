@@ -6,6 +6,13 @@ import { INDUSTRY_LABELS, SUPPLIER_DATABASE } from '../data/supplierDatabase'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { serviceEngagementDays } from './serviceDurationEstimates'
 import { readReceivingPlantsFromAccount } from './receivingPlantsPersist'
+import {
+  SOURCING_INDUSTRY_LABELS,
+  collectAccountTypes,
+  expandEquipmentCategoryIds,
+  expandProductCategoryIds,
+  expandServiceCategoryIds,
+} from './sourcingCategoryAliases'
 
 /** Design-canvas industry id → platform slug */
 export const SOURCING_INDUSTRY_TO_PLATFORM = {
@@ -27,6 +34,7 @@ export const PLATFORM_TO_SOURCING_INDUSTRY = {
   machinery: 'machinery',
   electronics: 'electronics',
   medical: 'medical',
+  aerospace: 'aerospace',
   'raw-materials': 'rawmat',
   'oil-gas': 'oilgas',
   'green-energy': 'energy',
@@ -61,7 +69,29 @@ function metricFromAccount(a, key, fallback) {
 
 function industryLabelsForAccount(a) {
   const ids = Array.isArray(a?.industries) ? a.industries : []
-  return ids.map((id) => INDUSTRY_LABELS[id] || id).filter(Boolean)
+  const labels = new Set()
+  ids.forEach((raw) => {
+    const id = String(raw || '')
+    if (!id) return
+    if (INDUSTRY_LABELS[id]) labels.add(INDUSTRY_LABELS[id])
+    const sourcingId = PLATFORM_TO_SOURCING_INDUSTRY[id] || id
+    if (SOURCING_INDUSTRY_LABELS[sourcingId]) labels.add(SOURCING_INDUSTRY_LABELS[sourcingId])
+    else if (!INDUSTRY_LABELS[id]) labels.add(id)
+  })
+  return [...labels]
+}
+
+function industryIdsForAccount(a) {
+  const ids = Array.isArray(a?.industries) ? a.industries : []
+  const out = new Set()
+  ids.forEach((raw) => {
+    const id = String(raw || '')
+    if (!id) return
+    out.add(id)
+    const sourcingId = PLATFORM_TO_SOURCING_INDUSTRY[id]
+    if (sourcingId) out.add(sourcingId)
+  })
+  return [...out]
 }
 
 function countryCodeFromName(country) {
@@ -114,18 +144,28 @@ export function accountToSourcingSupplier(account) {
   const cc = countryCodeFromName(account.country)
   const certs = Array.isArray(account.certifications) ? account.certifications : []
   const incomplete = !account.country || !account.city || !(account.industries || []).length
-  const isService = account.accountType === 'service_provider'
-    || (Array.isArray(account.accountTypes) && account.accountTypes.includes('service_provider')
-      && !account.accountTypes.includes('seller'))
+  const accountTypes = [...collectAccountTypes(account)]
+  if (!accountTypes.length) accountTypes.push('seller')
+  const isServiceLead = accountTypes.includes('service_provider') && !accountTypes.includes('seller')
   const serviceCat = Array.isArray(account.serviceCategories) ? account.serviceCategories[0] : ''
-  const lead = isService
+  const lead = isServiceLead
     ? (account.leadTimeDays || serviceEngagementDays(serviceCat || 'audit', name))
     : (account.leadTimeDays || Math.round(20 + hash01(`${name}|lead`) * 50))
-  const categoryIds = [
-    ...flattenCategoryIds(account.categories),
-    ...flattenCategoryIds(account.productCategories || account.product_categories),
-    ...(Array.isArray(account.serviceCategories) ? account.serviceCategories.map(String) : []),
-  ]
+  const equipmentCategoryIds = expandEquipmentCategoryIds(flattenCategoryIds(account.categories))
+  const productCategoryIds = expandProductCategoryIds(
+    flattenCategoryIds(account.productCategories || account.product_categories),
+  )
+  const serviceCategoryIds = expandServiceCategoryIds(
+    Array.isArray(account.serviceCategories) ? account.serviceCategories.map(String) : [],
+  )
+  if (accountTypes.includes('auditor') && !serviceCategoryIds.includes('audit')) {
+    expandServiceCategoryIds(['supplier-audit']).forEach((id) => serviceCategoryIds.push(id))
+  }
+  const categoryIds = [...new Set([
+    ...equipmentCategoryIds,
+    ...productCategoryIds,
+    ...serviceCategoryIds,
+  ])]
   const subcategoryIds = [
     ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories),
     ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories),
@@ -154,14 +194,19 @@ export function accountToSourcingSupplier(account) {
     tariff: 'None',
     tier2: incomplete ? 'Unknown' : 'Partial',
     industries: industryLabelsForAccount(account),
+    industryIds: industryIdsForAccount(account),
     categoryIds,
+    equipmentCategoryIds,
+    productCategoryIds,
+    serviceCategoryIds: [...new Set(serviceCategoryIds)],
     subcategoryIds,
     stage,
     published,
     platformId: account.id || null,
     source: 'registered',
     incomplete: !!incomplete,
-    accountType: account.accountType || 'seller',
+    accountType: account.accountType || accountTypes[0] || 'seller',
+    accountTypes,
   }
 }
 
@@ -202,6 +247,13 @@ export function dbSupplierToSourcing(row) {
     stage: 6,
     platformId: row.id || null,
     source: 'database',
+    accountType: 'seller',
+    accountTypes: ['seller'],
+    equipmentCategoryIds: Array.isArray(row.categories) ? row.categories.map(String) : [],
+    productCategoryIds: Array.isArray(row.categories) ? row.categories.map(String) : [],
+    serviceCategoryIds: [],
+    categoryIds: Array.isArray(row.categories) ? row.categories.map(String) : [],
+    industryIds: Array.isArray(row.industries) ? row.industries.map(String) : [],
   }
 }
 

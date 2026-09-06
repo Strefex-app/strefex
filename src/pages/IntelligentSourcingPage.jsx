@@ -16,6 +16,7 @@ import {
   serializeSourcingRfqList,
 } from '../utils/intelligentSourcingData'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
+import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import {
   createAndSendNetworkRfq,
   sourcingRfqOpenContext,
@@ -304,6 +305,7 @@ export default function IntelligentSourcingPage() {
   const isSuperAdmin = role === 'superadmin'
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
+  const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const plant = useSourcingPlantStore((s) => s.plant)
@@ -318,6 +320,16 @@ export default function IntelligentSourcingPage() {
   useEffect(() => {
     ensureAllAccountsSourcingFields()
   }, [ensureAllAccountsSourcingFields])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const rows = await fetchSourcingNetworkAccounts({ limit: 800 })
+      if (cancelled || !rows.length) return
+      mergeNetworkAccounts(rows)
+    })()
+    return () => { cancelled = true }
+  }, [mergeNetworkAccounts, user?.email, tenant?.id])
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()

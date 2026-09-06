@@ -14,6 +14,7 @@ import { BUYER_WORKSPACE_PATH, buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { buildBuyerPlants } from '../utils/intelligentSourcingData'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
+import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
 import { getSupplierLocations } from '../data/supplierDatabase'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
@@ -191,6 +192,7 @@ export default function Home() {
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
+  const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const setTenant = useAuthStore((s) => s.setTenant)
   const plant = useSourcingPlantStore((s) => s.plant)
@@ -210,6 +212,16 @@ export default function Home() {
   useEffect(() => {
     ensureAllAccountsSourcingFields()
   }, [ensureAllAccountsSourcingFields])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const rows = await fetchSourcingNetworkAccounts({ limit: 800 })
+      if (cancelled || !rows.length) return
+      mergeNetworkAccounts(rows)
+    })()
+    return () => { cancelled = true }
+  }, [mergeNetworkAccounts])
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
@@ -356,7 +368,16 @@ export default function Home() {
   }, 0) ?? 0
 
   const networkLocations = useMemo(() => {
-    const registrySellers = mergeNetworkManufacturersWithAccounts(accounts)
+    const registrySellers = mergeNetworkManufacturersWithAccounts(accounts).filter((a) => {
+      const types = new Set()
+      const primary = String(a?.accountType || '').toLowerCase()
+      if (primary) types.add(primary)
+      ;(Array.isArray(a?.accountTypes) ? a.accountTypes : []).forEach((t) => {
+        const id = String(t || '').toLowerCase()
+        if (id) types.add(id)
+      })
+      return types.has('seller')
+    })
     const fromRegistry = registrySellers.map((a) => {
       const coords = a.coordinates?.length === 2
         && !(Number(a.coordinates[0]) === 0 && Number(a.coordinates[1]) === 0)

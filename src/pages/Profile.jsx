@@ -23,6 +23,7 @@ import {
   isSellerLikeAccountType,
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
+import { buildCompanyTaxonomyWrite } from '../utils/companyTaxonomyPayload'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
@@ -1130,23 +1131,27 @@ const Profile = () => {
         nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
       }
 
+      const taxonomy = buildCompanyTaxonomyWrite({
+        industries: nextIndustries,
+        categories: nextCategories,
+        productCategories: nextProductCategories,
+        equipmentSubcategories: nextEquipmentSubcategories,
+        productSubcategories: nextProductSubcategories,
+        serviceCategories: nextServiceCategories,
+        accountType,
+        existingMetadata: {
+          ...(tenant.metadata || {}),
+          address: nextAddress || null,
+          company_summary: nextSummary || null,
+        },
+      })
       const companyPayload = {
         name: nextName,
         address: nextAddress || null,
         country: nextCountry || null,
         city: nextCity || null,
         website: companyForm.website.trim() || null,
-        metadata: {
-          ...(tenant.metadata || {}),
-          address: nextAddress || null,
-          company_summary: nextSummary || null,
-          industries: nextIndustries,
-          categories: nextCategories,
-          product_categories: nextProductCategories,
-          equipment_subcategories: nextEquipmentSubcategories,
-          product_subcategories: nextProductSubcategories,
-          service_categories: nextServiceCategories,
-        },
+        ...taxonomy.companyColumns,
       }
       if (canAttachCompanyProfile && nextProfileAttachments != null) {
         companyPayload.profile_attachments = nextProfileAttachments
@@ -1181,12 +1186,7 @@ const Profile = () => {
         phone: companyForm.phone.trim() || null,
         metadata: {
           ...(tenant?.metadata || {}),
-          industries: nextIndustries,
-          categories: nextCategories,
-          product_categories: nextProductCategories,
-          equipment_subcategories: nextEquipmentSubcategories,
-          product_subcategories: nextProductSubcategories,
-          service_categories: nextServiceCategories,
+          ...taxonomy.metadataPatch,
         },
       })
       setUser({

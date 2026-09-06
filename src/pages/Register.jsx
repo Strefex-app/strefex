@@ -254,7 +254,7 @@ function RegisterForm() {
       setError('Please choose a valid plan for this account type.')
       return
     }
-    if (primaryAccountType === 'service_provider' && selectedServiceCategories.length === 0) {
+    if (accountTypes.includes('service_provider') && selectedServiceCategories.length === 0) {
       setError('Please select at least one service expertise category.')
       return
     }
@@ -343,6 +343,7 @@ function RegisterForm() {
         email: normalizedEmail,
         contactName: fullName.trim(),
         accountType: primaryAccountType,
+        accountTypes,
         plan: selectedPlan,
         status: registrationStatus,
         industries: [primaryIndustry],
@@ -353,7 +354,7 @@ function RegisterForm() {
         country: country.trim(),
         city: city.trim(),
         address: address.trim(),
-        serviceCategories: primaryAccountType === 'service_provider'
+        serviceCategories: accountTypes.includes('service_provider')
           ? selectedServiceCategories
           : primaryAccountType === 'auditor'
             ? ['supplier-audit']
@@ -374,7 +375,8 @@ function RegisterForm() {
             productSubcategories: productSubcategoriesPayload,
           },
         )
-        if (primaryAccountType === 'service_provider' && selectedServiceCategories.length) {
+        if ((primaryAccountType === 'service_provider' || accountTypes.includes('service_provider'))
+          && selectedServiceCategories.length) {
           useServiceStore.getState().setServices(selectedServiceCategories)
         }
         if (primaryAccountType === 'auditor') {
@@ -722,7 +724,7 @@ function RegisterForm() {
                 </div>
               )}
 
-              {primaryAccountType === 'service_provider' && (
+              {(primaryAccountType === 'service_provider' || accountTypes.includes('service_provider')) && (
                 <div className="form-group">
                   <label>Service Expertise</label>
                   <div className="reg-category-checklist">

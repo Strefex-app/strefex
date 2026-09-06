@@ -373,30 +373,43 @@ function profileRowToAccountStub(p) {
       ? coMd.account_types
       : [md.account_type || coMd.account_type || co?.account_type].filter(Boolean)
   const accountType = types[0] || co?.account_type || 'seller'
-  const industries = Array.isArray(md.industries) && md.industries.length
-    ? md.industries
-    : Array.isArray(coMd.industries) && coMd.industries.length
-      ? coMd.industries
-      : md.industry
-        ? [md.industry]
-        : coMd.industry
-          ? [coMd.industry]
-          : []
   const contactEmail =
     String(p.email || co?.email || '')
       .trim()
       .toLowerCase()
-  // Prefer joined company row; fall back to profile.company_id when the join is empty (RLS / orphan).
   const companyId = co?.id || p.company_id || null
-  const categories = (md.categories && typeof md.categories === 'object' && Object.keys(md.categories).length)
-    ? md.categories
-    : (coMd.categories && typeof coMd.categories === 'object' ? coMd.categories : {})
   const productCategories = (md.product_categories && typeof md.product_categories === 'object' && Object.keys(md.product_categories).length)
     ? md.product_categories
     : (coMd.product_categories && typeof coMd.product_categories === 'object' ? coMd.product_categories : {})
+  const equipmentSubcategories = (md.equipment_subcategories && typeof md.equipment_subcategories === 'object')
+    ? md.equipment_subcategories
+    : (coMd.equipment_subcategories && typeof coMd.equipment_subcategories === 'object' ? coMd.equipment_subcategories : {})
+  const productSubcategories = (md.product_subcategories && typeof md.product_subcategories === 'object')
+    ? md.product_subcategories
+    : (coMd.product_subcategories && typeof coMd.product_subcategories === 'object' ? coMd.product_subcategories : {})
   const serviceCategories = Array.isArray(md.service_categories) && md.service_categories.length
     ? md.service_categories
-    : (Array.isArray(coMd.service_categories) ? coMd.service_categories : [])
+    : Array.isArray(co?.service_categories) && co.service_categories.length
+      ? co.service_categories
+      : (Array.isArray(coMd.service_categories) ? coMd.service_categories : [])
+  const industriesFromColumn = Array.isArray(co?.industries) && co.industries.length ? co.industries : null
+  const industries = industriesFromColumn
+    || (Array.isArray(md.industries) && md.industries.length
+      ? md.industries
+      : Array.isArray(coMd.industries) && coMd.industries.length
+        ? coMd.industries
+        : md.industry
+          ? [md.industry]
+          : coMd.industry
+            ? [coMd.industry]
+            : [])
+  const categoriesFromColumn = (co?.categories && typeof co.categories === 'object' && Object.keys(co.categories).length)
+    ? co.categories
+    : null
+  const categories = categoriesFromColumn
+    || ((md.categories && typeof md.categories === 'object' && Object.keys(md.categories).length)
+      ? md.categories
+      : (coMd.categories && typeof coMd.categories === 'object' ? coMd.categories : {}))
   const dirSnap = coMd.profile_directory && typeof coMd.profile_directory === 'object'
     ? coMd.profile_directory
     : null
@@ -423,7 +436,12 @@ function profileRowToAccountStub(p) {
     industries,
     categories,
     productCategories,
+    equipmentSubcategories,
+    productSubcategories,
     serviceCategories,
+    country: co?.country || '',
+    city: co?.city || '',
+    address: co?.address || coMd.address || '',
     auditorDocuments: md.auditor_documents || '',
     auditorVerificationStatus: md.auditor_verification_status || null,
     _source: 'supabase',

@@ -33,6 +33,7 @@ const syncToRegistry = (industries, categories, extras = {}) => {
       ...(extras.productCategories ? { productCategories: extras.productCategories } : {}),
       ...(extras.equipmentSubcategories ? { equipmentSubcategories: extras.equipmentSubcategories } : {}),
       ...(extras.productSubcategories ? { productSubcategories: extras.productSubcategories } : {}),
+      ...(extras.serviceCategories ? { serviceCategories: extras.serviceCategories } : {}),
     }
     const existing = registry.getAccountByEmail(email)
     if (existing) {
@@ -90,6 +91,8 @@ const syncToSupabase = async (industries, categories, extras = {}) => {
 
     if (profile.company_id) {
       await companiesService.update(profile.company_id, {
+        industries: [...industries],
+        categories: { ...categories },
         metadata: {
           ...(profile.companies?.metadata || {}),
           industries: [...industries],
@@ -228,8 +231,31 @@ export const useIndustryStore = create((set, get) => ({
     try {
       const profile = await profilesService.getMyProfile()
       const metadata = profile?.metadata || {}
-      const dbIndustries = Array.isArray(metadata.industries) ? metadata.industries : null
-      const dbCategories = metadata.categories && typeof metadata.categories === 'object' ? metadata.categories : null
+      const company = profile?.companies || {}
+      const coMd = company.metadata && typeof company.metadata === 'object' ? company.metadata : {}
+      const dbIndustries = Array.isArray(company.industries) && company.industries.length
+        ? company.industries
+        : Array.isArray(metadata.industries) && metadata.industries.length
+          ? metadata.industries
+          : (Array.isArray(coMd.industries) ? coMd.industries : null)
+      const dbCategories = (company.categories && typeof company.categories === 'object' && Object.keys(company.categories).length)
+        ? company.categories
+        : (metadata.categories && typeof metadata.categories === 'object' ? metadata.categories : null)
+          || (coMd.categories && typeof coMd.categories === 'object' ? coMd.categories : null)
+      const dbProduct = (metadata.product_categories && typeof metadata.product_categories === 'object')
+        ? metadata.product_categories
+        : (coMd.product_categories && typeof coMd.product_categories === 'object' ? coMd.product_categories : {})
+      const dbEqSubs = (metadata.equipment_subcategories && typeof metadata.equipment_subcategories === 'object')
+        ? metadata.equipment_subcategories
+        : (coMd.equipment_subcategories && typeof coMd.equipment_subcategories === 'object' ? coMd.equipment_subcategories : {})
+      const dbProdSubs = (metadata.product_subcategories && typeof metadata.product_subcategories === 'object')
+        ? metadata.product_subcategories
+        : (coMd.product_subcategories && typeof coMd.product_subcategories === 'object' ? coMd.product_subcategories : {})
+      const dbServices = Array.isArray(company.service_categories) && company.service_categories.length
+        ? company.service_categories
+        : Array.isArray(metadata.service_categories)
+          ? metadata.service_categories
+          : (Array.isArray(coMd.service_categories) ? coMd.service_categories : [])
 
       if (!dbIndustries && !dbCategories) return
 
@@ -239,7 +265,12 @@ export const useIndustryStore = create((set, get) => ({
       save(IND_BASE, nextIndustries)
       save(CAT_BASE, nextCategories)
       set({ selectedIndustries: nextIndustries, selectedCategories: nextCategories })
-      syncToRegistry(nextIndustries, nextCategories)
+      syncToRegistry(nextIndustries, nextCategories, {
+        productCategories: dbProduct,
+        equipmentSubcategories: dbEqSubs,
+        productSubcategories: dbProdSubs,
+        serviceCategories: dbServices,
+      })
     } catch {
       // Silent fallback to existing local state.
     }

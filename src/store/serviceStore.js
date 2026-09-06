@@ -44,6 +44,7 @@ const syncToSupabase = async (serviceCategories) => {
     await profilesService.updateProfile({ metadata: nextMetadata })
     if (profile.company_id) {
       await companiesService.update(profile.company_id, {
+        service_categories: [...serviceCategories],
         metadata: {
           ...(profile.companies?.metadata || {}),
           service_categories: [...serviceCategories],

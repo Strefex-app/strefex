@@ -4,6 +4,7 @@ import {
   platformIndustryFromSourcing,
   buildBuyerPlants,
 } from '../utils/intelligentSourcingData'
+import { sourcingSupplierMatchesDomainCategory } from '../utils/sourcingCategoryAliases'
 import {
   ensureSourcingFieldPlaceholders,
   getAccountSourcingGaps,
@@ -40,6 +41,36 @@ describe('intelligentSourcingData', () => {
     expect(row.stage).toBe(6)
     expect(row.industries).toContain('Automotive')
     expect(row.categoryIds).toContain('mold-makers')
+    expect(row.equipmentCategoryIds).toContain('tooling')
+    expect(row.accountTypes).toContain('seller')
+  })
+
+  it('keeps sellers out of service domain and service providers out of product', () => {
+    const seller = accountToSourcingSupplier({
+      id: 's1',
+      company: 'Parts Co',
+      country: 'Germany',
+      city: 'Stuttgart',
+      industries: ['automotive'],
+      accountType: 'seller',
+      accountTypes: ['seller'],
+      productCategories: { automotive: ['plastic'] },
+    })
+    const provider = accountToSourcingSupplier({
+      id: 'sp1',
+      company: 'Audit Co',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+      accountType: 'service_provider',
+      accountTypes: ['service_provider'],
+      serviceCategories: ['quality-services'],
+    })
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'service', 'audit')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(provider, 'product', 'plastic')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(provider, 'service', 'audit')).toBe(true)
+    expect(provider.industries).toEqual(expect.arrayContaining(['Automotive']))
   })
 
   it('keeps incomplete profiles unpublished until geo + industry are set', () => {
