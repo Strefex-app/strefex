@@ -2045,8 +2045,8 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             </div>
             <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:40px; display:flex; gap:32px; align-items:flex-start">
               <div style="flex:1; min-width:0">
-                <div style="font-family:var(--font-serif); font-size:25px; color:var(--navy-800)">No scored suppliers in this category yet</div>
-                <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; max-width:640px; text-wrap:pretty">Zero is a data state, not a verdict. {{ catSuppliers }} suppliers are listed in {{ summaryTitle }}, of which <strong>0</strong> have returned a capability questionnaire and <strong>0</strong> have an audit on file. Indicators stay blank until at least three suppliers are scored — a single record would read as a benchmark it is not.</p>
+                <div style="font-family:var(--font-serif); font-size:25px; color:var(--navy-800)">No registered suppliers in this category yet</div>
+                <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; max-width:640px; text-wrap:pretty">Zero is a data state, not a verdict. No registered accounts currently match {{ summaryTitle }}. Catalog reference depth is {{ catSuppliersCatalog }}. Suppliers appear here once their account has country or city, this industry, and the matching product / equipment / service categories (each selected category and its subcategories).</p>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:22px">
                   <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onQuestionnaire }}" hint-size="auto,40px">Send capability questionnaire</x-import>
                   <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onInvitePlants }}" hint-size="auto,40px">Invite plants by email</x-import>
@@ -3437,7 +3437,7 @@ transitFor(sup) {
     ];
 
     /* ── step 5 ── */
-    const catSuppliers = sub ? sub.suppliers : cat ? cat.suppliers : 86;
+    const catSuppliersCatalog = sub ? sub.suppliers : cat ? cat.suppliers : 86;
     /* only verified, published accounts are visible to the buyer — stages 1–4 are invisible.
        Platform-registered suppliers set published explicitly; fall back to stage / source. */
     const registry = dd.SUPPLIERS || [];
@@ -3493,12 +3493,8 @@ transitFor(sup) {
       const subs = x.subcategoryIds || [];
       if (subId) {
         if (hasId(subs, subId)) return true;
-        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) {
-          var explicit = (subs || []).filter(function (id) {
-            return String(id) !== String(catId) && id !== "*" && id !== "__all__";
-          });
-          if (!explicit.length || hasId(subs, "*") || hasId(subs, "__all__")) return true;
-        }
+        /* Parent equipment/product category match covers all sub-processes (platform uses different sub ids). */
+        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) return true;
         return false;
       }
       if (!catId) return true;
@@ -4111,7 +4107,10 @@ transitFor(sup) {
       summaryScope: domainName + " · " + (cat ? cat.name : "") + (sub ? " · " + sub.name : ""),
       asOf: "2 Sep 2026, 06:40 CET",
       sourceLabel: "STREFEX verified",
-      scored: s.empty ? 0 : rows.length, catSuppliers,
+      scored: s.empty ? 0 : rows.length,
+      catSuppliers: pool.length || catSuppliersCatalog,
+      catSuppliersCatalog,
+      poolCount: pool.length,
       isEmpty: s.empty || pool.length === 0, isPopulated: !s.empty && pool.length > 0,
       poolNote: thin
         ? "Only " + pool.length + " verified supplier" + (pool.length === 1 ? "" : "s") + " serve " + industryName + " today — every one is listed. Indicators are shown but should not be read as a benchmark at this sample size; request mapping or invite plants to widen the base."

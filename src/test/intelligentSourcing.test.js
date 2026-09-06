@@ -42,7 +42,21 @@ describe('intelligentSourcingData', () => {
     expect(row.industries).toContain('Automotive')
     expect(row.categoryIds).toContain('mold-makers')
     expect(row.equipmentCategoryIds).toContain('tooling')
+    expect(row.subcategoryIds).toContain('tool-mould')
     expect(row.accountTypes).toContain('seller')
+  })
+
+  it('publishes with country alone when industry is set', () => {
+    const row = accountToSourcingSupplier({
+      id: 'a1b',
+      company: 'Country Only',
+      country: 'Russia',
+      industries: ['automotive'],
+      accountType: 'seller',
+      categories: { automotive: ['mold-makers'] },
+    })
+    expect(row.published).toBe(true)
+    expect(row.incomplete).toBe(false)
   })
 
   it('keeps sellers out of service domain and service providers out of product', () => {

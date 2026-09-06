@@ -10,6 +10,7 @@ import {
   SOURCING_INDUSTRY_LABELS,
   collectAccountTypes,
   expandEquipmentCategoryIds,
+  expandParentDefaultSubcategoryIds,
   expandProductCategoryIds,
   expandServiceCategoryIds,
 } from './sourcingCategoryAliases'
@@ -143,7 +144,9 @@ export function accountToSourcingSupplier(account) {
   })
   const cc = countryCodeFromName(account.country)
   const certs = Array.isArray(account.certifications) ? account.certifications : []
-  const incomplete = !account.country || !account.city || !(account.industries || []).length
+  const hasGeo = Boolean(String(account.country || '').trim() || String(account.city || '').trim())
+  const hasIndustry = Array.isArray(account.industries) && account.industries.length > 0
+  const incomplete = !hasGeo || !hasIndustry
   const accountTypes = [...collectAccountTypes(account)]
   if (!accountTypes.length) accountTypes.push('seller')
   const isServiceLead = accountTypes.includes('service_provider') && !accountTypes.includes('seller')
@@ -166,13 +169,17 @@ export function accountToSourcingSupplier(account) {
     ...productCategoryIds,
     ...serviceCategoryIds,
   ])]
-  const subcategoryIds = [
+  const rawSubIds = [
     ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories),
     ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories),
   ]
-  /* stage 5+ is buyer-visible on the Intelligent Sourcing map; mirror mock dataset rule */
+  const subcategoryIds = expandParentDefaultSubcategoryIds(
+    [...equipmentCategoryIds, ...productCategoryIds],
+    rawSubIds,
+  )
+  /* Map-visible when geo + industry are set; country-only is enough for a pin. */
   const stage = incomplete ? 4 : 6
-  const published = account.published === true || stage >= 5
+  const published = account.published === true || (!incomplete && stage >= 5)
   return {
     name,
     city: account.city || '—',
