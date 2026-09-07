@@ -1581,11 +1581,12 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   applyPlatform: function (plat) {
     if (!plat || !window.SOURCING_DATA) return;
     var d = window.SOURCING_DATA;
-    /* Always replace mock/demo SUPPLIERS with platform registry accounts (may be empty). */
-    if (Array.isArray(plat.suppliers)) {
+    /* Replace demo seed only when the shell posts at least one registry account.
+       An empty array used to wipe the seed and leave phone summaries blank. */
+    if (Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
       d.SUPPLIERS = plat.suppliers.slice();
     }
-    if (Array.isArray(plat.buyers)) {
+    if (Array.isArray(plat.buyers) && plat.buyers.length > 0) {
       d.BUYERS = plat.buyers.slice();
     }
     if (Array.isArray(plat.registeredIndustryIds) && d.INDUSTRIES) {
@@ -1601,6 +1602,12 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     if (plat.userInitials) {
       d.userInitials = String(plat.userInitials).slice(0, 2).toUpperCase();
     }
+    try {
+      window.dispatchEvent(new CustomEvent("strefex-sourcing-data"));
+      if (window.__STREFEX_SOURCING_APP__ && typeof window.__STREFEX_SOURCING_APP__.setState === "function") {
+        window.__STREFEX_SOURCING_APP__.setState({ dataRev: Date.now() });
+      }
+    } catch (e) { /* */ }
   }
 };
 </script>
@@ -1706,16 +1713,17 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   }
 
   @media (max-width: 640px) {
-    /* Keep the real supplier table (same data as web). The duplicate
-       card sc-for never binds rows, so hiding the table emptied the list. */
+    /* Phone: JS syncSupplierCards fills [data-stx-supplier-cards]; keep table as data source */
     [data-stx-supplier-table] {
-      display: block !important;
       overflow-x: auto !important;
       -webkit-overflow-scrolling: touch;
       max-width: 100%;
       margin: 0 -4px;
     }
-    [data-stx-supplier-cards] { display: none !important; }
+    [data-stx-supplier-cards][data-stx-filled="1"],
+    [data-stx-supplier-cards]:not(:empty) {
+      display: flex !important;
+    }
     .stx-page-head h1 {
       font-size: clamp(20px, 6vw, 24px) !important;
     }
@@ -2319,7 +2327,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   <button style="font-family:var(--font-sans); font-weight:600; font-size:13px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:6px; padding:8px 13px; cursor:pointer" style-hover="background:var(--steel-200)" sc-camel-on-click="{{ onAddFilter }}">Add filter</button>
                 </div>
               </div>
-              <div data-stx-supplier-table style="overflow-x:auto; -webkit-overflow-scrolling:touch">
+              <div data-stx-supplier-table style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%">
                 <sc-raw-table style="width:100%; border-collapse:collapse; min-width:1180px">
                   <sc-raw-thead>
                     <sc-raw-tr>
@@ -2356,28 +2364,9 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   </sc-raw-tbody>
                 </sc-raw-table>
               </div>
-              <div data-stx-supplier-cards style="display:none; flex-direction:column; gap:10px; padding-bottom:12px">
-                <sc-for list="{{ rows }}" as="s" hint-placeholder-count="8">
-                  <div sc-camel-on-click="{{ s.onFocus }}" style="border:1px solid var(--border-hairline); border-radius:8px; padding:12px 14px; background:{{ s.rowBg }}; cursor:pointer">
-                    <div style="display:flex; align-items:flex-start; gap:12px">
-                      <span sc-camel-on-click="{{ s.onToggle }}" style="display:block; width:20px; height:20px; margin-top:4px; border-radius:4px; border:1.5px solid {{ s.boxBorder }}; background:{{ s.boxBg }}; flex:none; cursor:pointer"></span>
-                      <span style="width:36px; height:36px; border-radius:6px; background:var(--steel-200); color:var(--navy-700); font-family:var(--font-mono); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none">{{ s.initials }}</span>
-                      <div style="min-width:0; flex:1">
-                        <div style="font-weight:600; font-size:15px; color:var(--navy-800)">{{ s.name }}</div>
-                        <div style="font-size:12.5px; color:var(--text-faint); margin-top:2px">{{ s.city }} · {{ s.cc }} · ${{ s.spend }}M</div>
-                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; font-family:var(--font-mono); font-size:12px; color:var(--text-body)">
-                          <span>Fit {{ s.fit }}</span>
-                          <span>Risk {{ s.risk }}</span>
-                          <span>Cap {{ s.cap }}%</span>
-                          <span>Lead {{ s.lead }}d</span>
-                          <span>{{ s.transitDays }}d {{ s.transitMode }}</span>
-                        </div>
-                        <div style="margin-top:8px; font-size:11.5px; color:var(--text-faint)">{{ s.certs }} · {{ s.auditLabel }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </sc-for>
-              </div>
+              <!-- Phone-friendly cards: same {{ rows }} list, shown only ≤640px. Placed after the
+                   table so desktop keeps the bound table; a small sync copies rows into cards. -->
+              <div data-stx-supplier-cards style="display:none; flex-direction:column; gap:10px; padding-bottom:12px"></div>
             </div>
 
             <div style="display:grid; grid-template-columns:{{ halfCols }}; gap:16px">
@@ -3081,15 +3070,79 @@ class Component extends DCLogic {
     rfqSent: false, rfqIndsSel: ["Automotive"], rfqMode: "sea",
     showLanes: false, panel: null, toast: null, navOpen: false,
     vw: typeof window !== "undefined" ? window.innerWidth : 1440,
-    plants: null, exportFmt: "pdf"
+    plants: null, exportFmt: "pdf", dataRev: 0
   };
 
   componentDidMount() {
     this._rs = () => this.setState({ vw: window.innerWidth });
+    this._onPlat = () => this.setState({ dataRev: Date.now() });
     window.addEventListener("resize", this._rs);
+    window.addEventListener("strefex-sourcing-data", this._onPlat);
+    window.__STREFEX_SOURCING_APP__ = this;
     try { this.emitPlantSelection(this.state.buyerId); } catch (e) {}
   }
-  componentWillUnmount() { window.removeEventListener("resize", this._rs); }
+  componentWillUnmount() {
+    window.removeEventListener("resize", this._rs);
+    window.removeEventListener("strefex-sourcing-data", this._onPlat);
+    if (window.__STREFEX_SOURCING_APP__ === this) window.__STREFEX_SOURCING_APP__ = null;
+  }
+
+  componentDidUpdate() {
+    this.syncSupplierCards();
+  }
+
+  syncSupplierCards() {
+    try {
+      const host = document.querySelector("[data-stx-supplier-cards]");
+      const table = document.querySelector("[data-stx-supplier-table]");
+      if (!host) return;
+      const phone = (typeof window !== "undefined" ? window.innerWidth : 1440) < 640;
+      const rows = this._lastSupplierRows || [];
+      if (!phone || !rows.length) {
+        host.innerHTML = "";
+        host.removeAttribute("data-stx-filled");
+        host.style.display = "none";
+        if (table) table.style.display = "";
+        return;
+      }
+      if (table) table.style.display = "none";
+      host.setAttribute("data-stx-filled", "1");
+      host.style.display = "flex";
+      host.style.flexDirection = "column";
+      host.style.gap = "10px";
+      const esc = (v) => String(v == null ? "" : v)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+      host.innerHTML = rows.map((s, i) => (
+        '<div data-stx-card-idx="' + i + '" style="border:1px solid var(--border-hairline); border-radius:8px; padding:12px 14px; background:' + esc(s.rowBg || "var(--surface-card)") + '; cursor:pointer">' +
+          '<div style="display:flex; align-items:flex-start; gap:12px">' +
+            '<span data-stx-card-toggle="' + i + '" style="display:block; width:20px; height:20px; margin-top:4px; border-radius:4px; border:1.5px solid ' + esc(s.boxBorder) + '; background:' + esc(s.boxBg) + '; flex:none; cursor:pointer"></span>' +
+            '<span style="width:36px; height:36px; border-radius:6px; background:var(--steel-200); color:var(--navy-700); font-family:var(--font-mono); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none">' + esc(s.initials) + '</span>' +
+            '<div style="min-width:0; flex:1">' +
+              '<div style="font-weight:600; font-size:15px; color:var(--navy-800)">' + esc(s.name) + '</div>' +
+              '<div style="font-size:12.5px; color:var(--text-faint); margin-top:2px">' + esc(s.city) + ' · ' + esc(s.cc) + ' · $' + esc(s.spend) + 'M</div>' +
+              '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; font-family:var(--font-mono); font-size:12px; color:var(--text-body)">' +
+                '<span>Fit ' + esc(s.fit) + '</span><span>Risk ' + esc(s.risk) + '</span><span>Cap ' + esc(s.cap) + '%</span><span>Lead ' + esc(s.lead) + 'd</span><span>' + esc(s.transitDays) + 'd ' + esc(s.transitMode) + '</span>' +
+              '</div>' +
+              '<div style="margin-top:8px; font-size:11.5px; color:var(--text-faint)">' + esc(s.certs) + ' · ' + esc(s.auditLabel) + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      )).join("");
+      host.onclick = (ev) => {
+        const t = ev.target && ev.target.closest ? ev.target.closest("[data-stx-card-toggle], [data-stx-card-idx]") : null;
+        if (!t) return;
+        const idx = parseInt(t.getAttribute("data-stx-card-toggle") || t.getAttribute("data-stx-card-idx"), 10);
+        const row = rows[idx];
+        if (!row) return;
+        if (t.hasAttribute("data-stx-card-toggle") && typeof row.onToggle === "function") {
+          ev.stopPropagation();
+          row.onToggle(ev);
+          return;
+        }
+        if (typeof row.onFocus === "function") row.onFocus(ev);
+      };
+    } catch (e) { /* */ }
+  }
 
   say(msg) {
     this.setState({ toast: msg });
@@ -3623,7 +3676,7 @@ transitFor(sup) {
     const domain = s.domain || "product";
     const catId = s.category || null;
     const subId = s.subcat || null;
-    const pool = all.filter(x => {
+    function roleAndIndustryOk(x) {
       const inds = x.industries || [];
       const ids = x.industryIds || [];
       const inIndustry = inds.indexOf(industryName) >= 0
@@ -3641,38 +3694,44 @@ transitFor(sup) {
         const k = String(t || "").toLowerCase();
         if (k) types[k] = true;
       });
-      /* Seeded/demo rows without accountTypes stay seller-only */
       if (!Object.keys(types).length) types.seller = true;
 
-      function hasId(list, id) {
-        if (!id || !Array.isArray(list)) return false;
-        return list.map(String).indexOf(String(id)) >= 0;
-      }
-
       if (domain === "service") {
-        if (!types.service_provider && !types.auditor) return false;
+        return !!(types.service_provider || types.auditor);
+      }
+      return !!types.seller;
+    }
+    function hasId(list, id) {
+      if (!id || !Array.isArray(list)) return false;
+      return list.map(String).indexOf(String(id)) >= 0;
+    }
+    function categoryOk(x) {
+      if (domain === "service") {
         if (!catId) return true;
         const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []);
         return hasId(svc, catId);
       }
-
-      if (!types.seller) return false;
       const domainIds = domain === "equipment"
         ? (x.equipmentCategoryIds || x.categoryIds || [])
         : (x.productCategoryIds || x.categoryIds || []);
       const subs = x.subcategoryIds || [];
+      const bare = (!domainIds || !domainIds.length) && (!subs || !subs.length);
+      /* Demo / incomplete accounts: industry match is enough when taxonomy is missing. */
+      if (bare) return true;
       if (subId) {
         if (hasId(subs, subId)) return true;
-        /* Parent equipment/product category match covers all sub-processes (platform uses different sub ids). */
         if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) return true;
         return false;
       }
       if (!catId) return true;
       if (hasId(domainIds, catId) || hasId(subs, catId)) return true;
-      /* Registered sellers with no categories for this domain stay out of specific lists */
-      if ((!domainIds || !domainIds.length) && (!subs || !subs.length)) return false;
       return false;
-    });
+    }
+    let pool = all.filter(x => roleAndIndustryOk(x) && categoryOk(x));
+    /* If nothing matched the subcategory taxonomy, still show industry peers so phone/web lists match. */
+    if (pool.length === 0 && (catId || subId)) {
+      pool = all.filter(roleAndIndustryOk);
+    }
     let sups = pool;
     /* Prefer real category matches; only hash-sample when the pool is huge */
     if (sub && pool.length > 18) {
@@ -4131,6 +4190,9 @@ transitFor(sup) {
       { n: gaps.filter(g => g.sevLabel === "Medium").length, label: "Medium", tone: AMBER },
       { n: gaps.filter(g => g.sevLabel === "Low").length, label: "Low", tone: "var(--steel-500)" }
     ];
+
+    this._lastSupplierRows = rows;
+    try { setTimeout(() => this.syncSupplierCards(), 0); } catch (e) {}
 
     return {
       nav, crumbs,

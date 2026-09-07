@@ -244,13 +244,6 @@ function buildEmbedShellCss(theme = 'light') {
   html, body { max-width: 100%; overflow-x: clip; }
   @media (max-width: 640px) {
     main > header { padding: 8px 12px !important; }
-    [data-stx-supplier-table] {
-      display: block !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch;
-      max-width: 100%;
-    }
-    [data-stx-supplier-cards] { display: none !important; }
   }
   @media (min-width: 641px) {
     [data-stx-supplier-cards] { display: none !important; }

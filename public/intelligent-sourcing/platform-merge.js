@@ -47,8 +47,9 @@
         'button[aria-label="Menu"] { display: none !important; }',
         'main > header { box-sizing: border-box !important; min-height: 56px !important; height: auto !important; max-height: none !important; padding: 10px 16px !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px 12px !important; }',
         '@media (min-width: 901px) { main > header { height: 77px !important; min-height: 77px !important; max-height: 77px !important; padding: 0 24px !important; flex-wrap: nowrap !important; } }',
-        '@media (max-width: 640px) { main > header { padding: 8px 12px !important; } [data-stx-supplier-table] { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; max-width: 100%; } [data-stx-supplier-cards] { display: none !important; } }',
+        '@media (max-width: 640px) { main > header { padding: 8px 12px !important; } }',
         '@media (min-width: 641px) { [data-stx-supplier-cards] { display: none !important; } }',
+        '[data-stx-supplier-cards][data-stx-filled="1"] { display: flex !important; flex-direction: column; gap: 10px; }',
         '.stx-summary-head, .stx-listed-head, .stx-empty-state { min-width: 0; }',
         '@media (max-width: 640px) { .stx-summary-head, .stx-listed-head, .stx-empty-state { flex-direction: column !important; align-items: stretch !important; } .stx-empty-state > [style*="width:320px"] { width: 100% !important; } .stx-summary-head > [style*="margin-left:auto"] { margin-left: 0 !important; flex-wrap: wrap !important; } }',
         '@media (max-width: 900px) {',
@@ -84,11 +85,11 @@
     try {
       if (!plat) return;
       window.__STREFEX_PLATFORM_SOURCING__ = plat;
-      /* Drop design-canvas demo suppliers/buyers as soon as the shell posts real accounts. */
-      if (window.SOURCING_DATA && Array.isArray(plat.suppliers)) {
+      /* Prefer registry accounts; never wipe the seed with an empty post. */
+      if (window.SOURCING_DATA && Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
         window.SOURCING_DATA.SUPPLIERS = plat.suppliers.slice();
       }
-      if (window.SOURCING_DATA && Array.isArray(plat.buyers)) {
+      if (window.SOURCING_DATA && Array.isArray(plat.buyers) && plat.buyers.length > 0) {
         window.SOURCING_DATA.BUYERS = plat.buyers.slice();
       }
       if (window.__STREFEX_SOURCING_BRIDGE__ && typeof window.__STREFEX_SOURCING_BRIDGE__.applyPlatform === 'function') {
