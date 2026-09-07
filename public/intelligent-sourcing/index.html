@@ -3589,11 +3589,8 @@ transitFor(sup) {
         : (x.productCategoryIds || x.categoryIds || []);
       const subs = x.subcategoryIds || [];
       if ((!domainIds || !domainIds.length) && (!subs || !subs.length)) return false;
-      if (subId) {
-        if (hasId(subs, subId)) return true;
-        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) return true;
-        return false;
-      }
+      /* Subcategory views require an explicit mapped sub checkmark — parent alone is not enough. */
+      if (subId) return hasId(subs, subId);
       if (!catId) return true;
       return hasId(domainIds, catId) || hasId(subs, catId);
     }

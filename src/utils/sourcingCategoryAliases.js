@@ -1,172 +1,165 @@
 /**
- * Bridge platform registration / registry category ids ↔ Intelligent Sourcing canvas ids.
- * A registered parent category expands to every related IS category + subcategory so the
- * account appears in each matching product / equipment / service search.
+ * Bridge platform Profile checkmarks ↔ Intelligent Sourcing canvas ids.
+ *
+ * Rule: only map what the supplier selected. Parent checkmarks unlock the
+ * matching parent card(s). Subcategory checkmarks unlock only the mapped
+ * subcategory cards — never invent siblings the user did not tick.
  */
 
-/** Platform equipment category → Intelligent Sourcing equipment category ids (all industries). */
+/** Platform equipment category → primary Intelligent Sourcing equipment category id(s). */
 export const EQUIPMENT_PLATFORM_TO_SOURCING = {
-  /* shared / automotive / machinery */
-  'injection-machines': ['imm', 'micro', 'cleanroom'],
-  'injection-appliance': ['imm', 'packline'],
+  'injection-machines': ['imm'],
+  'injection-appliance': ['imm'],
   'mold-makers': ['tooling'],
   tooling: ['tooling'],
-  'general-equipment': ['machtool', 'handling'],
-  'other-equipment': ['machtool', 'handling'],
-  robots: ['robot', 'handling', 'weldcell'],
+  'general-equipment': ['machtool'],
+  'other-equipment': ['machtool'],
+  robots: ['robot'],
   presses: ['press'],
-  automation: ['robot', 'assembly', 'handling', 'weldcell', 'assyhouse'],
-  'automation-general': ['robot', 'assembly', 'handling'],
-  testing: ['metrology', 'testrig', 'testers'],
-  'testing-general': ['metrology', 'testrig', 'testers'],
-  'testing-inspection': ['metrology', 'hpTest', 'ndtog', 'testrig'],
-  'testing-consumer': ['testers', 'assyhouse'],
-  cnc: ['cnc', 'machtool', 'mill5'],
-  lathes: ['cnc', 'machtool'],
-  mills: ['cnc', 'machtool', 'mill5'],
-  grinders: ['cnc', 'machtool'],
-  'hot-runner': ['tooling', 'imm'],
-  coolers: ['tooling', 'imm'],
-  dryer: ['tooling', 'imm', 'silo'],
-  conveyors: ['assembly', 'handling', 'packline'],
-  /* medical */
-  molding: ['imm', 'cleanroom', 'micro'],
+  automation: ['robot'],
+  'automation-general': ['robot'],
+  testing: ['metrology'],
+  'testing-general': ['metrology'],
+  'testing-inspection': ['metrology'],
+  'testing-consumer': ['testers'],
+  cnc: ['cnc'],
+  lathes: ['cnc'],
+  mills: ['cnc'],
+  grinders: ['cnc'],
+  'hot-runner': ['imm'],
+  coolers: ['imm'],
+  dryer: ['imm'],
+  conveyors: ['handling'],
+  molding: ['imm'],
   sterilisation: ['sterile'],
   sterilization: ['sterile'],
-  packaging: ['packaging', 'packline'],
-  'packaging-lines': ['packline', 'packaging'],
-  inspection: ['metrology', 'testers'],
-  'clean-room': ['cleanroom', 'cleanassy'],
-  /* electronics */
-  pcb: ['smtline', 'depanel', 'cleanassy'],
+  packaging: ['packaging'],
+  'packaging-lines': ['packline'],
+  inspection: ['metrology'],
+  'clean-room': ['cleanroom'],
+  pcb: ['smtline'],
   smt: ['smtline'],
   test: ['testers'],
-  soldering: ['smtline', 'cleanassy'],
-  encapsulation: ['cleanassy', 'packaging'],
-  'electronics-consumer': ['smtline', 'testers', 'assyhouse'],
-  /* aerospace-style */
-  mill5: ['mill5', 'cnc'],
-  ndt: ['ndt', 'ndtog', 'metrology'],
+  soldering: ['smtline'],
+  encapsulation: ['cleanassy'],
+  'electronics-consumer': ['smtline'],
+  mill5: ['mill5'],
+  ndt: ['ndt'],
   autoclave: ['autoclave'],
   am: ['am'],
-  /* raw materials equipment */
-  plastic: ['silo', 'cutservice'],
+  plastic: ['silo'],
   metal: ['cutservice'],
-  chemical: ['silo', 'labmat'],
+  chemical: ['labmat'],
   rubber: ['silo'],
-  composites: ['cutservice', 'autoclave'],
+  composites: ['cutservice'],
   ceramics: ['labmat'],
   adhesives: ['labmat'],
-  coatings: ['paintline', 'labmat'],
-  'other-materials': ['cutservice', 'labmat'],
+  coatings: ['paintline'],
+  'other-materials': ['cutservice'],
   cutservice: ['cutservice'],
   silo: ['silo'],
   labmat: ['labmat'],
-  /* oil & gas */
-  drilling: ['weldauto', 'hpTest'],
-  pumps: ['weldauto', 'hpTest'],
-  valves: ['weldauto', 'hpTest'],
+  drilling: ['weldauto'],
+  pumps: ['weldauto'],
+  valves: ['weldauto'],
   pipelines: ['weldauto'],
   separators: ['hpTest'],
-  wellhead: ['weldauto', 'hpTest'],
-  refining: ['weldauto', 'hpTest'],
-  instrumentation: ['hpTest', 'ndtog'],
+  wellhead: ['weldauto'],
+  refining: ['weldauto'],
+  instrumentation: ['hpTest'],
   'safety-systems': ['hpTest'],
-  subsea: ['weldauto', 'ndtog'],
-  'storage-tanks': ['weldauto', 'hpTest'],
-  weldauto: ['weldauto', 'weldcell'],
+  subsea: ['weldauto'],
+  'storage-tanks': ['weldauto'],
+  weldauto: ['weldauto'],
   hpTest: ['hpTest'],
-  ndtog: ['ndtog', 'ndt'],
-  /* green energy */
-  'solar-panels': ['laminate', 'formation'],
-  'wind-turbines': ['laminate', 'packassy'],
-  inverters: ['formation', 'packassy'],
-  'battery-storage': ['packassy', 'formation'],
-  'ev-charging': ['packassy', 'formation'],
-  hydrogen: ['formation', 'packassy'],
+  ndtog: ['ndtog'],
+  'solar-panels': ['laminate'],
+  'wind-turbines': ['laminate'],
+  inverters: ['formation'],
+  'battery-storage': ['packassy'],
+  'ev-charging': ['packassy'],
+  hydrogen: ['formation'],
   biomass: ['formation'],
   'heat-pumps': ['packassy'],
   'grid-equipment': ['formation'],
-  monitoring: ['formation', 'testers'],
+  monitoring: ['formation'],
   'cables-connectors': ['packassy'],
   'mounting-structures': ['laminate'],
   laminate: ['laminate'],
   packassy: ['packassy'],
   formation: ['formation'],
-  /* household */
-  'appliance-assembly': ['assyhouse', 'packline'],
-  'stamping-consumer': ['press', 'assyhouse'],
+  'appliance-assembly': ['assyhouse'],
+  'stamping-consumer': ['press'],
   'motor-drives-small': ['assyhouse'],
-  'coating-finishing-consumer': ['paintline', 'printdeco'],
+  'coating-finishing-consumer': ['paintline'],
   packline: ['packline'],
   assyhouse: ['assyhouse'],
   printdeco: ['printdeco'],
-  /* nuclear */
-  'reactor-pressure': ['remotehand', 'decontam'],
+  'reactor-pressure': ['remotehand'],
   'fuel-storage': ['remotehand'],
   'radiation-monitoring': ['decontam'],
-  'nuclear-welding-nde': ['remotehand', 'decontam'],
+  'nuclear-welding-nde': ['remotehand'],
   'nuclear-fabrication-assembly': ['remotehand'],
-  'pipe-spool-fabrication': ['remotehand', 'weldauto'],
-  'pressure-leak-test': ['decontam', 'hpTest'],
-  'nde-test-equipment': ['decontam', 'ndt'],
-  'electrical-ica-test': ['decontam', 'testers'],
-  'materials-lab-testers': ['labmat', 'decontam'],
+  'pipe-spool-fabrication': ['remotehand'],
+  'pressure-leak-test': ['decontam'],
+  'nde-test-equipment': ['decontam'],
+  'electrical-ica-test': ['decontam'],
+  'materials-lab-testers': ['labmat'],
   remotehand: ['remotehand'],
   decontam: ['decontam'],
-  /* machinery IS-native */
-  machtool: ['machtool', 'cnc'],
-  weldcell: ['weldcell', 'weldauto'],
+  machtool: ['machtool'],
+  weldcell: ['weldcell'],
   paintline: ['paintline'],
-  testrig: ['testrig', 'metrology'],
-  handling: ['handling', 'assembly', 'robot'],
-  /* electronics IS-native */
+  testrig: ['testrig'],
+  handling: ['handling'],
   smtline: ['smtline'],
   testers: ['testers'],
-  cleanassy: ['cleanassy', 'cleanroom'],
+  cleanassy: ['cleanassy'],
   depanel: ['depanel'],
-  /* medical IS-native */
   cleanroom: ['cleanroom'],
   sterile: ['sterile'],
-  micro: ['micro', 'imm'],
+  micro: ['micro'],
+  imm: ['imm'],
+  robot: ['robot'],
+  press: ['press'],
+  metrology: ['metrology'],
 }
 
-/** Platform product parent → IS product parent ids (all industries). */
+/** Platform product parent → primary IS product parent id(s). */
 export const PRODUCT_PLATFORM_TO_SOURCING = {
-  plastic: ['plastic', 'moulded', 'extruded', 'smallappl', 'packagingcons', 'kitchenware'],
-  metal: ['metal', 'structural', 'weldments', 'sheet', 'gears', 'fasteners', 'castings', 'valves', 'pipefit', 'pressvessel'],
+  plastic: ['plastic'],
+  metal: ['metal'],
   rubber: ['rubber'],
   glass: ['glass'],
-  composites: ['composite', 'aerocomp'],
-  composite: ['composite', 'aerocomp'],
-  'electronics-assembly': ['electronics', 'pcba', 'cableharness', 'sensors', 'powerelec', 'electmed', 'harness'],
-  electronics: ['electronics', 'pcba', 'cableharness', 'sensors', 'powerelec'],
-  textile: ['textile', 'textilehome'],
+  composites: ['composite'],
+  composite: ['composite'],
+  'electronics-assembly': ['electronics'],
+  electronics: ['electronics'],
+  textile: ['textile'],
   ceramics: ['ceramics'],
-  'plastic-resins': ['resins', 'plastic'],
-  'metals-alloys': ['steelmat', 'almat', 'metal'],
+  'plastic-resins': ['resins'],
+  'metals-alloys': ['steelmat'],
   'rubber-elastomers': ['rubber'],
   chemicals: ['chemicals'],
-  'composites-fibers': ['composite', 'aerocomp'],
+  'composites-fibers': ['composite'],
   adhesives: ['chemicals'],
   coatings: ['chemicals'],
-  'kitchen-appliances': ['smallappl', 'kitchenware'],
-  'home-electronics': ['smallappl', 'displaymod', 'pcba'],
-  'plastic-housewares': ['kitchenware', 'packagingcons', 'plastic'],
-  'cleaning-care-products': ['packagingcons', 'chemicals'],
-  'furniture-home-components': ['sheet', 'weldments', 'textilehome'],
-  'ssc-supply': ['nqasafety', 'shielding', 'instrumentation'],
-  'nuclear-oem-manufacturing': ['nqasafety', 'shielding', 'instrumentation'],
-  'pipes-piping-systems': ['pipefit', 'pressvessel', 'valves'],
-  'materials-mill-products': ['steelmat', 'almat', 'shielding'],
-  'spare-parts-consumables': ['instrumentation', 'nqasafety'],
-  /* IS-native product ids (passthrough) */
+  'kitchen-appliances': ['smallappl'],
+  'home-electronics': ['smallappl'],
+  'plastic-housewares': ['kitchenware'],
+  'cleaning-care-products': ['packagingcons'],
+  'furniture-home-components': ['sheet'],
+  'ssc-supply': ['nqasafety'],
+  'nuclear-oem-manufacturing': ['nqasafety'],
+  'pipes-piping-systems': ['pipefit'],
+  'materials-mill-products': ['steelmat'],
+  'spare-parts-consumables': ['instrumentation'],
   structural: ['structural'],
   aerocomp: ['aerocomp'],
   fasteners: ['fasteners'],
-  harness: ['harness', 'cableharness'],
+  harness: ['harness'],
   castings: ['castings'],
-  moulded: ['moulded', 'plastic'],
+  moulded: ['moulded'],
   extruded: ['extruded'],
   implant: ['implant'],
   singleuse: ['singleuse'],
@@ -203,6 +196,7 @@ export const PRODUCT_PLATFORM_TO_SOURCING = {
 
 /**
  * Registration / Service ES expertise buckets → Intelligent Sourcing service category ids.
+ * Expertise buckets remain multi-map (one checkbox covers a service family).
  */
 export const SERVICE_PLATFORM_TO_SOURCING = {
   'project-management': [
@@ -227,9 +221,68 @@ export const SERVICE_PLATFORM_TO_SOURCING = {
 }
 
 /**
- * Parent category → all Intelligent Sourcing subcategory ids under that parent.
- * Selecting a parent (or any of its platform aliases) makes the account visible on every sub search.
+ * Profile subcategory checkmark → Intelligent Sourcing subcategory id(s).
+ * Only these explicit mappings unlock sub-cards — never invent from the parent alone.
  */
+export const PLATFORM_SUBCATEGORY_TO_SOURCING = {
+  /* tooling / mold-makers */
+  'auto-mold-standard': ['tool-mould'],
+  'auto-mold-multi': ['tool-mould'],
+  'auto-mold-tooling': ['tool-mould'],
+  'auto-die-making': ['tool-die'],
+  'auto-checking-fixtures': ['tool-gauge', 'tool-fixture'],
+  'mach-mold-cavity': ['tool-mould'],
+  'mach-die-making': ['tool-die'],
+  'mach-checking-fixtures': ['tool-gauge', 'tool-fixture'],
+  'mach-mold-hotrunner': ['imm-hotrunner'],
+  /* injection machines */
+  'auto-inj-hydraulic': ['imm-hyd'],
+  'auto-inj-electric': ['imm-elec'],
+  'auto-inj-hybrid': ['imm-elec', 'imm-hyd'],
+  'mach-inj-hydraulic': ['imm-hyd'],
+  'mach-inj-electric': ['imm-elec'],
+  /* hot runner / auxiliaries */
+  'auto-hot-manifold': ['imm-hotrunner'],
+  'auto-hot-nozzles': ['imm-hotrunner'],
+  'auto-hot-controller': ['imm-hotrunner'],
+  'auto-chiller': ['imm-hotrunner'],
+  'auto-cooling-tower': ['imm-hotrunner'],
+  'auto-temp-unit': ['imm-hotrunner'],
+  'auto-dryer-hopper': ['imm-hotrunner'],
+  'auto-dryer-desiccant': ['imm-hotrunner'],
+  'mach-chiller': ['imm-hotrunner'],
+  'mach-tcu': ['imm-hotrunner'],
+  /* CNC */
+  'mach-cnc-vertical': ['cnc-vmc'],
+  'mach-cnc-horizontal': ['cnc-hmc'],
+  'mach-cnc-turning': ['cnc-turn'],
+  /* product — plastic process → matching IS plastic part families */
+  'plastic-injection': ['pl-exterior', 'pl-interior', 'pl-underhood', 'pl-lighting'],
+  'blow-molding': ['pl-underhood'],
+  'blow-molded-bottles': ['pl-underhood'],
+  thermoforming: ['pl-exterior', 'pl-interior'],
+  compression: ['pl-exterior'],
+  /* IS-native passthroughs */
+  'tool-mould': ['tool-mould'],
+  'tool-die': ['tool-die'],
+  'tool-fixture': ['tool-fixture'],
+  'tool-gauge': ['tool-gauge'],
+  'imm-hyd': ['imm-hyd'],
+  'imm-elec': ['imm-elec'],
+  'imm-large': ['imm-large'],
+  'imm-multi': ['imm-multi'],
+  'imm-hotrunner': ['imm-hotrunner'],
+  'cnc-5ax': ['cnc-5ax'],
+  'cnc-hmc': ['cnc-hmc'],
+  'cnc-vmc': ['cnc-vmc'],
+  'cnc-turn': ['cnc-turn'],
+  'pl-exterior': ['pl-exterior'],
+  'pl-interior': ['pl-interior'],
+  'pl-underhood': ['pl-underhood'],
+  'pl-lighting': ['pl-lighting'],
+}
+
+/** @deprecated retained for callers; parents no longer invent subcategory lists */
 export const SOURCING_PARENT_TO_SUBCATS = {
   tooling: ['tool-mould', 'tool-die', 'tool-fixture', 'tool-gauge'],
   'mold-makers': ['tool-mould', 'tool-die', 'tool-fixture', 'tool-gauge'],
@@ -242,7 +295,6 @@ export const SOURCING_PARENT_TO_SUBCATS = {
 /** @deprecated use SOURCING_PARENT_TO_SUBCATS */
 export const EQUIPMENT_PARENT_DEFAULT_SUBCATS = SOURCING_PARENT_TO_SUBCATS
 
-/** Intelligent Sourcing industry id → display name used in the canvas INDUSTRIES list */
 export const SOURCING_INDUSTRY_LABELS = {
   automotive: 'Automotive',
   aerospace: 'Aerospace & Defence',
@@ -269,21 +321,22 @@ function expandIds(ids, aliasMap) {
 }
 
 /**
- * Expand registered parents into every IS subcategory they own so each sub-search finds them.
+ * Map Profile subcategory checkmarks to IS subcategory ids.
+ * Does not invent siblings from the parent — only expands what was checked.
  */
-export function expandParentDefaultSubcategoryIds(parentIds = [], existingSubs = []) {
-  const out = new Set((Array.isArray(existingSubs) ? existingSubs : []).map(String).filter(Boolean))
-  ;(Array.isArray(parentIds) ? parentIds : []).forEach((raw) => {
-    const id = String(raw || '').trim()
-    if (!id) return
-    out.add(id)
-    const defaults = SOURCING_PARENT_TO_SUBCATS[id]
-    if (Array.isArray(defaults)) defaults.forEach((s) => out.add(String(s)))
-  })
-  return [...out]
+export function expandSubcategoryIds(subIds = []) {
+  return expandIds(subIds, PLATFORM_SUBCATEGORY_TO_SOURCING)
 }
 
-/** @deprecated use expandParentDefaultSubcategoryIds */
+/**
+ * @deprecated Prefer expandSubcategoryIds(existingSubs).
+ * Parents no longer auto-expand into every child subcategory.
+ */
+export function expandParentDefaultSubcategoryIds(_parentIds = [], existingSubs = []) {
+  return expandSubcategoryIds(existingSubs)
+}
+
+/** @deprecated use expandParentDefaultSubcategoryIds / expandSubcategoryIds */
 export function expandEquipmentSubcategoryIds(parentIds = [], existingSubs = []) {
   return expandParentDefaultSubcategoryIds(parentIds, existingSubs)
 }
@@ -323,9 +376,9 @@ export function collectAccountTypes(account) {
 }
 
 /**
- * Does supplier row match an Intelligent Sourcing category selection?
- * Parent membership ⇒ visible on every subcategory under that parent.
- * Multiple registered categories ⇒ visible on each of those searches.
+ * Match Intelligent Sourcing category / subcategory to registered account ids.
+ * Category (no sub): parent membership is enough.
+ * Subcategory: requires an explicit mapped subcategory id (checkmarks only).
  */
 export function sourcingSupplierMatchesDomainCategory(supplier, domain, categoryId, subcatId = null) {
   if (!supplier) return false
@@ -355,12 +408,7 @@ export function sourcingSupplierMatchesDomainCategory(supplier, domain, category
   const subs = (supplier.subcategoryIds || []).map(String)
 
   if (subcatId) {
-    if (subs.includes(String(subcatId))) return true
-    if (categoryId && (ids.includes(String(categoryId)) || subs.includes(String(categoryId)))) {
-      return true
-    }
-    /* Explicit sub without parent id still matches when parent defaults were expanded */
-    return false
+    return subs.includes(String(subcatId))
   }
 
   if (!categoryId) return true

@@ -6,6 +6,7 @@ import {
 import {
   expandEquipmentCategoryIds,
   expandProductCategoryIds,
+  expandSubcategoryIds,
   sourcingSupplierMatchesDomainCategory,
 } from '../utils/sourcingCategoryAliases'
 
@@ -49,14 +50,14 @@ describe('companyTaxonomyPayload', () => {
 })
 
 describe('domain category matching', () => {
-  it('keeps product sellers out of equipment-only category matches when ids differ by domain maps', () => {
+  it('matches product subcategories only when explicitly mapped', () => {
     const seller = {
       accountTypes: ['seller'],
       productCategoryIds: ['plastic'],
       equipmentCategoryIds: ['imm'],
       serviceCategoryIds: [],
       categoryIds: ['plastic', 'imm'],
-      subcategoryIds: ['plastic', 'plastic-injection'],
+      subcategoryIds: ['plastic-injection', 'pl-exterior', 'pl-interior', 'pl-underhood', 'pl-lighting'],
     }
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'plastic-injection')).toBe(true)
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-exterior')).toBe(true)
@@ -78,7 +79,7 @@ describe('domain category matching', () => {
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic')).toBe(false)
   })
 
-  it('shows multi-category sellers on every selected search', () => {
+  it('does not treat parent membership as every subcategory', () => {
     const seller = {
       accountTypes: ['seller'],
       equipmentCategoryIds: ['imm', 'cnc', 'robot'],
@@ -87,10 +88,13 @@ describe('domain category matching', () => {
       categoryIds: ['imm', 'cnc', 'robot', 'plastic', 'metal'],
       subcategoryIds: ['imm-hyd', 'cnc-5ax', 'pl-exterior'],
     }
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm', 'imm-elec')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'cnc', 'cnc-vmc')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm', 'imm-hyd')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm', 'imm-elec')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'cnc', 'cnc-5ax')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'cnc', 'cnc-vmc')).toBe(false)
     expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'robot')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-interior')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-exterior')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-interior')).toBe(false)
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'metal')).toBe(true)
     expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'tooling')).toBe(false)
   })
@@ -103,10 +107,12 @@ describe('domain category matching', () => {
       subcategoryIds: [],
     }
     medical.categoryIds = [...medical.equipmentCategoryIds, ...medical.productCategoryIds]
-    expect(medical.equipmentCategoryIds).toEqual(expect.arrayContaining(['cleanroom', 'sterile', 'imm']))
+    expect(medical.equipmentCategoryIds).toEqual(expect.arrayContaining(['sterile', 'imm']))
+    expect(medical.productCategoryIds).toContain('plastic')
     expect(sourcingSupplierMatchesDomainCategory(medical, 'equipment', 'sterile')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'equipment', 'cleanroom')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'product', 'moulded')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(medical, 'equipment', 'imm')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(medical, 'product', 'plastic')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(medical, 'product', 'moulded')).toBe(false)
 
     const electronics = {
       accountTypes: ['seller'],
@@ -116,6 +122,12 @@ describe('domain category matching', () => {
     }
     electronics.categoryIds = [...electronics.equipmentCategoryIds, ...electronics.productCategoryIds]
     expect(sourcingSupplierMatchesDomainCategory(electronics, 'equipment', 'smtline')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(electronics, 'product', 'pcba')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(electronics, 'product', 'electronics')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(electronics, 'product', 'pcba')).toBe(false)
+  })
+
+  it('maps profile plastic-injection checkmark onto sourcing plastic subcards', () => {
+    const ids = expandSubcategoryIds(['plastic-injection'])
+    expect(ids).toEqual(expect.arrayContaining(['plastic-injection', 'pl-exterior', 'pl-interior']))
   })
 })

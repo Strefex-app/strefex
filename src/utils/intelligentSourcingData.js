@@ -9,9 +9,9 @@ import {
   SOURCING_INDUSTRY_LABELS,
   collectAccountTypes,
   expandEquipmentCategoryIds,
-  expandParentDefaultSubcategoryIds,
   expandProductCategoryIds,
   expandServiceCategoryIds,
+  expandSubcategoryIds,
 } from './sourcingCategoryAliases'
 
 /** Design-canvas industry id → platform slug */
@@ -147,8 +147,7 @@ function flattenSubcategoryIds(nested) {
   const out = []
   Object.values(nested).forEach((byParent) => {
     if (!byParent || typeof byParent !== 'object') return
-    Object.entries(byParent).forEach(([parentId, list]) => {
-      if (parentId) out.push(String(parentId))
+    Object.values(byParent).forEach((list) => {
       if (!Array.isArray(list)) return
       list.forEach((id) => {
         if (id && id !== '*') out.push(String(id))
@@ -198,10 +197,8 @@ export function accountToSourcingSupplier(account) {
     ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories),
     ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories),
   ]
-  const subcategoryIds = expandParentDefaultSubcategoryIds(
-    [...equipmentCategoryIds, ...productCategoryIds],
-    rawSubIds,
-  )
+  /* Only checked Profile subcategories — never invent siblings from the parent. */
+  const subcategoryIds = expandSubcategoryIds(rawSubIds)
   const storedStage = optionalNumber(account, 'stage', 'sourcingStage')
   const stage = storedStage != null ? storedStage : (incomplete ? 4 : 6)
   const published = account.published === true

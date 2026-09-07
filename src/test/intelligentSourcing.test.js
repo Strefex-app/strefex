@@ -31,6 +31,7 @@ describe('intelligentSourcingData', () => {
       industries: ['automotive'],
       accountType: 'seller',
       categories: { automotive: ['mold-makers'] },
+      equipmentSubcategories: { automotive: { 'mold-makers': ['auto-mold-standard'] } },
     })
     expect(row.name).toBe('Test Forge')
     expect(row.cc).toBe('DE')
@@ -43,7 +44,40 @@ describe('intelligentSourcingData', () => {
     expect(row.categoryIds).toContain('mold-makers')
     expect(row.equipmentCategoryIds).toContain('tooling')
     expect(row.subcategoryIds).toContain('tool-mould')
+    expect(row.subcategoryIds).not.toContain('tool-die')
     expect(row.accountTypes).toContain('seller')
+  })
+
+  it('maps only checked equipment subcategories onto sourcing cards', () => {
+    const row = accountToSourcingSupplier({
+      id: 'die-only',
+      company: 'Die Co',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+      accountType: 'seller',
+      categories: { automotive: ['mold-makers'] },
+      equipmentSubcategories: { automotive: { 'mold-makers': ['auto-die-making'] } },
+    })
+    expect(row.equipmentCategoryIds).toContain('tooling')
+    expect(row.subcategoryIds).toEqual(expect.arrayContaining(['tool-die', 'auto-die-making']))
+    expect(row.subcategoryIds).not.toContain('tool-mould')
+  })
+
+  it('does not invent subcategories from parent-only checkmarks', () => {
+    const row = accountToSourcingSupplier({
+      id: 'parent-only',
+      company: 'Parent Only Co',
+      country: 'Germany',
+      city: 'Berlin',
+      industries: ['automotive'],
+      accountType: 'seller',
+      categories: { automotive: ['mold-makers'] },
+      productCategories: { automotive: ['plastic'] },
+    })
+    expect(row.equipmentCategoryIds).toContain('tooling')
+    expect(row.productCategoryIds).toContain('plastic')
+    expect(row.subcategoryIds).toEqual([])
   })
 
   it('publishes with country alone when industry is set', () => {
