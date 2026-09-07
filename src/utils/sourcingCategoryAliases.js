@@ -1,9 +1,12 @@
 /**
- * Bridge platform Profile checkmarks ↔ Intelligent Sourcing canvas ids.
+ * Profile ↔ Intelligent Sourcing category ids.
  *
- * Rule: only map what the supplier selected. Parent checkmarks unlock the
- * matching parent card(s). Subcategory checkmarks unlock only the mapped
- * subcategory cards — never invent siblings the user did not tick.
+ * Matching is 1:1: suppliers keep the same category/subcategory ids they
+ * checked in Profile. Canvas taxonomy is overlaid from Profile trees
+ * (see unifiedSourcingTaxonomy.js) so browse cards use those ids.
+ *
+ * Alias maps below are retained for documentation / legacy data only —
+ * expand* helpers are identity (no fan-out).
  */
 
 /** Platform equipment category → primary Intelligent Sourcing equipment category id(s). */
@@ -195,92 +198,23 @@ export const PRODUCT_PLATFORM_TO_SOURCING = {
 }
 
 /**
- * Registration / Service ES expertise buckets → Intelligent Sourcing service category ids.
- * Expertise buckets remain multi-map (one checkbox covers a service family).
+ * @deprecated Service expertise is 1:1 with Profile buckets (project-management,
+ * supplier-services, quality-services). Maps kept for reference only.
  */
 export const SERVICE_PLATFORM_TO_SOURCING = {
-  'project-management': [
-    'apqp', 'engineering', 'industrialisation', 'mechdesign', 'install', 'retrofit',
-    'as9100', 'airworthy', 'epc', 'dfmelec', 'packdesign',
-  ],
-  'supplier-services': [
-    'logistics', 'industrialisation', 'install', 'obsolescence', 'rework', 'hedging',
-    'packdesign',
-  ],
-  'quality-services': [
-    'audit', 'testing', 'as9100', 'ndtserv', 'val', 'qms13485', 'ce', 'bio', 'mdr',
-    'itar', 'emc', 'reachsvc', 'mattest', 'apiqual', 'weldeng', 'iecqual', 'gridcode',
-    'nqasvc', 'qualtest', 'consumercert', 'qcinsp', 'inspection', 'wastesvc',
-  ],
-  'supplier-audit': ['audit', 'as9100', 'qms13485', 'val', 'qcinsp'],
-  'supplier-selection': ['apqp', 'engineering', 'audit'],
-  'rfq-management': ['apqp', 'logistics'],
-  'production-followup': ['industrialisation', 'install', 'qcinsp', 'inspection'],
-  'equipment-acceptance': ['install', 'testing', 'val'],
-  'shipment-acceptance': ['logistics', 'qcinsp', 'inspection'],
+  'project-management': ['project-management'],
+  'supplier-services': ['supplier-services'],
+  'quality-services': ['quality-services'],
+  'supplier-audit': ['quality-services'],
+  'supplier-selection': ['project-management'],
+  'rfq-management': ['project-management'],
+  'production-followup': ['supplier-services'],
+  'equipment-acceptance': ['supplier-services'],
+  'shipment-acceptance': ['supplier-services'],
 }
 
-/**
- * Profile subcategory checkmark → Intelligent Sourcing subcategory id(s).
- * Only these explicit mappings unlock sub-cards — never invent from the parent alone.
- */
-export const PLATFORM_SUBCATEGORY_TO_SOURCING = {
-  /* tooling / mold-makers */
-  'auto-mold-standard': ['tool-mould'],
-  'auto-mold-multi': ['tool-mould'],
-  'auto-mold-tooling': ['tool-mould'],
-  'auto-die-making': ['tool-die'],
-  'auto-checking-fixtures': ['tool-gauge', 'tool-fixture'],
-  'mach-mold-cavity': ['tool-mould'],
-  'mach-die-making': ['tool-die'],
-  'mach-checking-fixtures': ['tool-gauge', 'tool-fixture'],
-  'mach-mold-hotrunner': ['imm-hotrunner'],
-  /* injection machines */
-  'auto-inj-hydraulic': ['imm-hyd'],
-  'auto-inj-electric': ['imm-elec'],
-  'auto-inj-hybrid': ['imm-elec', 'imm-hyd'],
-  'mach-inj-hydraulic': ['imm-hyd'],
-  'mach-inj-electric': ['imm-elec'],
-  /* hot runner / auxiliaries */
-  'auto-hot-manifold': ['imm-hotrunner'],
-  'auto-hot-nozzles': ['imm-hotrunner'],
-  'auto-hot-controller': ['imm-hotrunner'],
-  'auto-chiller': ['imm-hotrunner'],
-  'auto-cooling-tower': ['imm-hotrunner'],
-  'auto-temp-unit': ['imm-hotrunner'],
-  'auto-dryer-hopper': ['imm-hotrunner'],
-  'auto-dryer-desiccant': ['imm-hotrunner'],
-  'mach-chiller': ['imm-hotrunner'],
-  'mach-tcu': ['imm-hotrunner'],
-  /* CNC */
-  'mach-cnc-vertical': ['cnc-vmc'],
-  'mach-cnc-horizontal': ['cnc-hmc'],
-  'mach-cnc-turning': ['cnc-turn'],
-  /* product — plastic process → matching IS plastic part families */
-  'plastic-injection': ['pl-exterior', 'pl-interior', 'pl-underhood', 'pl-lighting'],
-  'blow-molding': ['pl-underhood'],
-  'blow-molded-bottles': ['pl-underhood'],
-  thermoforming: ['pl-exterior', 'pl-interior'],
-  compression: ['pl-exterior'],
-  /* IS-native passthroughs */
-  'tool-mould': ['tool-mould'],
-  'tool-die': ['tool-die'],
-  'tool-fixture': ['tool-fixture'],
-  'tool-gauge': ['tool-gauge'],
-  'imm-hyd': ['imm-hyd'],
-  'imm-elec': ['imm-elec'],
-  'imm-large': ['imm-large'],
-  'imm-multi': ['imm-multi'],
-  'imm-hotrunner': ['imm-hotrunner'],
-  'cnc-5ax': ['cnc-5ax'],
-  'cnc-hmc': ['cnc-hmc'],
-  'cnc-vmc': ['cnc-vmc'],
-  'cnc-turn': ['cnc-turn'],
-  'pl-exterior': ['pl-exterior'],
-  'pl-interior': ['pl-interior'],
-  'pl-underhood': ['pl-underhood'],
-  'pl-lighting': ['pl-lighting'],
-}
+/** @deprecated Subcategory expand is identity; kept empty for callers that still import it. */
+export const PLATFORM_SUBCATEGORY_TO_SOURCING = {}
 
 /** @deprecated retained for callers; parents no longer invent subcategory lists */
 export const SOURCING_PARENT_TO_SUBCATS = {
@@ -308,24 +242,20 @@ export const SOURCING_INDUSTRY_LABELS = {
   household: 'Household Products',
 }
 
-function expandIds(ids, aliasMap) {
-  const out = new Set()
-  ;(Array.isArray(ids) ? ids : []).forEach((raw) => {
-    const id = String(raw || '').trim()
-    if (!id) return
-    out.add(id)
-    const aliases = aliasMap[id]
-    if (Array.isArray(aliases)) aliases.forEach((a) => out.add(String(a)))
-  })
-  return [...out]
+/** Keep Profile ids as-is (1:1 with sourcing browse cards). */
+function identityIds(ids = []) {
+  return [...new Set(
+    (Array.isArray(ids) ? ids : [])
+      .map((raw) => String(raw || '').trim())
+      .filter(Boolean),
+  )]
 }
 
 /**
- * Map Profile subcategory checkmarks to IS subcategory ids.
- * Does not invent siblings from the parent — only expands what was checked.
+ * Profile subcategory checkmarks → sourcing subcategory ids (identity).
  */
 export function expandSubcategoryIds(subIds = []) {
-  return expandIds(subIds, PLATFORM_SUBCATEGORY_TO_SOURCING)
+  return identityIds(subIds)
 }
 
 /**
@@ -342,15 +272,15 @@ export function expandEquipmentSubcategoryIds(parentIds = [], existingSubs = [])
 }
 
 export function expandEquipmentCategoryIds(ids = []) {
-  return expandIds(ids, EQUIPMENT_PLATFORM_TO_SOURCING)
+  return identityIds(ids)
 }
 
 export function expandProductCategoryIds(ids = []) {
-  return expandIds(ids, PRODUCT_PLATFORM_TO_SOURCING)
+  return identityIds(ids)
 }
 
 export function expandServiceCategoryIds(ids = []) {
-  return expandIds(ids, SERVICE_PLATFORM_TO_SOURCING)
+  return identityIds(ids)
 }
 
 export function accountHasSellerRole(account) {

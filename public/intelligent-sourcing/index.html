@@ -1605,6 +1605,21 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     if (plat.userInitials) {
       d.userInitials = String(plat.userInitials).slice(0, 2).toUpperCase();
     }
+    /* Profile taxonomy overlay — browse cards use the same ids suppliers signed up with. */
+    if (plat.taxonomy && typeof plat.taxonomy === "object") {
+      if (plat.taxonomy.categories && typeof plat.taxonomy.categories === "object") {
+        d.CATEGORIES = Object.assign({}, d.CATEGORIES || {});
+        Object.keys(plat.taxonomy.categories).forEach(function (key) {
+          d.CATEGORIES[key] = plat.taxonomy.categories[key];
+        });
+      }
+      if (plat.taxonomy.subcats && typeof plat.taxonomy.subcats === "object") {
+        d.SUBCATS = Object.assign({}, d.SUBCATS || {});
+        Object.keys(plat.taxonomy.subcats).forEach(function (key) {
+          d.SUBCATS[key] = plat.taxonomy.subcats[key];
+        });
+      }
+    }
     try {
       window.dispatchEvent(new CustomEvent("strefex-sourcing-data"));
       if (window.__STREFEX_SOURCING_APP__ && typeof window.__STREFEX_SOURCING_APP__.setState === "function") {

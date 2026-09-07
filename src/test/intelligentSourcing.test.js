@@ -42,8 +42,10 @@ describe('intelligentSourcingData', () => {
     expect(row.stage).toBe(6)
     expect(row.industries).toContain('Automotive')
     expect(row.categoryIds).toContain('mold-makers')
-    expect(row.equipmentCategoryIds).toContain('tooling')
-    expect(row.subcategoryIds).toContain('tool-mould')
+    expect(row.equipmentCategoryIds).toContain('mold-makers')
+    expect(row.equipmentCategoryIds).not.toContain('tooling')
+    expect(row.subcategoryIds).toContain('auto-mold-standard')
+    expect(row.subcategoryIds).not.toContain('tool-mould')
     expect(row.subcategoryIds).not.toContain('tool-die')
     expect(row.accountTypes).toContain('seller')
   })
@@ -59,9 +61,10 @@ describe('intelligentSourcingData', () => {
       categories: { automotive: ['mold-makers'] },
       equipmentSubcategories: { automotive: { 'mold-makers': ['auto-die-making'] } },
     })
-    expect(row.equipmentCategoryIds).toContain('tooling')
-    expect(row.subcategoryIds).toEqual(expect.arrayContaining(['tool-die', 'auto-die-making']))
-    expect(row.subcategoryIds).not.toContain('tool-mould')
+    expect(row.equipmentCategoryIds).toContain('mold-makers')
+    expect(row.subcategoryIds).toEqual(['auto-die-making'])
+    expect(sourcingSupplierMatchesDomainCategory(row, 'equipment', 'mold-makers', 'auto-die-making')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(row, 'equipment', 'mold-makers', 'auto-mold-standard')).toBe(false)
   })
 
   it('does not invent subcategories from parent-only checkmarks', () => {
@@ -75,7 +78,7 @@ describe('intelligentSourcingData', () => {
       categories: { automotive: ['mold-makers'] },
       productCategories: { automotive: ['plastic'] },
     })
-    expect(row.equipmentCategoryIds).toContain('tooling')
+    expect(row.equipmentCategoryIds).toContain('mold-makers')
     expect(row.productCategoryIds).toContain('plastic')
     expect(row.subcategoryIds).toEqual([])
   })
@@ -114,10 +117,10 @@ describe('intelligentSourcingData', () => {
       accountTypes: ['service_provider'],
       serviceCategories: ['quality-services'],
     })
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'service', 'audit')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'service', 'quality-services')).toBe(false)
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic')).toBe(true)
     expect(sourcingSupplierMatchesDomainCategory(provider, 'product', 'plastic')).toBe(false)
-    expect(sourcingSupplierMatchesDomainCategory(provider, 'service', 'audit')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(provider, 'service', 'quality-services')).toBe(true)
     expect(provider.industries).toEqual(expect.arrayContaining(['Automotive']))
   })
 

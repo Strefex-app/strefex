@@ -98,6 +98,25 @@
     } catch (e) { /* */ }
   }
 
+  function applyTaxonomy(plat) {
+    try {
+      if (!plat || !plat.taxonomy || !window.SOURCING_DATA) return;
+      var d = window.SOURCING_DATA;
+      if (plat.taxonomy.categories && typeof plat.taxonomy.categories === 'object') {
+        d.CATEGORIES = Object.assign({}, d.CATEGORIES || {});
+        Object.keys(plat.taxonomy.categories).forEach(function (key) {
+          d.CATEGORIES[key] = plat.taxonomy.categories[key];
+        });
+      }
+      if (plat.taxonomy.subcats && typeof plat.taxonomy.subcats === 'object') {
+        d.SUBCATS = Object.assign({}, d.SUBCATS || {});
+        Object.keys(plat.taxonomy.subcats).forEach(function (key) {
+          d.SUBCATS[key] = plat.taxonomy.subcats[key];
+        });
+      }
+    } catch (e) { /* */ }
+  }
+
   function apply(plat) {
     try {
       if (!plat) return;
@@ -107,6 +126,7 @@
       } else if (window.SOURCING_DATA && Array.isArray(plat.suppliers)) {
         window.SOURCING_DATA.SUPPLIERS = plat.suppliers.slice();
         clearNonRegisteredSuppliers();
+        applyTaxonomy(plat);
       }
       if (window.SOURCING_DATA && Array.isArray(plat.buyers) && plat.buyers.length > 0) {
         window.SOURCING_DATA.BUYERS = plat.buyers.slice();

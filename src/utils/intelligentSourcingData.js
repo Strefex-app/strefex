@@ -13,34 +13,20 @@ import {
   expandServiceCategoryIds,
   expandSubcategoryIds,
 } from './sourcingCategoryAliases'
+import {
+  PLATFORM_TO_SOURCING_INDUSTRY as PLATFORM_TO_SOURCING_INDUSTRY_MAP,
+  SOURCING_INDUSTRY_TO_PLATFORM as SOURCING_INDUSTRY_TO_PLATFORM_MAP,
+} from './intelligentSourcingIndustryMap'
+import {
+  buildSourcingTaxonomyOverlay,
+  getProfileSubIdsForParent,
+} from './unifiedSourcingTaxonomy'
 
 /** Design-canvas industry id → platform slug */
-export const SOURCING_INDUSTRY_TO_PLATFORM = {
-  automotive: 'automotive',
-  aerospace: 'machinery',
-  medical: 'medical',
-  machinery: 'machinery',
-  electronics: 'electronics',
-  rawmat: 'raw-materials',
-  oilgas: 'oil-gas',
-  energy: 'green-energy',
-  nuclear: 'nuclear',
-  household: 'household-products',
-}
+export const SOURCING_INDUSTRY_TO_PLATFORM = SOURCING_INDUSTRY_TO_PLATFORM_MAP
 
 /** Platform slug → design-canvas industry id */
-export const PLATFORM_TO_SOURCING_INDUSTRY = {
-  automotive: 'automotive',
-  machinery: 'machinery',
-  electronics: 'electronics',
-  medical: 'medical',
-  aerospace: 'aerospace',
-  'raw-materials': 'rawmat',
-  'oil-gas': 'oilgas',
-  'green-energy': 'energy',
-  nuclear: 'nuclear',
-  'household-products': 'household',
-}
+export const PLATFORM_TO_SOURCING_INDUSTRY = PLATFORM_TO_SOURCING_INDUSTRY_MAP
 
 const CONT_BY_CC = {
   DE: 'EU', CZ: 'EU', SE: 'EU', PL: 'EU', PT: 'EU', TR: 'EU', FR: 'EU', IE: 'EU',
@@ -142,15 +128,24 @@ function flattenCategoryIds(map) {
   return [...new Set(Object.values(map).flat().filter(Boolean).map(String))]
 }
 
-function flattenSubcategoryIds(nested) {
+/**
+ * Flatten industry → parent → sub[] maps into Profile subcategory ids.
+ * `*` / `__all__` expands to every Profile child under that parent (1:1 taxonomy).
+ */
+function flattenSubcategoryIds(nested, { domain, industries } = {}) {
   if (!nested || typeof nested !== 'object') return []
   const out = []
   Object.values(nested).forEach((byParent) => {
-    if (!byParent || typeof byParent !== 'object') return
-    Object.values(byParent).forEach((list) => {
+    if (!byParent || typeof byParent !== 'object' || Array.isArray(byParent)) return
+    Object.entries(byParent).forEach(([parentId, list]) => {
       if (!Array.isArray(list)) return
+      const wantsAll = list.includes('*') || list.includes('__all__')
+      if (wantsAll && domain && parentId) {
+        getProfileSubIdsForParent(domain, parentId, industries).forEach((id) => out.push(id))
+        return
+      }
       list.forEach((id) => {
-        if (id && id !== '*') out.push(String(id))
+        if (id && id !== '*' && id !== '__all__') out.push(String(id))
       })
     })
   })
@@ -178,6 +173,7 @@ export function accountToSourcingSupplier(account) {
   const accountTypes = [...collectAccountTypes(account)]
   if (!accountTypes.length) accountTypes.push('seller')
   const lead = optionalNumber(account, 'leadTimeDays', 'lead_time_days', 'engagementDays', 'deliveryTimeDays')
+  const platformIndustries = Array.isArray(account.industries) ? account.industries.map(String) : []
   const equipmentCategoryIds = expandEquipmentCategoryIds(flattenCategoryIds(account.categories))
   const productCategoryIds = expandProductCategoryIds(
     flattenCategoryIds(account.productCategories || account.product_categories),
@@ -185,20 +181,25 @@ export function accountToSourcingSupplier(account) {
   const serviceCategoryIds = expandServiceCategoryIds(
     Array.isArray(account.serviceCategories) ? account.serviceCategories.map(String) : [],
   )
-  if (accountTypes.includes('auditor') && !serviceCategoryIds.includes('audit')) {
-    expandServiceCategoryIds(['supplier-audit']).forEach((id) => serviceCategoryIds.push(id))
+  if (accountTypes.includes('auditor') && !serviceCategoryIds.includes('quality-services')) {
+    serviceCategoryIds.push('quality-services')
   }
   const categoryIds = [...new Set([
     ...equipmentCategoryIds,
     ...productCategoryIds,
     ...serviceCategoryIds,
   ])]
-  const rawSubIds = [
-    ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories),
-    ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories),
-  ]
-  /* Only checked Profile subcategories — never invent siblings from the parent. */
-  const subcategoryIds = expandSubcategoryIds(rawSubIds)
+  /* Profile ids only — same ids as sourcing browse cards after taxonomy overlay. */
+  const subcategoryIds = expandSubcategoryIds([
+    ...flattenSubcategoryIds(account.equipmentSubcategories || account.equipment_subcategories, {
+      domain: 'equipment',
+      industries: platformIndustries,
+    }),
+    ...flattenSubcategoryIds(account.productSubcategories || account.product_subcategories, {
+      domain: 'product',
+      industries: platformIndustries,
+    }),
+  ])
   const storedStage = optionalNumber(account, 'stage', 'sourcingStage')
   const stage = storedStage != null ? storedStage : (incomplete ? 4 : 6)
   const published = account.published === true
@@ -387,6 +388,7 @@ export function buildPlatformSourcingPayload({
     suppliers,
     buyers,
     registeredIndustryIds,
+    taxonomy: buildSourcingTaxonomyOverlay(),
     userInitials: initialsFromUser(user, account),
     allowDemoSeed: false,
   }

@@ -9,6 +9,7 @@ import {
   expandSubcategoryIds,
   sourcingSupplierMatchesDomainCategory,
 } from '../utils/sourcingCategoryAliases'
+import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
 
 describe('companyTaxonomyPayload', () => {
   it('writes industries and categories to company columns and metadata', () => {
@@ -49,85 +50,72 @@ describe('companyTaxonomyPayload', () => {
   })
 })
 
-describe('domain category matching', () => {
-  it('matches product subcategories only when explicitly mapped', () => {
+describe('1:1 Profile ↔ sourcing matching', () => {
+  it('keeps Profile category/subcategory ids unchanged', () => {
+    expect(expandEquipmentCategoryIds(['mold-makers', 'dryer'])).toEqual(['mold-makers', 'dryer'])
+    expect(expandProductCategoryIds(['plastic', 'electronics-assembly'])).toEqual([
+      'plastic',
+      'electronics-assembly',
+    ])
+    expect(expandSubcategoryIds(['plastic-injection', 'auto-die-making'])).toEqual([
+      'plastic-injection',
+      'auto-die-making',
+    ])
+  })
+
+  it('matches sellers on the exact ids they signed up for', () => {
     const seller = {
       accountTypes: ['seller'],
       productCategoryIds: ['plastic'],
-      equipmentCategoryIds: ['imm'],
+      equipmentCategoryIds: ['mold-makers'],
       serviceCategoryIds: [],
-      categoryIds: ['plastic', 'imm'],
-      subcategoryIds: ['plastic-injection', 'pl-exterior', 'pl-interior', 'pl-underhood', 'pl-lighting'],
+      categoryIds: ['plastic', 'mold-makers'],
+      subcategoryIds: ['plastic-injection', 'auto-die-making'],
     }
     expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'plastic-injection')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-exterior')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'service', 'audit')).toBe(false)
-  })
-
-  it('maps mold-makers registration onto tooling / mould-making cards', () => {
-    const seller = {
-      accountTypes: ['seller'],
-      equipmentCategoryIds: ['mold-makers', 'tooling'],
-      productCategoryIds: [],
-      serviceCategoryIds: [],
-      categoryIds: ['mold-makers', 'tooling'],
-      subcategoryIds: ['tool-mould', 'tool-die'],
-    }
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'tooling', 'tool-mould')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'tooling')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-exterior')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'mold-makers', 'auto-die-making')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'tooling')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'mold-makers')).toBe(true)
   })
 
   it('does not treat parent membership as every subcategory', () => {
     const seller = {
       accountTypes: ['seller'],
-      equipmentCategoryIds: ['imm', 'cnc', 'robot'],
-      productCategoryIds: ['plastic', 'metal'],
+      equipmentCategoryIds: ['injection-machines', 'cnc'],
+      productCategoryIds: ['plastic'],
       serviceCategoryIds: [],
-      categoryIds: ['imm', 'cnc', 'robot', 'plastic', 'metal'],
-      subcategoryIds: ['imm-hyd', 'cnc-5ax', 'pl-exterior'],
+      categoryIds: ['injection-machines', 'cnc', 'plastic'],
+      subcategoryIds: ['auto-inj-hydraulic', 'plastic-injection'],
     }
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm', 'imm-hyd')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'imm', 'imm-elec')).toBe(false)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'cnc', 'cnc-5ax')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'cnc', 'cnc-vmc')).toBe(false)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'robot')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-exterior')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'pl-interior')).toBe(false)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'metal')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'tooling')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'injection-machines', 'auto-inj-hydraulic')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'equipment', 'injection-machines', 'auto-inj-electric')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'plastic-injection')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(seller, 'product', 'plastic', 'blow-molding')).toBe(false)
   })
 
-  it('maps non-automotive platform categories onto IS cards', () => {
-    const medical = {
-      accountTypes: ['seller'],
-      equipmentCategoryIds: expandEquipmentCategoryIds(['molding', 'sterilization']),
-      productCategoryIds: expandProductCategoryIds(['plastic']),
+  it('matches service providers on Profile expertise buckets', () => {
+    const sp = {
+      accountTypes: ['service_provider'],
+      serviceCategoryIds: ['quality-services'],
+      categoryIds: ['quality-services'],
       subcategoryIds: [],
     }
-    medical.categoryIds = [...medical.equipmentCategoryIds, ...medical.productCategoryIds]
-    expect(medical.equipmentCategoryIds).toEqual(expect.arrayContaining(['sterile', 'imm']))
-    expect(medical.productCategoryIds).toContain('plastic')
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'equipment', 'sterile')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'equipment', 'imm')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'product', 'plastic')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(medical, 'product', 'moulded')).toBe(false)
-
-    const electronics = {
-      accountTypes: ['seller'],
-      equipmentCategoryIds: expandEquipmentCategoryIds(['smt', 'pcb']),
-      productCategoryIds: expandProductCategoryIds(['electronics-assembly']),
-      subcategoryIds: [],
-    }
-    electronics.categoryIds = [...electronics.equipmentCategoryIds, ...electronics.productCategoryIds]
-    expect(sourcingSupplierMatchesDomainCategory(electronics, 'equipment', 'smtline')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(electronics, 'product', 'electronics')).toBe(true)
-    expect(sourcingSupplierMatchesDomainCategory(electronics, 'product', 'pcba')).toBe(false)
+    expect(sourcingSupplierMatchesDomainCategory(sp, 'service', 'quality-services')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(sp, 'service', 'audit')).toBe(false)
   })
 
-  it('maps profile plastic-injection checkmark onto sourcing plastic subcards', () => {
-    const ids = expandSubcategoryIds(['plastic-injection'])
-    expect(ids).toEqual(expect.arrayContaining(['plastic-injection', 'pl-exterior', 'pl-interior']))
+  it('overlay uses Profile subcategory ids (not plastic-0 style)', () => {
+    const { categories, subcats } = buildSourcingTaxonomyOverlay()
+    expect(categories['product:automotive']?.some((c) => c.id === 'plastic')).toBe(true)
+    expect(categories['equipment:automotive']?.some((c) => c.id === 'mold-makers')).toBe(true)
+    expect(categories['service:automotive']?.map((c) => c.id)).toEqual(
+      expect.arrayContaining(['project-management', 'supplier-services', 'quality-services']),
+    )
+    const plasticSubs = subcats['product:automotive:plastic'] || []
+    expect(plasticSubs.some((s) => s.id === 'plastic-injection')).toBe(true)
+    expect(plasticSubs.some((s) => /^plastic-\d+$/.test(s.id))).toBe(false)
+    const moldSubs = subcats['equipment:automotive:mold-makers'] || []
+    expect(moldSubs.some((s) => s.id === 'auto-die-making' || s.id === 'auto-mold-standard')).toBe(true)
   })
 })
