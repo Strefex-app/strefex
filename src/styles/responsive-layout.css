@@ -90,17 +90,46 @@ canvas {
   .filter-row,
   .toolbar-row,
   .app-page-header-row,
-  .app-page-toolbar {
+  .app-page-toolbar,
+  .qe-hub-bar,
+  .exec-header,
+  .eg-toolbar,
+  .qe-tool-head {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .app-page-form-row > *,
   .filter-row > *,
   .toolbar-row > *,
-  .app-page-toolbar > * {
+  .app-page-toolbar > *,
+  .qe-hub-bar__title,
+  .qe-hub-bar__actions,
+  .exec-header-left,
+  .exec-header-right {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Titles stay full-width sentences — never a crushed 1-word column */
+  .app-page-title,
+  .stx-text-page-title,
+  .home-card-title,
+  .industry-hub-title,
+  .exec-section-title,
+  .qe-hub-bar .app-page-title {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  .app-page-subtitle,
+  .app-page-body {
+    max-width: 100%;
   }
 
   /* Hub / widget grids: fluid columns that wrap instead of overflowing */
@@ -176,6 +205,28 @@ canvas {
     font-size: 16px; /* avoid iOS zoom on focus */
   }
 
+  /* Page titles: keep desktop hierarchy; shrink only oversized page-title utilities */
+  .stx-text-page-title,
+  .industry-hub-title {
+    font-size: var(--text-section);
+    line-height: var(--leading-snug);
+  }
+
+  .app-page-title,
+  .exec-section-title,
+  .qe-hub-bar .app-page-title {
+    max-width: 100%;
+    line-height: var(--leading-snug);
+  }
+
+  .app-page-subtitle {
+    font-size: var(--text-small);
+  }
+
+  .app-page-card {
+    padding: 14px 16px;
+  }
+
   /* Modals / drawers: use viewport width safely */
   .modal,
   .modal-content,
@@ -223,8 +274,9 @@ canvas {
 @media (max-width: 480px) {
   .app-page-title,
   .stx-text-page-title,
-  .home-card-title {
-    font-size: var(--text-section);
+  .home-card-title,
+  .industry-hub-title {
+    font-size: var(--text-heading);
   }
 
   .mgmt-dash-kpis,

@@ -27,10 +27,8 @@
       'html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}',
       '@media (max-width:640px){',
       'main>header{padding:8px 12px!important}',
-      '[data-stx-supplier-table]{display:none!important}',
-      '[data-stx-supplier-cards]{display:flex!important}',
       '}',
-      '@media (min-width:641px){[data-stx-supplier-cards]{display:none!important}}'
+      '[data-stx-supplier-cards]{display:none!important}'
     ].join('');
     document.documentElement.appendChild(s);
   } catch (e) { /* */ }
@@ -1618,9 +1616,139 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   a { color: var(--navy-600); text-decoration: none; }
   a:hover { color: var(--navy-800); text-decoration: underline; }
   ::selection { background: rgba(46,86,133,.18); }
+
+  /* Title column must shrink/grow — never crush into a 1-word-wide ribbon */
+  .stx-page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+  }
+  .stx-page-head__title {
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .stx-page-head__tools {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .stx-page-head h1 {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+  .stx-kpi-strip {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  .stx-kpi-strip > * { min-width: 0; }
+
+  @media (max-width: 900px) {
+    .stx-page-head {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      flex-wrap: wrap !important;
+      gap: 12px !important;
+    }
+    .stx-page-head__title,
+    .stx-page-head__tools {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+    .stx-page-head__tools {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .stx-page-head__tools > div {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .stx-page-head__tools > div[style*="inline-flex"],
+    .stx-page-head__tools[style*="inline-flex"] {
+      max-width: 100% !important;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .stx-page-head h1 {
+      font-size: clamp(22px, 5.5vw, 28px) !important;
+      line-height: 1.2 !important;
+      margin-top: 8px !important;
+      margin-bottom: 4px !important;
+      max-width: 100%;
+    }
+    .stx-page-head p {
+      font-size: 13px !important;
+      line-height: 1.45 !important;
+      max-width: none !important;
+    }
+    .stx-page-head__tools input,
+    .stx-page-head__tools input[style*="width:250px"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .stx-kpi-strip--4,
+    .stx-kpi-strip--5 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .stx-kpi-strip--3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
   @media (max-width: 640px) {
-    [data-stx-supplier-table] { display: none !important; }
-    [data-stx-supplier-cards] { display: flex !important; }
+    /* Keep the real supplier table (same data as web). The duplicate
+       card sc-for never binds rows, so hiding the table emptied the list. */
+    [data-stx-supplier-table] {
+      display: block !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+      margin: 0 -4px;
+    }
+    [data-stx-supplier-cards] { display: none !important; }
+    .stx-page-head h1 {
+      font-size: clamp(20px, 6vw, 24px) !important;
+    }
+    main > div {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+    /* Section titles beside step badges */
+    main [style*="align-items:baseline"][style*="justify-content:space-between"] {
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+    .stx-summary-head h1 {
+      font-size: clamp(20px, 5.5vw, 26px) !important;
+      line-height: 1.2 !important;
+      max-width: 100%;
+    }
+    .stx-summary-head,
+    .stx-listed-head,
+    .stx-empty-state {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .stx-empty-state {
+      padding: 22px 16px !important;
+    }
+    .stx-empty-state > [style*="width:320px"] {
+      width: 100% !important;
+    }
+    .stx-summary-head > [style*="margin-left:auto"] {
+      margin-left: 0 !important;
+      flex-wrap: wrap !important;
+    }
   }
   @media (min-width: 641px) {
     [data-stx-supplier-cards] { display: none !important; }
@@ -1695,12 +1823,12 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ STEP 1 — domains ══ -->
       <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
+            <div class="stx-page-head__title">
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:38px; letter-spacing:-.02em; color:var(--navy-800); margin:0 0 6px">Intelligent Sourcing</h1>
               <p style="font-size:14.5px; line-height:1.55; color:var(--text-muted); margin:0; max-width:620px; text-wrap:pretty">Start from what you are sourcing, narrow to an industry and a category, then read the executive summary before a single RFQ leaves the building.</p>
             </div>
-            <div style="display:flex; gap:10px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; gap:10px; flex:none">
               <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onOpenRfq }}" hint-size="auto,40px">Create RFQ</x-import>
             </div>
           </div>
@@ -1824,13 +1952,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ STEP 2 — industries ══ -->
       <sc-if value="{{ isIndustry }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">{{ domainName }} · Step 2 of 5</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Select an industry</h1>
               <p style="font-size:14px; color:var(--text-muted); margin:0">Each industry carries its own qualification standard, lead-time profile and risk mix.</p>
             </div>
-            <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden; flex:none">
+            <div class="stx-page-head__tools" style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden; flex:none">
               <sc-for list="{{ indFilters }}" as="f" hint-placeholder-count="3">
                 <button sc-camel-on-click="{{ f.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; border:none; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</button>
               </sc-for>
@@ -1857,7 +1985,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                     <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:4px">{{ i.standard }}</div>
                   </div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px">
+                <div class="stx-kpi-strip stx-kpi-strip--3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px">
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:16px; color:var(--navy-800)">{{ i.suppliers }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Suppliers</span></div>
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:16px; color:var(--navy-800)">{{ i.lead }}<span style="font-size:11px; color:var(--text-muted)">d</span></span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Avg lead</span></div>
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:16px; color:{{ i.covColor }}">{{ i.coverage }}%</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Coverage</span></div>
@@ -1882,13 +2010,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ STEP 3 — categories ══ -->
       <sc-if value="{{ isCategory }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">{{ industryName }} · {{ domainName }} · Step 3 of 5</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ catHeading }}</h1>
               <p style="font-size:14px; color:var(--text-muted); margin:0">{{ catSub }}</p>
             </div>
-            <div style="display:flex; align-items:center; gap:10px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; align-items:center; gap:10px; flex:none">
               <div style="position:relative">
                 <input placeholder="Search category or process…" style="width:250px; font-family:var(--font-sans); font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:9px 12px 9px 34px">
                 <span style="position:absolute; left:10px; top:9px; color:var(--steel-600)"><x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="search" size="16" hint-size="16px,16px"></x-import></span>
@@ -1924,7 +2052,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                     </sc-for>
                   </div>
 
-                  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-hairline)">
+                  <div class="stx-kpi-strip stx-kpi-strip--4" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-hairline)">
                     <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:var(--navy-800)">{{ c.suppliers }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Suppliers</span></div>
                     <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:var(--navy-800)">{{ c.lead }}<span style="font-size:11px; color:var(--text-muted)">d</span></span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Avg lead</span></div>
                     <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:{{ c.priceColor }}">{{ c.priceLabel }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Price idx 12m</span></div>
@@ -1976,13 +2104,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ STEP 4 — subcategories (deep dive) ══ -->
       <sc-if value="{{ isSubcat }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">{{ industryName }} · {{ categoryName }} · Step 4 of 5</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ categoryName }} — deep dive</h1>
               <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:700px; text-wrap:pretty">Pick the exact process or machine class you are sourcing. Each one carries its own supplier set, capacity headroom and executive summary — a category-level average would hide all three.</p>
             </div>
-            <div style="display:flex; gap:14px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; gap:14px; flex:none">
               <sc-for list="{{ subStats }}" as="k" hint-placeholder-count="3">
                 <div style="border:1px solid var(--border-hairline); border-left:3px solid {{ k.tone }}; border-radius:4px; background:var(--white); padding:11px 16px">
                   <div style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:var(--navy-800)">{{ k.n }}</div>
@@ -2015,7 +2143,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   </sc-for>
                 </div>
 
-                <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-hairline)">
+                <div class="stx-kpi-strip stx-kpi-strip--5" style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-hairline)">
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:var(--navy-800)">{{ b.suppliers }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Suppliers</span></div>
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:{{ b.audColor }}">{{ b.audited }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Audited</span></div>
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:var(--navy-800)">{{ b.lead }}<span style="font-size:11px; color:var(--text-muted)">d</span></span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Lead</span></div>
@@ -2036,7 +2164,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ STEP 5 — executive summary ══ -->
       <sc-if value="{{ isSummary }}">
         <div style="max-width:1560px">
-          <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:20px 24px; display:flex; align-items:center; gap:24px; margin-bottom:16px">
+          <div class="stx-summary-head" style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:20px 24px; display:flex; align-items:center; gap:24px; margin-bottom:16px">
             <div style="min-width:0">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Executive summary · Step 5 of 5</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:29px; letter-spacing:-.02em; color:var(--navy-800); margin:11px 0 6px">{{ summaryTitle }}</h1>
@@ -2063,7 +2191,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                 </div>
               </sc-for>
             </div>
-            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:40px; display:flex; gap:32px; align-items:flex-start">
+            <div class="stx-empty-state" style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:40px; display:flex; gap:32px; align-items:flex-start">
               <div style="flex:1; min-width:0">
                 <div style="font-family:var(--font-serif); font-size:25px; color:var(--navy-800)">No registered suppliers in this category yet</div>
                 <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; max-width:640px; text-wrap:pretty">Zero is a data state, not a verdict. No registered accounts currently match {{ summaryTitle }}. Catalog reference depth is {{ catSuppliersCatalog }}. Suppliers appear here once their account has country or city, this industry, and the matching product / equipment / service categories (each selected category and its subcategories).</p>
@@ -2181,8 +2309,8 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             </div>
 
             <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:19px 22px 8px; margin-bottom:16px">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px">
-                <div>
+              <div class="stx-listed-head" style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px">
+                <div style="min-width:0">
                   <div style="font-family:var(--font-serif); font-size:21px; color:var(--navy-800)">Listed suppliers</div>
                   <div style="font-size:12.5px; color:var(--text-faint); margin-top:3px">Select rows to compare — the tray carries across industries. Columns marked <span style="font-family:var(--font-mono); font-size:11px">(ref)</span> are indicative transit from the supplier's plant to {{ buyerName }}, not a carrier quote.</div>
                 </div>
@@ -2326,13 +2454,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ COMPARE — cross-industry side by side ══ -->
       <sc-if value="{{ isCompare }}">
         <div style="max-width:1560px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:18px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:18px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Compare · {{ cmpScopeLabel }}</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:32px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Side-by-side comparison</h1>
               <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:720px; text-wrap:pretty">The tray carries across industries and subcategories — each column keeps the scope it was added from. Rows marked <span style="font-family:var(--font-mono); font-size:12px">(ref)</span> are indicative logistics, not quotes; rows marked <span style="font-family:var(--font-mono); font-size:12px">(declared)</span> come from the supplier's own account.</p>
             </div>
-            <div style="display:flex; gap:10px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; gap:10px; flex:none">
               <button sc-camel-on-click="{{ onBackSummary }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:6px; padding:10px 15px; cursor:pointer" style-hover="background:var(--steel-200)">Back to summary</button>
               <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onExportCompare }}" hint-size="auto,40px">Export comparison</x-import>
               <button sc-camel-on-click="{{ onOpenRfq }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:var(--action-primary); border:1px solid var(--action-primary); border-radius:6px; padding:10px 15px; cursor:pointer" style-hover="background:var(--action-primary-hover)">Create RFQ for these</button>
@@ -2432,13 +2560,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
           </sc-if>
 
           <sc-if value="{{ rfqDraft }}">
-            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:18px">
-              <div>
+            <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:18px">
+              <div class="stx-page-head__title">
                 <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Request for quotation · standard form</span></div>
                 <h1 style="font-family:var(--font-serif); font-weight:400; font-size:32px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ rfqTitle }}</h1>
                 <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:720px; text-wrap:pretty">One form for every industry. The quality block below adapts to the industries you tick — nothing else changes, so quotes stay comparable across the whole supply base.</p>
               </div>
-              <div style="display:flex; gap:10px; flex:none">
+              <div class="stx-page-head__tools" style="display:flex; gap:10px; flex:none">
                 <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="ghost" sc-camel-on-click="{{ onLoadTemplate }}" hint-size="auto,40px">Load template</x-import>
                 <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onSaveDraft }}" hint-size="auto,40px">Save draft</x-import>
               </div>
@@ -2577,13 +2705,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ REGISTRATION PATH — supplier onboarding to map visibility ══ -->
       <sc-if value="{{ isRegistration }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--signal-data)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Supplier registration path</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">From invitation to a pin on your map</h1>
               <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:760px; text-wrap:pretty">A supplier account is only searchable, mappable and RFQ-eligible once it clears verification. This is the full path, the gate at each stage, and where accounts are stalling right now.</p>
             </div>
-            <div style="display:flex; gap:14px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; gap:14px; flex:none">
               <sc-for list="{{ regTotals }}" as="t" hint-placeholder-count="3">
                 <div style="border:1px solid var(--border-hairline); border-left:3px solid {{ t.tone }}; border-radius:4px; background:var(--white); padding:11px 16px">
                   <div style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:var(--navy-800)">{{ t.n }}</div>
@@ -2671,13 +2799,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       <!-- ══ GAP REVIEW ══ -->
       <sc-if value="{{ isGaps }}">
         <div style="max-width:1400px">
-          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
-            <div>
+          <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
+            <div class="stx-page-head__title">
               <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--signal-fault)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Design review</span></div>
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Gaps in the current sourcing flow</h1>
               <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:700px; text-wrap:pretty">Read against the five screens you shared. Severity is judged by how often the gap stops a buyer from making a sourcing decision on this page.</p>
             </div>
-            <div style="display:flex; gap:14px; flex:none">
+            <div class="stx-page-head__tools" style="display:flex; gap:14px; flex:none">
               <sc-for list="{{ gapCounts }}" as="g" hint-placeholder-count="3">
                 <div style="border:1px solid var(--border-hairline); border-left:3px solid {{ g.tone }}; border-radius:4px; background:var(--white); padding:11px 16px">
                   <div style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:var(--navy-800)">{{ g.n }}</div>

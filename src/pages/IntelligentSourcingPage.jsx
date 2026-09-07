@@ -244,11 +244,52 @@ function buildEmbedShellCss(theme = 'light') {
   html, body { max-width: 100%; overflow-x: clip; }
   @media (max-width: 640px) {
     main > header { padding: 8px 12px !important; }
-    [data-stx-supplier-table] { display: none !important; }
-    [data-stx-supplier-cards] { display: flex !important; }
+    [data-stx-supplier-table] {
+      display: block !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+    }
+    [data-stx-supplier-cards] { display: none !important; }
   }
   @media (min-width: 641px) {
     [data-stx-supplier-cards] { display: none !important; }
+  }
+  /* Phone: stack page titles above tools so h1 is not crushed into a 1-word column */
+  @media (max-width: 900px) {
+    .stx-page-head {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+    }
+    .stx-page-head__title,
+    .stx-page-head__tools {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+    .stx-page-head__tools {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+    }
+    .stx-page-head h1 {
+      font-size: clamp(20px, 6vw, 28px) !important;
+      line-height: 1.2 !important;
+      max-width: 100% !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+    }
+    .stx-page-head p { font-size: 13px !important; max-width: none !important; }
+    .stx-page-head__tools input,
+    .stx-page-head__tools input[style*="width:250px"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .stx-kpi-strip--4,
+    .stx-kpi-strip--5 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   }
   :root {
     --font-serif: ${PLATFORM_FONT_STACK} !important;
