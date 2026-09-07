@@ -98,13 +98,49 @@ describe('intelligentSourcingData', () => {
     expect(row.stage).toBe(4)
   })
 
-  it('uses buyer account location as receiving plant when present', () => {
-    const plants = buildBuyerPlants({
-      account: { country: 'United States', city: 'Detroit', company: 'OEM Co', id: 'b1' },
+  it('does not invent fit/risk/spend metrics when account fields are missing', () => {
+    const row = accountToSourcingSupplier({
+      id: 'bare-metrics',
+      company: 'Bare Metrics Co',
+      country: 'Germany',
+      city: 'Berlin',
+      industries: ['automotive'],
+      accountType: 'seller',
+      productCategories: { automotive: ['plastic'] },
     })
-    expect(plants).toHaveLength(1)
-    expect(plants[0].cc).toBe('US')
-    expect(plants[0].platform).toBe(true)
+    expect(row.fit).toBeNull()
+    expect(row.risk).toBeNull()
+    expect(row.cap).toBeNull()
+    expect(row.onTime).toBeNull()
+    expect(row.ppm).toBeNull()
+    expect(row.lead).toBeNull()
+    expect(row.spend).toBeNull()
+    expect(row.delta).toBeNull()
+    expect(row.certs).toEqual([])
+    expect(row.source).toBe('registered')
+  })
+
+  it('passes through declared account metrics only', () => {
+    const row = accountToSourcingSupplier({
+      id: 'scored',
+      company: 'Scored Co',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+      accountType: 'seller',
+      fitLevel: 77,
+      riskLevel: 22,
+      capacityLevel: 65,
+      leadTimeDays: 28,
+      certifications: ['IATF 16949'],
+      priceIndex: 103,
+    })
+    expect(row.fit).toBe(77)
+    expect(row.risk).toBe(22)
+    expect(row.cap).toBe(65)
+    expect(row.lead).toBe(28)
+    expect(row.delta).toBe(3)
+    expect(row.certs).toEqual(['IATF 16949'])
   })
 })
 

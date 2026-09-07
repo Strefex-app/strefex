@@ -32,13 +32,13 @@ export function MarketplaceCatalogVisibilityControl({
         onChange={setShow}
         compact={compact}
         aria-label={show ? 'Marketplace catalog suppliers shown' : 'Marketplace catalog suppliers hidden'}
-        title="Superadmin only. When off, hides seeded marketplace directory suppliers from lists, maps, and match scores. Other accounts see only vendor master, audit registry, and workspace imports."
+        title="Superadmin system-update / demo catalog mode. When off (default on live), hides seeded marketplace and sourcing canvas demo sellers. Other accounts only see registered / imported sellers."
       >
         {compact ? 'Marketplace catalog' : 'Show marketplace catalog suppliers'}
       </ToggleCheckButton>
       {!compact && (
         <span className="stx-text-caption" style={{ color: 'var(--muted-foreground, #64748b)', maxWidth: 420 }}>
-          Off by default. When on, includes the legacy seeded marketplace directory. Leave off to show only registered accounts, vendor master, and workspace imports.
+          Off on live by default. Turn on only for localhost testing or system-update demos — never leave on for production tenants.
         </span>
       )}
     </div>

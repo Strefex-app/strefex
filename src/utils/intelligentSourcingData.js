@@ -4,7 +4,6 @@
 import { getApproximateLngLatOrFallback } from './accountApproximateLocation'
 import { INDUSTRY_LABELS, SUPPLIER_DATABASE } from '../data/supplierDatabase'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
-import { serviceEngagementDays } from './serviceDurationEstimates'
 import { readReceivingPlantsFromAccount } from './receivingPlantsPersist'
 import {
   SOURCING_INDUSTRY_LABELS,
@@ -51,21 +50,49 @@ const CONT_BY_CC = {
   IN: 'APAC', KR: 'APAC', MY: 'APAC', TW: 'APAC', TH: 'APAC', SG: 'APAC', AU: 'APAC',
 }
 
-function hash01(seed) {
-  let h = 2166136261
-  const s = String(seed || '')
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619)
+/** Read a numeric account field; never invent demo values. */
+function optionalNumber(a, ...keys) {
+  for (const key of keys) {
+    const v = a?.[key]
+    if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v)
+    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) {
+      return Math.round(Number(v))
+    }
   }
-  return (h >>> 0) / 4294967295
+  return null
 }
 
-function metricFromAccount(a, key, fallback) {
-  const v = a?.[key]
-  if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v)
-  const h = hash01(`${a?.id || a?.email || a?.company}|${key}`)
-  return fallback(h)
+function daysSince(iso) {
+  if (!iso) return null
+  const t = new Date(iso).getTime()
+  if (!Number.isFinite(t)) return null
+  return Math.max(0, Math.round((Date.now() - t) / 86400000))
+}
+
+function daysUntil(iso) {
+  if (!iso) return null
+  const t = new Date(iso).getTime()
+  if (!Number.isFinite(t)) return null
+  return Math.round((t - Date.now()) / 86400000)
+}
+
+/** Profile completeness from account fields or stored score — no hash filler. */
+function profileFromAccount(account) {
+  const stored = optionalNumber(account, 'profileCompleteness', 'profile_completeness', 'profile')
+  if (stored != null) return Math.min(100, Math.max(0, stored))
+  const checks = [
+    Boolean(String(account?.country || '').trim()),
+    Boolean(String(account?.city || '').trim()),
+    Boolean(String(account?.address || '').trim()),
+    Array.isArray(account?.industries) && account.industries.length > 0,
+    (account?.categories && Object.keys(account.categories).length > 0)
+      || (account?.productCategories && Object.keys(account.productCategories).length > 0)
+      || (Array.isArray(account?.serviceCategories) && account.serviceCategories.length > 0),
+    Array.isArray(account?.certifications) && account.certifications.length > 0,
+    Boolean(String(account?.contactName || account?.email || '').trim()),
+  ]
+  const filled = checks.filter(Boolean).length
+  return Math.round((filled / checks.length) * 100)
 }
 
 function industryLabelsForAccount(a) {
@@ -143,17 +170,15 @@ export function accountToSourcingSupplier(account) {
     seed: String(account.id || account.email || name),
   })
   const cc = countryCodeFromName(account.country)
-  const certs = Array.isArray(account.certifications) ? account.certifications : []
+  const certs = Array.isArray(account.certifications)
+    ? account.certifications.map(String).filter(Boolean).slice(0, 8)
+    : []
   const hasGeo = Boolean(String(account.country || '').trim() || String(account.city || '').trim())
   const hasIndustry = Array.isArray(account.industries) && account.industries.length > 0
   const incomplete = !hasGeo || !hasIndustry
   const accountTypes = [...collectAccountTypes(account)]
   if (!accountTypes.length) accountTypes.push('seller')
-  const isServiceLead = accountTypes.includes('service_provider') && !accountTypes.includes('seller')
-  const serviceCat = Array.isArray(account.serviceCategories) ? account.serviceCategories[0] : ''
-  const lead = isServiceLead
-    ? (account.leadTimeDays || serviceEngagementDays(serviceCat || 'audit', name))
-    : (account.leadTimeDays || Math.round(20 + hash01(`${name}|lead`) * 50))
+  const lead = optionalNumber(account, 'leadTimeDays', 'lead_time_days', 'engagementDays', 'deliveryTimeDays')
   const equipmentCategoryIds = expandEquipmentCategoryIds(flattenCategoryIds(account.categories))
   const productCategoryIds = expandProductCategoryIds(
     flattenCategoryIds(account.productCategories || account.product_categories),
@@ -177,29 +202,47 @@ export function accountToSourcingSupplier(account) {
     [...equipmentCategoryIds, ...productCategoryIds],
     rawSubIds,
   )
-  /* Map-visible when geo + industry are set; country-only is enough for a pin. */
-  const stage = incomplete ? 4 : 6
-  const published = account.published === true || (!incomplete && stage >= 5)
+  const storedStage = optionalNumber(account, 'stage', 'sourcingStage')
+  const stage = storedStage != null ? storedStage : (incomplete ? 4 : 6)
+  const published = account.published === true
+    || (account.published !== false && !incomplete && stage >= 5)
+  const priceIndex = optionalNumber(account, 'priceIndex', 'price_index')
+  const delta = priceIndex != null
+    ? priceIndex - 100
+    : optionalNumber(account, 'delta', 'priceDelta')
+  const auditIn = optionalNumber(account, 'auditIn', 'auditDueDays')
+    ?? daysUntil(account.nextAuditAt || account.auditDueAt || account.auditExpiry)
+  const certExpiry = optionalNumber(account, 'certExpiry', 'certExpiryDays')
+    ?? daysUntil(account.certExpiryAt || account.certificateExpiry)
+  const fin = account.financialGrade || account.fin || account.creditGrade || null
+  const tariff = account.tariffRegime || account.tariff || 'None'
+  const tier2 = account.tier2 || account.subTierStatus || account.tier2Status || 'Unknown'
+  const auditLabel = account.auditStatus
+    || (auditIn == null ? '—' : auditIn < 0 ? 'Overdue' : auditIn < 45 ? 'Due' : 'Passed')
   return {
     name,
     city: account.city || '—',
     cc,
     lat,
     lon,
-    fit: metricFromAccount(account, 'fitLevel', (h) => 55 + Math.round(h * 40)),
-    risk: metricFromAccount(account, 'riskLevel', (h) => 20 + Math.round(h * 50)),
-    cap: metricFromAccount(account, 'capacityLevel', (h) => 60 + Math.round(h * 35)),
-    onTime: metricFromAccount(account, 'onTimePct', (h) => 80 + Math.round(h * 19)),
-    ppm: metricFromAccount(account, 'qualityPpm', (h) => Math.round(80 + h * 900)),
+    fit: optionalNumber(account, 'fitLevel', 'fit'),
+    risk: optionalNumber(account, 'riskLevel', 'risk'),
+    cap: optionalNumber(account, 'capacityLevel', 'capacity', 'utilisation', 'utilization'),
+    onTime: optionalNumber(account, 'onTimePct', 'onTime', 'otd'),
+    ppm: optionalNumber(account, 'qualityPpm', 'ppm'),
     lead,
-    delta: Number((hash01(`${name}|delta`) * 20 - 10).toFixed(1)),
-    spend: Number((1.5 + hash01(`${name}|spend`) * 10).toFixed(1)),
-    certs: certs.length ? certs.slice(0, 4) : incomplete ? [] : ['ISO 9001'],
-    audit: incomplete ? 'Due' : 'Passed',
-    auditIn: incomplete ? 14 : 180,
-    fin: incomplete ? 'B-' : 'B+',
-    tariff: 'None',
-    tier2: incomplete ? 'Unknown' : 'Partial',
+    delta,
+    spend: optionalNumber(account, 'annualSpend', 'spend', 'spendM'),
+    quoteTurn: optionalNumber(account, 'quoteTurnDays', 'quoteTurn'),
+    profile: profileFromAccount(account),
+    updatedDays: daysSince(account.updatedAt || account.registeredAt),
+    certExpiry,
+    certs,
+    audit: auditLabel,
+    auditIn,
+    fin: fin || '—',
+    tariff,
+    tier2,
     industries: industryLabelsForAccount(account),
     industryIds: industryIdsForAccount(account),
     categoryIds,
@@ -331,9 +374,10 @@ export function buildPlatformSourcingPayload({
   account,
   buyerIndustries = [],
 } = {}) {
+  /* Intelligent Sourcing lists/indicators use registered accounts only — never static seed. */
   const suppliers = buildSourcingSuppliers({
     registrySellers,
-    includeSeeded: isSeededSupplierDirectoryEnabled(),
+    includeSeeded: false,
   })
   const buyers = buildBuyerPlants({ tenant, user, account })
   const registeredIndustryIds = [
@@ -342,7 +386,13 @@ export function buildPlatformSourcingPayload({
       ...buyerIndustries.map((id) => PLATFORM_TO_SOURCING_INDUSTRY[id]).filter(Boolean),
     ]),
   ]
-  return { suppliers, buyers, registeredIndustryIds, userInitials: initialsFromUser(user, account) }
+  return {
+    suppliers,
+    buyers,
+    registeredIndustryIds,
+    userInitials: initialsFromUser(user, account),
+    allowDemoSeed: false,
+  }
 }
 
 function initialsFromUser(user, account) {

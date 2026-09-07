@@ -4,34 +4,34 @@
     {
       id: "product", name: "Product & Component", icon: "package",
       desc: "Parts, assemblies and materials made to your drawing.",
-      industries: 10, categories: 74, suppliers: 1840, verified: 62,
+      industries: 10, categories: 74, suppliers: 0, verified: 0,
       example: "Plastic parts · Metal parts · Composites"
     },
     {
       id: "equipment", name: "Equipment", icon: "cog",
       desc: "Machines, tooling and automation cells for your plant.",
-      industries: 8, categories: 41, suppliers: 620, verified: 48,
+      industries: 8, categories: 41, suppliers: 0, verified: 0,
       example: "Injection moulding · CNC centres · Robotics"
     },
     {
       id: "service", name: "Service", icon: "clipboardCheck",
       desc: "Engineering, programme management, audit and logistics.",
-      industries: 10, categories: 26, suppliers: 310, verified: 71,
+      industries: 10, categories: 26, suppliers: 0, verified: 0,
       example: "APQP · Audit · Industrialisation · Customs"
     }
   ];
 
   var INDUSTRIES = [
-    { id: "automotive", name: "Automotive", icon: "truck", registered: true, standard: "IATF 16949", suppliers: 412, cats: 7, lead: 34, coverage: 78, risk: [64, 27, 9], note: "Deepest coverage — EU, NA, APAC" },
-    { id: "aerospace", name: "Aerospace & Defence", icon: "compass", registered: false, standard: "AS9100 · ITAR", suppliers: 148, cats: 6, lead: 62, coverage: 54, risk: [71, 22, 7], note: "Export-control screening required" },
-    { id: "medical", name: "Medical Devices", icon: "shieldCheck", registered: false, standard: "ISO 13485 · MDR", suppliers: 121, cats: 6, lead: 48, coverage: 46, risk: [76, 19, 5], note: "Cleanroom & UDI capability tagged" },
-    { id: "machinery", name: "Machinery & Industrial", icon: "factory", registered: true, standard: "ISO 9001 · CE", suppliers: 268, cats: 7, lead: 41, coverage: 66, risk: [58, 31, 11], note: "Build-to-print and turnkey lines" },
-    { id: "electronics", name: "Electronics", icon: "cpu", registered: false, standard: "IPC-A-610 · RoHS", suppliers: 203, cats: 5, lead: 39, coverage: 41, risk: [52, 34, 14], note: "Allocation risk on semis" },
-    { id: "rawmat", name: "Raw Materials", icon: "layers", registered: false, standard: "REACH", suppliers: 96, cats: 4, lead: 22, coverage: 33, risk: [61, 28, 11], note: "Index-linked pricing" },
-    { id: "oilgas", name: "Oil & Gas", icon: "gauge", registered: false, standard: "API · ISO 29001", suppliers: 74, cats: 4, lead: 71, coverage: 28, risk: [44, 38, 18], note: "Thin coverage — request mapping" },
-    { id: "energy", name: "Green Energy", icon: "trendUp", registered: false, standard: "IEC 61215", suppliers: 88, cats: 4, lead: 57, coverage: 31, risk: [57, 30, 13], note: "Fast-growing supplier base" },
-    { id: "nuclear", name: "Nuclear", icon: "target", registered: false, standard: "ASME NQA-1", suppliers: 31, cats: 3, lead: 96, coverage: 19, risk: [80, 16, 4], note: "Qualification-gated" },
-    { id: "household", name: "Household Products", icon: "building", registered: false, standard: "ISO 9001", suppliers: 139, cats: 5, lead: 28, coverage: 37, risk: [66, 26, 8], note: "High-volume consumer tooling" }
+    { id: "automotive", name: "Automotive", icon: "truck", registered: true, standard: "IATF 16949", suppliers: 0, cats: 7, lead: 34, coverage: 78, risk: [64, 27, 9], note: "Deepest coverage — EU, NA, APAC" },
+    { id: "aerospace", name: "Aerospace & Defence", icon: "compass", registered: false, standard: "AS9100 · ITAR", suppliers: 0, cats: 6, lead: 62, coverage: 54, risk: [71, 22, 7], note: "Export-control screening required" },
+    { id: "medical", name: "Medical Devices", icon: "shieldCheck", registered: false, standard: "ISO 13485 · MDR", suppliers: 0, cats: 6, lead: 48, coverage: 46, risk: [76, 19, 5], note: "Cleanroom & UDI capability tagged" },
+    { id: "machinery", name: "Machinery & Industrial", icon: "factory", registered: true, standard: "ISO 9001 · CE", suppliers: 0, cats: 7, lead: 41, coverage: 66, risk: [58, 31, 11], note: "Build-to-print and turnkey lines" },
+    { id: "electronics", name: "Electronics", icon: "cpu", registered: false, standard: "IPC-A-610 · RoHS", suppliers: 0, cats: 5, lead: 39, coverage: 41, risk: [52, 34, 14], note: "Allocation risk on semis" },
+    { id: "rawmat", name: "Raw Materials", icon: "layers", registered: false, standard: "REACH", suppliers: 0, cats: 4, lead: 22, coverage: 33, risk: [61, 28, 11], note: "Index-linked pricing" },
+    { id: "oilgas", name: "Oil & Gas", icon: "gauge", registered: false, standard: "API · ISO 29001", suppliers: 0, cats: 4, lead: 71, coverage: 28, risk: [44, 38, 18], note: "Thin coverage — request mapping" },
+    { id: "energy", name: "Green Energy", icon: "trendUp", registered: false, standard: "IEC 61215", suppliers: 0, cats: 4, lead: 57, coverage: 31, risk: [57, 30, 13], note: "Fast-growing supplier base" },
+    { id: "nuclear", name: "Nuclear", icon: "target", registered: false, standard: "ASME NQA-1", suppliers: 0, cats: 3, lead: 96, coverage: 19, risk: [80, 16, 4], note: "Qualification-gated" },
+    { id: "household", name: "Household Products", icon: "building", registered: false, standard: "ISO 9001", suppliers: 0, cats: 5, lead: 28, coverage: 37, risk: [66, 26, 8], note: "High-volume consumer tooling" }
   ];
 
   function cat(id, name, icon, desc, procs, s, lead, price, headroom, risk, fit) {
@@ -265,47 +265,7 @@
   ];
   var CONT = { DE: "EU", CZ: "EU", SE: "EU", PL: "EU", PT: "EU", TR: "EU", FR: "EU", IE: "EU", LT: "EU", ES: "EU", GB: "EU", UA: "EU", MA: "EU", DK: "EU", IT: "EU", US: "NA", MX: "NA", CN: "APAC", JP: "APAC", IN: "APAC", KR: "APAC", MY: "APAC" };
 
-  var SUPPLIERS = [
-    { name: "Meridian Forge", city: "Stuttgart", cc: "DE", lat: 48.78, lon: 9.18, fit: 94, risk: 18, cap: 82, onTime: 99, ppm: 120, lead: 26, delta: -2.1, spend: 8.4, certs: ["IATF", "ISO 14001"], audit: "Passed", auditIn: 214, fin: "A", tariff: "None", tier2: "Mapped" },
-    { name: "Kessler Precision", city: "Brno", cc: "CZ", lat: 49.19, lon: 16.61, fit: 88, risk: 27, cap: 91, onTime: 96, ppm: 260, lead: 31, delta: +1.4, spend: 5.7, certs: ["IATF"], audit: "Due", auditIn: 22, fin: "B+", tariff: "None", tier2: "Partial" },
-    { name: "Nordic Stamping", city: "Gothenburg", cc: "SE", lat: 57.71, lon: 11.97, fit: 79, risk: 34, cap: 74, onTime: 91, ppm: 410, lead: 35, delta: +4.8, spend: 4.2, certs: ["ISO 9001"], audit: "Due", auditIn: 41, fin: "B", tariff: "None", tier2: "Unknown" },
-    { name: "Vantage Polymers", city: "Wrocław", cc: "PL", lat: 51.11, lon: 17.03, fit: 63, risk: 61, cap: 96, onTime: 81, ppm: 1180, lead: 44, delta: +9.2, spend: 3.0, certs: ["ISO 9001"], audit: "Flagged", auditIn: -12, fin: "C", tariff: "None", tier2: "Unknown" },
-    { name: "Apex Driveline", city: "Detroit", cc: "US", lat: 42.33, lon: -83.05, fit: 86, risk: 24, cap: 78, onTime: 97, ppm: 190, lead: 29, delta: +3.6, spend: 12.1, certs: ["IATF", "ISO 45001"], audit: "Passed", auditIn: 301, fin: "A-", tariff: "None", tier2: "Mapped" },
-    { name: "Rio Molde", city: "Monterrey", cc: "MX", lat: 25.69, lon: -100.32, fit: 74, risk: 39, cap: 88, onTime: 89, ppm: 520, lead: 33, delta: -4.7, spend: 6.3, certs: ["IATF"], audit: "Passed", auditIn: 96, fin: "B+", tariff: "USMCA ok", tier2: "Partial" },
-    { name: "Anhui Toolworks", city: "Hefei", cc: "CN", lat: 31.82, lon: 117.23, fit: 71, risk: 58, cap: 93, onTime: 85, ppm: 780, lead: 58, delta: -11.3, spend: 7.9, certs: ["IATF"], audit: "Due", auditIn: 9, fin: "B", tariff: "Sec. 301 · 25%", tier2: "Unknown" },
-    { name: "Sakura Molding", city: "Nagoya", cc: "JP", lat: 35.18, lon: 136.91, fit: 90, risk: 21, cap: 69, onTime: 98, ppm: 90, lead: 47, delta: +7.4, spend: 4.8, certs: ["IATF", "ISO 14001"], audit: "Passed", auditIn: 188, fin: "A", tariff: "FTA", tier2: "Mapped" },
-    { name: "Bharat Polytech", city: "Pune", cc: "IN", lat: 18.52, lon: 73.86, fit: 68, risk: 47, cap: 85, onTime: 87, ppm: 640, lead: 52, delta: -8.9, spend: 2.6, certs: ["ISO 9001"], audit: "Due", auditIn: 34, fin: "B-", tariff: "GSP lapsed", tier2: "Unknown" },
-    { name: "Anatolia Kalıp", city: "Bursa", cc: "TR", lat: 40.19, lon: 29.06, fit: 77, risk: 44, cap: 90, onTime: 90, ppm: 470, lead: 38, delta: -6.2, spend: 3.4, certs: ["IATF"], audit: "Passed", auditIn: 128, fin: "B", tariff: "EU CU", tier2: "Partial" },
-    { name: "Lusitano Moldes", city: "Marinha Grande", cc: "PT", lat: 39.75, lon: -8.93, fit: 83, risk: 29, cap: 71, onTime: 94, ppm: 210, lead: 30, delta: +0.8, spend: 2.9, certs: ["IATF", "ISO 50001"], audit: "Passed", auditIn: 156, fin: "A-", tariff: "None", tier2: "Mapped" },
-    { name: "Seoul Injection", city: "Incheon", cc: "KR", lat: 37.46, lon: 126.71, fit: 81, risk: 33, cap: 87, onTime: 93, ppm: 300, lead: 45, delta: -3.4, spend: 5.1, certs: ["IATF"], audit: "Due", auditIn: 63, fin: "B+", tariff: "FTA", tier2: "Partial" },
-    { name: "Alpine Aerostructures", city: "Toulouse", cc: "FR", lat: 43.60, lon: 1.44, fit: 89, risk: 23, cap: 76, onTime: 96, ppm: 140, lead: 84, delta: +6.2, spend: 6.8, certs: ["AS9100", "Nadcap"], audit: "Passed", auditIn: 232, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Aerospace & Defence", "Machinery & Industrial"], stage: 6 },
-    { name: "Wichita Precision", city: "Wichita", cc: "US", lat: 37.69, lon: -97.34, fit: 84, risk: 28, cap: 83, onTime: 94, ppm: 210, lead: 76, delta: +4.1, spend: 5.4, certs: ["AS9100", "ITAR"], audit: "Due", auditIn: 38, fin: "B+", tariff: "None", tier2: "Partial", industries: ["Aerospace & Defence"], stage: 6 },
-    { name: "Baltic Medtech", city: "Kaunas", cc: "LT", lat: 54.90, lon: 23.90, fit: 87, risk: 26, cap: 72, onTime: 97, ppm: 95, lead: 54, delta: +2.4, spend: 3.6, certs: ["ISO 13485", "MDSAP"], audit: "Passed", auditIn: 174, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Medical Devices"], stage: 6 },
-    { name: "Galway Sterile", city: "Galway", cc: "IE", lat: 53.27, lon: -9.05, fit: 91, risk: 19, cap: 68, onTime: 98, ppm: 60, lead: 61, delta: +8.7, spend: 4.4, certs: ["ISO 13485", "ISO 14001"], audit: "Passed", auditIn: 288, fin: "A", tariff: "None", tier2: "Mapped", industries: ["Medical Devices"], stage: 6 },
-    { name: "Shenzhen Circuitworks", city: "Shenzhen", cc: "CN", lat: 22.54, lon: 114.06, fit: 73, risk: 54, cap: 94, onTime: 88, ppm: 520, lead: 42, delta: -14.6, spend: 6.1, certs: ["IPC-A-610", "ISO 9001"], audit: "Due", auditIn: 17, fin: "B", tariff: "Sec. 301 · 25%", tier2: "Unknown", industries: ["Electronics"], stage: 6 },
-    { name: "Penang Assembly", city: "Penang", cc: "MY", lat: 5.41, lon: 100.33, fit: 80, risk: 36, cap: 89, onTime: 92, ppm: 280, lead: 47, delta: -7.8, spend: 4.9, certs: ["IPC-A-610"], audit: "Passed", auditIn: 112, fin: "B+", tariff: "FTA", tier2: "Partial", industries: ["Electronics", "Medical Devices"], stage: 6 },
-    { name: "Norrland Steel", city: "Luleå", cc: "SE", lat: 65.58, lon: 22.15, fit: 85, risk: 24, cap: 79, onTime: 95, ppm: 170, lead: 26, delta: +5.4, spend: 7.2, certs: ["ISO 9001", "ISO 50001"], audit: "Passed", auditIn: 205, fin: "A", tariff: "None", tier2: "Mapped", industries: ["Raw Materials", "Machinery & Industrial"], stage: 6 },
-    { name: "Aberdeen Valve", city: "Aberdeen", cc: "GB", lat: 57.15, lon: -2.09, fit: 78, risk: 37, cap: 81, onTime: 91, ppm: 330, lead: 92, delta: +3.8, spend: 3.2, certs: ["API 6D", "ISO 9001"], audit: "Due", auditIn: 44, fin: "B", tariff: "UK-EU TCA", tier2: "Partial", industries: ["Oil & Gas"], stage: 6 },
-    { name: "Iberia Solar Structures", city: "Zaragoza", cc: "ES", lat: 41.65, lon: -0.89, fit: 76, risk: 41, cap: 92, onTime: 89, ppm: 420, lead: 38, delta: -5.2, spend: 2.8, certs: ["ISO 9001"], audit: "Due", auditIn: 29, fin: "B-", tariff: "None", tier2: "Unknown", industries: ["Green Energy"], stage: 6 },
-    { name: "Guangdong Housewares", city: "Foshan", cc: "CN", lat: 23.02, lon: 113.12, fit: 70, risk: 49, cap: 95, onTime: 86, ppm: 690, lead: 34, delta: -16.2, spend: 2.1, certs: ["ISO 9001"], audit: "Flagged", auditIn: -5, fin: "C", tariff: "Sec. 301 · 25%", tier2: "Unknown", industries: ["Household Products"], stage: 6 },
-    /* registered but not yet publishable — used by the registration-path screen */
-    { name: "Karpaty Tooling", city: "Lviv", cc: "UA", lat: 49.84, lon: 24.03, fit: 66, risk: 58, cap: 88, onTime: 84, ppm: 610, lead: 49, delta: -12.4, spend: 0.0, certs: ["ISO 9001"], audit: "None", auditIn: -40, fin: "C", tariff: "EU DCFTA", tier2: "Unknown", industries: ["Automotive", "Machinery & Industrial"], stage: 3 },
-    { name: "Casablanca Harness", city: "Casablanca", cc: "MA", lat: 33.57, lon: -7.59, fit: 69, risk: 46, cap: 90, onTime: 87, ppm: 480, lead: 41, delta: -9.6, spend: 0.0, certs: ["IATF"], audit: "Scheduled", auditIn: 21, fin: "B-", tariff: "EU AA", tier2: "Unknown", industries: ["Automotive", "Electronics"], stage: 4 },
-    { name: "Gujarat Polymers", city: "Ahmedabad", cc: "IN", lat: 23.03, lon: 72.58, fit: 64, risk: 52, cap: 86, onTime: 82, ppm: 820, lead: 55, delta: -13.8, spend: 0.0, certs: [], audit: "None", auditIn: -60, fin: "C", tariff: "GSP lapsed", tier2: "Unknown", industries: ["Raw Materials", "Household Products"], stage: 2 },
-    /* thin-industry coverage — nuclear, oil & gas, energy, raw materials, household, medical */
-    { name: "Creusot Nuclear Forge", city: "Le Creusot", cc: "FR", lat: 46.80, lon: 4.43, fit: 88, risk: 22, cap: 74, onTime: 96, ppm: 80, lead: 168, delta: +9.4, spend: 4.1, certs: ["ASME NQA-1", "ISO 9001"], audit: "Passed", auditIn: 262, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Nuclear", "Oil & Gas", "Machinery & Industrial"], stage: 6 },
-    { name: "Sheffield Safety Systems", city: "Sheffield", cc: "GB", lat: 53.38, lon: -1.47, fit: 82, risk: 31, cap: 78, onTime: 93, ppm: 150, lead: 154, delta: +6.8, spend: 2.4, certs: ["ASME NQA-1"], audit: "Due", auditIn: 41, fin: "B+", tariff: "UK-EU TCA", tier2: "Partial", industries: ["Nuclear", "Oil & Gas"], stage: 6 },
-    { name: "Onsan Heavy", city: "Ulsan", cc: "KR", lat: 35.54, lon: 129.31, fit: 79, risk: 35, cap: 88, onTime: 91, ppm: 240, lead: 132, delta: -6.4, spend: 5.6, certs: ["API 6D", "ASME U"], audit: "Passed", auditIn: 148, fin: "B+", tariff: "FTA", tier2: "Partial", industries: ["Oil & Gas", "Nuclear", "Raw Materials"], stage: 6 },
-    { name: "Houston Wellhead", city: "Houston", cc: "US", lat: 29.76, lon: -95.37, fit: 84, risk: 27, cap: 80, onTime: 95, ppm: 190, lead: 88, delta: +4.6, spend: 6.4, certs: ["API 6A", "ISO 29001"], audit: "Passed", auditIn: 196, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Oil & Gas"], stage: 6 },
-    { name: "Jutland Windparts", city: "Esbjerg", cc: "DK", lat: 55.47, lon: 8.45, fit: 86, risk: 25, cap: 84, onTime: 94, ppm: 210, lead: 74, delta: +7.2, spend: 5.9, certs: ["ISO 9001", "ISO 14001"], audit: "Passed", auditIn: 178, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Green Energy", "Machinery & Industrial"], stage: 6 },
-    { name: "Anatolia Cellworks", city: "İzmir", cc: "TR", lat: 38.42, lon: 27.14, fit: 75, risk: 42, cap: 93, onTime: 88, ppm: 460, lead: 52, delta: -8.4, spend: 3.1, certs: ["IEC 61215"], audit: "Due", auditIn: 33, fin: "B", tariff: "EU CU", tier2: "Unknown", industries: ["Green Energy", "Electronics"], stage: 6 },
-    { name: "Rhein Battery Systems", city: "Duisburg", cc: "DE", lat: 51.43, lon: 6.76, fit: 90, risk: 20, cap: 77, onTime: 97, ppm: 110, lead: 66, delta: +10.6, spend: 7.8, certs: ["IATF", "ISO 14001"], audit: "Passed", auditIn: 244, fin: "A", tariff: "None", tier2: "Mapped", industries: ["Green Energy", "Automotive", "Raw Materials"], stage: 6 },
-    { name: "Ruhr Alloys", city: "Bochum", cc: "DE", lat: 51.48, lon: 7.22, fit: 83, risk: 26, cap: 86, onTime: 94, ppm: 200, lead: 24, delta: +5.8, spend: 9.2, certs: ["ISO 9001", "REACH"], audit: "Passed", auditIn: 214, fin: "A-", tariff: "None", tier2: "Mapped", industries: ["Raw Materials", "Machinery & Industrial", "Oil & Gas"], stage: 6 },
-    { name: "Zhejiang Homegoods", city: "Ningbo", cc: "CN", lat: 29.87, lon: 121.55, fit: 72, risk: 47, cap: 94, onTime: 87, ppm: 640, lead: 36, delta: -15.4, spend: 2.6, certs: ["ISO 9001", "GS"], audit: "Due", auditIn: 26, fin: "B-", tariff: "Sec. 301 · 25%", tier2: "Unknown", industries: ["Household Products", "Electronics"], stage: 6 },
-    { name: "Lombardia Casalinghi", city: "Brescia", cc: "IT", lat: 45.54, lon: 10.22, fit: 81, risk: 29, cap: 82, onTime: 93, ppm: 260, lead: 31, delta: +2.8, spend: 3.8, certs: ["ISO 9001", "Food contact"], audit: "Passed", auditIn: 164, fin: "B+", tariff: "None", tier2: "Partial", industries: ["Household Products", "Machinery & Industrial"], stage: 6 },
-    { name: "Minnesota Medtech", city: "Minneapolis", cc: "US", lat: 44.98, lon: -93.27, fit: 92, risk: 18, cap: 71, onTime: 98, ppm: 50, lead: 58, delta: +11.2, spend: 6.7, certs: ["ISO 13485", "FDA reg."], audit: "Passed", auditIn: 296, fin: "A", tariff: "None", tier2: "Mapped", industries: ["Medical Devices", "Electronics"], stage: 6 },
-    { name: "Tijuana Devices", city: "Tijuana", cc: "MX", lat: 32.51, lon: -117.04, fit: 78, risk: 34, cap: 90, onTime: 92, ppm: 320, lead: 44, delta: -6.8, spend: 4.3, certs: ["ISO 13485"], audit: "Due", auditIn: 37, fin: "B+", tariff: "USMCA ok", tier2: "Partial", industries: ["Medical Devices", "Automotive"], stage: 6 }
-  ];
+  var SUPPLIERS = [];
 
   var REGIONS = [
     { name: "Western Europe", pct: 34, tone: "low" },

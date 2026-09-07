@@ -1581,10 +1581,13 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   applyPlatform: function (plat) {
     if (!plat || !window.SOURCING_DATA) return;
     var d = window.SOURCING_DATA;
-    /* Replace demo seed only when the shell posts at least one registry account.
-       An empty array used to wipe the seed and leave phone summaries blank. */
-    if (Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
-      d.SUPPLIERS = plat.suppliers.slice();
+    window.__STREFEX_ALLOW_DEMO_SEED__ = false;
+    window.__STREFEX_SOURCING_DEMO_SEED__ = null;
+    /* Registry only — never restore canvas demo sellers. */
+    if (Array.isArray(plat.suppliers)) {
+      d.SUPPLIERS = plat.suppliers.filter(function (s) {
+        return s && (s.source === "registered" || s.platformId);
+      });
     }
     if (Array.isArray(plat.buyers) && plat.buyers.length > 0) {
       d.BUYERS = plat.buyers.slice();
@@ -1788,8 +1791,8 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     <div style="margin-top:auto; padding:16px 20px 0; border-top:1px solid rgba(154,174,199,.14)">
       <div style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#6E8299">Supplier accounts</div>
       <div style="display:flex; align-items:baseline; gap:6px; margin-top:7px">
-        <span style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:#fff">412</span>
-        <span style="font-size:12px; color:#6E8299">of 1 840 invited</span>
+        <span style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:#fff">{{ sideAccounts }}</span>
+        <span style="font-size:12px; color:#6E8299">registered</span>
       </div>
       <div style="height:4px; border-radius:2px; background:rgba(255,255,255,.12); margin-top:10px; overflow:hidden">
         <div style="width:{{ sideProfile }}%; height:100%; background:var(--signal-data)"></div>
@@ -2202,7 +2205,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             <div class="stx-empty-state" style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:40px; display:flex; gap:32px; align-items:flex-start">
               <div style="flex:1; min-width:0">
                 <div style="font-family:var(--font-serif); font-size:25px; color:var(--navy-800)">No registered suppliers in this category yet</div>
-                <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; max-width:640px; text-wrap:pretty">Zero is a data state, not a verdict. No registered accounts currently match {{ summaryTitle }}. Catalog reference depth is {{ catSuppliersCatalog }}. Suppliers appear here once their account has country or city, this industry, and the matching product / equipment / service categories (each selected category and its subcategories).</p>
+                <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; max-width:640px; text-wrap:pretty">Zero is a data state, not a verdict. No registered accounts currently match {{ summaryTitle }}. Registered matches in scope: {{ catSuppliersCatalog }}. Suppliers appear here once their account has country or city, this industry, and the matching product / equipment / service categories (each selected category and its subcategories).</p>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:22px">
                   <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onQuestionnaire }}" hint-size="auto,40px">Send capability questionnaire</x-import>
                   <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onInvitePlants }}" hint-size="auto,40px">Invite plants by email</x-import>
@@ -2856,10 +2859,10 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   <span style="width:36px; height:36px; border-radius:4px; background:var(--signal-warning-bg); display:flex; align-items:center; justify-content:center; color:#9A6B12"><x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="alert" size="19" hint-size="19px,19px"></x-import></span>
                   <div>
                     <div style="font-weight:600; font-size:17px; color:var(--navy-800)">Nothing mapped here — yet</div>
-                    <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:3px">Automotive · Mould making · 0 of 74 suppliers mapped</div>
+                    <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:3px">{{ gapsProposedMeta }}</div>
                   </div>
                 </div>
-                <div style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-top:14px; text-wrap:pretty">Mould making sits under <strong style="color:var(--navy-800)">Tooling &amp; Mould Bases</strong>, which has 74 suppliers and 22% capacity headroom. Your filter is one level too deep.</div>
+                <div style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-top:14px; text-wrap:pretty">{{ gapsProposedBody }}</div>
                 <div style="display:flex; flex-direction:column; gap:9px; margin-top:16px">
                   <sc-for list="{{ afterActions }}" as="a" hint-placeholder-count="3">
                     <div style="display:flex; align-items:center; gap:11px; border:1px solid var(--border-hairline); border-left:3px solid {{ a.tone }}; border-radius:4px; padding:11px 13px">
@@ -3066,7 +3069,7 @@ class Component extends DCLogic {
     step: "home", domain: null, industry: null, category: null, subcat: null, sub: null,
     indFilter: "All", catSort: "suppliers", sortKey: "fit", sortDir: -1,
     metric: "risk", focus: "all", buyerId: "muc", empty: false,
-    sel: [], selScope: {}, focusName: "Meridian Forge",
+    sel: [], selScope: {}, focusName: "",
     rfqSent: false, rfqIndsSel: ["Automotive"], rfqMode: "sea",
     showLanes: false, panel: null, toast: null, navOpen: false,
     vw: typeof window !== "undefined" ? window.innerWidth : 1440,
@@ -3407,8 +3410,8 @@ class Component extends DCLogic {
   }
 
   serviceAwareLead(sup) {
-    if (!this.isServiceDomain()) return (sup && sup.lead) || 0;
-    return this.serviceEngagementDays(sup);
+    if (sup && Number.isFinite(Number(sup.lead))) return Number(sup.lead);
+    return null;
   }
 
 transitFor(sup) {
@@ -3533,13 +3536,128 @@ transitFor(sup) {
       };
     });
 
+    /* ── registry helpers (registered accounts only) ── */
+    function isRegisteredSeller(x) {
+      return !!(x && (x.source === "registered" || x.platformId));
+    }
+    function accountListed(x) {
+      if (!isRegisteredSeller(x)) return false;
+      if (x.published === true) return true;
+      if (x.published === false) return false;
+      if (typeof x.stage === "number") return x.stage >= 5;
+      return true;
+    }
+    function hasId(list, id) {
+      if (!id || !Array.isArray(list)) return false;
+      return list.map(String).indexOf(String(id)) >= 0;
+    }
+    function accountTypesOf(x) {
+      const types = {};
+      (Array.isArray(x.accountTypes) && x.accountTypes.length
+        ? x.accountTypes
+        : [x.accountType || "seller"]
+      ).forEach(function (t) {
+        const k = String(t || "").toLowerCase();
+        if (k) types[k] = true;
+      });
+      if (!Object.keys(types).length) types.seller = true;
+      return types;
+    }
+    function matchesIndustry(x, indId, indName) {
+      const labs = x.industries || [];
+      const ids = x.industryIds || [];
+      if (indName && labs.indexOf(indName) >= 0) return true;
+      if (indId && ids.indexOf(indId) >= 0) return true;
+      if (indId && labs.some(function (lab) {
+        return String(lab || "").toLowerCase().indexOf(String(indId).toLowerCase()) >= 0;
+      })) return true;
+      return false;
+    }
+    function matchesDomainRole(x, domainId) {
+      const types = accountTypesOf(x);
+      if (domainId === "service") return !!(types.service_provider || types.auditor);
+      return !!types.seller;
+    }
+    function matchesCategory(x, domainId, catId, subId) {
+      if (domainId === "service") {
+        if (!catId) return true;
+        const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []);
+        return hasId(svc, catId);
+      }
+      const domainIds = domainId === "equipment"
+        ? (x.equipmentCategoryIds || x.categoryIds || [])
+        : (x.productCategoryIds || x.categoryIds || []);
+      const subs = x.subcategoryIds || [];
+      if ((!domainIds || !domainIds.length) && (!subs || !subs.length)) return false;
+      if (subId) {
+        if (hasId(subs, subId)) return true;
+        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) return true;
+        return false;
+      }
+      if (!catId) return true;
+      return hasId(domainIds, catId) || hasId(subs, catId);
+    }
+    function countRegistry(pred) {
+      return registeredAccounts.filter(pred).length;
+    }
+    function numVals(arr, key) {
+      return arr.map(x => Number(x[key])).filter(n => Number.isFinite(n));
+    }
+    function avgNum(arr, key) {
+      const vals = numVals(arr, key);
+      if (!vals.length) return null;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+    function riskBand(r) {
+      if (!Number.isFinite(r)) return null;
+      if (r < 28) return "low";
+      if (r < 48) return "medium";
+      return "high";
+    }
+    function aggregatePool(pool) {
+      const lead = avgNum(pool, "lead");
+      const fit = avgNum(pool, "fit");
+      const cap = avgNum(pool, "cap");
+      const risk = avgNum(pool, "risk");
+      const delta = avgNum(pool, "delta");
+      const headroom = cap == null ? null : Math.max(0, Math.round(100 - cap));
+      const band = riskBand(risk);
+      const withRisk = pool.filter(x => Number.isFinite(Number(x.risk)));
+      const low = withRisk.filter(x => x.risk < 28).length;
+      const med = withRisk.filter(x => x.risk >= 28 && x.risk < 48).length;
+      const high = withRisk.filter(x => x.risk >= 48).length;
+      const riskTotal = withRisk.length || 1;
+      return {
+        suppliers: pool.length,
+        lead: lead == null ? 0 : Math.round(lead),
+        fit: fit == null ? 0 : Math.round(fit),
+        headroom: headroom == null ? 0 : headroom,
+        price: delta == null ? 0 : Number(delta.toFixed(1)),
+        risk: band || "low",
+        r0: Math.round(low / riskTotal * 100),
+        r1: Math.round(med / riskTotal * 100),
+        r2: Math.round(high / riskTotal * 100),
+        audited: pool.filter(x => Number.isFinite(Number(x.auditIn)) && x.auditIn >= 45).length,
+        hasMetrics: !!(lead != null || fit != null || cap != null || risk != null || delta != null)
+      };
+    }
+
+    const registry = dd.SUPPLIERS || [];
+    const registeredAccounts = registry.filter(accountListed);
+    const all = registeredAccounts;
+    const hidden = registry.filter(x => all.indexOf(x) < 0);
+
     /* ── step 1 ── */
-    /* Dashboard KPIs — only what the platform actually knows: buyer's own RFQ activity
-       and what suppliers have entered in their own accounts. No modelled savings or scores. */
-    const acc = dd.SUPPLIERS || [];
-    const avgOf = (arr, k) => Math.round(arr.reduce((a, b) => a + b[k], 0) / (arr.length || 1));
-    const stale = acc.filter(x => x.updatedDays > 120).length;
-    const expiring = acc.filter(x => x.certExpiry < 90).length;
+    /* Dashboard KPIs — buyer's RFQs + registered supplier accounts only. */
+    const acc = registeredAccounts;
+    const avgOf = (arr, k) => {
+      const vals = arr.map(x => Number(x[k])).filter(n => Number.isFinite(n));
+      if (!vals.length) return 0;
+      return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    };
+    const stale = acc.filter(x => Number(x.updatedDays) > 120).length;
+    const expiring = acc.filter(x => Number(x.certExpiry) < 90 || Number(x.auditIn) < 90).length;
+    const qualified = acc.filter(x => x.published === true || (typeof x.stage === "number" && x.stage >= 6)).length;
     const SRC = {
       own: { src: "Your activity", srcFg: "var(--navy-800)", srcBg: "var(--steel-200)" },
       dec: { src: "Supplier-declared", srcFg: "#155F76", srcBg: "var(--signal-data-bg)" },
@@ -3550,10 +3668,10 @@ transitFor(sup) {
       const invited = Number(r.invited || 0);
       const responses = Number(r.responses || 0);
       const bits = [
-        r.status || "sent",
+        r.statusLabel || r.status || "RFQ",
         invited ? invited + " invited" : null,
-        responses ? responses + " quote" + (responses === 1 ? "" : "s") : "awaiting quotes",
-        r.deadline ? "due " + r.deadline : null,
+        responses ? responses + " responses" : null,
+        r.updatedLabel || null
       ].filter(Boolean);
       return {
         id: r.id,
@@ -3572,20 +3690,31 @@ transitFor(sup) {
     const rfqListCount = rfqList.length ? String(rfqList.length) : "0";
     const homeKpis = [
       Object.assign({ label: "Active RFQs", value: String(rfqList.length || platformRfqs.length || 0), unit: "", delta: rfqList.length ? "live" : "—", deltaColor: NAVY, sub: rfqList.length ? "Track & compare on this list" : "Create an RFQ to start tracking", accent: NAVY }, SRC.own),
-      Object.assign({ label: "Qualified suppliers", value: "268", unit: "", delta: "▲ 12", deltaColor: GREEN, sub: "passed your qualification gate", accent: NAVY }, SRC.ver),
-      Object.assign({ label: "Supplier accounts", value: "412", unit: "", delta: "▲ 18", deltaColor: GREEN, sub: "registered · 1 840 invited", accent: CYAN }, SRC.dec),
-      Object.assign({ label: "Profile completeness", value: avgOf(acc, "profile"), unit: "%", delta: "▲ 6", deltaColor: GREEN, sub: stale + " accounts not updated in 120 d", accent: CYAN }, SRC.dec),
-      Object.assign({ label: "Certificates expiring", value: expiring, unit: "", delta: "▲ 2", deltaColor: RED, sub: "within 90 days · from uploaded docs", accent: expiring ? AMBER : GREEN }, SRC.ver)
+      Object.assign({ label: "Qualified suppliers", value: String(qualified), unit: "", delta: "—", deltaColor: GREEN, sub: acc.length ? "published / stage ≥ 6 on the platform" : "No registered suppliers yet", accent: NAVY }, SRC.ver),
+      Object.assign({ label: "Supplier accounts", value: String(acc.length), unit: "", delta: "—", deltaColor: GREEN, sub: "registered on the platform", accent: CYAN }, SRC.dec),
+      Object.assign({ label: "Profile completeness", value: avgOf(acc, "profile"), unit: "%", delta: "—", deltaColor: GREEN, sub: stale ? stale + " accounts not updated in 120 d" : (acc.length ? "From supplier account fields" : "No accounts yet"), accent: CYAN }, SRC.dec),
+      Object.assign({ label: "Certificates expiring", value: String(expiring), unit: "", delta: "—", deltaColor: expiring ? RED : GREEN, sub: "within 90 days · from uploaded docs", accent: expiring ? AMBER : GREEN }, SRC.ver)
     ];
-    const domains = doms.map(d => Object.assign({}, d, {
-      vcolor: tone3(d.verified, 60, 45), onPick: () => this.go("industry", { domain: d.id, industry: null, category: null })
-    }));
-    const alerts = [
-      { tone: RED, text: "Vantage Polymers financial grade cut to C — 3 open POs affected.", meta: "Registry update · 4h ago" },
-      { tone: AMBER, text: "Anhui Toolworks audit expires in 9 days; Section 301 duty still 25%.", meta: "Compliance · 1d ago" },
-      { tone: AMBER, text: "Electronics & wiring price index up 9.3% over 12 months.", meta: "Market research · 2d ago" },
-      { tone: CYAN, text: "Two new IATF-certified mould makers mapped in Portugal.", meta: "Research desk · 3d ago" }
-    ];
+    const domains = doms.map(d => {
+      const n = countRegistry(x => matchesDomainRole(x, d.id));
+      const verifiedPct = n ? Math.round(countRegistry(x => matchesDomainRole(x, d.id) && (x.published === true || (x.certs || []).length > 0)) / n * 100) : 0;
+      return Object.assign({}, d, {
+        suppliers: n,
+        verified: verifiedPct,
+        vcolor: tone3(verifiedPct, 60, 45),
+        onPick: () => this.go("industry", { domain: d.id, industry: null, category: null })
+      });
+    });
+    const alerts = [];
+    if (expiring) {
+      alerts.push({ tone: AMBER, text: expiring + " registered supplier" + (expiring === 1 ? "" : "s") + " have certificates or audits due within 90 days.", meta: "Document-verified · live registry" });
+    }
+    if (stale) {
+      alerts.push({ tone: CYAN, text: stale + " supplier account" + (stale === 1 ? "" : "s") + " not updated in 120 days.", meta: "Supplier-declared · live registry" });
+    }
+    if (!alerts.length && acc.length) {
+      alerts.push({ tone: GREEN, text: acc.length + " registered supplier" + (acc.length === 1 ? "" : "s") + " on the platform — no open compliance alerts.", meta: "Live registry" });
+    }
 
     /* ── step 2 ── */
     const indFilters = this.seg(
@@ -3594,17 +3723,20 @@ transitFor(sup) {
     );
     const industries = inds.filter(i => s.indFilter === "All" || (s.indFilter === "Entitled" ? i.registered : /IATF|AS9100|13485|ASME|API/.test(i.standard)))
       .map(i => {
-        const t = i.risk;
+        const pool = registeredAccounts.filter(x => matchesIndustry(x, i.id, i.name) && matchesDomainRole(x, s.domain || "product"));
+        const agg = aggregatePool(pool);
+        const coverage = acc.length ? Math.round(agg.suppliers / acc.length * 100) : 0;
         return {
-          name: i.name, icon: i.icon, standard: i.standard, suppliers: i.suppliers, lead: i.lead, coverage: i.coverage, note: i.note,
+          name: i.name, icon: i.icon, standard: i.standard, suppliers: agg.suppliers, lead: agg.lead, coverage: coverage,
+          note: agg.suppliers ? (agg.suppliers + " registered accounts in scope") : "No registered accounts in this industry yet",
           tag: i.registered ? "Entitled" : "Read-only",
           tagBg: i.registered ? "var(--signal-running-bg)" : "var(--steel-200)",
           tagFg: i.registered ? "#2F7A2C" : "var(--steel-700)",
           border: i.registered ? "var(--border-hairline)" : "var(--border-hairline)",
           rule: i.registered ? NAVY : "var(--steel-500)",
-          covColor: tone3(i.coverage, 60, 40),
-          r0: t[0], r1: t[1], r2: t[2],
-          riskLabel: t[0] + "/" + t[1] + "/" + t[2] + " risk mix",
+          covColor: tone3(coverage, 60, 40),
+          r0: agg.r0, r1: agg.r1, r2: agg.r2,
+          riskLabel: agg.suppliers ? (agg.r0 + "/" + agg.r1 + "/" + agg.r2 + " risk mix") : "No risk data yet",
           onPick: () => this.go("category", { industry: i.id, category: null })
         };
       });
@@ -3615,7 +3747,24 @@ transitFor(sup) {
       s.catSort, k => this.setState({ catSort: k })
     );
     const rank = { low: 0, medium: 1, high: 2 };
-    const rawCats = this.cats().slice().sort((a, b) =>
+    const domain = s.domain || "product";
+    const liveCats = this.cats().map(c => {
+      const pool = registeredAccounts.filter(x =>
+        matchesIndustry(x, s.industry, industryName)
+        && matchesDomainRole(x, domain)
+        && matchesCategory(x, domain, c.id, null)
+      );
+      const agg = aggregatePool(pool);
+      return Object.assign({}, c, {
+        suppliers: agg.suppliers,
+        lead: agg.lead,
+        headroom: agg.headroom,
+        fit: agg.fit,
+        price: agg.price,
+        risk: agg.risk
+      });
+    });
+    const rawCats = liveCats.slice().sort((a, b) =>
       s.catSort === "lead" ? a.lead - b.lead : s.catSort === "price" ? a.price - b.price :
       s.catSort === "risk" ? rank[a.risk] - rank[b.risk] : b.suppliers - a.suppliers
     );
@@ -3625,123 +3774,76 @@ transitFor(sup) {
     const categories = rawCats.map(c => ({
       name: c.name, icon: c.icon, desc: c.desc, procs: c.procs, suppliers: c.suppliers, lead: c.lead, headroom: c.headroom,
       riskDot: dotOf[c.risk], riskFg: fgOf[c.risk], riskLabel: labelOf[c.risk],
-      priceLabel: (c.price > 0 ? "+" : "") + c.price.toFixed(1) + "%",
-      priceColor: c.price > 6 ? RED : c.price > 3 ? AMBER : GREEN,
+      priceLabel: c.suppliers ? ((c.price > 0 ? "+" : "") + Number(c.price).toFixed(1) + "%") : "—",
+      priceColor: !c.suppliers ? "var(--text-faint)" : c.price > 6 ? RED : c.price > 3 ? AMBER : GREEN,
       headColor: tone3(c.headroom, 15, 8),
       subLabel: this.subs(c.id).length + " subcategories",
       onBrief: e => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ panel: "brief:" + c.id }); },
       onSub: () => this.go("subcat", { category: c.id, subcat: null })
     }));
+    const machN = countRegistry(x => matchesIndustry(x, "machinery", "Machinery & Industrial") && matchesDomainRole(x, domain));
+    const autoN = countRegistry(x => matchesIndustry(x, "automotive", "Automotive") && matchesDomainRole(x, domain));
     const adjacent = [
-      { label: "Machinery · " + domainName, meta: "268 suppliers · 66% coverage", onPick: () => this.go("category", { industry: "machinery", category: null }) },
-      { label: "Automotive · " + domainName, meta: "412 suppliers · 78% coverage", onPick: () => this.go("category", { industry: "automotive", category: null }) },
-      { label: "Send RFQ without a category", meta: "Open ask to 12 vetted plants", onPick: () => {} }
+      { label: "Machinery · " + domainName, meta: machN + " registered · live count", onPick: () => this.go("category", { industry: "machinery", category: null }) },
+      { label: "Automotive · " + domainName, meta: autoN + " registered · live count", onPick: () => this.go("category", { industry: "automotive", category: null }) },
+      { label: "Send RFQ without a category", meta: "Invite registered suppliers from your shortlist", onPick: () => {} }
     ];
 
     /* ── step 4 — subcategories ── */
-    const subcats = subList.map(x => ({
+    const liveSubs = subList.map(x => {
+      const pool = registeredAccounts.filter(xAcc =>
+        matchesIndustry(xAcc, s.industry, industryName)
+        && matchesDomainRole(xAcc, domain)
+        && matchesCategory(xAcc, domain, s.category || x.parent || null, x.id)
+      );
+      const agg = aggregatePool(pool);
+      return Object.assign({}, x, {
+        suppliers: agg.suppliers,
+        audited: agg.audited,
+        lead: agg.lead,
+        headroom: agg.headroom,
+        fit: agg.fit,
+        price: agg.price,
+        risk: agg.risk,
+        countries: new Set(pool.map(p => p.cc).filter(Boolean)).size,
+        rfqs: 0,
+        moq: 0,
+        hasMetrics: agg.hasMetrics
+      });
+    });
+    const subcats = liveSubs.map(x => ({
       name: x.name, parent: x.parent, icon: x.icon, spec: x.spec,
       suppliers: x.suppliers, lead: x.lead, headroom: x.headroom, fit: x.fit,
-      audited: x.audited, countries: x.countries, moq: x.moq.toLocaleString("en-US") + " pcs",
-      audColor: tone3(x.audited / x.suppliers * 100, 55, 35),
+      audited: x.audited, countries: x.countries || "—", moq: x.moq ? (x.moq.toLocaleString("en-US") + " pcs") : "—",
+      audColor: tone3(x.suppliers ? (x.audited / x.suppliers * 100) : 0, 55, 35),
       riskDot: dotOf[x.risk], riskFg: fgOf[x.risk], riskLabel: labelOf[x.risk],
       rule: x.risk === "high" ? RED : x.risk === "medium" ? AMBER : NAVY,
-      priceLabel: (x.price > 0 ? "+" : "") + x.price.toFixed(1) + "%",
-      priceColor: x.price > 6 ? RED : x.price > 3 ? AMBER : GREEN,
+      priceLabel: x.hasMetrics ? ((x.price > 0 ? "+" : "") + Number(x.price).toFixed(1) + "%") : "—",
+      priceColor: !x.hasMetrics ? "var(--text-faint)" : x.price > 6 ? RED : x.price > 3 ? AMBER : GREEN,
       headColor: tone3(x.headroom, 15, 8),
       fitColor: tone3(x.fit, 80, 72),
       rfqLabel: x.rfqs ? x.rfqs + " open RFQs" : "No open RFQs",
       onPick: () => this.go("summary", { subcat: x.id })
     }));
     const subStats = [
-      { n: subList.length, label: "Subcategories", tone: NAVY },
-      { n: subList.reduce((a, b) => a + b.suppliers, 0), label: "Suppliers", tone: CYAN },
-      { n: subList.filter(x => x.risk === "high").length, label: "High risk", tone: RED }
+      { n: liveSubs.length, label: "Subcategories", tone: NAVY },
+      { n: liveSubs.reduce((a, b) => a + b.suppliers, 0), label: "Suppliers", tone: CYAN },
+      { n: liveSubs.filter(x => x.risk === "high").length, label: "High risk", tone: RED }
     ];
 
     /* ── step 5 ── */
-    const catSuppliersCatalog = sub ? sub.suppliers : cat ? cat.suppliers : 86;
-    /* only verified, published accounts are visible to the buyer — stages 1–4 are invisible.
-       Platform-registered suppliers set published explicitly; fall back to stage / source. */
-    const registry = dd.SUPPLIERS || [];
-    const all = registry.filter(x => {
-      if (x.published === true) return true;
-      if (x.published === false) return false;
-      if (typeof x.stage === "number") return x.stage >= 5;
-      return x.source === "registered";
-    });
-    const hidden = registry.filter(x => all.indexOf(x) < 0);
-    /* Industry + domain role + category — sellers never appear on service requests;
-       service providers never appear on product/equipment requests unless dual-role. */
-    const domain = s.domain || "product";
     const catId = s.category || null;
     const subId = s.subcat || null;
     function roleAndIndustryOk(x) {
-      const inds = x.industries || [];
-      const ids = x.industryIds || [];
-      const inIndustry = inds.indexOf(industryName) >= 0
-        || ids.indexOf(s.industry) >= 0
-        || (s.industry && inds.some(function (lab) {
-          return String(lab || "").toLowerCase().indexOf(String(s.industry).toLowerCase()) >= 0;
-        }));
-      if (!inIndustry) return false;
-
-      const types = {};
-      (Array.isArray(x.accountTypes) && x.accountTypes.length
-        ? x.accountTypes
-        : [x.accountType || "seller"]
-      ).forEach(function (t) {
-        const k = String(t || "").toLowerCase();
-        if (k) types[k] = true;
-      });
-      if (!Object.keys(types).length) types.seller = true;
-
-      if (domain === "service") {
-        return !!(types.service_provider || types.auditor);
-      }
-      return !!types.seller;
-    }
-    function hasId(list, id) {
-      if (!id || !Array.isArray(list)) return false;
-      return list.map(String).indexOf(String(id)) >= 0;
+      return matchesIndustry(x, s.industry, industryName) && matchesDomainRole(x, domain);
     }
     function categoryOk(x) {
-      if (domain === "service") {
-        if (!catId) return true;
-        const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []);
-        return hasId(svc, catId);
-      }
-      const domainIds = domain === "equipment"
-        ? (x.equipmentCategoryIds || x.categoryIds || [])
-        : (x.productCategoryIds || x.categoryIds || []);
-      const subs = x.subcategoryIds || [];
-      const bare = (!domainIds || !domainIds.length) && (!subs || !subs.length);
-      /* Demo / incomplete accounts: industry match is enough when taxonomy is missing. */
-      if (bare) return true;
-      if (subId) {
-        if (hasId(subs, subId)) return true;
-        if (catId && (hasId(domainIds, catId) || hasId(subs, catId))) return true;
-        return false;
-      }
-      if (!catId) return true;
-      if (hasId(domainIds, catId) || hasId(subs, catId)) return true;
-      return false;
+      return matchesCategory(x, domain, catId, subId);
     }
-    let pool = all.filter(x => roleAndIndustryOk(x) && categoryOk(x));
-    /* If nothing matched the subcategory taxonomy, still show industry peers so phone/web lists match. */
-    if (pool.length === 0 && (catId || subId)) {
-      pool = all.filter(roleAndIndustryOk);
-    }
+    const pool = all.filter(x => roleAndIndustryOk(x) && categoryOk(x));
+    const catSuppliersCatalog = pool.length;
     let sups = pool;
-    /* Prefer real category matches; only hash-sample when the pool is huge */
-    if (sub && pool.length > 18) {
-      let h = 0;
-      for (let i = 0; i < sub.id.length; i++) h = (h * 31 + sub.id.charCodeAt(i)) % 9973;
-      const keep = Math.min(pool.length, 12 + (h % 6));
-      const start = h % pool.length;
-      sups = [];
-      for (let i = 0; i < keep; i++) sups.push(pool[(start + i) % pool.length]);
-    }
+    /* Show every registered match in scope (no demo sampling). */
     const thin = pool.length > 0 && pool.length < 4;
     const cols = [
       { key: "name", label: "Supplier", align: "left" }, { key: "city", label: "Location", align: "left" },
@@ -3774,21 +3876,23 @@ transitFor(sup) {
     });
 
     const rows = enriched.map(x => {
-      const riskKey = x.risk < 28 ? "low" : x.risk < 48 ? "medium" : "high";
+      const hasRisk = Number.isFinite(Number(x.risk));
+      const riskKey = !hasRisk ? "low" : x.risk < 28 ? "low" : x.risk < 48 ? "medium" : "high";
+      const hasAudit = Number.isFinite(Number(x.auditIn));
       return {
         name: x.name, city: x.city, cc: x.cc, spend: x.spend, initials: initials(x.name),
-        fit: x.fit, fitColor: tone3(x.fit, 82, 70),
-        risk: x.risk, riskLabel: labelOf[riskKey], riskDot: dotOf[riskKey], riskFg: fgOf[riskKey],
-        riskBg: riskKey === "low" ? "var(--signal-running-bg)" : riskKey === "medium" ? "var(--signal-warning-bg)" : "var(--signal-fault-bg)",
-        cap: x.cap, capColor: x.cap > 92 ? RED : x.cap > 80 ? AMBER : "var(--text-body)",
-        onTime: x.onTime, ppm: x.ppm, ppmColor: tone3(x.ppm, 300, 600, true),
-        lead: x.lead,
+        fit: x.fit != null ? x.fit : "—", fitColor: x.fit != null ? tone3(x.fit, 82, 70) : "var(--text-faint)",
+        risk: x.risk != null ? x.risk : "—", riskLabel: hasRisk ? labelOf[riskKey] : "No data", riskDot: hasRisk ? dotOf[riskKey] : "var(--text-faint)", riskFg: hasRisk ? fgOf[riskKey] : "var(--text-faint)",
+        riskBg: !hasRisk ? "var(--steel-200)" : riskKey === "low" ? "var(--signal-running-bg)" : riskKey === "medium" ? "var(--signal-warning-bg)" : "var(--signal-fault-bg)",
+        cap: x.cap != null ? x.cap : "—", capColor: x.cap == null ? "var(--text-faint)" : x.cap > 92 ? RED : x.cap > 80 ? AMBER : "var(--text-body)",
+        onTime: x.onTime != null ? x.onTime : "—", ppm: x.ppm != null ? x.ppm : "—", ppmColor: x.ppm != null ? tone3(x.ppm, 300, 600, true) : "var(--text-faint)",
+        lead: x.lead != null ? x.lead : "—",
         transitDays: x._transitDays || "—", transitMode: (x._std.mode || "—").replace(" freight", "").replace(" / truck", ""),
-        eta: x._transitDays ? fmtDate(x.lead + x._transitDays) : "—",
-        certs: x.certs.join(" · "),
-        auditLabel: x.auditIn < 0 ? "Audit overdue" : x.auditIn < 45 ? "Audit due " + x.auditIn + "d" : "Audit ok",
-        auditColor: x.auditIn < 0 ? RED : x.auditIn < 45 ? AMBER : GREEN,
-        tariff: x.tariff, tariffColor: /301|lapsed/.test(x.tariff) ? RED : x.tariff === "None" ? "var(--text-faint)" : "var(--text-body)",
+        eta: (x.lead != null && x._transitDays) ? fmtDate(x.lead + x._transitDays) : "—",
+        certs: (x.certs || []).length ? x.certs.join(" · ") : "—",
+        auditLabel: !hasAudit ? "No audit date" : x.auditIn < 0 ? "Audit overdue" : x.auditIn < 45 ? "Audit due " + x.auditIn + "d" : "Audit ok",
+        auditColor: !hasAudit ? "var(--text-faint)" : x.auditIn < 0 ? RED : x.auditIn < 45 ? AMBER : GREEN,
+        tariff: x.tariff || "—", tariffColor: /301|lapsed/.test(String(x.tariff || "")) ? RED : x.tariff === "None" ? "var(--text-faint)" : "var(--text-body)",
         rowBg: s.focusName === x.name ? "var(--steel-100)" : "transparent",
         boxBg: s.sel.indexOf(x.name) >= 0 ? NAVY : "var(--white)",
         boxBorder: s.sel.indexOf(x.name) >= 0 ? NAVY : "var(--border-strong)",
@@ -3806,141 +3910,180 @@ transitFor(sup) {
       };
     });
 
-    const avg = k => Math.round(sups.reduce((a, b) => a + b[k], 0) / (sups.length || 1));
-    /* Every indicator states its own source and sample size. No modelled trend arrows —
-       there is no history behind them — and no composite risk score: risk is shown as
-       countable flags the buyer can audit line by line. */
-    const auditOk = sups.filter(x => x.auditIn >= 45).length;
-    const auditDue = sups.filter(x => x.auditIn >= 0 && x.auditIn < 45).length;
-    const auditLate = sups.filter(x => x.auditIn < 0).length;
-    const flagged = sups.filter(x => x.auditIn < 45 || /^C/.test(x.fin) || /301|lapsed/.test(x.tariff) || x.tier2 === "Unknown");
-    const otdBelow = sups.filter(x => x.onTime < 95).length;
-    const ppmAbove = sups.filter(x => x.ppm > 300).length;
-    const declared = { src: "Supplier-declared", srcFg: "#155F76", srcBg: "var(--signal-data-bg)" };
+    const declared = (k) => sups.filter(x => Number.isFinite(Number(x[k])));
+    const avg = k => {
+      const vals = declared(k).map(x => Number(x[k]));
+      if (!vals.length) return null;
+      return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    };
+    const avgOr = (k, fallback) => {
+      const v = avg(k);
+      return v == null ? fallback : v;
+    };
+    /* Every indicator states its own source and sample size from registered accounts only. */
+    const auditOk = declared("auditIn").filter(x => x.auditIn >= 45).length;
+    const auditDue = declared("auditIn").filter(x => x.auditIn >= 0 && x.auditIn < 45).length;
+    const auditLate = declared("auditIn").filter(x => x.auditIn < 0).length;
+    const flagged = sups.filter(x =>
+      (Number.isFinite(Number(x.auditIn)) && x.auditIn < 45)
+      || (x.fin && x.fin !== "—" && /^C/.test(String(x.fin)))
+      || /301|lapsed/.test(String(x.tariff || ""))
+      || x.tier2 === "Unknown"
+    );
+    const otdBelow = declared("onTime").filter(x => x.onTime < 95).length;
+    const ppmAbove = declared("ppm").filter(x => x.ppm > 300).length;
+    const declaredSrc = { src: "Supplier-declared", srcFg: "#155F76", srcBg: "var(--signal-data-bg)" };
     const verified = { src: "Document-verified", srcFg: "#2F7A2C", srcBg: "var(--signal-running-bg)" };
     const nSample = sups.length;
-    const nHint = "n=" + nSample + " means this value is calculated from " + nSample + " supplier" + (nSample === 1 ? "" : "s") + " currently in scope for this category. Only plants that have stated this field in their account data are included.";
-    const withN = (row) => Object.assign({ n: nSample, nHint: nHint }, row);
+    const withN = (row, nOverride) => {
+      const n = nOverride != null ? nOverride : nSample;
+      const nHint = "n=" + n + " means this value is calculated from " + n + " registered supplier" + (n === 1 ? "" : "s") + " in scope that declared this field.";
+      return Object.assign({ n: n, nHint: nHint }, row);
+    };
     const avgCap = avg("cap");
-    const highCapCount = sups.filter(x => x.cap > 90).length;
-    const capacitySub = avgCap > 90
-      ? "High utilisation — clarify investment / capacity expansion with the manufacturer before awarding volume"
-      : avgCap > 80
-        ? highCapCount
-          ? highCapCount + " plant" + (highCapCount === 1 ? "" : "s") + " above 90% — clarify investment with those manufacturers; others have enough capacity for requested volume"
-          : "Tight headroom — confirm ramp plan with manufacturers"
-        : "Enough capacity for requested volume (avg utilisation " + avgCap + "%)";
-    const certShare = Math.round(sups.filter(x => (x.certs || []).length > 0).length / (sups.length || 1) * 100);
-    const tier2Share = Math.round(sups.filter(x => x.tier2 && x.tier2 !== "Unknown").length / (sups.length || 1) * 100);
-    /* All eight indicators are built only from what suppliers stated / uploaded in their account — no market basket or buyer-receipt proxies. */
+    const highCapCount = declared("cap").filter(x => x.cap > 90).length;
+    const capacitySub = avgCap == null
+      ? "No capacity declared in registered accounts yet"
+      : avgCap > 90
+        ? "High utilisation — clarify investment / capacity expansion with the manufacturer before awarding volume"
+        : avgCap > 80
+          ? highCapCount
+            ? highCapCount + " plant" + (highCapCount === 1 ? "" : "s") + " above 90% — clarify investment with those manufacturers; others have enough capacity for requested volume"
+            : "Tight headroom — confirm ramp plan with manufacturers"
+          : "Enough capacity for requested volume (avg utilisation " + avgCap + "%)";
+    const certShare = nSample ? Math.round(sups.filter(x => (x.certs || []).length > 0).length / nSample * 100) : 0;
+    const tier2Share = nSample ? Math.round(sups.filter(x => x.tier2 && x.tier2 !== "Unknown").length / nSample * 100) : 0;
+    const fitAvg = avg("fit");
+    const onTimeAvg = avg("onTime");
+    const ppmAvg = avg("ppm");
+    const leadAvg = avg("lead");
+    const auditN = declared("auditIn").length;
     const indicators = [
-      withN(Object.assign({ label: "Supplier fit", value: avg("fit"), unit: "/100", pct: avg("fit"), accent: NAVY, sub: "From each supplier's capability answers vs your gate", hint: "Average of the fit scores suppliers declared in their capability questionnaire (0–100), checked against certificates they uploaded. n = suppliers in this scoped set." }, declared)),
-      withN(Object.assign({ label: "Open risk flags", value: flagged.length, unit: " of " + nSample, pct: Math.round(flagged.length / (nSample || 1) * 100), accent: flagged.length ? AMBER : GREEN, sub: "Audit lapsed, grade C, duty exposure or unknown Tier-2", hint: "Countable flags from supplier-stated audit dates, financial grade, tariff regime and Tier-2 declaration — not a composite risk model. n = suppliers checked." }, verified)),
-      withN(Object.assign({ label: "Capacity used", value: avgCap, unit: "%", pct: avgCap, accent: avgCap > 90 ? RED : avgCap > 80 ? AMBER : GREEN, sub: capacitySub, hint: "Average utilisation % each supplier entered in their plant account. Above 90%: clarify investment / expansion with the manufacturer. At or below 80%: enough capacity for requested volume. n = suppliers that declared capacity." }, declared)),
-      withN(Object.assign({ label: "On-time delivery", value: avg("onTime"), unit: "%", pct: avg("onTime"), accent: GREEN, sub: "Supplier-stated OTD · " + otdBelow + " below 95%", hint: "On-time delivery % as declared by each supplier in their account performance data (not buyer receipts). Target 95%. n = suppliers that stated OTD." }, declared)),
-      withN(Object.assign({ label: "Quality", value: avg("ppm"), unit: " ppm", pct: Math.max(8, Math.min(100, Math.round(100 - avg("ppm") / 10))), accent: avg("ppm") > 300 ? AMBER : GREEN, sub: "Supplier-stated ppm · " + ppmAbove + " above 300", hint: "Defective parts per million as stated by the supplier in their quality profile. Target under 300 ppm. n = suppliers that stated quality ppm." }, declared)),
-      withN(Object.assign({ label: this.isServiceDomain() ? "Service duration" : "Production lead", value: avg("lead"), unit: " d", pct: Math.min(100, Math.round(avg("lead") / 1.5)), accent: NAVY, sub: this.isServiceDomain() ? "Schedule + on-site + report · from supplier account" : "Ex-works lead stated by supplier · transit separate", hint: this.isServiceDomain() ? "Service duration (days) declared by the supplier for this engagement type. n = suppliers in scope." : "Production lead time (days) quoted/stated by the supplier from PO to ex-works readiness. n = suppliers in scope." }, declared)),
-      withN(Object.assign({ label: "Audit coverage", value: Math.round(auditOk / (nSample || 1) * 100), unit: "%", pct: Math.round(auditOk / (nSample || 1) * 100), accent: AMBER, sub: auditDue + " due · " + auditLate + " overdue", hint: "Share of scoped suppliers with a valid audit report they uploaded under the industry standard. n = suppliers whose audit status is on file." }, verified)),
-      withN(Object.assign({ label: "Standards & Tier-2", value: certShare, unit: "% certs", pct: certShare, accent: CYAN, sub: "Tier-2 declared: " + tier2Share + "% of plants", hint: "Share of suppliers that declared certifications in their account, plus how many also declared Tier-2/sub-tier data. Built only from supplier-stated fields. n = suppliers in scope." }, declared))
+      withN(Object.assign({ label: "Supplier fit", value: fitAvg == null ? "—" : fitAvg, unit: fitAvg == null ? "" : "/100", pct: fitAvg || 0, accent: NAVY, sub: fitAvg == null ? "No fit scores declared yet" : "From each supplier's capability answers vs your gate", hint: "Average of declared fit scores only. n = suppliers that stated fit." }, declaredSrc), declared("fit").length),
+      withN(Object.assign({ label: "Open risk flags", value: flagged.length, unit: " of " + nSample, pct: Math.round(flagged.length / (nSample || 1) * 100), accent: flagged.length ? AMBER : GREEN, sub: "Audit lapsed, grade C, duty exposure or unknown Tier-2", hint: "Countable flags from registered account fields only." }, verified)),
+      withN(Object.assign({ label: "Capacity used", value: avgCap == null ? "—" : avgCap, unit: avgCap == null ? "" : "%", pct: avgCap || 0, accent: avgCap == null ? "var(--text-faint)" : avgCap > 90 ? RED : avgCap > 80 ? AMBER : GREEN, sub: capacitySub, hint: "Average utilisation % from registered plant accounts." }, declaredSrc), declared("cap").length),
+      withN(Object.assign({ label: "On-time delivery", value: onTimeAvg == null ? "—" : onTimeAvg, unit: onTimeAvg == null ? "" : "%", pct: onTimeAvg || 0, accent: GREEN, sub: onTimeAvg == null ? "No OTD declared yet" : ("Supplier-stated OTD · " + otdBelow + " below 95%"), hint: "OTD % as declared in registered accounts." }, declaredSrc), declared("onTime").length),
+      withN(Object.assign({ label: "Quality", value: ppmAvg == null ? "—" : ppmAvg, unit: ppmAvg == null ? "" : " ppm", pct: ppmAvg == null ? 0 : Math.max(8, Math.min(100, Math.round(100 - ppmAvg / 10))), accent: ppmAvg != null && ppmAvg > 300 ? AMBER : GREEN, sub: ppmAvg == null ? "No quality ppm declared yet" : ("Supplier-stated ppm · " + ppmAbove + " above 300"), hint: "Quality ppm from registered accounts only." }, declaredSrc), declared("ppm").length),
+      withN(Object.assign({ label: this.isServiceDomain() ? "Service duration" : "Production lead", value: leadAvg == null ? "—" : leadAvg, unit: leadAvg == null ? "" : " d", pct: leadAvg == null ? 0 : Math.min(100, Math.round(leadAvg / 1.5)), accent: NAVY, sub: leadAvg == null ? "No lead time declared yet" : (this.isServiceDomain() ? "Schedule + on-site + report · from supplier account" : "Ex-works lead stated by supplier · transit separate"), hint: "Lead days declared on registered accounts." }, declaredSrc), declared("lead").length),
+      withN(Object.assign({ label: "Audit coverage", value: auditN ? Math.round(auditOk / auditN * 100) : "—", unit: auditN ? "%" : "", pct: auditN ? Math.round(auditOk / auditN * 100) : 0, accent: AMBER, sub: auditN ? (auditDue + " due · " + auditLate + " overdue") : "No audit dates on file", hint: "Share of scoped suppliers with a valid audit date on their account." }, verified), auditN),
+      withN(Object.assign({ label: "Standards & Tier-2", value: certShare, unit: "% certs", pct: certShare, accent: CYAN, sub: "Tier-2 declared: " + tier2Share + "% of plants", hint: "Share of suppliers that declared certifications / Tier-2 on their account." }, declaredSrc))
     ];
 
-    /* concentration & exposure — computed from the scoped shortlist */
-    const spendTotal = sups.reduce((a, b) => a + b.spend, 0) || 1;
-    const top3 = sups.slice().sort((a, b) => b.spend - a.spend).slice(0, 3);
-    const top3Pct = Math.round(top3.reduce((a, b) => a + b.spend, 0) / spendTotal * 100);
-    const tariffed = sups.filter(x => x.tariff !== "None");
-    const tariffPct = Math.round(tariffed.reduce((a, b) => a + b.spend, 0) / spendTotal * 100);
-    const tariffHot = sups.filter(x => /301|lapsed/.test(x.tariff));
+    /* concentration & exposure — equal weight when spend not declared */
+    const weightOf = (x) => (Number.isFinite(Number(x.spend)) && Number(x.spend) > 0 ? Number(x.spend) : 1);
+    const spendTotal = sups.reduce((a, b) => a + weightOf(b), 0) || 1;
+    const top3 = sups.slice().sort((a, b) => weightOf(b) - weightOf(a)).slice(0, 3);
+    const top3Pct = nSample ? Math.round(top3.reduce((a, b) => a + weightOf(b), 0) / spendTotal * 100) : 0;
+    const tariffed = sups.filter(x => x.tariff && x.tariff !== "None");
+    const tariffPct = nSample ? Math.round(tariffed.reduce((a, b) => a + weightOf(b), 0) / spendTotal * 100) : 0;
+    const tariffHot = sups.filter(x => /301|lapsed/.test(String(x.tariff || "")));
     const mapped = sups.filter(x => x.tier2 === "Mapped").length;
-    const unknown = sups.filter(x => x.tier2 === "Unknown");
-    const tier2Pct = Math.round((mapped + (sups.length - mapped - unknown.length) * 0.5) / (sups.length || 1) * 100);
-    const single = sups.filter(x => x.cap > 90 || x.risk > 45);
-    const exposure = [
+    const unknown = sups.filter(x => !x.tier2 || x.tier2 === "Unknown");
+    const tier2Pct = nSample ? Math.round((nSample - unknown.length) / nSample * 100) : 0;
+    const single = declared("cap").filter(x => x.cap > 90).concat(declared("risk").filter(x => x.risk > 45));
+    const singleUnique = [...new Map(single.map(x => [x.name, x])).values()];
+    const exposure = nSample ? [
       {
         label: "Top-3 supplier concentration", value: top3Pct + "%", pct: top3Pct,
         fg: top3Pct > 60 ? RED : top3Pct > 45 ? AMBER : GREEN,
-        note: top3Pct > 50 ? "Above the 50% policy ceiling — " + top3.map(x => x.cc).join(" / ") + " carry $" + top3.reduce((a, b) => a + b.spend, 0).toFixed(1) + "M"
-          : "Within the 50% policy ceiling across " + top3.length + " plants"
+        note: top3.length
+          ? ("Across " + top3.map(x => x.cc || "?").join(" / ") + " — weighted by declared spend when available, otherwise equal share")
+          : "No suppliers in scope"
       },
       {
-        label: "Capacity-constrained suppliers", value: single.length + " of " + sups.length, pct: Math.round(single.length / (sups.length || 1) * 100),
-        fg: single.length > sups.length / 3 ? RED : single.length ? AMBER : GREEN,
-        note: single.length
-          ? single.map(x => x.name.split(" ")[0]).join(", ") + " — high capacity used; clarify investment with manufacturer"
-          : "Enough capacity for requested volume across scoped plants"
+        label: "Capacity-constrained suppliers", value: singleUnique.length + " of " + nSample, pct: Math.round(singleUnique.length / (nSample || 1) * 100),
+        fg: singleUnique.length > nSample / 3 ? RED : singleUnique.length ? AMBER : GREEN,
+        note: singleUnique.length
+          ? singleUnique.map(x => x.name.split(" ")[0]).join(", ") + " — high capacity or risk on registered profile"
+          : (declared("cap").length ? "Enough declared capacity across scoped plants" : "No capacity figures declared yet")
       },
       {
-        label: "Tariff-exposed spend", value: tariffPct + "%", pct: tariffPct,
+        label: "Tariff-exposed share", value: tariffPct + "%", pct: tariffPct,
         fg: tariffHot.length ? RED : tariffPct > 30 ? AMBER : GREEN,
-        note: tariffHot.length ? "$" + tariffHot.reduce((a, b) => a + b.spend, 0).toFixed(1) + "M under " + tariffHot.map(x => x.tariff).join(" / ")
-          : tariffed.length ? "Preferential regimes only — " + tariffed.map(x => x.tariff).join(" / ") : "No duty exposure in this shortlist"
+        note: tariffHot.length ? tariffHot.map(x => x.tariff).join(" / ")
+          : tariffed.length ? "Preferential regimes only — " + tariffed.map(x => x.tariff).join(" / ") : "No duty exposure declared in this shortlist"
       },
       {
         label: "Tier-2 visibility", value: tier2Pct + "%", pct: tier2Pct,
         fg: tier2Pct < 50 ? RED : tier2Pct < 75 ? AMBER : GREEN,
-        note: unknown.length ? unknown.length + " of " + sups.length + " report no sub-tier data at all" : "Every scoped supplier has declared its sub-tier"
+        note: unknown.length ? unknown.length + " of " + nSample + " have no sub-tier data on file" : (nSample ? "Every scoped supplier has declared its sub-tier" : "No suppliers in scope")
       }
+    ] : [
+      { label: "Top-3 supplier concentration", value: "—", pct: 0, fg: "var(--text-faint)", note: "Needs registered suppliers in scope" },
+      { label: "Capacity-constrained suppliers", value: "—", pct: 0, fg: "var(--text-faint)", note: "Needs registered suppliers in scope" },
+      { label: "Tariff-exposed share", value: "—", pct: 0, fg: "var(--text-faint)", note: "Needs registered suppliers in scope" },
+      { label: "Tier-2 visibility", value: "—", pct: 0, fg: "var(--text-faint)", note: "Needs registered suppliers in scope" }
     ];
-    const regions = (dd.REGIONS || []).map(r => ({
-      name: r.name, pct: r.pct, bar: Math.round(r.pct * 2.6),
-      color: r.tone === "low" ? NAVY : r.tone === "medium" ? "var(--navy-400)" : RED
-    }));
-    /* watchlist — derived from the scoped shortlist */
-    const cheapest = sups.slice().sort((a, b) => a.delta - b.delta)[0];
+    const contOf = (cc) => (dd.CONT && dd.CONT[cc]) || "Other";
+    const byCont = {};
+    sups.forEach(x => {
+      const k = contOf(x.cc);
+      byCont[k] = (byCont[k] || 0) + 1;
+    });
+    const regionLabels = { EU: "Europe", NA: "North America", APAC: "Asia Pacific", Other: "Other / unmapped" };
+    const regions = Object.keys(byCont).length
+      ? Object.keys(byCont).sort((a, b) => byCont[b] - byCont[a]).map(k => {
+          const pct = Math.round(byCont[k] / (nSample || 1) * 100);
+          return {
+            name: regionLabels[k] || k,
+            pct: pct,
+            bar: Math.round(pct * 2.6),
+            color: pct > 40 ? RED : pct > 25 ? "var(--navy-400)" : NAVY
+          };
+        })
+      : [{ name: "No regional data yet", pct: 0, bar: 0, color: "var(--text-faint)" }];
+    /* watchlist — only from declared fields on registered accounts */
     const watchlist = [];
-    sups.filter(x => x.auditIn < 0).forEach(x => watchlist.push({
+    declared("auditIn").filter(x => x.auditIn < 0).forEach(x => watchlist.push({
       tone: RED, due: "Now", title: x.name + " — audit overdue " + Math.abs(x.auditIn) + " days",
-      body: "Grade " + x.fin + " financials and " + x.ppm.toLocaleString("en-US") + " ppm. Remove from the shortlist or trigger a containment audit."
+      body: "Registered account audit date is past due. Remove from the shortlist or trigger a containment audit."
     }));
-    if (cheapest && /301|lapsed/.test(cheapest.tariff)) watchlist.push({
-      tone: AMBER, due: cheapest.auditIn > 0 ? cheapest.auditIn + "d" : "Now",
-      title: cheapest.name + " — cheapest quote, highest duty",
-      body: "Lowest unit price in the set (" + cheapest.delta.toFixed(1) + "%) but " + cheapest.tariff + " erases the gap on landed cost."
-    });
     const named = () => watchlist.map(w => w.title.split(/ — | at /)[0]);
-    sups.filter(x => x.auditIn >= 0 && x.auditIn < 45 && named().indexOf(x.name) < 0).forEach(x => watchlist.push({
+    declared("auditIn").filter(x => x.auditIn >= 0 && x.auditIn < 45 && named().indexOf(x.name) < 0).forEach(x => watchlist.push({
       tone: AMBER, due: x.auditIn + "d", title: x.name + " — audit due in " + x.auditIn + " days",
-      body: "Certified to " + x.certs.join(" · ") + ". Book the on-site before the RFQ closes or it drops out of scope."
+      body: (x.certs || []).length ? ("Certified to " + x.certs.join(" · ") + ".") : "No certificates listed on the account yet."
     }));
-    sups.filter(x => x.cap > 90 && named().indexOf(x.name) < 0).forEach(x => watchlist.push({
+    declared("cap").filter(x => x.cap > 90 && named().indexOf(x.name) < 0).forEach(x => watchlist.push({
       tone: AMBER, due: "Ramp", title: x.name + " at " + x.cap + "% utilisation",
-      body: "High capacity used — clarify investment / capacity expansion with the manufacturer before placing requested volume."
+      body: "High capacity used on the registered profile — clarify investment before placing volume."
     }));
-    const enoughCap = sups.filter(x => x.cap <= 80);
-    if (enoughCap.length && !sups.some(x => x.cap > 90)) watchlist.push({
+    const enoughCap = declared("cap").filter(x => x.cap <= 80);
+    if (enoughCap.length && !declared("cap").some(x => x.cap > 90)) watchlist.push({
       tone: GREEN, due: "Capacity", title: "Enough capacity for requested volume",
-      body: enoughCap.length + " of " + sups.length + " plants report utilisation at or below 80% — enough capacity for requested volume without an investment discussion."
+      body: enoughCap.length + " of " + declared("cap").length + " plants report utilisation at or below 80%."
     });
-    if (unknown.length) watchlist.push({
-      tone: CYAN, due: "Open", title: "Sub-tier data missing for " + unknown.length + " of " + sups.length + " suppliers",
-      body: "Send the Tier-2 declaration form with the RFQ package to close the gap: " + unknown.map(x => x.name.split(" ")[0]).join(", ") + "."
-    });
-    const fresh = sups.filter(x => x.certs.length > 1 && x.tariff === "None" && x.risk < 32)[0];
-    if (fresh) watchlist.push({
-      tone: GREEN, due: "New", title: fresh.name + " newly certified to " + fresh.certs[fresh.certs.length - 1],
-      body: "Adds a dual-source option at " + fresh.lead + "-day production lead and no tariff exposure."
+    if (unknown.length && nSample) watchlist.push({
+      tone: CYAN, due: "Open", title: "Sub-tier data missing for " + unknown.length + " of " + nSample + " suppliers",
+      body: "Send the Tier-2 declaration form with the RFQ package: " + unknown.slice(0, 4).map(x => x.name.split(" ")[0]).join(", ") + "."
     });
     if (!watchlist.length) watchlist.push({
-      tone: GREEN, due: "Clear", title: "Nothing on the watchlist for this subcategory",
-      body: "Every scoped supplier has a valid audit, usable headroom and declared sub-tier data."
+      tone: nSample ? GREEN : CYAN,
+      due: nSample ? "Clear" : "Empty",
+      title: nSample ? "Nothing on the watchlist for this subcategory" : "No registered suppliers in scope",
+      body: nSample
+        ? "No open audit, capacity or Tier-2 flags from registered account data."
+        : "Watchlist and recommendations appear once matching registered accounts are in scope."
     });
 
     const focusSup = sups.filter(x => x.name === s.focusName)[0] || sups[0];
     const t = this.transitFor(focusSup);
-    const buyer = this.plantList().filter(b => b.id === s.buyerId)[0] || this.plantList()[0] || { name: "Munich plant" };
+    const buyer = this.plantList().filter(b => b.id === s.buyerId)[0] || this.plantList()[0] || { name: "Receiving plant" };
 
-    /* recommendation derived from the scoped shortlist: best fit, then best fit in another country */
-    const byFit = sups.slice().sort((a, b) => b.fit - a.fit);
+    /* recommendation — only when real fit scores exist on registered accounts */
+    const byFit = declared("fit").slice().sort((a, b) => b.fit - a.fit);
     const primary = byFit[0];
-    const alt = byFit.filter(x => primary && x.cc !== primary.cc && x.risk < 45)[1] || byFit.filter(x => primary && x.cc !== primary.cc)[1] || byFit[1];
-    const benchmark = sups.slice().sort((a, b) => a.delta - b.delta)[0];
+    const alt = byFit.filter(x => primary && x.cc !== primary.cc)[0] || byFit[1];
     const rec = primary && alt ? {
       title: "Dual-source: " + primary.name + " (" + primary.cc + ") + " + alt.name + " (" + alt.cc + ")",
-      body: "Fit " + primary.fit + " and " + alt.fit + " on a risk index of " + primary.risk + " / " + alt.risk +
-        ". Splits volume across " + primary.cc + " and " + alt.cc + " against a top-3 concentration of " + top3Pct + "%, and holds indicative delivery at " +
-        (Math.min(primary.lead + (this.transitFor(primary).std || { days: 0 }).days, alt.lead + (this.transitFor(alt).std || { days: 0 }).days)) +
-        " days to " + buyer.name + (benchmark && benchmark.name !== primary.name && benchmark.name !== alt.name ? ". " + benchmark.name + " stays as a cost benchmark only." : ".")
-    } : { title: "Not enough scored suppliers to recommend", body: "At least two scored suppliers are needed before a dual-source recommendation can be made." };
+      body: "Fit " + primary.fit + " and " + alt.fit + " from registered capability data"
+        + (Number.isFinite(Number(primary.risk)) && Number.isFinite(Number(alt.risk)) ? (" · risk " + primary.risk + " / " + alt.risk) : "")
+        + ". Splits volume across " + primary.cc + " and " + alt.cc
+        + (top3Pct ? (" against a top-3 share of " + top3Pct + "%") : "")
+        + " to " + buyer.name + "."
+    } : primary ? {
+      title: "Primary candidate: " + primary.name + " (" + primary.cc + ")",
+      body: "Best declared fit (" + primary.fit + ") in the registered shortlist. Add another scored plant before dual-sourcing."
+    } : { title: "Not enough scored suppliers to recommend", body: "Recommendations need registered accounts with declared fit scores in this scope." };
 
     const emptyKpis = [
       { label: "Supplier fit", sub: "Needs 3 scored suppliers · 0 returned" },
@@ -4037,7 +4180,10 @@ transitFor(sup) {
       mkRow("Profile completeness", "declared", x => ({ t: x.profile + "%", n: x.profile, fg: tone3(x.profile, 85, 65) }), { mono: true, cmp: true }),
       mkRow("Last updated", "by the supplier", x => ({ t: x.updatedDays + " d ago", n: x.updatedDays, fg: x.updatedDays > 120 ? AMBER : "var(--text-body)" }), { mono: true, cmp: true, invert: true }),
       mkRow("RFQ response rate", "your RFQs", x => ({ t: x.respRate + "%", n: x.respRate, fg: tone3(x.respRate, 75, 55) }), { mono: true, cmp: true }),
-      mkRow("Quote turnaround", "median", x => ({ t: x.quoteTurn + " d", n: x.quoteTurn }), { mono: true, cmp: true, invert: true }),
+      mkRow("Quote turnaround", "median", x => ({
+        t: Number.isFinite(Number(x.quoteTurn)) ? (x.quoteTurn + " d") : "—",
+        n: Number.isFinite(Number(x.quoteTurn)) ? x.quoteTurn : null
+      }), { mono: true, cmp: true, invert: true }),
       mkRow("Working languages", "declared", x => ({ t: x.langs }))
     ] : [];
 
@@ -4097,52 +4243,60 @@ transitFor(sup) {
     const rfqChecks = [
       { label: rfqSelInds.length + " industry standard" + (rfqSelInds.length > 1 ? "s" : "") + " attached", ok: true },
       { label: picked.length ? picked.length + " recipients selected" : "No recipients — add suppliers", ok: picked.length > 0 },
-      { label: "Target price from should-cost", ok: true },
-      { label: "3 files attached", ok: true }
+      { label: "Target price from registry index", ok: declared("delta").length > 0 },
+      { label: "Files attached", ok: false }
     ].map(c => ({ label: c.label, mark: c.ok ? "✓" : "▲", fg: c.ok ? "#fff" : "#E0A23B" }));
 
     /* ── side panels: category brief · should-cost · export brief ── */
     const pk = s.panel || "";
     const narrow = s.vw < 1024, phone = s.vw < 640;
-    const summaryTitleValue = (sub ? sub.name : cat ? cat.name : "Plastic Parts") + " — " + industryName;
-    const briefCat = pk.indexOf("brief:") === 0 ? this.cats().filter(c => c.id === pk.slice(6))[0] : null;
-    const costScope = sub || cat;
-    const costBase = costScope ? Math.max(1.2, 4.18 + (costScope.price || 0) * 0.06) : 4.18;
-    const costParts = [
-      { label: "Material", basis: "1.9 kg PP-T20 at index +2.4%", w: 0.34, tone: NAVY },
-      { label: "Process", basis: (costScope ? costScope.lead : 30) + " s cycle, 2-cavity tool", w: 0.24, tone: CYAN },
-      { label: "Direct labour", basis: "1 operator per 2 machines, EU-East rate", w: 0.11, tone: NAVY },
-      { label: "Overhead & depreciation", basis: "Machine hour rate € 48", w: 0.14, tone: "var(--steel-500)" },
-      { label: "Packaging & logistics", basis: "Returnable, road lane to " + buyer.name, w: 0.07, tone: AMBER },
-      { label: "SG&A and margin", basis: "9% SG&A, 6% margin", w: 0.10, tone: "var(--steel-500)" }
+    const summaryTitleValue = (sub ? sub.name : cat ? cat.name : "Category") + " — " + industryName;
+    const briefCatRaw = pk.indexOf("brief:") === 0 ? this.cats().filter(c => c.id === pk.slice(6))[0] : null;
+    const briefCat = briefCatRaw
+      ? (liveCats.filter(c => c.id === briefCatRaw.id)[0] || briefCatRaw)
+      : null;
+    const costScope = sub || (cat ? liveCats.filter(c => c.id === cat.id)[0] || cat : null);
+    const declaredDeltas = declared("delta");
+    const costRows = declaredDeltas.length ? [
+      {
+        label: "Declared price index (avg)",
+        basis: "From " + declaredDeltas.length + " registered account" + (declaredDeltas.length === 1 ? "" : "s") + " in scope",
+        weight: 600, tone: NAVY,
+        value: (() => { const d = avg("delta"); return d == null ? "—" : ((d > 0 ? "+" : "") + d + "% vs baseline"); })(),
+        share: "100%", pct: 100
+      }
+    ] : [
+      {
+        label: "Should-cost",
+        basis: "No price index or should-cost model on registered accounts for this scope",
+        weight: 600, tone: NAVY,
+        value: "—",
+        share: "—", pct: 0
+      }
     ];
-    const costRows = costParts.map(p => ({
-      label: p.label, basis: p.basis, weight: 500, tone: p.tone,
-      value: "€ " + (costBase * p.w).toFixed(2),
-      share: Math.round(p.w * 100) + "%", pct: Math.round(p.w * 100 / 0.34 * 100) / 100
-    })).concat([{
-      label: "Should-cost total", basis: "Ex-works, 120k pcs per year", weight: 600, tone: NAVY,
-      value: "€ " + costBase.toFixed(2), share: "100%", pct: 100
-    }]);
-    const cheapQuote = sups.slice().sort((a, b) => a.delta - b.delta)[0];
-    const quoted = cheapQuote ? costBase * (1 + cheapQuote.delta / 100) : costBase;
-    const gap = quoted - costBase;
+    const cheapQuote = declaredDeltas.slice().sort((a, b) => a.delta - b.delta)[0];
+    const quoted = "—";
+    const gap = null;
     const EXPORT_SECTIONS = ["Indicators with sources", "Supplier table", "Map & lanes (ref)", "Concentration & exposure", "Watchlist", "Recommendation & decision log"];
     const exportSel = s.exportSel || EXPORT_SECTIONS.slice(0, 4);
     const FORMATS = [{ key: "pdf", label: "PDF" }, { key: "pptx", label: "PowerPoint" }, { key: "csv", label: "CSV" }, { key: "html", label: "HTML" }];
     const fmt = s.exportFmt || "pdf";
 
-    /* ── registration path ── */
+    /* ── registration path — counts from registered accounts only ── */
     const stages = dd.REG_STAGES || [];
-    const top = stages.length ? stages[0].count : 1;
+    const funnelAll = registry.filter(isRegisteredSeller);
+    const stageReached = (n) => funnelAll.filter(x => Number(x.stage || 0) >= n).length;
+    const liveStageCounts = stages.map(g => stageReached(g.n));
+    const top = liveStageCounts[0] || 1;
     const regStages = stages.map((g, i) => {
-      const prev = i ? stages[i - 1].count : g.count;
-      const dropPct = i ? Math.round((prev - g.count) / (prev || 1) * 100) : 0;
+      const count = liveStageCounts[i] || 0;
+      const prev = i ? (liveStageCounts[i - 1] || 0) : count;
+      const dropPct = i ? Math.round((prev - count) / (prev || 1) * 100) : 0;
       const live = g.n >= 5;
       return {
         n: g.n, name: g.name, owner: g.owner, days: g.days, needs: g.needs, gate: g.gate,
-        count: g.count.toLocaleString("en-US"),
-        bar: Math.round(g.count / (top || 1) * 100),
+        count: String(count),
+        bar: Math.round(count / (top || 1) * 100),
         tone: live ? GREEN : g.n === 4 ? AMBER : CYAN,
         numBg: live ? "var(--signal-running-bg)" : "var(--steel-200)",
         numFg: live ? "#2F7A2C" : "var(--navy-800)",
@@ -4162,15 +4316,15 @@ transitFor(sup) {
     };
     const regPending = hidden.map(x => ({
       name: x.name, city: x.city, cc: x.cc, stage: x.stage,
-      inds: x.industries.join(" · "),
+      inds: (x.industries || []).join(" · "),
       blocker: BLOCKERS[x.stage] || "Awaiting supplier action.",
       bg: x.stage >= 4 ? "var(--signal-warning-bg)" : "var(--steel-200)",
       fg: x.stage >= 4 ? "#9A6B12" : "var(--steel-700)"
     }));
     const regTotals = [
-      { n: (stages.length ? stages[0].count : 0).toLocaleString("en-US"), label: "In the funnel", tone: CYAN },
-      { n: (stages.length ? stages[4].count : 0).toLocaleString("en-US"), label: "On your map", tone: GREEN },
-      { n: (stages.length ? stages[5].count : 0).toLocaleString("en-US"), label: "Fully qualified", tone: NAVY }
+      { n: String(liveStageCounts[0] || 0), label: "In the funnel", tone: CYAN },
+      { n: String(liveStageCounts[4] || stageReached(5)), label: "On your map", tone: GREEN },
+      { n: String(liveStageCounts[5] || stageReached(6)), label: "Fully qualified", tone: NAVY }
     ];
     const regActions = [
       { title: "Invite plants you already work with", note: "They enter at stage 1 with your reference — verification is prioritised." },
@@ -4193,6 +4347,9 @@ transitFor(sup) {
 
     this._lastSupplierRows = rows;
     try { setTimeout(() => this.syncSupplierCards(), 0); } catch (e) {}
+
+    const industrySuppliersCount = countRegistry(x => matchesIndustry(x, s.industry, industryName) && matchesDomainRole(x, domain));
+    const liveCatForHeader = cat ? (liveCats.filter(c => c.id === cat.id)[0] || cat) : null;
 
     return {
       nav, crumbs,
@@ -4239,9 +4396,9 @@ transitFor(sup) {
         { label: "Incoterms", value: "FCA supplier plant", font: "var(--font-sans)", hint: "Applies to every recipient" },
         { label: "Currency", value: "EUR", font: "var(--font-mono)", hint: "Quotes normalised for comparison" },
         { label: "Payment terms", value: "60 days net", font: "var(--font-sans)", hint: "Deviation must be stated" },
-        { label: "Target price", value: "€ 4.18 / pc", font: "var(--font-mono)", hint: "From should-cost, shared with supplier" },
+        { label: "Target price", value: cheapQuote ? ((cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "% idx") : "—", font: "var(--font-mono)", hint: cheapQuote ? "From declared price index on registered accounts" : "No declared price index in registry" },
         { label: "Tooling ownership", value: "Buyer-owned", font: "var(--font-sans)", hint: "Tooling quoted separately" },
-        { label: "Quote deadline", value: fmtDate(14), font: "var(--font-mono)", hint: "Median turnaround in this set: " + (picked.length ? Math.round(picked.reduce((a, b) => a + b.quoteTurn, 0) / picked.length) : 6) + " d" }
+        { label: "Quote deadline", value: fmtDate(14), font: "var(--font-mono)", hint: "Median turnaround in this set: " + (picked.filter(x => Number.isFinite(Number(x.quoteTurn))).length ? Math.round(picked.filter(x => Number.isFinite(Number(x.quoteTurn))).reduce((a, b) => a + Number(b.quoteTurn), 0) / picked.filter(x => Number.isFinite(Number(x.quoteTurn))).length) : "—") + " d" }
       ],
       rfqLogistics: [
         { label: "Packaging", value: "Returnable, supplier proposal" },
@@ -4251,12 +4408,16 @@ transitFor(sup) {
       subcats, subStats, hasSubs: subcats.length > 0,
       categoryName: cat ? cat.name : "Category",
       categoryDesc: cat ? cat.desc : "",
-      categorySuppliers: cat ? cat.suppliers : 0,
-      categoryLead: cat ? cat.lead : 0,
-      categoryHeadroom: cat ? cat.headroom : 0,
+      categorySuppliers: cat ? countRegistry(x =>
+        matchesIndustry(x, s.industry, industryName)
+        && matchesDomainRole(x, domain)
+        && matchesCategory(x, domain, cat.id, null)
+      ) : 0,
+      categoryLead: liveCatForHeader ? liveCatForHeader.lead : 0,
+      categoryHeadroom: liveCatForHeader ? liveCatForHeader.headroom : 0,
       categoryProcs: cat ? cat.procs : [],
       domainName, industryName,
-      industrySuppliers: ind ? ind.suppliers : 412,
+      industrySuppliers: industrySuppliersCount,
       buyers: this.plantList().map(b => ({ id: b.id, label: b.name + " · " + b.cc })),
       buyerId: s.buyerId, buyerName: buyer.name,
       onBuyer: e => this.setState({ buyerId: (this.emitPlantSelection(e.target.value), e.target.value) }),
@@ -4328,6 +4489,7 @@ transitFor(sup) {
       onGaps: () => this.go("gaps"),
 
       homeKpis, domains, rfqList, rfqListEmpty, rfqListCount, alerts,
+      sideAccounts: acc.length,
       sideProfile: avgOf(acc, "profile"), sideStale: stale,
       indFilters, industries,
       catSorts, categories, adjacent,
@@ -4388,31 +4550,29 @@ transitFor(sup) {
         : pk === "cost" ? "120,000 pcs / year · ex-works · EUR"
         : pk === "plants" ? this.plantList().length + " plants · currently costing to " + buyer.name
         : summaryTitleValue + " · as of 2 Sep 2026",
-      briefIntro: briefCat ? briefCat.desc + ". " + briefCat.suppliers + " suppliers are mapped in " + industryName + ", of which " +
-        Math.round(briefCat.suppliers * 0.42) + " have an audit on file. Capacity headroom for new volume is " + briefCat.headroom + "%." : "",
+      briefIntro: briefCat ? briefCat.desc + ". " + briefCat.suppliers + " registered suppliers are mapped in " + industryName + ", of which " +
+        (briefCat.audited != null ? briefCat.audited : countRegistry(x => matchesIndustry(x, s.industry, industryName) && matchesDomainRole(x, domain) && matchesCategory(x, domain, briefCat.id, null) && Number(x.auditIn) >= 45)) + " have a valid audit date on file. Capacity headroom for new volume is " + briefCat.headroom + "% (from declared utilisation)." : "",
       briefStats: briefCat ? [
-        { label: "Suppliers", value: briefCat.suppliers, note: "mapped in " + industryName, tone: NAVY },
-        { label: "Avg lead", value: briefCat.lead + " d", note: s.domain === "service" ? "engagement calendar days" : "production, ex-works", tone: NAVY },
-        { label: "Price index 12m", value: (briefCat.price > 0 ? "+" : "") + briefCat.price.toFixed(1) + "%", note: "category basket", tone: briefCat.price > 6 ? RED : briefCat.price > 3 ? AMBER : GREEN },
-        { label: "Headroom", value: briefCat.headroom + "%", note: "capacity for your volume", tone: tone3(briefCat.headroom, 15, 8) },
+        { label: "Suppliers", value: briefCat.suppliers, note: "registered in " + industryName, tone: NAVY },
+        { label: "Avg lead", value: briefCat.lead ? briefCat.lead + " d" : "—", note: s.domain === "service" ? "engagement calendar days" : "production, ex-works", tone: NAVY },
+        { label: "Price index", value: briefCat.suppliers ? ((briefCat.price > 0 ? "+" : "") + Number(briefCat.price).toFixed(1) + "%") : "—", note: "from registered accounts", tone: briefCat.price > 6 ? RED : briefCat.price > 3 ? AMBER : GREEN },
+        { label: "Headroom", value: briefCat.suppliers ? briefCat.headroom + "%" : "—", note: "from declared capacity", tone: tone3(briefCat.headroom, 15, 8) },
         { label: "Subcategories", value: this.subs(briefCat.id).length, note: "each with its own summary", tone: CYAN },
-        { label: "Risk", value: labelOf[briefCat.risk], note: "supply-base concentration", tone: dotOf[briefCat.risk] }
+        { label: "Risk", value: labelOf[briefCat.risk] || "—", note: "from declared risk scores", tone: dotOf[briefCat.risk] || "var(--text-faint)" }
       ] : [],
       briefProcs: briefCat ? briefCat.procs : [],
       briefNotes: briefCat ? [
-        { mark: briefCat.headroom < 10 ? "▲" : "●", tone: briefCat.headroom < 10 ? RED : GREEN, text: briefCat.headroom < 10 ? "Headroom is thin at " + briefCat.headroom + "% — expect capacity to be the binding constraint, not price." : "Headroom of " + briefCat.headroom + "% leaves room to place new volume without a capex discussion." },
-        { mark: briefCat.price > 5 ? "▲" : "●", tone: briefCat.price > 5 ? AMBER : GREEN, text: briefCat.price > 5 ? "Prices moved " + briefCat.price.toFixed(1) + "% in 12 months — quote validity should be capped at 30 days." : "Price movement of " + briefCat.price.toFixed(1) + "% is inside normal drift; annual agreements are viable." },
-        { mark: "●", tone: CYAN, text: "Go one level deeper before sending an RFQ: subcategory supplier sets differ by up to 40% in lead time." }
+        { mark: briefCat.suppliers ? (briefCat.headroom < 10 ? "▲" : "●") : "●", tone: briefCat.suppliers && briefCat.headroom < 10 ? RED : GREEN, text: !briefCat.suppliers ? "No registered suppliers in this category yet — invite plants or request mapping." : briefCat.headroom < 10 ? "Headroom is thin at " + briefCat.headroom + "% — expect capacity to be the binding constraint, not price." : "Headroom of " + briefCat.headroom + "% leaves room to place new volume without a capex discussion." },
+        { mark: "●", tone: CYAN, text: "Figures are averages of declared fields on registered accounts only — missing fields are omitted, not invented." }
       ] : [],
       briefOnSub: briefCat ? () => this.setState({ panel: null, step: "subcat", category: briefCat.id, subcat: null }) : () => {},
       costRows,
-      costQuoted: "€ " + quoted.toFixed(2) + " / pc",
-      costDeltaTone: gap > 0.2 ? RED : gap < -0.05 ? GREEN : AMBER,
+      costQuoted: cheapQuote ? ((cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "% vs baseline (" + cheapQuote.name + ")") : "—",
+      costDeltaTone: "var(--text-faint)",
       costDeltaNote: cheapQuote
-        ? cheapQuote.name + " quotes " + (gap >= 0 ? "€ " + gap.toFixed(2) + " above" : "€ " + Math.abs(gap).toFixed(2) + " below") +
-          " should-cost (" + (cheapQuote.delta > 0 ? "+" : "") + cheapQuote.delta.toFixed(1) + "%). " +
-          (/301|lapsed/.test(cheapQuote.tariff) ? "Duty of " + cheapQuote.tariff + " applies on top — compare landed, not unit." : "No duty exposure on this lane.")
-        : "No quotes in scope yet.",
+        ? cheapQuote.name + " has the lowest declared price index in scope (" + (cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "%). " +
+          (/301|lapsed/.test(String(cheapQuote.tariff || "")) ? "Duty of " + cheapQuote.tariff + " is declared on the account." : "No duty exposure declared on this account.")
+        : "No declared price index on registered accounts in this scope.",
       exportOpts: EXPORT_SECTIONS.map(l => {
         const on = exportSel.indexOf(l) >= 0;
         return {
@@ -4447,19 +4607,23 @@ transitFor(sup) {
       onShouldCost: () => this.setState({ panel: "cost" }),
 
       gaps, gapCounts,
+      gapsProposedMeta: industryName + (cat ? (" · " + cat.name) : "") + " · " + pool.length + " registered in scope",
+      gapsProposedBody: pool.length
+        ? ("This filter returned " + pool.length + " registered account" + (pool.length === 1 ? "" : "s") + ". Widen industry or category filters, or invite plants that match this scope.")
+        : ("No registered accounts match " + summaryTitleValue + ". Use adjacent industries with live counts, request mapping, or invite plants by email."),
       beforeNotes: [
-        "No reason given — coverage gap reads as an empty market",
-        "No supplier count, no adjacent category, no way back",
-        "\"Mold Makers\" is a subcategory shown as a top-level filter",
-        "Only exit is an email invitation on another tab"
+        "Empty results must show registered counts — never a fake market size",
+        "No invented adjacent coverage when the registry is empty",
+        "Filters only show taxonomy labels; counts come from registered accounts",
+        "Email invitation remains available when the registry has no match"
       ],
       afterActions: [
-        { tone: NAVY, title: "Browse Tooling & Mould Bases", meta: "74 suppliers · 22% headroom · 96 d avg lead" },
-        { tone: CYAN, title: "Request mapping for Mould making", meta: "Research desk · typically 5 working days" },
-        { tone: "var(--steel-500)", title: "Invite your own plants by email", meta: "They appear in your network once they register" }
+        { tone: NAVY, title: adjacent[0] ? adjacent[0].label : ("Browse " + industryName), meta: adjacent[0] ? adjacent[0].meta : (industrySuppliersCount + " registered") },
+        { tone: CYAN, title: "Request mapping for this category", meta: "Research desk · typically 5 working days" },
+        { tone: "var(--steel-500)", title: "Invite your own plants by email", meta: "They appear once they register on the platform" }
       ],
       afterNotes: [
-        "States the cause and the numbers behind it",
+        "States the cause using live registry counts",
         "Offers the nearest real coverage as the primary action",
         "Keeps the email invitation as a third option, not the only one",
         "Every action stays on this page"

@@ -96,7 +96,9 @@
 
     paint() {
       var host = this;
-      var all = (window.SOURCING_DATA && window.SOURCING_DATA.SUPPLIERS) || [];
+      var all = ((window.SOURCING_DATA && window.SOURCING_DATA.SUPPLIERS) || []).filter(function (s) {
+        return s && (s.source === "registered" || s.platformId);
+      });
       var only = (this.getAttribute("names") || "").split("|").filter(function (n) { return n; });
       var metric = this.getAttribute("metric") || "risk";
       var focusKey = this.getAttribute("focus") || "all";

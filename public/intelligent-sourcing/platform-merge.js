@@ -1,6 +1,7 @@
 /* Merge platform payload into SOURCING_DATA (runs after mock dataset).
  * When embedded in the STREFEX shell (?embed=1 or iframe), hide the design's
- * own sidebar so AppLayout is the only main menu, and wire night theme. */
+ * own sidebar so AppLayout is the only main menu, and wire night theme.
+ * Seller lists always come from the platform registry — never canvas demo seed. */
 (function () {
   var FONT = "'Quattrocento Sans', Candara, Calibri, 'Segoe UI', Roboto, Arial, sans-serif";
 
@@ -81,21 +82,36 @@
     } catch (e) { /* */ }
   }
 
+  function clearNonRegisteredSuppliers() {
+    try {
+      window.__STREFEX_ALLOW_DEMO_SEED__ = false;
+      window.__STREFEX_SOURCING_DEMO_SEED__ = null;
+      if (!window.SOURCING_DATA) return;
+      var list = window.SOURCING_DATA.SUPPLIERS;
+      if (!Array.isArray(list)) {
+        window.SOURCING_DATA.SUPPLIERS = [];
+        return;
+      }
+      window.SOURCING_DATA.SUPPLIERS = list.filter(function (s) {
+        return s && (s.source === 'registered' || s.platformId);
+      });
+    } catch (e) { /* */ }
+  }
+
   function apply(plat) {
     try {
       if (!plat) return;
       window.__STREFEX_PLATFORM_SOURCING__ = plat;
-      /* Prefer registry accounts; never wipe the seed with an empty post. */
-      if (window.SOURCING_DATA && Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
+      if (window.__STREFEX_SOURCING_BRIDGE__ && typeof window.__STREFEX_SOURCING_BRIDGE__.applyPlatform === 'function') {
+        window.__STREFEX_SOURCING_BRIDGE__.applyPlatform(plat);
+      } else if (window.SOURCING_DATA && Array.isArray(plat.suppliers)) {
         window.SOURCING_DATA.SUPPLIERS = plat.suppliers.slice();
+        clearNonRegisteredSuppliers();
       }
       if (window.SOURCING_DATA && Array.isArray(plat.buyers) && plat.buyers.length > 0) {
         window.SOURCING_DATA.BUYERS = plat.buyers.slice();
       }
-      if (window.__STREFEX_SOURCING_BRIDGE__ && typeof window.__STREFEX_SOURCING_BRIDGE__.applyPlatform === 'function') {
-        window.__STREFEX_SOURCING_BRIDGE__.applyPlatform(plat);
-      }
-    } catch (e) { /* keep mock data only if bridge missing */ }
+    } catch (e) { /* */ }
   }
 
   function applyTheme(theme) {
@@ -110,16 +126,18 @@
 
   ensureEmbedShell();
   applyTheme(queryTheme());
+  clearNonRegisteredSuppliers();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       ensureEmbedShell();
       applyTheme(queryTheme());
+      clearNonRegisteredSuppliers();
     });
   }
 
   try {
     apply(window.__STREFEX_PLATFORM_SOURCING__);
-  } catch (e) { /* keep mock data */ }
+  } catch (e) { /* */ }
 
   window.addEventListener('message', function (ev) {
     var d = ev && ev.data;
