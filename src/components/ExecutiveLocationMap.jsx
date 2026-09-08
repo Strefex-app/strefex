@@ -26,12 +26,17 @@ export default function ExecutiveLocationMap({
   transportMode = null,
   onTransportModeChange = null,
   showTransportModes = false,
+  /** Topic chips: [{ id, label }] — id null = “all”. */
+  mapTopics = null,
+  activeMapTopic = null,
+  onMapTopicChange = null,
   mapFit = null,
 }) {
   const plantLabel = plantLegendLabel
     || (plantLocation?.name ? `Receiving plant · ${plantLocation.name}` : 'Receiving plant')
 
   const hideToneLegend = legendMode === 'plants' || legendMode === 'none'
+  const topicList = Array.isArray(mapTopics) ? mapTopics.filter(Boolean) : []
 
   const toneLabels = legendMode === 'rfq'
     ? ['Quotes in', 'Awaiting', 'Incoming']
@@ -73,6 +78,27 @@ export default function ExecutiveLocationMap({
           </div>
         ) : null}
       </div>
+      {topicList.length ? (
+        <div className="exec-loc-map__topics" role="group" aria-label="Map topic">
+          {topicList.map((topic) => {
+            const topicId = topic.id == null ? null : topic.id
+            const active = activeMapTopic == null
+              ? topicId == null
+              : topicId === activeMapTopic
+            return (
+              <button
+                key={topicId == null ? 'all' : String(topicId)}
+                type="button"
+                className={`exec-loc-map__topic${active ? ' is-active' : ''}`}
+                aria-pressed={active ? 'true' : 'false'}
+                onClick={() => onMapTopicChange?.(topicId)}
+              >
+                {topic.label}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
       {disclaimer ? (
         <p className="exec-loc-map__disclaimer stx-text-wrap">{disclaimer}</p>
       ) : null}

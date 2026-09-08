@@ -16,8 +16,6 @@ import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocat
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
-import { getSupplierLocations } from '../data/supplierDatabase'
-import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import {
   hasBuyerSide,
   hasManufacturerSide,
@@ -197,7 +195,6 @@ export default function Home() {
   const setTenant = useAuthStore((s) => s.setTenant)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
-  const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
   const [selectedLocId, setSelectedLocId] = useState(null)
   const [plantsPanelOpen, setPlantsPanelOpen] = useState(false)
   const [mapFocus, setMapFocus] = useState(null)
@@ -367,6 +364,7 @@ export default function Home() {
     return acc + inProgress
   }, 0) ?? 0
 
+  /** Registry sellers — lookup only; home map never plots the full directory. */
   const networkLocations = useMemo(() => {
     const registrySellers = mergeNetworkManufacturersWithAccounts(accounts).filter((a) => {
       const types = new Set()
@@ -378,7 +376,7 @@ export default function Home() {
       })
       return types.has('seller')
     })
-    const fromRegistry = registrySellers.map((a) => {
+    return registrySellers.map((a) => {
       const coords = a.coordinates?.length === 2
         && !(Number(a.coordinates[0]) === 0 && Number(a.coordinates[1]) === 0)
         ? a.coordinates
@@ -402,14 +400,7 @@ export default function Home() {
         source: 'registered',
       }
     })
-    const registryIds = new Set(fromRegistry.map((l) => l.id))
-    const directory = showMarketplaceCatalog
-      ? getSupplierLocations()
-        .filter((l) => !registryIds.has(l.id))
-        .slice(0, 80)
-      : []
-    return [...fromRegistry, ...directory]
-  }, [accounts, showMarketplaceCatalog])
+  }, [accounts])
 
   const plantLocation = useMemo(() => {
     if (!plant || plant.lat == null || plant.lon == null) return null
@@ -435,22 +426,67 @@ export default function Home() {
     return { byId, byEmail }
   }, [networkLocations, accounts])
 
+  const synthesizeLocation = (opts) => {
+    const {
+      id,
+      name,
+      email,
+      country,
+      city,
+      address,
+      coordinates,
+    } = opts || {}
+    const seed = String(id ?? email ?? name ?? '')
+    const coords = Array.isArray(coordinates) && coordinates.length === 2
+      && !(Number(coordinates[0]) === 0 && Number(coordinates[1]) === 0)
+      ? coordinates
+      : getApproximateLngLatOrFallback({
+        country,
+        city,
+        address,
+        seed,
+      })
+    if (!coords) return null
+    return {
+      id: id || (email ? `invite-${email}` : seed),
+      name: name || email || 'Supplier',
+      coordinates: coords,
+      country: country || '—',
+      city: city || '—',
+      source: 'activity',
+    }
+  }
+
   const resolveInviteeLocation = (supplier) => {
     if (supplier == null) return null
     if (typeof supplier === 'string') {
       if (supplier.startsWith('invite:') && supplier.includes('@')) {
-        return locationIndex.byEmail.get(supplier.slice('invite:'.length).toLowerCase()) || null
+        const email = supplier.slice('invite:'.length).toLowerCase()
+        return locationIndex.byEmail.get(email)
+          || synthesizeLocation({ id: `invite-${email}`, name: email, email })
       }
       return locationIndex.byId.get(String(supplier))
         || locationIndex.byEmail.get(String(supplier).toLowerCase())
-        || null
+        || synthesizeLocation({
+          id: supplier,
+          name: supplier.includes('@') ? supplier : 'Supplier',
+          email: supplier.includes('@') ? supplier.toLowerCase() : undefined,
+        })
     }
     if (supplier.id != null && locationIndex.byId.has(String(supplier.id))) {
       return locationIndex.byId.get(String(supplier.id))
     }
     const email = String(supplier.email || '').toLowerCase()
     if (email && locationIndex.byEmail.has(email)) return locationIndex.byEmail.get(email)
-    return null
+    return synthesizeLocation({
+      id: supplier.id || (email ? `invite-${email}` : null),
+      name: supplier.company || supplier.companyName || supplier.name || email || 'Supplier',
+      email,
+      country: supplier.country,
+      city: supplier.city,
+      address: supplier.address,
+      coordinates: supplier.coordinates,
+    })
   }
 
   /** Supplier/buyer pins linked to RFQ KPI statuses. */
@@ -586,19 +622,38 @@ export default function Home() {
         })
     }
 
-    if (rfqMapRelations.length) {
-      return rfqMapRelations.map(applyTransit)
-    }
-
-    return networkLocations
+    // Default: only suppliers tied to this account’s RFQ activity (never full registry).
+    return rfqMapRelations.map(applyTransit)
   }, [
     mapFocus,
     rfqMapRelations,
-    networkLocations,
     plantLocation,
     plant,
     transportMode,
   ])
+
+  const mapTopicOptions = useMemo(() => {
+    const opts = [{ id: null, label: 'All activity' }]
+    if (showBuyer) {
+      opts.push(
+        { id: 'sent', label: MAP_FOCUS.sent.label },
+        { id: 'awaiting', label: MAP_FOCUS.awaiting.label },
+        { id: 'quotes', label: MAP_FOCUS.quotes.label },
+      )
+    }
+    if (showManufacturer) {
+      opts.push(
+        { id: 'incoming', label: MAP_FOCUS.incoming.label },
+        { id: 'bids', label: MAP_FOCUS.bids.label },
+      )
+    }
+    return opts
+  }, [showBuyer, showManufacturer])
+
+  const handleMapTopicChange = (topicId) => {
+    setMapFocus(topicId || null)
+    setSelectedLocId(null)
+  }
 
   const mapLanes = useMemo(() => {
     const plantCoords = plantLocation?.coordinates
@@ -664,11 +719,11 @@ export default function Home() {
 
   const regionMix = useMemo(() => {
     const counts = new Map()
-    networkLocations.forEach((loc) => {
+    rfqMapRelations.forEach((loc) => {
       const key = loc.country && loc.country !== '—' ? loc.country : 'Other'
       counts.set(key, (counts.get(key) || 0) + 1)
     })
-    const total = networkLocations.length || 1
+    const total = rfqMapRelations.length || 1
     return [...counts.entries()]
       .map(([label, count]) => ({
         label,
@@ -677,7 +732,7 @@ export default function Home() {
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6)
-  }, [networkLocations])
+  }, [rfqMapRelations])
 
   const kpis = useMemo(() => {
     const cells = []
@@ -776,8 +831,8 @@ export default function Home() {
     if (!showBuyer && !showManufacturer && !isServiceProvider) {
       cells.push({
         key: 'network',
-        label: 'Network plants',
-        value: String(networkLocations.length),
+        label: 'Activity plants',
+        value: String(rfqMapRelations.length),
         delta: plantLocation ? 'mapped' : '—',
         deltaColor: SIGNAL.data,
         sub: 'Pins on the map below',
@@ -794,14 +849,14 @@ export default function Home() {
     sentRfqStats,
     receivedRfqStats,
     serviceRequestStats,
-    networkLocations.length,
+    rfqMapRelations.length,
     plantLocation,
   ])
 
   /** Side column beside the map — must not repeat top KPI labels/values. */
   const mapSideStats = useMemo(() => {
     const countries = new Set(
-      networkLocations
+      rfqMapRelations
         .map((l) => (l.country && l.country !== '—' ? l.country : null))
         .filter(Boolean),
     ).size
@@ -863,7 +918,7 @@ export default function Home() {
         {
           key: 'pins',
           label: 'Map pins',
-          value: networkLocations.length,
+          value: rfqMapRelations.length,
           tone: SIGNAL.data,
           onClick: () => navigate(BUYER_WORKSPACE_PATH),
         },
@@ -878,7 +933,7 @@ export default function Home() {
     }
     return items.slice(0, 4)
   }, [
-    networkLocations,
+    rfqMapRelations,
     plant,
     showBuyer,
     showManufacturer,
@@ -1072,8 +1127,8 @@ export default function Home() {
     if (!cells.length) {
       cells.push({
         key: 'pipe-network',
-        label: 'Network plants',
-        value: String(networkLocations.length),
+        label: 'Activity plants',
+        value: String(rfqMapRelations.length),
         delta: plantLocation ? 'mapped' : '—',
         deltaColor: SIGNAL.data,
         sub: 'Pins on the map above',
@@ -1088,7 +1143,7 @@ export default function Home() {
     showManufacturer,
     sentRfqStats,
     receivedRfqStats,
-    networkLocations.length,
+    rfqMapRelations.length,
     plantLocation,
   ])
 
@@ -1307,24 +1362,29 @@ export default function Home() {
               className="home-dash__map-widget"
               title={mapFocus && MAP_FOCUS[mapFocus]
                 ? `${MAP_FOCUS[mapFocus].label} · map`
-                : 'Supplier Locations'}
+                : 'My supplier activity'}
               disclaimer={
-                mapFocus
-                  ? 'Dotted lanes show transit lead time to the selected receiving plant (reference only). Click the same KPI again to open the full list.'
-                  : 'Click RFQs sent, Awaiting quotes, Quotes in, Incoming RFQs, or Bids open to filter pins and draw lanes. Pins use approximate positions.'
+                !rfqMapRelations.length
+                  ? 'No suppliers on your RFQs yet. Invite plants from Sourcing — then filter topic by topic here. Pins use approximate positions.'
+                  : mapFocus
+                    ? 'Dotted lanes show transit lead time to the selected receiving plant (reference only). Click the same KPI again to open the full list.'
+                    : 'Showing only suppliers linked to your RFQs. Pick a topic to filter pins and draw transit lanes.'
               }
               locations={mapDisplayLocations}
               plantLocation={plantLocation}
               selectedId={selectedLocId}
               onMarkerClick={(loc) => setSelectedLocId(loc?.id || null)}
               metric="risk"
-              legendMode={mapFocus || rfqMapRelations.length ? 'rfq' : 'risk'}
+              legendMode={mapFocus || rfqMapRelations.length ? 'rfq' : 'plants'}
               legendItems={mapLegendItems}
               lanes={mapLanes}
               showLane
               showTransportModes
               transportMode={transportMode}
               onTransportModeChange={setTransportMode}
+              mapTopics={mapTopicOptions}
+              activeMapTopic={mapFocus}
+              onMapTopicChange={handleMapTopicChange}
               plantLegendLabel={
                 plantLocation
                   ? `Receiving plant${plant?.name ? ` · ${plant.name}` : ''}`
@@ -1348,7 +1408,7 @@ export default function Home() {
                   label="Map filter"
                   value="Clear"
                   tone={SIGNAL.muted}
-                  onClick={() => setMapFocus(null)}
+                  onClick={() => handleMapTopicChange(null)}
                 />
               ) : null}
             </div>
@@ -1448,7 +1508,7 @@ export default function Home() {
 
               <Window title="Region mix" ruleColor={SIGNAL.navy} meta={regionMix.length}>
                 {regionMix.length === 0 ? (
-                  <p className="home-w__empty">No mapped plants yet.</p>
+                  <p className="home-w__empty">No RFQ suppliers mapped yet.</p>
                 ) : (
                   <div className="home-w__regions">
                     {regionMix.map((r) => (

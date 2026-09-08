@@ -72,6 +72,43 @@
   color: var(--btn-primary-text);
 }
 
+.exec-loc-map__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.exec-loc-map__topic {
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium, 500);
+  font-size: var(--text-caption, 12px);
+  line-height: 1.2;
+  color: var(--color-primary);
+  background: var(--bg-surface, var(--bg-card));
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.exec-loc-map__topic:hover {
+  background: var(--bg-card);
+  border-color: var(--color-primary);
+}
+
+.exec-loc-map__topic.is-active {
+  background: var(--stx-navy-800, #0A2540);
+  border-color: var(--stx-navy-800, #0A2540);
+  color: #fff;
+  font-weight: var(--font-semibold, 600);
+}
+
+html[data-theme="dark"] .exec-loc-map__topic:not(.is-active),
+:root:not([data-theme="light"]) .exec-loc-map__topic:not(.is-active) {
+  color: var(--color-primary);
+}
+
 .exec-loc-map__disclaimer {
   margin: 0 0 8px;
   font-size: 11.5px;

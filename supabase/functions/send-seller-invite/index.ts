@@ -136,8 +136,12 @@ Deno.serve(async (req) => {
   const fromLabel = inviterCompany || inviterName || profile?.full_name || inviterEmail || 'A STREFEX partner'
   const subject = `${fromLabel} invited you to join STREFEX`
   const greeting = inviteeName || 'Supplier'
+  const siteUrl = (Deno.env.get('APP_ORIGIN') || 'https://strefex.pro').replace(/\/$/, '')
+  const safeRegisterUrl = escapeHtml(registerUrl)
   const textBody = [
-    `Dear ${greeting},`,
+    'STREFEX Strategic Supplier Intelligence',
+    '',
+    `Hello ${greeting},`,
     '',
     `${fromLabel} invited you to join STREFEX as a manufacturer / seller.`,
     'You will create and own your own company account (this is not a team seat).',
@@ -145,34 +149,85 @@ Deno.serve(async (req) => {
     message || null,
     rfqTitle ? `Related RFQ: ${rfqTitle}` : null,
     '',
-    'Create your account:',
+    'Create your seller account:',
     registerUrl,
     '',
     'This invite link expires in 14 days.',
     '',
-    'Best regards,',
-    'STREFEX Platform',
+    'If you were not expecting this invitation, you can ignore this email.',
+    '',
+    'STREFEX Strategic Supplier Intelligence',
+    siteUrl,
   ].filter((line) => line !== null).join('\n')
 
   const htmlBody = `
-    <div style="font-family:Candara,Segoe UI,Arial,sans-serif;line-height:1.5;color:#1a2b3c;">
-      <p>Dear ${escapeHtml(greeting)},</p>
-      <p><strong>${escapeHtml(fromLabel)}</strong> invited you to join <strong>STREFEX</strong> as a manufacturer / seller.
-      You will create and own your own company account (this is not a team seat).</p>
-      ${message ? `<p>${escapeHtml(message)}</p>` : ''}
-      ${rfqTitle ? `<p>Related RFQ: <strong>${escapeHtml(rfqTitle)}</strong></p>` : ''}
-      <p style="margin:24px 0;">
-        <a href="${escapeHtml(registerUrl)}"
-           style="background:#00d4ff;color:#0b1f33;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">
-          Create seller account
-        </a>
-      </p>
-      <p style="font-size:13px;color:#5a6b7c;">Or open this link:<br/>
-        <a href="${escapeHtml(registerUrl)}">${escapeHtml(registerUrl)}</a>
-      </p>
-      <p style="font-size:12px;color:#5a6b7c;">This invite expires in 14 days.</p>
-      <p>Best regards,<br/>STREFEX Platform</p>
-    </div>
+<div style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#222222;">
+  <!--[if mso]>
+  <style type="text/css">
+    .stx-btn { background:#1a2b3c !important; color:#ffffff !important; }
+  </style>
+  <![endif]-->
+  <style type="text/css">
+    .stx-btn {
+      background:#1a2b3c !important;
+      color:#ffffff !important;
+    }
+    @media (prefers-color-scheme: dark) {
+      .stx-wrap { background:#0b1220 !important; }
+      .stx-card { background:#111827 !important; border-color:#243044 !important; }
+      .stx-text { color:#e8eef5 !important; }
+      .stx-muted { color:#9aa8b8 !important; }
+      .stx-btn {
+        background:#00d4ff !important;
+        color:#0b1f33 !important;
+      }
+      .stx-link { color:#00d4ff !important; }
+    }
+  </style>
+  <table role="presentation" class="stx-wrap" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f5;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" class="stx-card" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #dddddd;">
+          <tr>
+            <td style="padding:24px 24px 8px 24px;font-size:16px;line-height:1.5;">
+              <p class="stx-text" style="margin:0 0 16px 0;font-size:15px;line-height:1.4;font-weight:700;color:#1a2b3c;">
+                STREFEX Strategic Supplier Intelligence
+              </p>
+              <p class="stx-text" style="margin:0 0 16px 0;color:#222222;">Hello ${escapeHtml(greeting)},</p>
+              <p class="stx-text" style="margin:0 0 16px 0;color:#222222;">
+                <strong>${escapeHtml(fromLabel)}</strong> invited you to join STREFEX as a manufacturer / seller.
+                You will create and own your own company account (this is not a team seat).
+              </p>
+              ${message ? `<p class="stx-text" style="margin:0 0 16px 0;color:#222222;">${escapeHtml(message)}</p>` : ''}
+              ${rfqTitle ? `<p class="stx-text" style="margin:0 0 16px 0;color:#222222;">Related RFQ: <strong>${escapeHtml(rfqTitle)}</strong></p>` : ''}
+              <p style="margin:0 0 24px 0;">
+                <a class="stx-btn" href="${safeRegisterUrl}"
+                   style="background:#1a2b3c;color:#ffffff;padding:12px 16px;text-decoration:none;display:inline-block;font-size:14px;font-weight:600;border-radius:6px;">
+                  Create seller account
+                </a>
+              </p>
+              <p class="stx-muted" style="margin:0 0 8px 0;font-size:13px;color:#555555;">
+                If the button does not work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 16px 0;font-size:12px;line-height:1.5;word-break:break-all;">
+                <a class="stx-link" href="${safeRegisterUrl}" style="color:#1a2b3c;">${safeRegisterUrl}</a>
+              </p>
+              <p class="stx-muted" style="margin:0;font-size:13px;color:#555555;">
+                This invite expires in 14 days. If you were not expecting this invitation, you can ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 24px 24px 24px;border-top:1px solid #eeeeee;font-size:12px;line-height:1.5;color:#777777;">
+              <p class="stx-muted" style="margin:0 0 4px 0;">STREFEX Strategic Supplier Intelligence</p>
+              <p class="stx-muted" style="margin:0;"><a class="stx-link" href="${escapeHtml(siteUrl)}" style="color:#555555;">${escapeHtml(siteUrl)}</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>
   `
 
   const row = {
