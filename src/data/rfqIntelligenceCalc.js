@@ -80,14 +80,8 @@ export const RFQI_MANUFACTURERS = [
   { name: 'EOS GmbH', country: 'DE', process: ['3dp'], leadTime: 6, risk: 20 },
 ]
 
-export const DEFAULT_INCOMING_RFQS = [
-  { id: 'RFQ-2026-0441', status: 'new', color: '#00d4ff', company: 'Bosch Automotive', part: 'Throttle body housing', process: 'IMM', material: 'PA66 GF30', qty: 50000, value: '€84K', date: '2026-05-02', urgency: 'high' },
-  { id: 'RFQ-2026-0440', status: 'new', color: '#00d4ff', company: 'Siemens Energy', part: 'Control panel bracket', process: 'Sheet Metal', material: 'Al 5052', qty: 200, value: '€12K', date: '2026-05-01', urgency: 'normal' },
-  { id: 'RFQ-2026-0439', status: 'review', color: '#ffab00', company: 'Zeiss Medical', part: 'Lens mount housing', process: 'CNC', material: 'Al 7075-T6', qty: 50, value: '€28K', date: '2026-04-30', urgency: 'high' },
-  { id: 'RFQ-2026-0438', status: 'review', color: '#ffab00', company: 'ABB Robotics', part: 'Cable routing clip', process: 'IMM', material: 'PA66', qty: 100000, value: '€45K', date: '2026-04-29', urgency: 'normal' },
-  { id: 'RFQ-2026-0437', status: 'quoted', color: '#00e676', company: 'BMW Group', part: 'Interior trim panel', process: 'IMM', material: 'PP + TPE', qty: 25000, value: '€180K', date: '2026-04-28', urgency: 'normal' },
-  { id: 'RFQ-2026-0435', status: 'won', color: '#b060ff', company: 'Tesla Suppliers', part: 'Battery tray seal', process: 'IMM', material: 'EPDM / TPE', qty: 500000, value: '€420K', date: '2026-04-25', urgency: 'normal' },
-]
+/** Incoming RFQ intel feed — registered/network RFQs only (no demo seed). */
+export const DEFAULT_INCOMING_RFQS = []
 
 const LABOUR_RATE_DEFAULT = 35
 

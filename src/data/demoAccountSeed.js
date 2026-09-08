@@ -25,80 +25,9 @@ function subscriptionFor(profileKey) {
 }
 
 function buyerRfqs() {
-  const email = DEMO_EMAIL_BUYER
   return {
     state: {
-      rfqs: [
-        {
-          id: 'demo-rfq-001',
-          title: 'Injection moulding cells — automotive interior',
-          industryId: 'automotive',
-          categoryId: 'injection-machines',
-          buyerEmail: email,
-          _createdBy: email,
-          buyerCompany: 'Demo Procurement GmbH',
-          status: 'active',
-          createdAt: today(),
-          dueDate: today(),
-          responses: 2,
-          attachments: [],
-          sellerResponses: [
-            {
-              sellerId: 'demo-supplier-1',
-              sellerName: 'Precision Plastics EU',
-              sellerEmail: 'sales@precision-plastics.demo',
-              price: 245000,
-              leadTime: 14,
-              warranty: '24 months',
-              notes: 'Includes installation and operator training.',
-              respondedAt: today(),
-            },
-            {
-              sellerId: 'demo-supplier-2',
-              sellerName: 'AutoMold Systems',
-              sellerEmail: 'rfq@automold.demo',
-              price: 228500,
-              leadTime: 18,
-              warranty: '18 months',
-              notes: 'Alternative configuration available.',
-              respondedAt: today(),
-            },
-          ],
-          requirements: { quantity: 2, region: 'EU' },
-          buyerRefDisplay: 'B-1001',
-          buyerRefSeq: 1001,
-        },
-        {
-          id: 'demo-rfq-002',
-          title: 'CNC machining — prototype brackets',
-          industryId: 'machinery',
-          categoryId: 'cnc-machining',
-          buyerEmail: email,
-          _createdBy: email,
-          status: 'sent',
-          createdAt: today(),
-          dueDate: today(),
-          responses: 0,
-          attachments: [],
-          sellerResponses: [],
-          requirements: { material: 'Aluminium 6061' },
-          buyerRefDisplay: 'B-1002',
-          buyerRefSeq: 1002,
-        },
-        {
-          id: 'demo-rfq-003',
-          title: 'Supplier audit — tier-2 electronics',
-          industryId: 'electronics',
-          buyerEmail: email,
-          _createdBy: email,
-          status: 'draft',
-          createdAt: today(),
-          responses: 0,
-          attachments: [],
-          sellerResponses: [],
-          requirements: { scope: 'ISO 9001 gap analysis' },
-        },
-      ],
+      rfqs: [],
       receivedRfqs: [],
     },
     version: 0,
@@ -106,45 +35,10 @@ function buyerRfqs() {
 }
 
 function sellerRfqs() {
-  const email = DEMO_EMAIL_SELLER
   return {
     state: {
       rfqs: [],
-      receivedRfqs: [
-        {
-          id: 'demo-received-001',
-          rfqId: 'demo-rfq-ext-001',
-          title: 'Robot welding cell — machinery line upgrade',
-          industryId: 'machinery',
-          buyerCompany: 'Nordic Assembly Demo',
-          buyerEmail: 'buyer@nordic-assembly.demo',
-          sellerEmail: email,
-          sellerId: email,
-          status: 'pending',
-          receivedAt: today(),
-          dueDate: today(),
-          requirements: { cells: 1 },
-        },
-        {
-          id: 'demo-received-002',
-          rfqId: 'demo-rfq-ext-002',
-          title: 'Preventive maintenance package',
-          industryId: 'automotive',
-          buyerCompany: 'AutoParts Demo SA',
-          buyerEmail: 'procurement@autoparts.demo',
-          sellerEmail: email,
-          sellerId: email,
-          status: 'responded',
-          receivedAt: today(),
-          myResponse: {
-            price: 18500,
-            leadTime: 5,
-            warranty: '12 months',
-            notes: 'Includes quarterly on-site visit.',
-            respondedAt: today(),
-          },
-        },
-      ],
+      receivedRfqs: [],
     },
     version: 0,
   }

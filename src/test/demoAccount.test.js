@@ -73,10 +73,11 @@ describe('demoAccount', () => {
     expect(isDemoModeActive()).toBe(true)
   })
 
-  it('builds buyer seed with rfqs and projects', () => {
+  it('builds buyer seed without demo RFQ rows', () => {
     const seed = buildDemoSeedPayload('buyer')
     expect(seed['strefex-subscription'].accountType).toBe('buyer')
-    expect(seed['strefex-rfq-storage'].state.rfqs.length).toBeGreaterThan(0)
+    expect(seed['strefex-rfq-storage'].state.rfqs).toEqual([])
+    expect(seed['strefex-rfq-storage'].state.receivedRfqs).toEqual([])
     expect(seed['project-storage'].state.projects.length).toBe(1)
   })
 })
