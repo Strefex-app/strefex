@@ -404,12 +404,27 @@ const industrialIntelligenceService = {
           from_company: String(buyer?.name || 'Buyer'),
         }).catch(() => {})
         if (targetEmail && targetEmail.includes('@')) {
+          let registerUrl
+          try {
+            const { inviteSellerToPlatform } = await import('../utils/sellerGrowthInvites')
+            const growth = await inviteSellerToPlatform({
+              inviteeEmail: targetEmail,
+              inviteeName: supplier?.display_name || '',
+              inviterEmail: getCurrentUserEmail() || '',
+              inviterCompany: String(buyer?.name || 'Buyer'),
+              source: 'rfq',
+              rfqId: rfq.id,
+              rfqTitle: rfq.title,
+            })
+            registerUrl = growth.registerUrl
+          } catch { /* best-effort */ }
           void emailService.sendRfqInvite({
             email: targetEmail,
             supplierName: supplier?.display_name || 'Supplier',
             rfqTitle: rfq.title,
             deadline: rfq.deadline || null,
             buyerName: buyer?.name || 'Buyer',
+            registerUrl,
           }).catch(() => {})
         }
       })

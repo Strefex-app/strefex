@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import { isSupabaseConfigured, companiesService, profilesService, companyProfileAttachmentsService } from '../services/supabaseService'
+import { isSupabaseConfigured, companiesService, profilesService, companyProfileAttachmentsService, supabaseAuth } from '../services/supabaseService'
 import {
   evaluateCompanyProfileDirectory,
   buildCompanyVisibilityUpdate,
@@ -22,6 +22,10 @@ import {
   saveReceivingPlantsToAccount,
 } from '../utils/receivingPlantsPersist'
 import { buildCompanyTaxonomyWrite } from '../utils/companyTaxonomyPayload'
+import {
+  isAdminCreatedPlaceholderEmail,
+  transferSellerAccountRights,
+} from '../utils/adminCreateSellerAccount'
 import '../styles/app-page.css'
 import './SuperAdminAccountDetailPage.css'
 
@@ -268,6 +272,10 @@ export default function SuperAdminAccountDetailPage() {
   const [resolvedCloudId, setResolvedCloudId] = useState('')
   /** Cloud getById failed; editing from list stub / registry only. */
   const [forceLocalEdit, setForceLocalEdit] = useState(false)
+  const [transferEmail, setTransferEmail] = useState('')
+  const [transferName, setTransferName] = useState('')
+  const [transferInvite, setTransferInvite] = useState(true)
+  const [transferring, setTransferring] = useState(false)
 
   const routeCompanyId = useMemo(() => {
     const raw = decodeParam(companyIdParam)
@@ -855,6 +863,53 @@ export default function SuperAdminAccountDetailPage() {
     }
   }
 
+  const transferToRealSeller = async () => {
+    if (!company) return
+    setTransferring(true)
+    setError('')
+    setSavedMsg('')
+    try {
+      const result = await transferSellerAccountRights({
+        companyId: companyId || null,
+        registryKey: registryKey || form.email || company.email,
+        currentEmail: form.email || company.email,
+        newEmail: transferEmail,
+        contactName: transferName || form.contactName,
+        sendInvite: transferInvite && isSupabaseConfigured,
+        updateAccount,
+        inviteTeamUser: isSupabaseConfigured
+          ? (args) => supabaseAuth.inviteTeamUser(args)
+          : null,
+        companiesUpdate: isSupabaseConfigured && companyId
+          ? (id, updates) => companiesService.update(id, updates)
+          : null,
+        profilesUpdate: isSupabaseConfigured
+          ? (payload) => profilesService.updateProfilePrivileged(payload)
+          : null,
+        existingMetadata: company.metadata || {},
+      })
+      setForm((prev) => ({
+        ...prev,
+        email: result.email,
+        contactName: transferName.trim() || prev.contactName,
+      }))
+      setRegistryKey(result.email)
+      if (result.company) setCompany(result.company)
+      else setCompany((prev) => (prev ? { ...prev, email: result.email } : prev))
+      const inviteNote = result.invite?.alreadyExists
+        ? ' Seller email already has a login — link them to this company if needed.'
+        : (result.invite?.emailConfirmationPending
+          ? ' Invite email sent — seller must confirm to take over login.'
+          : (transferInvite && isSupabaseConfigured ? ' Invite sent.' : ''))
+      setSavedMsg(`Seller rights transferred to ${result.email}.${inviteNote}`)
+      setTransferEmail('')
+    } catch (e) {
+      setError(e?.message || 'Transfer failed.')
+    } finally {
+      setTransferring(false)
+    }
+  }
+
   const saveAudit = async () => {
     if (!company) return
     setSaving(true)
@@ -1210,6 +1265,60 @@ export default function SuperAdminAccountDetailPage() {
                   </button>
                   <button type="button" className="saad-primary" disabled={savingProfile} onClick={() => void saveAccountProfile()}>
                     {savingProfile ? 'Saving…' : 'Save account profile'}
+                  </button>
+                </div>
+              </section>
+
+              <section className="saad-card saad-card-wide">
+                <h2>Transfer rights to real seller</h2>
+                <p className="saad-muted">
+                  Use after the company profile is ready. Sets the real seller email on this account
+                  {isSupabaseConfigured ? ' and can send a login invite' : ''}
+                  {' '}so they do not need a second registration.
+                  {isAdminCreatedPlaceholderEmail(form.email) && (
+                    <> Current email is a temporary placeholder.</>
+                  )}
+                </p>
+                <div className="saad-form-grid">
+                  <label className="saad-field">
+                    Real seller email
+                    <input
+                      type="email"
+                      value={transferEmail}
+                      onChange={(e) => setTransferEmail(e.target.value)}
+                      disabled={transferring}
+                      placeholder="owner@supplier.com"
+                    />
+                  </label>
+                  <label className="saad-field">
+                    Seller contact name
+                    <input
+                      value={transferName}
+                      onChange={(e) => setTransferName(e.target.value)}
+                      disabled={transferring}
+                      placeholder={form.contactName || 'Optional'}
+                    />
+                  </label>
+                </div>
+                {isSupabaseConfigured && (
+                  <label className="saad-check-row">
+                    <input
+                      type="checkbox"
+                      checked={transferInvite}
+                      onChange={(e) => setTransferInvite(e.target.checked)}
+                      disabled={transferring}
+                    />
+                    Send login invite email
+                  </label>
+                )}
+                <div className="saad-plant-actions">
+                  <button
+                    type="button"
+                    className="saad-primary"
+                    disabled={transferring || !transferEmail.trim()}
+                    onClick={() => void transferToRealSeller()}
+                  >
+                    {transferring ? 'Transferring…' : 'Transfer rights'}
                   </button>
                 </div>
               </section>

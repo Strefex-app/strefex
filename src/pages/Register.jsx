@@ -20,6 +20,10 @@ import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustry
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
+import {
+  acceptSellerGrowthInvite,
+  getSellerGrowthInviteByToken,
+} from '../utils/sellerGrowthInvites'
 import './Login.css'
 import './Register.css'
 
@@ -71,6 +75,7 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showAgreementModal, setShowAgreementModal] = useState(false)
+  const [growthInvite, setGrowthInvite] = useState(null)
 
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -87,6 +92,9 @@ function RegisterForm() {
   const needsCategoryRegistration =
     primaryAccountType === 'seller'
     || primaryAccountType === 'service_provider'
+  const inviteEmailLocked = Boolean(
+    growthInvite?.inviteeEmail && growthInvite.status === 'pending',
+  )
     || primaryAccountType === 'buyer'
   const availablePlans = getPlansForAccountType(primaryAccountType)
   const selectedTier = selectedPlan === 'start' ? 'free' : selectedPlan
@@ -127,10 +135,24 @@ function RegisterForm() {
   }, [isAuthenticated])
 
   // Deep-link from marketing CTAs: /register?type=buyer | supplier | seller | manufacturer
+  // Growth invite: /register?type=seller&invite=<token>
   useEffect(() => {
     const fromQuery = resolveAccountTypeFromQuery(
       searchParams.get('type') || searchParams.get('account') || searchParams.get('role'),
     )
+    const inviteToken = String(searchParams.get('invite') || '').trim()
+    const invite = inviteToken ? getSellerGrowthInviteByToken(inviteToken) : null
+    setGrowthInvite(invite && invite.status === 'pending' ? invite : (invite || null))
+
+    if (invite?.status === 'pending') {
+      setAccountTypes(['seller'])
+      setSelectedPlan(getDefaultPlanForAccountType('seller'))
+      setSelectedServiceCategories([])
+      if (invite.inviteeEmail) setEmail(invite.inviteeEmail)
+      if (invite.inviteeName) setFullName((prev) => prev || invite.inviteeName)
+      return
+    }
+
     if (!fromQuery) return
     setAccountTypes([fromQuery])
     setSelectedPlan(getDefaultPlanForAccountType(fromQuery))
@@ -362,7 +384,18 @@ function RegisterForm() {
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
         registrationCode: platformRegistrationLabel,
+        invitedBy: growthInvite?.inviterEmail || undefined,
+        growthInviteToken: growthInvite?.token || undefined,
       })
+
+      if (growthInvite?.token && primaryAccountType === 'seller') {
+        try {
+          acceptSellerGrowthInvite(growthInvite.token, {
+            acceptedEmail: normalizedEmail,
+            companyId: result?.profile?.company_id ?? null,
+          })
+        } catch { /* best-effort */ }
+      }
 
       try {
         useIndustryStore.getState().applySelections(
@@ -419,11 +452,29 @@ function RegisterForm() {
           <h1 className="login-title">Create Account</h1>
           <p className="login-subtitle">
             {step === 1
-              ? 'Get started with STREFEX Platform'
+              ? (growthInvite?.status === 'pending'
+                ? 'You were invited to join as a seller — create your own company account'
+                : 'Get started with STREFEX Platform')
               : step === 2
               ? `Choose your ${accountTypeLabels} plan`
               : 'Almost there!'}
           </p>
+
+          {growthInvite?.status === 'pending' && step === 1 && (
+            <div className="reg-invite-banner" role="status">
+              Invited by{' '}
+              <strong>
+                {growthInvite.inviterCompany || growthInvite.inviterEmail || 'a STREFEX partner'}
+              </strong>
+              {growthInvite.rfqTitle ? <> · RFQ: {growthInvite.rfqTitle}</> : null}
+              . You will own your company profile — this is not a team seat.
+            </div>
+          )}
+          {growthInvite && growthInvite.status !== 'pending' && step === 1 && (
+            <div className="reg-invite-banner reg-invite-banner--warn" role="status">
+              This invite link was already used or is no longer active. You can still register normally.
+            </div>
+          )}
 
           {/* Step indicator */}
           <div className="reg-steps">
@@ -462,7 +513,7 @@ function RegisterForm() {
               </div>
               <div className="form-group">
                 <label htmlFor="reg-email">{t('login.email')}</label>
-                <input type="email" id="reg-email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required disabled={loading} />
+                <input type="email" id="reg-email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required disabled={loading || inviteEmailLocked} />
               </div>
               <div className="form-group">
                 <label htmlFor="reg-phone">Phone Number</label>

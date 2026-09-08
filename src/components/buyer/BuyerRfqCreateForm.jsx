@@ -906,10 +906,13 @@ export default function BuyerRfqCreateForm({
                   </div>
                 ))}
               <button type="button" className="stx-rfq-invite-btn" onClick={() => setShowInvitePanel((v) => !v)}>
-                Invite by email
+                Invite seller by email
               </button>
               {showInvitePanel ? (
                 <div className="stx-rfq-invite-panel">
+                  <p className="stx-rfq-recipient__meta stx-text-wrap" style={{ margin: '0 0 10px' }}>
+                    Not on STREFEX yet? They get a tracked join link to create their own seller account, then can respond to this RFQ.
+                  </p>
                   <Field id="stx-invite-name" label="Plant / company">
                     <input id="stx-invite-name" className="stx-rfq-input" value={inviteName} onChange={(e) => setInviteName(e.target.value)} />
                   </Field>

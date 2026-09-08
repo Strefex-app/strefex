@@ -22,6 +22,7 @@ import {
   updateFeatureGrant,
 } from '../services/featureGrantsService'
 import { mergeRegistrationPreference, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
+import { createAdminSellerAccount } from '../utils/adminCreateSellerAccount'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -503,11 +504,75 @@ export default function SuperAdminDashboard() {
 
   const registryAccounts = useAccountRegistry((s) => s.accounts)
   const updateRegistryAccount = useAccountRegistry((s) => s.updateAccount)
+  const registerRegistryAccount = useAccountRegistry((s) => s.registerAccount)
   const rehydrateRegistryFromStorage = useAccountRegistry((s) => s.rehydrateRegistryFromStorage)
   const authRole = useAuthStore((s) => s.role)
   const [supabaseProfileRows, setSupabaseProfileRows] = useState([])
   const [profilesDbHasMore, setProfilesDbHasMore] = useState(false)
   const [profilesDbLoading, setProfilesDbLoading] = useState(false)
+  const [showAddSeller, setShowAddSeller] = useState(false)
+  const [creatingSeller, setCreatingSeller] = useState(false)
+  const [addSellerError, setAddSellerError] = useState('')
+  const [addSellerForm, setAddSellerForm] = useState({
+    companyName: '',
+    email: '',
+    contactName: '',
+    phone: '',
+    country: '',
+    city: '',
+    address: '',
+    industryId: 'automotive',
+  })
+
+  const openAddSellerModal = () => {
+    setAddSellerError('')
+    setAddSellerForm({
+      companyName: '',
+      email: '',
+      contactName: '',
+      phone: '',
+      country: '',
+      city: '',
+      address: '',
+      industryId: 'automotive',
+    })
+    setShowAddSeller(true)
+  }
+
+  const createSellerFromAdmin = async () => {
+    setCreatingSeller(true)
+    setAddSellerError('')
+    try {
+      const result = await createAdminSellerAccount({
+        ...addSellerForm,
+        registerAccount: registerRegistryAccount,
+      })
+      setShowAddSeller(false)
+      const stub = {
+        ...result.account,
+        company: result.account.company,
+        name: result.account.contactName || result.account.name || '',
+        accountType: 'seller',
+        accountTypes: ['seller'],
+        companyId: result.companyId || result.account.companyId || null,
+        registryLookupKey: result.account.email,
+        adminCreated: true,
+      }
+      setSelectedAccount(stub)
+      setTab('accounts')
+      const cid = result.companyId
+      if (cid && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(cid))) {
+        navigate(`/admin-dashboard/account/${cid}`, { state: { accountStub: stub } })
+        return
+      }
+      const key = encodeURIComponent(result.account.email || result.account.id || '')
+      navigate(`/admin-dashboard/local-account/${key}`, { state: { accountStub: stub } })
+    } catch (e) {
+      setAddSellerError(e?.message || 'Could not create seller account.')
+    } finally {
+      setCreatingSeller(false)
+    }
+  }
 
   const fetchProfileDirectoryPage = useCallback(async (offset) => {
     const { rows, hasMore } = await profilesService.listAllWithCompanies({
@@ -1317,11 +1382,126 @@ export default function SuperAdminDashboard() {
           <option value="all">All Plans</option>
           {PLANS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
+        <button type="button" className="sad-btn-primary" onClick={openAddSellerModal}>
+          Add new seller account
+        </button>
         <div className="sad-filter-count">{filteredAccounts.length} accounts</div>
       </div>
       <p className="sad-muted" style={{ margin: '0 0 12px', fontSize: 13 }}>
         Click an account row, then press <strong>Edit account profile</strong> to open the fillable form.
+        Or create a seller without registration, complete the profile, then transfer login rights to the real seller.
       </p>
+
+      {showAddSeller && (
+        <div className="sad-modal-backdrop" role="presentation" onClick={() => !creatingSeller && setShowAddSeller(false)}>
+          <div
+            className="sad-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sad-add-seller-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="sad-add-seller-title">Add new seller account</h2>
+            <p className="sad-muted" style={{ marginTop: 0 }}>
+              Creates the company for Intelligent Sourcing without self-registration.
+              Leave email blank to use a temporary placeholder; transfer rights later from the account page.
+            </p>
+            {addSellerError && <div className="sad-error" role="alert">{addSellerError}</div>}
+            <div className="sad-modal-grid">
+              <label className="sad-modal-field">
+                Company name *
+                <input
+                  value={addSellerForm.companyName}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, companyName: e.target.value }))}
+                  disabled={creatingSeller}
+                  autoFocus
+                />
+              </label>
+              <label className="sad-modal-field">
+                Seller email (optional)
+                <input
+                  type="email"
+                  value={addSellerForm.email}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, email: e.target.value }))}
+                  disabled={creatingSeller}
+                  placeholder="Leave blank until ready to transfer"
+                />
+              </label>
+              <label className="sad-modal-field">
+                Contact name
+                <input
+                  value={addSellerForm.contactName}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, contactName: e.target.value }))}
+                  disabled={creatingSeller}
+                />
+              </label>
+              <label className="sad-modal-field">
+                Phone
+                <input
+                  value={addSellerForm.phone}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, phone: e.target.value }))}
+                  disabled={creatingSeller}
+                />
+              </label>
+              <label className="sad-modal-field">
+                Country *
+                <input
+                  value={addSellerForm.country}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, country: e.target.value }))}
+                  disabled={creatingSeller}
+                  placeholder="Required for sourcing map"
+                />
+              </label>
+              <label className="sad-modal-field">
+                City
+                <input
+                  value={addSellerForm.city}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, city: e.target.value }))}
+                  disabled={creatingSeller}
+                />
+              </label>
+              <label className="sad-modal-field sad-modal-field-wide">
+                Plant / site address
+                <input
+                  value={addSellerForm.address}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, address: e.target.value }))}
+                  disabled={creatingSeller}
+                />
+              </label>
+              <label className="sad-modal-field">
+                Industry
+                <select
+                  value={addSellerForm.industryId}
+                  onChange={(e) => setAddSellerForm((f) => ({ ...f, industryId: e.target.value }))}
+                  disabled={creatingSeller}
+                >
+                  {INDUSTRIES.map((ind) => (
+                    <option key={ind.id} value={ind.id}>{ind.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="sad-modal-actions">
+              <button
+                type="button"
+                className="sad-btn-secondary"
+                disabled={creatingSeller}
+                onClick={() => setShowAddSeller(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sad-btn-primary"
+                disabled={creatingSeller || !addSellerForm.companyName.trim() || !addSellerForm.country.trim()}
+                onClick={() => void createSellerFromAdmin()}
+              >
+                {creatingSeller ? 'Creating…' : 'Create seller & open profile'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {(authRole === 'superadmin' || authRole === 'auditor_external') && isSupabaseConfigured && (
         <div className="sad-filters sad-filters-db-profiles">

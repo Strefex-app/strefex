@@ -58,6 +58,7 @@ import {
   IndustryEquipmentSuppliers,
   Profile,
   AddSupplier,
+  InviteSellersPage,
   AdminApproval,
   ManagementHub,
   ManagementClusterPage,
@@ -500,6 +501,8 @@ function App() {
           <Route path="/profile/calendar" element={<P><ProfileCalendar /></P>} />
           <Route path="/request-service" element={<P><ServiceList /></P>} />
           <Route path="/add-supplier" element={<P><AddSupplier /></P>} />
+          <Route path="/invite-sellers" element={<P><InviteSellersPage /></P>} />
+          <Route path="/management/sourcing/invite-sellers" element={<Navigate to="/invite-sellers" replace />} />
 
           {/* ── Admin (role-protected) ────────────────────── */}
           <Route path="/admin/approvals" element={<Admin><AdminApproval /></Admin>} />

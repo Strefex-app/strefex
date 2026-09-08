@@ -619,6 +619,75 @@
   transition: all .15s;
 }
 .sad-btn-secondary:hover { background: var(--border-color); }
+
+/* Add seller modal */
+.sad-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.sad-modal {
+  width: min(640px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+.sad-modal h2 {
+  margin: 0 0 8px;
+  font-size: var(--text-section, 1.15rem);
+  font-weight: var(--font-semibold, 600);
+}
+.sad-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  margin: 14px 0 18px;
+}
+.sad-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-secondary);
+}
+.sad-modal-field-wide { grid-column: 1 / -1; }
+.sad-modal-field input,
+.sad-modal-field select {
+  padding: 9px 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--color-primary);
+  background: var(--bg-surface, #fff);
+}
+.sad-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sad-error {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .sad-modal-grid { grid-template-columns: 1fr; }
+  .sad-modal-field-wide { grid-column: auto; }
+}
 .sad-filter-row {
   display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap;
 }

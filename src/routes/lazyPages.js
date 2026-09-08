@@ -37,6 +37,7 @@ export const IndustryEquipmentCategory = lazy(() => import('../pages/IndustryEqu
 export const IndustryEquipmentSuppliers = lazy(() => import('../pages/IndustryEquipmentSuppliers'))
 export const Profile = lazy(() => import('../pages/Profile'))
 export const AddSupplier = lazy(() => import('../pages/AddSupplier'))
+export const InviteSellersPage = lazy(() => import('../pages/InviteSellersPage'))
 export const AdminApproval = lazy(() => import('../pages/AdminApproval'))
 export const ManagementHub = lazy(() => import('../pages/ManagementHub'))
 export const ManagementClusterPage = lazy(() => import('../pages/ManagementClusterPage'))

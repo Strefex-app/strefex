@@ -69,6 +69,7 @@ const EXACT_ROUTES = {
   '/raw-materials': { root: 'home', trail: [{ label: 'Raw Materials' }] },
   '/machinery-industry': { root: 'home', trail: [{ label: 'Machinery Industry' }] },
   '/add-supplier': { root: 'home', trail: [{ label: 'Add Supplier' }] },
+  '/invite-sellers': { root: 'home', trail: [{ label: 'Invite sellers' }] },
   '/services': { root: 'home', trail: [{ label: 'Services' }] },
   '/equipment-request': { root: 'home', trail: [{ label: 'Equipment Request' }] },
   '/audit-request': { root: 'home', trail: [{ label: 'Audit Request' }] },

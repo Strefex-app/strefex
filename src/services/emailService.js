@@ -1,5 +1,8 @@
 // Email service utility
-// In production, this would connect to a real email service (SendGrid, AWS SES, etc.)
+// Seller growth invites: Resend via Supabase Edge Function `send-seller-invite`.
+// Other helpers still stub until wired to the same provider.
+
+import { isSupabaseConfigured, supabase } from '../config/supabase'
 
 const PLATFORM_OWNER_EMAIL = 'STREFEX@strfgroup.ru'
 
@@ -81,7 +84,10 @@ export const emailService = {
   },
 
   // RFQ invite email to supplier
-  sendRfqInvite: async ({ email, supplierName, rfqTitle, deadline, buyerName }) => {
+  sendRfqInvite: async ({ email, supplierName, rfqTitle, deadline, buyerName, registerUrl }) => {
+    const joinLine = registerUrl
+      ? `\n        Not on STREFEX yet? Create your seller account here:\n        ${registerUrl}\n`
+      : '\n        If you are new to STREFEX, register as a seller first, then sign in to respond.\n'
     const emailData = {
       to: email,
       subject: `RFQ Invitation - ${rfqTitle}`,
@@ -93,12 +99,117 @@ export const emailService = {
         RFQ: ${rfqTitle}
         Buyer: ${buyerName || 'Buyer'}
         Deadline: ${deadline ? new Date(deadline).toLocaleString() : 'Not specified'}
-
+${joinLine}
         Please sign in to submit your response.
       `,
     }
     if (import.meta.env.DEV) console.log('📧 RFQ invite email:', emailData)
     return new Promise((resolve) => setTimeout(() => resolve({ success: true, messageId: `email-${Date.now()}` }), 300))
+  },
+
+  /** Organic growth: invite a potential seller — Resend via Edge Function when configured. */
+  sendSellerGrowthInvite: async ({
+    email,
+    inviteeName,
+    inviterName,
+    inviterCompany,
+    inviterEmail,
+    registerUrl,
+    rfqTitle,
+    message,
+    token,
+    source,
+    rfqId,
+  }) => {
+    const from = inviterCompany || inviterName || 'A STREFEX partner'
+    const emailData = {
+      to: email,
+      subject: `${from} invited you to join STREFEX`,
+      body: `
+        Dear ${inviteeName || 'Supplier'},
+
+        ${from} invited you to join STREFEX as a manufacturer / seller.
+        You will create and own your own company account (this is not a team seat).
+
+        ${message ? `${message}\n` : ''}${rfqTitle ? `Related RFQ: ${rfqTitle}\n` : ''}
+        Create your account:
+        ${registerUrl}
+
+        Best regards,
+        STREFEX Platform
+      `,
+    }
+
+    if (isSupabaseConfigured && supabase && token) {
+      try {
+        const { data, error } = await supabase.functions.invoke('send-seller-invite', {
+          body: {
+            email,
+            inviteeName,
+            inviterName,
+            inviterCompany,
+            inviterEmail,
+            registerUrl,
+            rfqTitle,
+            message,
+            token,
+            source,
+            rfqId,
+          },
+        })
+        if (error) {
+          if (import.meta.env.DEV) console.warn('📧 send-seller-invite invoke error:', error.message || error)
+          return {
+            success: false,
+            delivered: false,
+            channel: 'resend_failed',
+            fallbackMailto: true,
+            error: error.message || 'Invite email function failed',
+            emailData,
+          }
+        }
+        if (data?.ok && data?.delivered) {
+          if (import.meta.env.DEV) console.log('📧 Seller growth invite sent via Resend:', data.messageId)
+          return {
+            success: true,
+            delivered: true,
+            channel: 'resend',
+            messageId: data.messageId,
+            inviteId: data.inviteId,
+            from: data.from,
+            emailData,
+          }
+        }
+        return {
+          success: false,
+          delivered: false,
+          channel: 'resend_failed',
+          fallbackMailto: Boolean(data?.fallbackMailto ?? true),
+          error: data?.error || 'Invite email was not delivered',
+          emailData,
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('📧 send-seller-invite exception:', err?.message || err)
+        return {
+          success: false,
+          delivered: false,
+          channel: 'resend_failed',
+          fallbackMailto: true,
+          error: err?.message || 'Invite email failed',
+          emailData,
+        }
+      }
+    }
+
+    if (import.meta.env.DEV) console.log('📧 Seller growth invite (local stub — deploy Resend function):', emailData)
+    return {
+      success: true,
+      delivered: false,
+      channel: 'local_stub',
+      fallbackMailto: true,
+      messageId: `local-${Date.now()}`,
+      emailData,
+    }
   },
 
   // RFQ response notice to buyer

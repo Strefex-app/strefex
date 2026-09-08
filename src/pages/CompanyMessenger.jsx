@@ -844,8 +844,15 @@ export default function CompanyMessenger() {
                 <div className="cm-lookup-miss">
                   <p>{lookupResult.reason || 'Not found.'}</p>
                   <div className="cm-invite-actions">
-                    <a className="cm-btn-link" href={buildMailtoInvite(contactEmail || 'contact@example.com')}>
-                      Invite by email
+                    <a
+                      className="cm-btn-link"
+                      href={buildMailtoInvite(contactEmail || '', '', {
+                        email: user?.email,
+                        company: tenant?.name || user?.companyName || user?.company,
+                        userId: user?.id,
+                      })}
+                    >
+                      Invite seller to STREFEX
                     </a>
                     <button
                       type="button"
@@ -856,6 +863,9 @@ export default function CompanyMessenger() {
                     >
                       Copy join link
                     </button>
+                    <a className="cm-btn-link" href="/invite-sellers">
+                      Invite sellers page
+                    </a>
                   </div>
                 </div>
               )}

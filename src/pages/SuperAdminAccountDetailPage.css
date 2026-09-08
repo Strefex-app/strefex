@@ -106,6 +106,15 @@
 .saad-plant-actions {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px;
 }
+.saad-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-size: 14px;
+  color: var(--color-secondary);
+  min-width: 0;
+}
 .saad-primary {
   margin-top: 16px; padding: 10px 18px; border-radius: 8px; border: none;
   background: #00d4ff; color: var(--btn-primary-text); font-weight: 600; cursor: pointer;

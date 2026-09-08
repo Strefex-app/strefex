@@ -19,6 +19,22 @@
   opacity: 1;
 }
 
+.reg-invite-banner {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(46, 86, 133, 0.08);
+  border: 1px solid rgba(46, 86, 133, 0.18);
+  color: var(--color-primary, #1a2b3c);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.reg-invite-banner--warn {
+  background: rgba(243, 156, 18, 0.12);
+  border-color: rgba(243, 156, 18, 0.35);
+}
+
 .reg-step-num {
   width: 28px;
   height: 28px;

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import useVendorStore from '../store/vendorStore'
@@ -195,9 +195,14 @@ export default function VendorManagement() {
             <h1 className="vm-title">Vendor Master Data</h1>
             <p className="vm-subtitle">Vendor Registry — Manage all sellers accounts, connections, and evaluation</p>
           </div>
-          <button className="vm-btn primary" onClick={() => setShowAddModal(true)}>
-            + Create Vendor
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <Link className="vm-btn" to="/invite-sellers">
+              Invite sellers to STREFEX
+            </Link>
+            <button className="vm-btn primary" onClick={() => setShowAddModal(true)}>
+              + Create Vendor
+            </button>
+          </div>
         </div>
 
         {/* KPI cards */}

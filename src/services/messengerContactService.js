@@ -3,6 +3,11 @@
  * Uses company-scoped profiles (RLS): same-company directory only unless backend adds global lookup.
  */
 import { isSupabaseConfigured, profilesService } from './supabaseService'
+import {
+  buildSellerInviteRegisterUrl,
+  createSellerGrowthInvite,
+  buildMailtoSellerGrowthInvite,
+} from '../utils/sellerGrowthInvites'
 
 function normalizeEmail(e) {
   return String(e || '').trim().toLowerCase()
@@ -62,16 +67,41 @@ export async function lookupContactInCompany(query, companyId) {
   }
 }
 
+/** Plain seller register URL (no tracked invite). */
 export function buildRegisterInviteUrl() {
-  if (typeof window === 'undefined') return '/register'
-  return `${window.location.origin}/register`
+  if (typeof window === 'undefined') return '/register?type=seller'
+  return `${window.location.origin}/register?type=seller`
 }
 
-export function buildMailtoInvite(email, bodyExtra = '') {
-  const url = buildRegisterInviteUrl()
-  const subject = encodeURIComponent('Join me on STREFEX')
-  const body = encodeURIComponent(
-    `Hi,\n\nI’d like to connect with you on STREFEX.\nCreate a free account here: ${url}\n\n${bodyExtra}`,
-  )
-  return `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`
+/**
+ * Tracked mailto invite for a potential seller (their own company, not a team seat).
+ */
+export function buildMailtoInvite(email, bodyExtra = '', inviter = {}) {
+  const inviteeEmail = normalizeEmail(email)
+  if (!inviteeEmail.includes('@')) {
+    const url = buildRegisterInviteUrl()
+    const subject = encodeURIComponent('Join me on STREFEX')
+    const body = encodeURIComponent(
+      `Hi,\n\nI’d like to connect with you on STREFEX.\nCreate a free seller account here: ${url}\n\n${bodyExtra}`,
+    )
+    return `mailto:?subject=${subject}&body=${body}`
+  }
+  try {
+    const { invite } = createSellerGrowthInvite({
+      inviteeEmail,
+      inviterEmail: inviter.email || '',
+      inviterCompany: inviter.company || '',
+      inviterUserId: inviter.userId || '',
+      source: 'messenger',
+      message: bodyExtra,
+    })
+    return buildMailtoSellerGrowthInvite(invite)
+  } catch {
+    const url = buildSellerInviteRegisterUrl('')
+    const subject = encodeURIComponent('Join me on STREFEX as a seller')
+    const body = encodeURIComponent(
+      `Hi,\n\nI’d like to invite you to join STREFEX as a seller.\nCreate your company account here: ${url}\n\n${bodyExtra}`,
+    )
+    return `mailto:${encodeURIComponent(inviteeEmail)}?subject=${subject}&body=${body}`
+  }
 }

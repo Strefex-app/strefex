@@ -7,6 +7,7 @@ import { platformIndustryFromSourcing } from './intelligentSourcingData'
 import { SUPPLIER_DATABASE } from '../data/supplierDatabase'
 import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { getIndustryQualityProfile } from '../data/industryQualityProfiles'
+import { dispatchRfqSellerGrowthInvites } from './sellerGrowthInvites'
 
 /**
  * Resolve invitee ids for rfqStore.sendRfq from Intelligent Sourcing shortlist.
@@ -151,6 +152,20 @@ export function createAndSendNetworkRfq(draft, ctx = {}) {
   if (!created?.id) return { ok: false, error: 'Could not create RFQ.' }
   sendRfq(created.id)
   const sent = getRfqById(created.id) || created
+
+  /* Unregistered email invitees → tracked join-STREFEX invites (fire-and-forget). */
+  try {
+    void dispatchRfqSellerGrowthInvites({
+      manualInvitees: draft?.manualInvitees || [],
+      supplierIds: draft?.supplierIds || rfqPayload.suppliers || [],
+      rfq: sent,
+      inviterEmail: ctx.buyerEmail || '',
+      inviterCompany: ctx.buyerCompany || '',
+      inviterUserId: ctx.buyerUserId || '',
+      inviterName: ctx.buyerCompany || ctx.buyerEmail || '',
+    })
+  } catch { /* non-blocking */ }
+
   return { ok: true, rfq: sent }
 }
 
