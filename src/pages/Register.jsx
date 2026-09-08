@@ -24,6 +24,11 @@ import {
   acceptSellerGrowthInvite,
   getSellerGrowthInviteByToken,
 } from '../utils/sellerGrowthInvites'
+import {
+  AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  AUDITOR_EXPERTISE_OPTIONS,
+  defaultAuditorServiceCategories,
+} from '../data/auditServices'
 import './Login.css'
 import './Register.css'
 
@@ -39,14 +44,8 @@ const INDUSTRIES = [
   { id: 'household-products', label: 'Household Products' },
   { id: 'nuclear', label: 'Nuclear' },
 ]
-const SERVICE_EXPERTISE_OPTIONS = [
-  { id: 'project-management', label: 'Project Management' },
-  { id: 'supplier-services', label: 'Supplier Services' },
-  { id: 'quality-services', label: 'Quality & Compliance' },
-]
-const AUDITOR_EXPERTISE_OPTIONS = [
-  { id: 'supplier-audit', label: 'Supplier Audit' },
-]
+const SERVICE_EXPERTISE_OPTIONS = AUDIT_AND_SERVICE_EXPERTISE_OPTIONS
+const AUDITOR_EXPERTISE_OPTIONS_UI = AUDITOR_EXPERTISE_OPTIONS
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
   'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'gmx.com', 'yandex.com', 'yandex.ru',
@@ -156,7 +155,7 @@ function RegisterForm() {
     if (!fromQuery) return
     setAccountTypes([fromQuery])
     setSelectedPlan(getDefaultPlanForAccountType(fromQuery))
-    if (fromQuery === 'auditor') setSelectedServiceCategories(['supplier-audit'])
+    if (fromQuery === 'auditor') setSelectedServiceCategories(defaultAuditorServiceCategories())
     else if (fromQuery !== 'service_provider') setSelectedServiceCategories([])
   }, [searchParams])
 
@@ -170,7 +169,7 @@ function RegisterForm() {
     setAccountTypes([type])
     setSelectedPlan(getDefaultPlanForAccountType(type))
     if (type === 'auditor') {
-      setSelectedServiceCategories(['supplier-audit'])
+      setSelectedServiceCategories(defaultAuditorServiceCategories())
       return
     }
     if (type !== 'service_provider') setSelectedServiceCategories([])
@@ -379,7 +378,7 @@ function RegisterForm() {
         serviceCategories: accountTypes.includes('service_provider')
           ? selectedServiceCategories
           : primaryAccountType === 'auditor'
-            ? ['supplier-audit']
+            ? defaultAuditorServiceCategories(selectedServiceCategories)
             : [],
         auditorDocuments: primaryAccountType === 'auditor' ? auditorDocuments.trim() : '',
         registeredAt: new Date().toISOString(),
@@ -413,7 +412,9 @@ function RegisterForm() {
           useServiceStore.getState().setServices(selectedServiceCategories)
         }
         if (primaryAccountType === 'auditor') {
-          useServiceStore.getState().setServices(['supplier-audit'])
+          useServiceStore.getState().setServices(
+            defaultAuditorServiceCategories(selectedServiceCategories),
+          )
         }
       } catch { /* store seed is best-effort */ }
 
@@ -792,32 +793,28 @@ function RegisterForm() {
                     ))}
                   </div>
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                    Checked service categories appear in the Service Executive Summary for your industry.
+                    Checked categories appear in Service Hub and audit requests for your industry.
                   </div>
                 </div>
               )}
 
               {primaryAccountType === 'auditor' && (
                 <div className="form-group">
-                  <label>Auditor Service Expertise</label>
+                  <label>Audit service expertise</label>
                   <div className="reg-account-type-toggle reg-account-type-3col">
-                    {AUDITOR_EXPERTISE_OPTIONS.map((service) => (
-                      <button
+                    {AUDITOR_EXPERTISE_OPTIONS_UI.map((service) => (
+                      <ToggleCheckButton
                         key={service.id}
-                        type="button"
-                        className="reg-account-type-btn active"
-                        disabled
-                        style={{ minHeight: 62, cursor: 'default' }}
+                        checked={selectedServiceCategories.includes(service.id)}
+                        onChange={() => toggleServiceCategory(service.id)}
+                        style={{ minHeight: 62 }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                          <div className="reg-account-type-label">{service.label}</div>
-                          <span className="home-industry-badge">Required</span>
-                        </div>
-                      </button>
+                        <div className="reg-account-type-label">{service.label}</div>
+                      </ToggleCheckButton>
                     ))}
                   </div>
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                    Auditor companies are registered for Supplier Audit requests.
+                    Select audit kinds you deliver. Buyers in your industry can request an audit and you get notified.
                   </div>
                 </div>
               )}

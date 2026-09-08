@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useTranslation } from '../i18n/useTranslation'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
@@ -9,6 +9,7 @@ import '../styles/app-page.css'
 import './AuditRequest.css'
 import './ServiceList.css'
 import { PROJECT_MANAGEMENT_SCOPE, PROJECT_MANAGEMENT_SCOPE_IDS } from '../data/projectManagementScopeServices'
+import { AUDIT_SERVICES_CATEGORY_ID, isAuditServiceCategoryId } from '../data/auditServices'
 
 /* ── Available services ─────────────────────────────────────── */
 const SERVICE_OPTIONS = [
@@ -37,6 +38,7 @@ const SERVICE_CATEGORY_LABELS = {
   'project-management': 'Project Management',
   'supplier-services': 'Supplier Services',
   'quality-services': 'Quality & Compliance',
+  [AUDIT_SERVICES_CATEGORY_ID]: 'Audit Services',
 }
 
 /** Map service category IDs to the service option IDs to pre-check — aligned with Service Hub pills per category */
@@ -69,6 +71,12 @@ const ServiceList = () => {
   const qPreferredProviderEmail = searchParams.get('preferredProviderEmail') || ''
   const qRequestSource = searchParams.get('requestSource') || ''
   const hasPreferredProvider = Boolean(qPreferredProviderId || qPreferredProviderName || qPreferredProviderEmail)
+
+  // Dedicated audit company request lives on /audit-request (not this form).
+  if (isAuditServiceCategoryId(qServiceCategory)) {
+    const industry = paramIndustryId || qIndustry
+    return <Navigate to={industry ? `/industry/${industry}/audit-request` : '/audit-request'} replace />
+  }
 
   // Pre-select services that belong to the chosen service category
   const preselected = (() => {

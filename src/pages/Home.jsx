@@ -825,7 +825,7 @@ export default function Home() {
         sub: `${serviceRequestStats.total} total`,
         accent: SIGNAL.critical,
         ...SRC.live,
-        path: '/service-requests',
+        path: '/service-provider-dashboard',
       })
     }
     if (!showBuyer && !showManufacturer && !isServiceProvider) {
@@ -1236,7 +1236,7 @@ export default function Home() {
         tone: SIGNAL.critical,
         title: `${serviceRequestStats.open} open service request${serviceRequestStats.open === 1 ? '' : 's'}`,
         meta: 'Service requests',
-        path: '/service-requests',
+        path: '/service-provider-dashboard',
       })
     }
     if (projectsInProgress > 0) {

@@ -79,7 +79,8 @@ export default function ServiceProviderDashboard() {
     return [...result]
   }
   const isRequestFromExecutiveSummary = (request) =>
-    String(request?.requestSource || '').toLowerCase() === 'executive-summary'
+    String(request?.requestSource || '').toLowerCase() === 'service-hub'
+      || String(request?.requestSource || '').toLowerCase() === 'executive-summary'
   const isTargetedToProvider = (request) =>
     Boolean(userEmail) && String(request?.preferredProviderEmail || '').toLowerCase() === userEmail
 

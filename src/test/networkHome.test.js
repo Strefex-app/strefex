@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { getNetworkHomeClusters } from '../data/networkHomeClusters'
 
 describe('Network home clusters', () => {
-  it('shows Sourcing + Executive Summary for buyers and home dashboard for manufacturers', () => {
+  it('shows Sourcing for buyers and home dashboard for manufacturers', () => {
     const buyer = getNetworkHomeClusters({ accountTypes: ['buyer'] }).map((c) => c.id)
     expect(buyer).toContain('intelligent-sourcing')
-    expect(buyer).toContain('executive-summary')
+    expect(buyer).not.toContain('executive-summary')
     expect(buyer).not.toContain('home-dashboard')
 
     const seller = getNetworkHomeClusters({ accountTypes: ['seller'] }).map((c) => c.id)

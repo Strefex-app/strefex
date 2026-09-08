@@ -93,21 +93,25 @@ export default function PartnerHub() {
             <h3 className="hub-tools-group__label">Platform services</h3>
             <div className="hub-landing__grid">
               <HubToolCard
-                to="/service-hub"
+                to={isServiceProvider ? '/service-hub' : '/hub/procurement'}
                 icon="service-requests"
                 iconStyle={ICON.services}
-                title="Order a service"
-                description="Browse STREFEX services and submit a request — same flow as buyers."
+                title={isServiceProvider ? 'Service categories' : 'Services via Sourcing'}
+                description={
+                  isServiceProvider
+                    ? 'Register the service categories you deliver.'
+                    : 'Use Sourcing and industry selection — not the legacy Service Hub.'
+                }
               />
               <HubToolCard
-                to="/service-requests"
+                to={isServiceProvider ? '/service-provider-dashboard' : '/hub/procurement'}
                 icon="check-square"
                 iconStyle={ICON.profile}
                 title="Service requests"
                 description={
                   isServiceProvider
                     ? 'Manage incoming assignments, update status, and track orders you placed.'
-                    : 'Track service orders submitted by your account.'
+                    : 'Find support through Sourcing; track RFQ activity on Home.'
                 }
               />
             </div>

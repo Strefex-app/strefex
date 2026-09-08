@@ -13,6 +13,7 @@ import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
+import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 
 const INDUSTRY_LABELS = {
   automotive: 'Automotive Industry',
@@ -110,11 +111,11 @@ const IndustryEquipmentLanding = () => {
     const execSummaryBtn = canSeeExecSummary ? (
       <button
         className="eq-cat-exec-btn"
-        onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/${cat.id}/executive-summary`) }}
-        title="View Executive Summary for this equipment category"
+        onClick={(e) => { e.stopPropagation(); navigate(BUYER_WORKSPACE_PATH) }}
+        title="Open Intelligent Sourcing"
       >
         <Icon name="chart" size={14} />
-        Executive Summary
+        Open Sourcing
       </button>
     ) : null
 
@@ -298,7 +299,7 @@ const IndustryEquipmentLanding = () => {
                   <button
                     onClick={() => {
                       selectCategory(industryId, showCatPicker, maxCategories)
-                      navigate(`${basePath}/${showCatPicker}/executive-summary`)
+                      navigate(BUYER_WORKSPACE_PATH)
                       setShowCatPicker(false)
                     }}
                     style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00d4ff', color: '#0d0e10', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}

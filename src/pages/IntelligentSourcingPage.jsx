@@ -620,7 +620,7 @@ export default function IntelligentSourcingPage() {
             <p>
               <a href="/intelligent-sourcing/index.html">Open design directly</a>
               {' · '}
-              <Link to="/executive-summary">Executive Summary</Link>
+              <Link to="/hub/procurement">Retry Sourcing</Link>
             </p>
           </div>
         ) : (

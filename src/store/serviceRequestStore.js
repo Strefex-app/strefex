@@ -17,6 +17,8 @@ import { allocateNextBuyerSequence, formatBuyerRef } from '../utils/buyerRequest
 import { getLegacyTenantIds, getTenantId, getUserId, getUserRole, tenantKey } from '../utils/tenantStorage'
 import { isSupabaseConfigured, notificationsService, serviceRequestsService } from '../services/supabaseService'
 import { reportSyncError } from './syncStatusStore'
+import { useAccountRegistry } from './accountRegistry'
+import { isAuditServiceCategoryId } from '../data/auditServices'
 
 const deliverOsBatch = (batch, readerEmail, role) => {
   void import('../services/pushNotificationService')
@@ -702,9 +704,11 @@ export const useServiceRequestStore = create((set, get) => ({
     const assigneeNotif = autoAssignable
       ? buildRequestNotification({
           idSeed: ++_nextId,
-          type: String(serviceCategoryId || '').toLowerCase() === 'supplier-audit' ? 'audit_request_assigned' : 'request_assigned',
+          type: isAuditServiceCategoryId(serviceCategoryId) || String(serviceCategoryId || '').toLowerCase().includes('audit')
+            ? 'audit_request_assigned'
+            : 'request_assigned',
           request,
-          title: String(serviceCategoryId || '').toLowerCase() === 'supplier-audit'
+          title: (isAuditServiceCategoryId(serviceCategoryId) || String(serviceCategoryId || '').toLowerCase().includes('audit'))
             ? 'Audit request assigned to you'
             : 'Service request assigned to you',
           message: `Request ${id} from ${companyName || contactName} has been routed to you.`,
@@ -712,6 +716,33 @@ export const useServiceRequestStore = create((set, get) => ({
           targetEmail: normalizedPreferredProviderEmail,
         })
       : null
+
+    // Audit requests: notify preferred auditor, or fan-out to industry auditors / audit SPs.
+    let auditFanoutNotifs = []
+    const isAuditReq = isAuditServiceCategoryId(serviceCategoryId)
+      || (services || []).some((s) => String(s || '').toLowerCase().includes('audit'))
+    if (isAuditReq && !autoAssignable) {
+      const providers = useAccountRegistry.getState().getAuditProvidersForIndustry(
+        industryId || null,
+        serviceCategoryId || 'audit-services',
+      )
+      const seen = new Set()
+      providers.forEach((prov) => {
+        const target = normalizeEmail(prov?.email)
+        if (!target || seen.has(target) || target === normalizeEmail(email)) return
+        seen.add(target)
+        auditFanoutNotifs.push(buildRequestNotification({
+          idSeed: ++_nextId,
+          type: 'audit_request_available',
+          request,
+          title: 'New audit request in your industry',
+          message: `${companyName || contactName} requested ${serviceCategoryLabel || 'an audit'}${industryLabel ? ` (${industryLabel})` : ''}. Open notifications or Service requests to respond as the audit company.`,
+          fromEmail: email,
+          targetEmail: target,
+          priority: priority || 'High',
+        }))
+      })
+    }
     const requestorNotif = buildRequestNotification({
       idSeed: ++_nextId,
       type: 'request_submitted',
@@ -719,20 +750,26 @@ export const useServiceRequestStore = create((set, get) => ({
       title: 'Your service request has been submitted',
       message: autoAssignable
         ? `Request ${id} was submitted and routed to ${preferredProviderName || normalizedPreferredProviderEmail || 'provider'}.`
-        : `Request ${id} was submitted and is awaiting assignment.`,
+        : isAuditReq
+          ? `Request ${id} was submitted. Matching audit companies in your industry have been notified.`
+          : `Request ${id} was submitted and is awaiting assignment.`,
       fromEmail: email,
       targetEmail: email,
     })
-    const notifBatch = assigneeNotif
-      ? [adminNotif, assigneeNotif, requestorNotif]
-      : [adminNotif, requestorNotif]
+    const notifBatch = [
+      adminNotif,
+      ...(assigneeNotif ? [assigneeNotif] : []),
+      ...auditFanoutNotifs,
+      requestorNotif,
+    ]
     const updatedNotifs = [...notifBatch, ...get().notifications]
     save(NOTIF_KEY, updatedNotifs)
-    const updatedGlobalNotifs = dedupeById(
-      assigneeNotif
-        ? [assigneeNotif, requestorNotif, ...get().globalNotifications]
-        : [requestorNotif, ...get().globalNotifications]
-    )
+    const updatedGlobalNotifs = dedupeById([
+      ...(assigneeNotif ? [assigneeNotif] : []),
+      ...auditFanoutNotifs,
+      requestorNotif,
+      ...get().globalNotifications,
+    ])
     saveGlobal(updatedGlobalNotifs)
     void persistRequestRecordToDatabase(request)
     void persistNotificationBatchToDatabase(notifBatch)

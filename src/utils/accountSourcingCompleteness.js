@@ -7,10 +7,10 @@
 import { getApproximateLngLat } from './accountApproximateLocation'
 
 export const SOURCING_VISIBILITY_FIELDS = [
-  { key: 'country', label: 'Country', requiredFor: ['seller', 'service_provider', 'buyer'] },
-  { key: 'city', label: 'City', requiredFor: ['seller', 'service_provider', 'buyer'] },
-  { key: 'address', label: 'Plant / site address', requiredFor: ['seller', 'service_provider'] },
-  { key: 'industries', label: 'Industry', requiredFor: ['seller', 'service_provider', 'buyer'], isArray: true },
+  { key: 'country', label: 'Country', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'] },
+  { key: 'city', label: 'City', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'] },
+  { key: 'address', label: 'Plant / site address', requiredFor: ['seller', 'service_provider', 'auditor'] },
+  { key: 'industries', label: 'Industry', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'], isArray: true },
 ]
 
 /** Shared manufacturer index — readable by every account type on this device. */
@@ -35,7 +35,7 @@ function isSellerLike(account) {
       if (id) types.add(id)
     })
   }
-  return types.has('seller') || types.has('service_provider')
+  return types.has('seller') || types.has('service_provider') || types.has('auditor')
 }
 
 function hasUsableCoordinates(coords) {
@@ -125,6 +125,7 @@ function manufacturerDirectoryRow(account) {
     const types = Array.isArray(ensured.accountTypes) ? ensured.accountTypes : []
     if (types.includes('seller')) return 'seller'
     if (types.includes('service_provider')) return 'service_provider'
+    if (types.includes('auditor')) return 'auditor'
     return ensured.accountType || 'seller'
   })()
   return {

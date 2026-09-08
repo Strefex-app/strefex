@@ -181,8 +181,13 @@ export function accountToSourcingSupplier(account) {
   const serviceCategoryIds = expandServiceCategoryIds(
     Array.isArray(account.serviceCategories) ? account.serviceCategories.map(String) : [],
   )
-  if (accountTypes.includes('auditor') && !serviceCategoryIds.includes('quality-services')) {
-    serviceCategoryIds.push('quality-services')
+  if (accountTypes.includes('auditor')) {
+    if (!serviceCategoryIds.includes('audit-services')) {
+      serviceCategoryIds.push('audit-services')
+    }
+    if (!serviceCategoryIds.includes('supplier-audit')) {
+      serviceCategoryIds.push('supplier-audit')
+    }
   }
   const categoryIds = [...new Set([
     ...equipmentCategoryIds,

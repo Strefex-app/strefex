@@ -18,7 +18,7 @@ export function normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin 
 
 export function hasManufacturerSide(types = []) {
   const set = new Set(types)
-  return set.has('seller') || set.has('service_provider')
+  return set.has('seller') || set.has('service_provider') || set.has('auditor')
 }
 
 export function hasBuyerSide(types = []) {

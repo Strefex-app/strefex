@@ -109,7 +109,7 @@ export default function TrustSetupWizard({ onComplete, compact = false }) {
             <Link className="app-page-btn-outline" to={COMPANY_DATABASE_PATH}>
               Company Database
             </Link>
-            <Link className="app-page-btn-outline" to="/dashboard/seller">
+            <Link className="app-page-btn-outline" to="/dashboard/supplier">
               Open RFQ inbox
             </Link>
           </div>

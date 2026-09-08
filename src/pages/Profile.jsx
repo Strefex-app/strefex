@@ -33,6 +33,11 @@ import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIn
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import {
+  AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  AUDITOR_EXPERTISE_OPTIONS,
+  defaultAuditorServiceCategories,
+} from '../data/auditServices'
+import {
   isHeicLike,
   normalizeImageForOcr,
   rotateBlobQuarterTurnsCw,
@@ -344,11 +349,8 @@ const PLATFORM_INDUSTRY_OPTIONS = [
   { id: 'nuclear', label: 'Nuclear' },
 ]
 
-const SERVICE_EXPERTISE_OPTIONS = [
-  { id: 'project-management', label: 'Project Management' },
-  { id: 'supplier-services', label: 'Supplier Services' },
-  { id: 'quality-services', label: 'Quality & Compliance' },
-]
+const SERVICE_EXPERTISE_OPTIONS = AUDIT_AND_SERVICE_EXPERTISE_OPTIONS
+const AUDITOR_EXPERTISE_OPTIONS_UI = AUDITOR_EXPERTISE_OPTIONS
 
 /* ── SVG helper icons ───────────────────────────────────────── */
 const Icon = ({ name, size = 20, stroke = 'currentColor' }) => {
@@ -615,9 +617,15 @@ const Profile = () => {
       }
       return map
     }
-    const serviceCategories = Array.isArray(md.service_categories)
+    const serviceCategoriesRaw = Array.isArray(md.service_categories)
       ? md.service_categories
       : (Array.isArray(registryAcct?.serviceCategories) ? registryAcct.serviceCategories : [])
+    const acctType = String(
+      tenant?.account_type || tenant?.metadata?.account_type || registryAcct?.accountType || '',
+    ).toLowerCase()
+    const serviceCategories = acctType === 'auditor'
+      ? defaultAuditorServiceCategories(serviceCategoriesRaw)
+      : serviceCategoriesRaw
 
     setCompanyForm({
       fullName: user?.fullName || '',
@@ -1048,9 +1056,13 @@ const Profile = () => {
       const nextProductSubcategories = Object.keys(productSanitized.subs).length
         ? { [nextIndustryId]: productSanitized.subs }
         : {}
-      const nextServiceCategories = Array.isArray(companyForm.serviceCategories)
-        ? [...companyForm.serviceCategories]
-        : []
+      const nextServiceCategories = (() => {
+        const raw = Array.isArray(companyForm.serviceCategories)
+          ? [...companyForm.serviceCategories]
+          : []
+        if (accountType === 'auditor') return defaultAuditorServiceCategories(raw)
+        return raw
+      })()
 
       const persistLocalCategoryState = () => {
         try {
@@ -1062,7 +1074,9 @@ const Profile = () => {
           })
           if (accountType === 'service_provider' || accountType === 'auditor') {
             setServiceSelections(
-              accountType === 'auditor' ? ['supplier-audit'] : nextServiceCategories,
+              accountType === 'auditor'
+                ? defaultAuditorServiceCategories(nextServiceCategories)
+                : nextServiceCategories,
             )
           }
         } catch { /* best-effort */ }
@@ -1330,7 +1344,7 @@ const Profile = () => {
                     <span className="prof-action-arrow">›</span>
                   </button>
                 )}
-                <button className="prof-action-btn prof-action-primary" onClick={() => navigate('/request-service')}>
+                <button className="prof-action-btn prof-action-primary" onClick={() => navigate('/services')}>
                   <span className="prof-action-icon"><Icon name="service" /></span>
                   {tr('profile.requestService')}
                   <span className="prof-action-arrow">›</span>
@@ -1671,6 +1685,36 @@ const Profile = () => {
                       <label className="prof-form-label">Service expertise</label>
                       <div className="prof-category-checklist">
                         {SERVICE_EXPERTISE_OPTIONS.map((svc) => (
+                          <ToggleCheckButton
+                            key={svc.id}
+                            checked={(companyForm.serviceCategories || []).includes(svc.id)}
+                            disabled={savingCompany}
+                            onChange={(checked) => {
+                              setCompanyForm((p) => {
+                                const prev = Array.isArray(p.serviceCategories) ? p.serviceCategories : []
+                                return {
+                                  ...p,
+                                  serviceCategories: checked
+                                    ? [...prev, svc.id]
+                                    : prev.filter((id) => id !== svc.id),
+                                }
+                              })
+                            }}
+                          >
+                            {svc.label}
+                          </ToggleCheckButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {accountType === 'auditor' && (
+                    <div className="prof-form-group full">
+                      <label className="prof-form-label">Audit service expertise</label>
+                      <p className="prof-profile-attachments-hint">
+                        Select audit kinds you deliver. Buyers requesting audits in your industry will notify you.
+                      </p>
+                      <div className="prof-category-checklist">
+                        {AUDITOR_EXPERTISE_OPTIONS_UI.map((svc) => (
                           <ToggleCheckButton
                             key={svc.id}
                             checked={(companyForm.serviceCategories || []).includes(svc.id)}

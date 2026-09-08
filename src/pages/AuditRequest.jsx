@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
+import { useAccountRegistry } from '../store/accountRegistry'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
+import {
+  AUDIT_SERVICE_ITEMS,
+  AUDIT_SERVICES_CATEGORY_ID,
+  auditServiceLabel,
+} from '../data/auditServices'
 import '../styles/app-page.css'
 import './AuditRequest.css'
 
@@ -11,6 +17,11 @@ const INDUSTRY_OPTIONS = [
   { id: 'machinery', label: 'Machinery Industry' },
   { id: 'electronics', label: 'Electronics Industry' },
   { id: 'medical', label: 'Medical Industry' },
+  { id: 'raw-materials', label: 'Raw Materials' },
+  { id: 'oil-gas', label: 'Oil & Gas' },
+  { id: 'green-energy', label: 'Green Energy' },
+  { id: 'nuclear', label: 'Nuclear' },
+  { id: 'household-products', label: 'Household Products' },
 ]
 
 const AUDIT_STANDARD_OPTIONS = [
@@ -28,9 +39,12 @@ const AuditRequest = () => {
   const { industryId: paramIndustryId } = useParams()
   const user = useAuthStore((s) => s.user)
   const submitRequest = useServiceRequestStore((s) => s.submitRequest)
+  const getAuditProvidersForIndustry = useAccountRegistry((s) => s.getAuditProvidersForIndustry)
   const [formData, setFormData] = useState({
     auditDate: '',
     industryId: paramIndustryId || '',
+    auditTypeId: 'supplier-audit',
+    preferredProviderEmail: '',
     supplierCompanyName: '',
     supplierContactName: '',
     supplierEmail: '',
@@ -43,6 +57,12 @@ const AuditRequest = () => {
   const [attachments, setAttachments] = useState([])
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [notifiedCount, setNotifiedCount] = useState(0)
+
+  const providers = useMemo(() => {
+    if (!formData.industryId) return []
+    return getAuditProvidersForIndustry(formData.industryId, formData.auditTypeId || AUDIT_SERVICES_CATEGORY_ID)
+  }, [formData.industryId, formData.auditTypeId, getAuditProvidersForIndustry])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -62,12 +82,17 @@ const AuditRequest = () => {
     e.preventDefault()
     setIsSubmitting(true)
     const industryLabel = INDUSTRY_OPTIONS.find((opt) => opt.id === formData.industryId)?.label || formData.industryId
+    const auditTypeLabel = auditServiceLabel(formData.auditTypeId)
     const standard = formData.auditStandard === 'Custom / Other' && formData.otherStandard
       ? formData.otherStandard
       : formData.auditStandard
+    const preferred = providers.find(
+      (p) => String(p.email || '').toLowerCase() === String(formData.preferredProviderEmail || '').toLowerCase(),
+    )
     const supplierSummary = `Supplier: ${formData.supplierCompanyName}; Contact: ${formData.supplierContactName}; Email: ${formData.supplierEmail}; Phone: ${formData.supplierPhone}; Address: ${formData.supplierAddress}`
+    const matching = getAuditProvidersForIndustry(formData.industryId, formData.auditTypeId)
     submitRequest({
-      services: ['Supplier Audit'],
+      services: [auditTypeLabel, 'Supplier Audit'],
       industryId: formData.industryId,
       industryLabel,
       companyName: user?.companyName || user?.fullName || 'Requesting Company',
@@ -77,14 +102,18 @@ const AuditRequest = () => {
       address: user?.address || '',
       preferredDate: formData.auditDate || '',
       priority: 'High',
-      description: `Audit standard: ${standard || 'N/A'}. ${supplierSummary}`,
+      description: `Audit type: ${auditTypeLabel}. Audit standard: ${standard || 'N/A'}. ${supplierSummary}`,
       notes: formData.notes || '',
       attachmentNames: attachments.map((f) => f.name),
       accountType: user?.accountType || 'buyer',
-      serviceCategoryId: 'supplier-audit',
-      serviceCategoryLabel: 'Supplier Audit',
+      serviceCategoryId: formData.auditTypeId || AUDIT_SERVICES_CATEGORY_ID,
+      serviceCategoryLabel: auditTypeLabel,
+      preferredProviderId: preferred?.id || null,
+      preferredProviderName: preferred?.company || preferred?.contactName || null,
+      preferredProviderEmail: formData.preferredProviderEmail || null,
       requestSource: 'audit-request-page',
     })
+    setNotifiedCount(preferred ? 1 : matching.length)
     setTimeout(() => {
       setIsSubmitting(false)
       setIsSubmitted(true)
@@ -106,7 +135,11 @@ const AuditRequest = () => {
                 </svg>
               </div>
               <h2 className="app-page-title">Audit request sent</h2>
-              <p className="app-page-body">Your audit request has been submitted. We will confirm the date and send you further details.</p>
+              <p className="app-page-body">
+                {notifiedCount > 0
+                  ? `Your audit request was submitted. ${notifiedCount} audit compan${notifiedCount === 1 ? 'y was' : 'ies were'} notified.`
+                  : 'Your audit request was submitted. Matching audit companies will be notified when they register for this industry.'}
+              </p>
               <button type="button" className="app-page-action" style={{ marginTop: 16, maxWidth: 200 }} onClick={() => navigate(-1)}>
                 ← Back
               </button>
@@ -125,13 +158,15 @@ const AuditRequest = () => {
             ← Back
           </a>
           <h2 className="app-page-title">Request an audit</h2>
-          <p className="app-page-subtitle">Choose the date, industry, supplier information, audit standard and add attachments.</p>
+          <p className="app-page-subtitle">
+            Choose industry and audit type. You select an audit company (or notify all matching companies for that industry). Individual auditors are assigned later by the company.
+          </p>
         </div>
 
         <div className="app-page-card">
           <form className="audit-request-form" onSubmit={handleSubmit}>
             <div className="audit-form-section">
-              <h3 className="app-page-title" style={{ marginBottom: 16 }}>Date & industry</h3>
+              <h3 className="app-page-title" style={{ marginBottom: 16 }}>Date, industry &amp; audit type</h3>
 
               <div className="audit-form-group">
                 <label htmlFor="auditDate" className="audit-form-label">Preferred audit date <span className="audit-required">*</span></label>
@@ -162,6 +197,49 @@ const AuditRequest = () => {
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="audit-form-group">
+                <label htmlFor="auditTypeId" className="audit-form-label">Audit service <span className="audit-required">*</span></label>
+                <select
+                  id="auditTypeId"
+                  name="auditTypeId"
+                  value={formData.auditTypeId}
+                  onChange={handleInputChange}
+                  className="audit-form-select"
+                  required
+                >
+                  {AUDIT_SERVICE_ITEMS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="audit-form-group">
+                <label htmlFor="preferredProviderEmail" className="audit-form-label">
+                  Audit company {formData.industryId ? `(${providers.length} in industry)` : ''}
+                </label>
+                <select
+                  id="preferredProviderEmail"
+                  name="preferredProviderEmail"
+                  value={formData.preferredProviderEmail}
+                  onChange={handleInputChange}
+                  className="audit-form-select"
+                  disabled={!formData.industryId}
+                >
+                  <option value="">Notify all matching audit companies in this industry</option>
+                  {providers.map((p) => (
+                    <option key={p.id || p.email} value={p.email || ''}>
+                      {(p.company || p.email || 'Company')}
+                      {p.accountType === 'auditor' ? ' · Auditor firm' : ' · Service provider'}
+                    </option>
+                  ))}
+                </select>
+                {formData.industryId && providers.length === 0 ? (
+                  <p className="app-page-subtitle" style={{ marginTop: 8 }}>
+                    No audit companies registered for this industry yet. Your request is still stored.
+                  </p>
+                ) : null}
               </div>
             </div>
 

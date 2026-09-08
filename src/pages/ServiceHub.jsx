@@ -1,16 +1,21 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useServiceStore } from '../store/serviceStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { getEffectiveLimits } from '../services/stripeService'
+import {
+  BUYER_SERVICE_SOURCING_PATH,
+  canAccessLegacyServiceHub,
+} from '../utils/serviceHubAccess'
 import '../styles/app-page.css'
 import './Home.css'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
 import { PROJECT_MANAGEMENT_SCOPE_LABELS } from '../data/projectManagementScopeServices'
+import { AUDIT_SERVICE_ITEMS, AUDIT_SERVICES_CATEGORY_ID } from '../data/auditServices'
 
 const SERVICE_CATEGORIES = [
   {
@@ -30,10 +35,10 @@ const SERVICE_CATEGORIES = [
   {
     id: 'supplier-services',
     label: 'Supplier Services',
-    description: 'Source, audit, trial run, industrialization & production follow-up',
+    description: 'Source, trial run, industrialization & production follow-up',
     color: '#e65100',
     bg: 'rgba(230,81,0,.06)',
-    items: ['Supplier Source', 'Audit', 'Trial Run', 'Production Follow Up', 'Equipment Acceptance'],
+    items: ['Supplier Source', 'Trial Run', 'Production Follow Up', 'Equipment Acceptance'],
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
         <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -54,16 +59,31 @@ const SERVICE_CATEGORIES = [
       </svg>
     ),
   },
+  {
+    id: AUDIT_SERVICES_CATEGORY_ID,
+    label: 'Audit Services',
+    description: 'Supplier, process, system, product, and compliance audits by industry',
+    color: '#7b1fa2',
+    bg: 'rgba(123,31,162,.06)',
+    items: AUDIT_SERVICE_ITEMS.map((i) => i.label),
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function ServiceHub() {
   const navigate = useNavigate()
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const accountType = useSubscriptionStore((s) => s.accountType)
+  const user = useAuthStore((s) => s.user)
   const planId = useSubscriptionStore((s) => s.planId)
-  const isServiceProvider = accountType === 'service_provider' && !isSuperAdmin
+  const isServiceProvider = (accountType === 'service_provider' || accountType === 'auditor') && !isSuperAdmin
   const limits = getEffectiveLimits(planId, accountType)
-  const maxServiceCategories = (isSuperAdmin || isServiceProvider)
+  const maxServiceCategories = (isSuperAdmin || isServiceProvider || accountType === 'auditor')
     ? Infinity
     : (limits.maxServiceCategories ?? 1)
   const allServicesOpen = maxServiceCategories === Infinity
@@ -72,7 +92,9 @@ export default function ServiceHub() {
   const selectService = useServiceStore((s) => s.selectService)
   const isServiceSelected = useServiceStore((s) => s.isServiceSelected)
   const registeredProviders = useAccountRegistry((s) => s.getRegisteredServiceProviders())
-  const providerCount = Array.isArray(registeredProviders) ? registeredProviders.length : 0
+  const registeredAuditors = useAccountRegistry((s) => s.getRegisteredAuditors())
+  const providerCount = (Array.isArray(registeredProviders) ? registeredProviders.length : 0)
+    + (Array.isArray(registeredAuditors) ? registeredAuditors.length : 0)
   const totalServiceItems = useMemo(
     () => SERVICE_CATEGORIES.reduce((sum, cat) => sum + cat.items.length, 0),
     []
@@ -84,6 +106,15 @@ export default function ServiceHub() {
     if (ratings.length === 0) return 4.6
     return Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
   }, [registeredProviders])
+
+  const allowLegacyHub = canAccessLegacyServiceHub({
+    accountType,
+    accountTypes: user?.accountTypes,
+    isSuperAdmin,
+  })
+  if (!allowLegacyHub) {
+    return <Navigate to={BUYER_SERVICE_SOURCING_PATH} replace />
+  }
 
   return (
     <AppLayout>
@@ -108,8 +139,8 @@ export default function ServiceHub() {
           </h2>
           <p className="app-page-subtitle">
             {isServiceProvider
-              ? 'Browse service categories and register your expertise with the same executive summary workflow as Product and Equipment.'
-              : 'Browse service provider categories and open executive summary per service path.'}
+              ? 'Browse service categories and register your expertise. Audit companies receive buyer audit requests for their industries.'
+              : 'Browse service provider categories. Request an audit goes to the dedicated audit company form.'}
           </p>
         </div>
 
@@ -207,7 +238,7 @@ export default function ServiceHub() {
                       fontSize: 13, fontWeight: 600, color: cat.color,
                       display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10,
                     }}>
-                      {cat.items.length} service items → Executive Summary
+                      {cat.items.length} service items → Sourcing
                     </span>
 
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -229,13 +260,7 @@ export default function ServiceHub() {
 
                       <button
                         type="button"
-                        onClick={() => {
-                          const p = new URLSearchParams({
-                            serviceCategory: cat.id,
-                            serviceCategoryLabel: cat.label,
-                          })
-                          navigate(`/service-hub/executive-summary?${p.toString()}`)
-                        }}
+                        onClick={() => navigate(BUYER_SERVICE_SOURCING_PATH)}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '7px 12px', borderRadius: 8, border: 'none',
@@ -243,12 +268,16 @@ export default function ServiceHub() {
                           fontWeight: 600, fontSize: 12, cursor: 'pointer',
                         }}
                       >
-                        Executive Summary
+                        Open Sourcing
                       </button>
 
                       <button
                         type="button"
                         onClick={() => {
+                          if (cat.id === AUDIT_SERVICES_CATEGORY_ID) {
+                            navigate('/audit-request')
+                            return
+                          }
                           const p = new URLSearchParams({
                             context: 'service',
                             serviceCategory: cat.id,
@@ -262,7 +291,7 @@ export default function ServiceHub() {
                           fontWeight: 600, fontSize: 13, cursor: 'pointer',
                         }}
                       >
-                        Browse Services
+                        {cat.id === AUDIT_SERVICES_CATEGORY_ID ? 'Request an audit' : 'Browse Services'}
                       </button>
 
                       <button
@@ -273,7 +302,7 @@ export default function ServiceHub() {
                             serviceCategory: cat.id,
                             serviceCategoryLabel: cat.label,
                           })
-                          navigate(`/request-service?${p.toString()}`)
+                          navigate(`/services?${p.toString()}`)
                         }}
                         style={{
                           padding: '8px 20px', borderRadius: 8,

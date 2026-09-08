@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, Suspense } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useServiceRequestStore } from './store/serviceRequestStore'
 import { useSubscriptionStore } from './services/featureFlags'
@@ -22,6 +22,7 @@ import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
 import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
+import { BUYER_WORKSPACE_PATH } from './constants/rfqPaths'
 import { useSettingsStore } from './store/settingsStore'
 import { syncDomTheme } from './theme/syncDomTheme'
 import RfqIntelligenceRedirect from './pages/RfqIntelligenceRedirect'
@@ -42,15 +43,12 @@ import {
   TeamManagement,
   Home,
   PlatformCalendar,
-  Dashboard,
   Settings,
   Notifications,
   Payment,
   Resources,
   Tasks,
   Project,
-  MachineryIndustry,
-  ExecutiveSummary,
   IndustryHub,
   IndustryOverview,
   IndustryEquipmentLanding,
@@ -62,7 +60,6 @@ import {
   AdminApproval,
   ManagementHub,
   ManagementClusterPage,
-  AuditManagementHub,
   AuditProgramGate,
   AuditProLayout,
   AuditProDashboard,
@@ -81,7 +78,6 @@ import {
   ProjectCommandCenter,
   NewProjectPage,
   NewProcurementOpportunityPage,
-  RfqManagementHub,
   EquipmentSupplierRequest,
   ServiceList,
   AuditRequest,
@@ -154,12 +150,9 @@ import {
   EquipmentHub,
   ProductHub,
   ServiceHub,
-  ServiceExecutiveSummary,
-  AuditorExecutiveSummary,
   ProductIndustryLanding,
   ProductSubcategoryPage,
   MachineDbCataloguePage,
-  ProductExecutiveSummary,
   RawMaterialsLanding,
   RawMaterialsCategory,
   MaterialSuppliers,
@@ -261,6 +254,21 @@ function WorkspaceSyncOnNavigate() {
 function LegacyHrRedirect({ to }) {
   const { search } = useLocation()
   return <Navigate to={search ? `${to}${search}` : to} replace />
+}
+
+/** Legacy /request-service → /services (or /audit-request when category is audit). */
+function LegacyRequestServiceRedirect() {
+  const [params] = useSearchParams()
+  const cat = String(params.get('serviceCategory') || '').toLowerCase()
+  if (cat === 'audit-services' || cat.includes('audit')) {
+    const industry = params.get('industry')
+    const q = new URLSearchParams()
+    if (industry) q.set('industry', industry)
+    const qs = q.toString()
+    return <Navigate to={qs ? `/audit-request?${qs}` : '/audit-request'} replace />
+  }
+  const qs = params.toString()
+  return <Navigate to={qs ? `/services?${qs}` : '/services'} replace />
 }
 
 function PlanGate({ feature, planName, children, requiredRole }) {
@@ -400,15 +408,15 @@ function App() {
           <Route path="/resources" element={<P><Resources /></P>} />
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
-          <Route path="/dashboard" element={<P><Dashboard /></P>} />
+          <Route path="/dashboard" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
           <Route path="/seller-dashboard" element={<P><Navigate to="/dashboard/supplier" replace /></P>} />
           <Route path="/buyer-dashboard" element={<Navigate to="/hub/procurement?tab=track" replace />} />
           <Route path="/hub/procurement" element={<P><NetworkSourcingRoute /></P>} />
-          <Route path="/sourcing" element={<P><NetworkSourcingRoute /></P>} />
+          <Route path="/sourcing" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
           <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
-          <Route path="/dashboard/buyer" element={<P><NetworkSourcingRoute /></P>} />
+          <Route path="/dashboard/buyer" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/dashboard/buyer/account-directory" element={<P><AccountDirectoryPage /></P>} />
           <Route path="/dashboard/buyer/platform-directory" element={<SuperAdmin><PlatformDirectoryPage /></SuperAdmin>} />
           <Route path="/dashboard/buyer/registered-suppliers" element={<SuperAdmin><RegisteredSuppliersPage /></SuperAdmin>} />
@@ -430,21 +438,21 @@ function App() {
           <Route path="/product-hub" element={<P><ProductHub /></P>} />
           <Route path="/product-hub/:industryId" element={<P><ProductIndustryLanding /></P>} />
           <Route path="/product-hub/:industryId/:categoryId" element={<P><ProductSubcategoryPage /></P>} />
-          <Route path="/product-hub/:industryId/:categoryId/executive-summary" element={<Industry requiredTier="free"><ExecutiveSummary /></Industry>} />
-          <Route path="/product-hub/:industryId/:categoryId/:processId/executive-summary" element={<P><ProductExecutiveSummary /></P>} />
+          <Route path="/product-hub/:industryId/:categoryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
+          <Route path="/product-hub/:industryId/:categoryId/:processId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/service-hub" element={<P><ServiceHub /></P>} />
-          <Route path="/service-hub/executive-summary" element={<P><ServiceExecutiveSummary /></P>} />
-          <Route path="/auditor-hub/executive-summary" element={<P><AuditorExecutiveSummary /></P>} />
+          <Route path="/service-hub/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
+          <Route path="/auditor-hub/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
 
           {/* ── Industry routes ───────────────────────────── */}
-          <Route path="/machinery-industry" element={<P><MachineryIndustry /></P>} />
+          <Route path="/machinery-industry" element={<Navigate to="/equipment-hub" replace />} />
           <Route path="/industry/:industryId" element={<Industry requiredTier="free"><IndustryHub /></Industry>} />
           <Route path="/industry/:industryId/overview" element={<Industry requiredTier="free"><IndustryOverview /></Industry>} />
-          <Route path="/industry/:industryId/dashboard" element={<Industry requiredTier="basic"><Dashboard /></Industry>} />
+          <Route path="/industry/:industryId/dashboard" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/industry/:industryId/equipment" element={<Industry requiredTier="basic"><IndustryEquipmentLanding /></Industry>} />
           <Route path="/industry/:industryId/equipment/:categoryId" element={<Industry requiredTier="basic"><IndustryEquipmentCategory /></Industry>} />
           <Route path="/industry/:industryId/equipment/:categoryId/:itemId/suppliers" element={<Industry requiredTier="basic"><IndustryEquipmentSuppliers /></Industry>} />
-          <Route path="/industry/:industryId/equipment/:categoryId/executive-summary" element={<Industry requiredTier="free"><ExecutiveSummary /></Industry>} />
+          <Route path="/industry/:industryId/equipment/:categoryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/raw-materials" element={<P><RawMaterialsLanding /></P>} />
           <Route path="/raw-materials/:category" element={<P><RawMaterialsCategory /></P>} />
           <Route path="/raw-materials/:category/:materialId/suppliers" element={<P><MaterialSuppliers /></P>} />
@@ -455,7 +463,7 @@ function App() {
           <Route path="/management/contracts-compliance/auditors" element={<P><AuditProgramGate /></P>}>
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
             <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="overview" element={<AuditManagementHub />} />
+            <Route path="overview" element={<Navigate to="../dashboard" replace />} />
             <Route element={<AuditProLayout />}>
               <Route path="dashboard" element={<AuditProDashboard />} />
               <Route path="new-audit" element={<AuditProNewAudit />} />
@@ -478,7 +486,7 @@ function App() {
           <Route path="/management/ops/projects/project/:projectId/control" element={<P><ProjectCommandCenter /></P>} />
           <Route path="/management/ops/projects/project/:projectId" element={<P><ProjectDetail /></P>} />
           <Route path="/management/sourcing/register/new" element={<P><NewProcurementOpportunityPage /></P>} />
-          <Route path="/management/sourcing/workspace" element={<P><RfqManagementHub /></P>} />
+          <Route path="/management/sourcing/workspace" element={<Navigate to="/management/sourcing/price-calculator" replace />} />
           <Route path="/management/sourcing/price-calculator" element={<P><CompanyManufacturingCalculator /></P>} />
           <Route path="/management/sourcing/intelligence" element={<P><RfqIntelligencePage /></P>} />
           <Route path="/rfq-intelligence" element={<P><RfqIntelligenceRedirect /></P>} />
@@ -490,8 +498,8 @@ function App() {
           <Route path="/industry/:industryId/services" element={<P><ServiceList /></P>} />
           <Route path="/audit-request" element={<P><AuditRequest /></P>} />
           <Route path="/industry/:industryId/audit-request" element={<P><AuditRequest /></P>} />
-          <Route path="/executive-summary" element={<P><ExecutiveSummary /></P>} />
-          <Route path="/industry/:industryId/executive-summary" element={<P><ExecutiveSummary /></P>} />
+          <Route path="/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
+          <Route path="/industry/:industryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
 
           {/* ── Profile ───────────────────────────────────── */}
           <Route path="/profile" element={<P><Profile /></P>} />
@@ -499,7 +507,7 @@ function App() {
           <Route path="/cutdb/*" element={<LegacyCutDbRedirect />} />
           <Route path="/profile/machine-intelligence/:catalogueId" element={<SuperAdmin><MachineDbCataloguePage /></SuperAdmin>} />
           <Route path="/profile/calendar" element={<P><ProfileCalendar /></P>} />
-          <Route path="/request-service" element={<P><ServiceList /></P>} />
+          <Route path="/request-service" element={<LegacyRequestServiceRedirect />} />
           <Route path="/add-supplier" element={<P><AddSupplier /></P>} />
           <Route path="/invite-sellers" element={<P><InviteSellersPage /></P>} />
           <Route path="/management/sourcing/invite-sellers" element={<Navigate to="/invite-sellers" replace />} />

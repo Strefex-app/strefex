@@ -25,6 +25,10 @@ import {
   registerExistingAccountsOntoSourcingNetwork,
 } from '../utils/accountSourcingCompleteness'
 import { mergeSourcingNetworkIntoRegistry } from '../services/sourcingNetworkService'
+import {
+  accountOffersAuditServices,
+  isAuditServiceCategoryId,
+} from '../data/auditServices'
 
 const REGISTRY_KEY = 'strefex-account-registry'
 const REGISTRY_INDEX_KEY = 'strefex-account-registry-index'
@@ -52,8 +56,22 @@ function isServiceProviderAccount(account) {
   return collectAccountTypes(account).has('service_provider')
 }
 
+function isAuditorAccount(account) {
+  return collectAccountTypes(account).has('auditor')
+}
+
 function accountActive(account) {
   return account && String(account.status || '').toLowerCase() !== 'canceled'
+}
+
+function accountMatchesAuditCategory(account, serviceCategoryId) {
+  if (!isAuditServiceCategoryId(serviceCategoryId)) return false
+  if (isAuditorAccount(account) && accountOffersAuditServices(account)) return true
+  const cats = account?.serviceCategories || []
+  if (cats.includes(serviceCategoryId)) return true
+  // Hub-level audit-services matches any audit item registration
+  if (cats.includes('audit-services') && isAuditServiceCategoryId(serviceCategoryId)) return true
+  return cats.some((c) => isAuditServiceCategoryId(c) && isAuditServiceCategoryId(serviceCategoryId))
 }
 
 /** Parent category membership for an industry, optionally scoped to a sourcing domain. */
@@ -543,7 +561,7 @@ export const useAccountRegistry = create((set, get) => ({
   },
 
   getRegisteredAuditors: (industryId = null, { onlyVerified = false } = {}) => {
-    let auditors = get().accounts.filter((a) => a.accountType === 'auditor' && a.status !== 'canceled')
+    let auditors = get().accounts.filter((a) => isAuditorAccount(a) && a.status !== 'canceled')
     if (industryId) {
       auditors = auditors.filter((a) => (a.industries || []).includes(industryId))
     }
@@ -556,12 +574,43 @@ export const useAccountRegistry = create((set, get) => ({
     return auditors
   },
 
+  /**
+   * Service providers for a hub category — auditors included for audit-services.
+   */
   getServiceProvidersByCategory: (serviceCategoryId) => {
-    return get().accounts.filter((a) =>
-      isServiceProviderAccount(a)
-      && accountActive(a)
-      && (a.serviceCategories || []).includes(serviceCategoryId)
-    )
+    return get().accounts.filter((a) => {
+      if (!accountActive(a)) return false
+      if (isAuditServiceCategoryId(serviceCategoryId)) {
+        if (isAuditorAccount(a) || isServiceProviderAccount(a)) {
+          return accountMatchesAuditCategory(a, serviceCategoryId)
+            || (isAuditorAccount(a) && accountOffersAuditServices(a))
+        }
+        return false
+      }
+      return isServiceProviderAccount(a)
+        && (a.serviceCategories || []).includes(serviceCategoryId)
+    })
+  },
+
+  /**
+   * Auditors + audit-capable service providers for an industry (buyer audit request).
+   */
+  getAuditProvidersForIndustry: (industryId = null, auditTypeId = null) => {
+    const rows = get().accounts.filter((a) => {
+      if (!accountActive(a)) return false
+      if (!isAuditorAccount(a) && !isServiceProviderAccount(a)) return false
+      if (!accountOffersAuditServices(a) && !isAuditorAccount(a)) return false
+      if (industryId && !(a.industries || []).includes(industryId)) return false
+      if (auditTypeId && isAuditServiceCategoryId(auditTypeId)) {
+        const cats = a.serviceCategories || []
+        if (isAuditorAccount(a) && (!cats.length || cats.includes('audit-services') || cats.includes('supplier-audit'))) {
+          return true
+        }
+        return accountMatchesAuditCategory(a, auditTypeId) || cats.includes('audit-services')
+      }
+      return true
+    })
+    return rows
   },
 
   getRegisteredBuyers: (industryId = null) => {

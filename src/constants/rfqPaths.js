@@ -52,22 +52,27 @@ export function companyMfgCalcUrl(searchOrParams = '') {
   return q ? `${COMPANY_MFG_CALC_PATH}?${q}` : COMPANY_MFG_CALC_PATH
 }
 
-/** Build Executive Summary URL for industry / category context. */
+/**
+ * Legacy Executive Summary URLs now resolve to Intelligent Sourcing.
+ * Optional industryId / categoryId are passed as query params for future deep-link support.
+ * @deprecated Prefer BUYER_WORKSPACE_PATH / buyerWorkspaceUrl directly.
+ */
 export function executiveSummaryUrl(searchOrParams = '') {
   if (typeof searchOrParams === 'string') {
-    if (!searchOrParams) return '/executive-summary'
-    return searchOrParams.startsWith('/')
-      ? searchOrParams
-      : `/executive-summary?${searchOrParams.replace(/^\?/, '')}`
+    if (!searchOrParams) return BUYER_WORKSPACE_PATH
+    if (searchOrParams.startsWith('/')) {
+      // Absolute legacy paths → Sourcing
+      return BUYER_WORKSPACE_PATH
+    }
+    return `${BUYER_WORKSPACE_PATH}?${searchOrParams.replace(/^\?/, '')}`
   }
-  const { industryId, categoryId } = searchOrParams || {}
-  if (industryId && categoryId) {
-    return `/industry/${encodeURIComponent(industryId)}/equipment/${encodeURIComponent(categoryId)}/executive-summary`
-  }
-  if (industryId) {
-    return `/industry/${encodeURIComponent(industryId)}/executive-summary`
-  }
-  return '/executive-summary'
+  const { industryId, categoryId, openRfq } = searchOrParams || {}
+  const params = new URLSearchParams()
+  if (industryId) params.set('industryId', String(industryId))
+  if (categoryId) params.set('categoryId', String(categoryId))
+  if (openRfq) params.set('openRfq', '1')
+  const q = params.toString()
+  return q ? `${BUYER_WORKSPACE_PATH}?${q}` : BUYER_WORKSPACE_PATH
 }
 
 /** Build Buyer Workspace URL with optional tab and prefill params. */
@@ -87,24 +92,16 @@ export function buyerWorkspaceUrl(searchOrParams = '') {
   return q ? `${BUYER_WORKSPACE_PATH}?${q}` : BUYER_WORKSPACE_PATH
 }
 
-/** Deep link into Network RFQ create — Sourcing when no industry; ES when industry is known. */
+/** Deep link into Network RFQ create on Intelligent Sourcing. */
 export function networkRfqCreateUrl(searchOrParams = '') {
   const withOpenRfq = (path) => (path.includes('?') ? `${path}&openRfq=1` : `${path}?openRfq=1`)
 
   if (typeof searchOrParams === 'string') {
     const q = searchOrParams.replace(/^\?/, '')
-    if (!q) return BUYER_WORKSPACE_PATH
+    if (!q) return withOpenRfq(BUYER_WORKSPACE_PATH)
     const params = new URLSearchParams(q)
-    const industryId = params.get('industryId')
-    const categoryId = params.get('categoryId')
-    if (industryId) {
-      return withOpenRfq(executiveSummaryUrl({ industryId, categoryId: categoryId || undefined }))
-    }
-    return BUYER_WORKSPACE_PATH
+    params.set('openRfq', '1')
+    return `${BUYER_WORKSPACE_PATH}?${params.toString()}`
   }
-  const { industryId, categoryId } = searchOrParams || {}
-  if (industryId) {
-    return withOpenRfq(executiveSummaryUrl({ industryId, categoryId: categoryId || undefined }))
-  }
-  return BUYER_WORKSPACE_PATH
+  return executiveSummaryUrl({ ...(searchOrParams || {}), openRfq: true })
 }

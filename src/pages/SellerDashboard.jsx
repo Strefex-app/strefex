@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import useRfqStore from '../store/rfqStore'
 import { useAuthStore } from '../store/authStore'
-import AppLayout from '../components/AppLayout'
 import RfqEvidenceHints from '../components/trust/RfqEvidenceHints'
 import { bindReceivedAwardToPlant } from '../utils/awardRfqToProject'
 import { needsTrustSetup } from '../utils/trustSetup'
@@ -462,10 +461,4 @@ export function ManufacturerRfqInbox() {
   )
 }
 
-export default function SellerDashboard() {
-  return (
-    <AppLayout>
-      <ManufacturerRfqInbox />
-    </AppLayout>
-  )
-}
+/** RFQ inbox body — used by SupplierWorkspace. Legacy full-page wrapper removed. */

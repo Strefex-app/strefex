@@ -15,6 +15,7 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
+import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 import '../styles/app-page.css'
 import './IndustryHub.css'
 
@@ -141,7 +142,7 @@ export default function ProductIndustryLanding() {
             <button
               key={cat.id}
               type="button"
-              onClick={() => navigate(canSeeExecSummary ? `/product-hub/${industryId}/${cat.id}/executive-summary` : `/product-hub/${industryId}/${cat.id}`)}
+              onClick={() => navigate(canSeeExecSummary ? BUYER_WORKSPACE_PATH : `/product-hub/${industryId}/${cat.id}`)}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 12,
                 padding: '20px 22px', borderRadius: 14,
@@ -206,7 +207,7 @@ export default function ProductIndustryLanding() {
                 fontSize: 13, fontWeight: 600, color: cat.color,
                 display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto',
               }}>
-                {cat.subcategories.length} processes → {canSeeExecSummary ? 'Executive Summary' : 'Browse Subcategories'}
+                {cat.subcategories.length} processes → {canSeeExecSummary ? 'Sourcing' : 'Browse Subcategories'}
               </span>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {canSeeExecSummary && (
@@ -214,7 +215,7 @@ export default function ProductIndustryLanding() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/product-hub/${industryId}/${cat.id}/executive-summary`)
+                      navigate(BUYER_WORKSPACE_PATH)
                     }}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -222,7 +223,7 @@ export default function ProductIndustryLanding() {
                       background: cat.color, color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer',
                     }}
                   >
-                    Executive Summary
+                    Open Sourcing
                   </button>
                 )}
                 <button

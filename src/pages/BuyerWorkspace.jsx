@@ -38,7 +38,7 @@ import {
   sortSuppliersByReliability,
   supplierMeetsCertFilter,
 } from '../utils/buyerSourcingReliability'
-import { rfqIntelligenceUrl, executiveSummaryUrl, BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
+import { rfqIntelligenceUrl, BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 
 function getRegistrySellersForDiscover(industryId, categoryId) {
   const registry = useAccountRegistry.getState()
@@ -521,10 +521,9 @@ export default function BuyerWorkspace() {
     categoryId: selectedCategory || undefined,
   })
 
-  const execSummaryUrl = executiveSummaryUrl({
-    industryId: selectedIndustry || undefined,
-    categoryId: selectedCategory || undefined,
-  })
+  const sourcingUrl = selectedIndustry
+    ? `${BUYER_WORKSPACE_PATH}?industryId=${encodeURIComponent(selectedIndustry)}${selectedCategory ? `&categoryId=${encodeURIComponent(selectedCategory)}` : ''}`
+    : BUYER_WORKSPACE_PATH
 
   const discoverSourceLabel = discoverSource === 'connected'
     ? t('buyerWorkspace.sourceConnected')
@@ -553,9 +552,6 @@ export default function BuyerWorkspace() {
           <div className="bw-header__actions">
             <Link to="/hub/procurement" className="app-page-btn-outline">
               {t('nav.sourcing')}
-            </Link>
-            <Link to={execSummaryUrl} className="app-page-btn-outline">
-              {t('buyerWorkspace.executiveSummaryLink')}
             </Link>
             <Link to="/dashboard/buyer/account-directory" className="app-page-btn-outline">
               {t('buyerWorkspace.contactsLink')}
@@ -609,11 +605,11 @@ export default function BuyerWorkspace() {
                     <div className="min-width-0">
                       <strong className="stx-text-wrap">{t('buyerWorkspace.executiveSummaryTitle')}</strong>
                       <p className="bw-panel-hint" style={{ margin: '4px 0 0' }}>
-                        {t('buyerWorkspace.executiveSummaryHint')}
+                        {t('buyerWorkspace.subtitleTrackOnly')}
                       </p>
                     </div>
-                    <Link to={execSummaryUrl} className="app-page-btn-primary app-page-btn-sm">
-                      {t('buyerWorkspace.executiveSummaryOpen')}
+                    <Link to={sourcingUrl} className="app-page-btn-primary app-page-btn-sm">
+                      {t('nav.sourcing')}
                     </Link>
                   </div>
 
@@ -717,8 +713,8 @@ export default function BuyerWorkspace() {
                     </p>
                     <p className="bw-panel-hint">{t('buyerWorkspace.emptyFindHint')}</p>
                     <div className="bw-rfq-path-actions">
-                      <Link to={execSummaryUrl} className="app-page-btn-primary">
-                        {t('buyerWorkspace.executiveSummaryOpen')}
+                      <Link to={sourcingUrl} className="app-page-btn-primary">
+                        {t('nav.sourcing')}
                       </Link>
                       <Link to={BUYER_WORKSPACE_PATH} className="app-page-btn-outline">
                         {t('buyerWorkspace.sendRfqViaHome')}
@@ -784,7 +780,7 @@ export default function BuyerWorkspace() {
                     <span className="app-page-subtitle" style={{ margin: 0 }}>
                       {t('buyerWorkspace.shortlistReady').replace('{count}', String(shortlisted.length))}
                     </span>
-                    <Link to={execSummaryUrl} className="app-page-btn-primary">
+                    <Link to={sourcingUrl} className="app-page-btn-primary">
                       {t('buyerWorkspace.goToRfq')}
                     </Link>
                   </div>
@@ -834,7 +830,7 @@ export default function BuyerWorkspace() {
                           <span className="app-page-subtitle" style={{ margin: 0 }}>
                             {t('buyerWorkspace.compareHint')}
                           </span>
-                          <Link to={execSummaryUrl} className="app-page-btn-primary">
+                          <Link to={sourcingUrl} className="app-page-btn-primary">
                             {t('buyerWorkspace.goToRfq')}
                           </Link>
                         </div>

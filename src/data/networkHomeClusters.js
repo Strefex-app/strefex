@@ -20,10 +20,10 @@ const DIRECTORY_CLUSTERS = [
   {
     id: 'services',
     label: 'Services',
-    description: 'Project, supplier, and quality services',
+    description: 'Find service support via Sourcing and industry selection',
     icon: 'refresh',
     color: '#e65100',
-    path: '/service-hub',
+    path: '/hub/procurement',
     meta: ['Directory'],
   },
 ]
@@ -54,15 +54,6 @@ export function getNetworkHomeClusters({
             { label: 'active', value: rfqStats.active },
           ]
         : [],
-    })
-    clusters.push({
-      id: 'executive-summary',
-      label: 'Executive Summary',
-      description: 'Supplier map, metrics, compare, and RFQ by industry',
-      icon: 'chart',
-      color: '#192a56',
-      path: '/executive-summary',
-      meta: ['Buyer tools'],
     })
   }
 

@@ -10,6 +10,7 @@ import { getEffectiveLimits } from '../services/stripeService'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
 import { useTranslation } from '../i18n/useTranslation'
 import Icon from '../components/Icon'
+import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
 
@@ -95,7 +96,7 @@ const IndustryHub = () => {
   const subPages = [
     // Buyers: browsable equipment page. Sellers: hidden (they register inline below). Superadmin: always visible.
     // Executive Summary is now accessed per equipment category inside the equipment page.
-    { id: 'equipment', label: 'Related Equipment', description: 'Browse equipment categories, registered sellers & executive summary', path: 'equipment', icon: 'document', accessible: true, hidden: isSeller },
+    { id: 'equipment', label: 'Related Equipment', description: 'Browse equipment categories and registered sellers', path: 'equipment', icon: 'document', accessible: true, hidden: isSeller },
   ]
 
   const lockIcon = <Icon name="lock" size={14} style={{ marginLeft: 6, verticalAlign: 'middle', opacity: 0.5 }} />
@@ -271,11 +272,11 @@ const IndustryHub = () => {
                               {canSeeExec && (
                                 <button
                                   className="eq-cat-exec-btn"
-                                  onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/equipment/${cat.id}/executive-summary`) }}
-                                  title="View Executive Summary for this material category"
+                                  onClick={(e) => { e.stopPropagation(); navigate(BUYER_WORKSPACE_PATH) }}
+                                  title="Open Intelligent Sourcing"
                                 >
                                   <Icon name="chart" size={14} />
-                                  Executive Summary
+                                  Open Sourcing
                                 </button>
                               )}
                             </div>

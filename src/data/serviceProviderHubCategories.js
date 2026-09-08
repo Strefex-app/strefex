@@ -3,10 +3,11 @@
  * IDs are stable for Audit Pro supplier registry and seller corpus sync.
  */
 import { PROJECT_MANAGEMENT_SCOPE } from './projectManagementScopeServices'
+import { AUDIT_SERVICES_HUB_GROUP } from './auditServices'
 
 const SUPPLIER_SERVICE_ITEMS = [
   { id: 'supplier-source', name: 'Supplier Source' },
-  { id: 'audit', name: 'Audit' },
+  { id: 'audit', name: 'Audit (legacy supplier-services)' },
   { id: 'trial-run', name: 'Trial Run' },
   { id: 'production-follow-up', name: 'Production Follow Up' },
   { id: 'equipment-acceptance', name: 'Equipment Acceptance' },
@@ -32,7 +33,7 @@ export const SERVICE_PROVIDER_HUB_GROUPS = [
   {
     id: 'supplier-services',
     name: 'Supplier Services',
-    description: 'Source, audit, trial run, industrialization & production follow-up',
+    description: 'Source, trial run, industrialization & production follow-up',
     items: SUPPLIER_SERVICE_ITEMS.map((s) => ({
       id: `svc:ss:${s.id}`,
       name: s.name,
@@ -47,6 +48,7 @@ export const SERVICE_PROVIDER_HUB_GROUPS = [
       name: s.name,
     })),
   },
+  AUDIT_SERVICES_HUB_GROUP,
 ]
 
 /** Flat list for checkbox grids */

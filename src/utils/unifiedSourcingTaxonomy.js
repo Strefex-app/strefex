@@ -9,7 +9,8 @@ import { PLATFORM_TO_SOURCING_INDUSTRY } from './intelligentSourcingIndustryMap'
 export const SERVICE_PROFILE_CATEGORIES = [
   { id: 'project-management', name: 'Project Management', description: 'Programme, APQP and industrialisation support' },
   { id: 'supplier-services', name: 'Supplier Services', description: 'Logistics, install, obsolescence and supplier ops' },
-  { id: 'quality-services', name: 'Quality & Compliance', description: 'Audit, validation, certification and inspection' },
+  { id: 'quality-services', name: 'Quality & Compliance', description: 'Validation, certification and inspection' },
+  { id: 'audit-services', name: 'Audit Services', description: 'Supplier, process, system, product and compliance audits' },
 ]
 
 const PLATFORM_INDUSTRIES = Object.keys(PLATFORM_TO_SOURCING_INDUSTRY)

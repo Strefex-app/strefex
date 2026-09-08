@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
+import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
 import '../styles/app-page.css'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
@@ -195,7 +196,7 @@ export default function ProductSubcategoryPage() {
           <div className="industry-hub-card">
             <h2 className="industry-hub-card-title">{category.name} — Manufacturing Processes</h2>
             <p className="industry-hub-card-subtitle">
-              Select a {category.name.toLowerCase()} manufacturing process for the <strong>{industryLabel}</strong> industry to view suppliers, executive summary and request quotes.
+              Select a {category.name.toLowerCase()} manufacturing process for the <strong>{industryLabel}</strong> industry to view suppliers and request quotes.
             </p>
 
             <div className="industry-hub-pages-list hub-two-col-grid">
@@ -272,13 +273,13 @@ export default function ProductSubcategoryPage() {
 
                         {/* ── Action buttons — inline under this process ── */}
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {/* Executive Summary */}
+                          {/* Open Sourcing */}
                           {canSeeExecSummary && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                navigate(`/product-hub/${industryId}/${categoryId}/executive-summary`)
+                                navigate(BUYER_WORKSPACE_PATH)
                               }}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -288,7 +289,7 @@ export default function ProductSubcategoryPage() {
                               }}
                             >
                               <ChartIcon size={14} />
-                              Executive Summary
+                              Open Sourcing
                             </button>
                           )}
 

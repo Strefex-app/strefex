@@ -4,7 +4,13 @@ import AppLayout from '../components/AppLayout'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
+import { useSubscriptionStore } from '../services/featureFlags'
 import { mergeRequestTimelineEntries, ACTIVITY_KIND_LABEL } from '../utils/serviceRequestTimeline'
+import {
+  BUYER_SERVICE_INDUSTRY_PATH,
+  BUYER_SERVICE_SOURCING_PATH,
+  canAccessLegacyServiceHub,
+} from '../utils/serviceHubAccess'
 import '../styles/app-page.css'
 import './ServiceRequestManagement.css'
 
@@ -30,10 +36,20 @@ export default function ServiceRequestManagement() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const role = useAuthStore((s) => s.role)
+  const accountType = useSubscriptionStore((s) => s.accountType)
   const isSuperAdmin = role === 'superadmin'
   const isAdmin = role === 'admin' || isSuperAdmin
   const isManager = role === 'manager' || isAdmin
   const isOrderingUser = !isAdmin && !isManager
+  const legacyHubOk = canAccessLegacyServiceHub({
+    accountType,
+    accountTypes: user?.accountTypes,
+    isSuperAdmin,
+  })
+  const orderServicePath = legacyHubOk ? '/service-hub' : BUYER_SERVICE_INDUSTRY_PATH
+  const orderServiceLabel = isOrderingUser
+    ? 'Find via Sourcing'
+    : (legacyHubOk ? 'New order (service hub)' : 'Browse by industry')
 
   const requests = useServiceRequestStore((s) => s.getSafeRequests())
   const assignRequest = useServiceRequestStore((s) => s.assignRequest)
@@ -156,9 +172,9 @@ export default function ServiceRequestManagement() {
               type="button"
               className="app-page-action"
               style={{ whiteSpace: 'nowrap' }}
-              onClick={() => navigate('/service-hub')}
+              onClick={() => navigate(isOrderingUser ? BUYER_SERVICE_SOURCING_PATH : orderServicePath)}
             >
-              {isOrderingUser ? 'Order a service' : 'New order (service hub)'}
+              {orderServiceLabel}
             </button>
           </div>
         </div>
