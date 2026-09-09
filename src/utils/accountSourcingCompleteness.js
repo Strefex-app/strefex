@@ -6,6 +6,7 @@
 
 import { getApproximateLngLat } from './accountApproximateLocation'
 import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
+import { mergeAccountsPreferFilled } from './keepExistingAccountFields'
 
 export const SOURCING_VISIBILITY_FIELDS = [
   { key: 'country', label: 'Country', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'] },
@@ -283,7 +284,7 @@ export function mergeNetworkManufacturersWithAccounts(accounts = []) {
     }
     const t = new Date(a.updatedAt || a.registeredAt || 0).getTime()
     const pt = new Date(prev.updatedAt || prev.registeredAt || 0).getTime()
-    byKey.set(key, t >= pt ? { ...prev, ...a } : { ...a, ...prev })
+    byKey.set(key, t >= pt ? mergeAccountsPreferFilled(a, prev) : mergeAccountsPreferFilled(prev, a))
   })
   return [...byKey.values()].filter(
     (a) => a.status !== 'canceled' && accountVisibleOnSourcingMap(a),

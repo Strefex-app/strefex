@@ -363,6 +363,8 @@ function categoryOptionsForIndustry(industryId, extraCategoryId = '', rfqType = 
   return [...map.values()]
 }
 
+const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260909d'
+
 export default function IntelligentSourcingPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -432,8 +434,7 @@ export default function IntelligentSourcingPage() {
 
   const payloadKey = useMemo(() => JSON.stringify(platformPayload), [platformPayload])
 
-  const [srcDoc, setSrcDoc] = useState('')
-  const [frameSrc, setFrameSrc] = useState('')
+  const [frameSrc] = useState(SOURCING_FRAME_SRC)
   const [status, setStatus] = useState('loading')
   const [showRfqModal, setShowRfqModal] = useState(false)
   const [rfqContext, setRfqContext] = useState(null)
@@ -457,46 +458,9 @@ export default function IntelligentSourcingPage() {
   }, [payloadKey, theme])
 
   useEffect(() => {
-    let cancelled = false
-    setStatus('loading')
-    setSrcDoc('')
-    setFrameSrc('')
-
-    // Direct same-origin iframe (React/Babel vendored under /intelligent-sourcing/vendor).
-    // Avoids huge srcDoc documents that inherit production CSP and previously blocked unpkg.
-    // Remount only on theme — supplier payload updates via postMessage (phone-safe).
-    const loadDirect = () => {
-      setSrcDoc('')
-      const themeParam = theme === 'dark' ? 'dark' : 'light'
-      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&theme=${themeParam}&v=20260909b&t=${Date.now()}`)
-      setStatus('ready')
-    }
-
-    fetch(`${window.location.origin}/intelligent-sourcing/index.html`, { cache: 'no-cache' })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.text()
-      })
-      .then((html) => {
-        if (cancelled) return
-        if (!html.includes('Intelligent Sourcing') || !html.includes('SOURCING_DATA')) {
-          throw new Error('Intelligent Sourcing HTML not served (check vercel rewrite)')
-        }
-        loadDirect()
-      })
-      .catch(() => {
-        if (cancelled) return
-        // Last resort: still try the static URL (may recover after SW cache churn)
-        loadDirect()
-      })
-
-    return () => { cancelled = true }
-  }, [theme])
-
-  useEffect(() => {
     if (status !== 'ready') return
     pushPlatformToFrame()
-  }, [status, pushPlatformToFrame, frameSrc, srcDoc])
+  }, [status, pushPlatformToFrame])
 
   const openPlatformRfqForm = useCallback((payload = {}) => {
     if (payload?.buyer) setPlant(payload.buyer)
@@ -626,7 +590,7 @@ export default function IntelligentSourcingPage() {
             <p>
               <a href="/intelligent-sourcing/index.html">Open design directly</a>
               {' · '}
-              <Link to="/hub/procurement">Retry Sourcing</Link>
+              <Link to="/sourcing">Retry Sourcing</Link>
             </p>
           </div>
         ) : (
@@ -640,9 +604,11 @@ export default function IntelligentSourcingPage() {
               ref={iframeRef}
               className="intelligent-sourcing-frame"
               title="Intelligent Sourcing"
-              src={frameSrc || undefined}
-              srcDoc={!frameSrc && status === 'ready' ? srcDoc : undefined}
-              onLoad={pushPlatformToFrame}
+              src={frameSrc}
+              onLoad={() => {
+                setStatus('ready')
+                pushPlatformToFrame()
+              }}
             />
           </>
         )}

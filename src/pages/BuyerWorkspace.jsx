@@ -47,7 +47,6 @@ function getRegistrySellersForDiscover(industryId, categoryId) {
 }
 
 const TABS = [
-  { id: 'find', labelKey: 'buyerWorkspace.tabFind' },
   { id: 'track', labelKey: 'buyerWorkspace.tabTrack' },
 ]
 
@@ -398,7 +397,7 @@ export default function BuyerWorkspace() {
       if (prev.some((p) => supplierKey(p) === id)) return prev
       return [...prev, supplier]
     })
-    setTab('find')
+    setTab('track')
   }
 
   const handleShortlist = async (supplier) => {
@@ -511,35 +510,10 @@ export default function BuyerWorkspace() {
     return [...byId.values()]
   }, [trackingRows, localRfqs])
 
-  const tabCounts = {
-    find: (discoverTotal || discoverSuppliers.length) + shortlisted.length,
-    track: trackRowsMerged.length,
-  }
-
   const intelUrl = rfqIntelligenceUrl({
     industryId: selectedIndustry || undefined,
     categoryId: selectedCategory || undefined,
   })
-
-  const sourcingUrl = selectedIndustry
-    ? `${BUYER_WORKSPACE_PATH}?industryId=${encodeURIComponent(selectedIndustry)}${selectedCategory ? `&categoryId=${encodeURIComponent(selectedCategory)}` : ''}`
-    : BUYER_WORKSPACE_PATH
-
-  const discoverSourceLabel = discoverSource === 'connected'
-    ? t('buyerWorkspace.sourceConnected')
-    : t('buyerWorkspace.sourceDirectory')
-
-  const discoverCoverage = useMemo(
-    () => coverageStats(discoverSuppliers, selectedIndustry),
-    [discoverSuppliers, selectedIndustry],
-  )
-
-  const displayedDiscover = useMemo(() => {
-    const filtered = certFilterOn
-      ? discoverSuppliers.filter((row) => supplierMeetsCertFilter(row, selectedIndustry))
-      : discoverSuppliers
-    return sortSuppliersByReliability(filtered)
-  }, [discoverSuppliers, certFilterOn, selectedIndustry])
 
   return (
     <AppLayout>
@@ -550,7 +524,7 @@ export default function BuyerWorkspace() {
             <p className="app-page-subtitle">{t('buyerWorkspace.subtitleTrackOnly')}</p>
           </div>
           <div className="bw-header__actions">
-            <Link to="/hub/procurement" className="app-page-btn-outline">
+            <Link to={BUYER_WORKSPACE_PATH} className="app-page-btn-outline">
               {t('nav.sourcing')}
             </Link>
             <Link to="/dashboard/buyer/account-directory" className="app-page-btn-outline">
@@ -568,282 +542,8 @@ export default function BuyerWorkspace() {
         {feedback && <p className="app-page-alert app-page-alert--success">{feedback}</p>}
         {error && <p className="app-page-alert app-page-alert--error">{error}</p>}
 
-        <div className="bw-steps" role="tablist" aria-label={t('buyerWorkspace.stepsAria')}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`bw-step${activeTab === tab.id ? ' bw-step--active' : ''}`}
-              onClick={() => setTab(tab.id)}
-            >
-              {t(tab.labelKey)}
-              {tabCounts[tab.id] > 0 && (
-                <span className="bw-step__count">{tabCounts[tab.id]}</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'find' && (
-          <>
-            {industryOptions.length === 0 && !isSuperAdmin ? (
-              <div className="app-page-card">
-                <HubIndustryRegistration audience="buyer" />
-                <div className="bw-shortlist-empty" style={{ marginTop: 16 }}>
-                  <p>{t('buyerWorkspace.noIndustrySelected')}</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="app-page-card">
-                  <h3 className="bw-panel-title">{t('buyerWorkspace.discoverTitle')}</h3>
-                  <p className="bw-panel-hint">{t('buyerWorkspace.discoverHint')}</p>
-
-                  <div className="bw-exec-summary-entry">
-                    <div className="min-width-0">
-                      <strong className="stx-text-wrap">{t('buyerWorkspace.executiveSummaryTitle')}</strong>
-                      <p className="bw-panel-hint" style={{ margin: '4px 0 0' }}>
-                        {t('buyerWorkspace.subtitleTrackOnly')}
-                      </p>
-                    </div>
-                    <Link to={sourcingUrl} className="app-page-btn-primary app-page-btn-sm">
-                      {t('nav.sourcing')}
-                    </Link>
-                  </div>
-
-                  <div className="bw-industry-filter">
-                  <label className="bw-industry-filter__field">
-                    <span className="bw-industry-filter__label">{t('buyerWorkspace.industryLabel')}</span>
-                    <select
-                      className="bw-industry-filter__select"
-                      value={selectedIndustry}
-                      onChange={(e) => setSelectedIndustry(e.target.value)}
-                    >
-                      {industryOptions.map((slug) => (
-                        <option key={slug} value={slug}>
-                          {displayHubIndustryFromSlug(slug, t)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {categoryOptions.length > 0 && (
-                    <label className="bw-industry-filter__field">
-                      <span className="bw-industry-filter__label">{t('buyerWorkspace.categoryLabel')}</span>
-                      <select
-                        className="bw-industry-filter__select"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                      >
-                        {categoryOptions.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {discoverSuppliers.length > 0 && (
-                    <label className="bw-industry-filter__field">
-                      <span className="bw-industry-filter__label">{t('buyerWorkspace.reliabilityFilter')}</span>
-                      <button
-                        type="button"
-                        className={`app-page-btn-outline bw-filter-btn${certFilterOn ? ' bw-filter-btn--active' : ''}`}
-                        aria-pressed={certFilterOn}
-                        onClick={() => setCertFilterOn((v) => !v)}
-                      >
-                        {certFilterOn
-                          ? t('buyerWorkspace.certFilterOn').replace('{standard}', primaryCertFilter?.label || '')
-                          : t('buyerWorkspace.certFilterOff').replace('{standard}', primaryCertFilter?.label || '')}
-                      </button>
-                    </label>
-                  )}
-                  {discoverSuppliers.length > 0 && (
-                    <span className="bw-source-badge">{discoverSourceLabel}</span>
-                  )}
-                </div>
-
-                {canSeeDetails && discoverSource === 'directory' && discoverSuppliers.length > 0 && (
-                  <p className="bw-panel-hint" style={{ marginTop: 0 }}>
-                    {t('buyerWorkspace.execSummaryDataHint')}
-                  </p>
-                )}
-
-                {!canSeeDetails && discoverSuppliers.length > 0 && (
-                  <div className="bw-plan-notice">
-                    <span>{t('buyerWorkspace.maskedNotice')}</span>
-                    <Link to="/plans" className="app-page-btn-outline">
-                      {t('buyerWorkspace.upgradePlan')}
-                    </Link>
-                  </div>
-                )}
-
-                {discoverCoverage.total > 0 && (
-                  <div className="bw-coverage-bar" role="status">
-                    <span className="bw-coverage-bar__primary">
-                      {t('buyerWorkspace.reliabilityCoverage')
-                        .replace('{percent}', String(discoverCoverage.percent))}
-                    </span>
-                    <span className="bw-coverage-bar__meta">
-                      {t('buyerWorkspace.reliabilityBreakdown')
-                        .replace('{primary}', String(discoverCoverage.withPrimary))
-                        .replace('{primaryLabel}', discoverCoverage.primaryStandardLabel)
-                        .replace('{published}', String(discoverCoverage.published))}
-                    </span>
-                  </div>
-                )}
-
-                {discoverLoading && displayedDiscover.length === 0 && discoverSuppliers.length === 0 ? (
-                  <div className="bw-supplier-grid bw-supplier-grid--loading" aria-busy="true">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <div key={`sk-${i}`} className="bw-supplier-card bw-supplier-card--skeleton" aria-hidden="true">
-                        <div className="bw-skeleton-line bw-skeleton-line--title" />
-                        <div className="bw-skeleton-line" />
-                        <div className="bw-skeleton-line bw-skeleton-line--short" />
-                      </div>
-                    ))}
-                  </div>
-                ) : displayedDiscover.length === 0 ? (
-                  <div className="bw-shortlist-empty">
-                    <p>
-                      {certFilterOn
-                        ? t('buyerWorkspace.noCertMatches').replace('{standard}', primaryCertFilter?.label || '')
-                        : t('buyerWorkspace.noManufacturers')}
-                    </p>
-                    <p className="bw-panel-hint">{t('buyerWorkspace.emptyFindHint')}</p>
-                    <div className="bw-rfq-path-actions">
-                      <Link to={sourcingUrl} className="app-page-btn-primary">
-                        {t('nav.sourcing')}
-                      </Link>
-                      <Link to={BUYER_WORKSPACE_PATH} className="app-page-btn-outline">
-                        {t('buyerWorkspace.sendRfqViaHome')}
-                      </Link>
-                      <Link to="/dashboard/buyer/account-directory" className="app-page-btn-outline">
-                        {t('buyerWorkspace.contactsLink')}
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {discoverScope === 'industry' && (
-                      <p className="bw-panel-hint">{t('buyerWorkspace.industryWideHint')}</p>
-                    )}
-                    <div className="bw-supplier-grid">
-                      {displayedDiscover.map((supplier, index) => (
-                        <SupplierCard
-                          key={`disc-${supplierKey(supplier)}`}
-                          supplier={supplier}
-                          industryId={selectedIndustry}
-                          masked={!canSeeDetails}
-                          displayNameOverride={
-                            canSeeDetails
-                              ? undefined
-                              : formatMaskedManufacturerLabel(index)
-                          }
-                          disableShortlist={!supplier._canShortlist}
-                          onSelect={addCompare}
-                          onShortlist={handleShortlist}
-                          onRequestEvidence={canSeeDetails ? handleRequestEvidence : undefined}
-                          evidenceRequestPending={hasOpenEvidenceRequest(
-                            supplierKey(supplier),
-                            primaryCertFilter?.id,
-                          )}
-                          compareLabel={t('buyerWorkspace.addToCompare')}
-                          shortlistLabel={t('buyerWorkspace.shortlistAction')}
-                          requestEvidenceLabel={t('buyerWorkspace.requestEvidence')}
-                        />
-                      ))}
-                    </div>
-                    {hasMoreDiscover && (
-                      <div className="bw-next-step" style={{ marginTop: 12, borderTop: 'none', paddingTop: 0 }}>
-                        <span className="app-page-subtitle" style={{ margin: 0 }}>
-                          {t('buyerWorkspace.showingCount')
-                            .replace('{shown}', String(discoverSuppliers.length))
-                            .replace('{total}', String(discoverTotal))}
-                        </span>
-                        <button
-                          type="button"
-                          className="app-page-btn-outline"
-                          disabled={loadingMore}
-                          onClick={() => void loadMoreDirectory()}
-                        >
-                          {loadingMore ? t('buyerWorkspace.loading') : t('buyerWorkspace.loadMore')}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {shortlisted.length > 0 && (
-                  <div className="bw-next-step">
-                    <span className="app-page-subtitle" style={{ margin: 0 }}>
-                      {t('buyerWorkspace.shortlistReady').replace('{count}', String(shortlisted.length))}
-                    </span>
-                    <Link to={sourcingUrl} className="app-page-btn-primary">
-                      {t('buyerWorkspace.goToRfq')}
-                    </Link>
-                  </div>
-                )}
-                </div>
-
-                {(shortlistedCards.length > 0 || compareRows.length > 0) && (
-                  <div className="app-page-card bw-find-section">
-                    <h3 className="bw-panel-title">{t('buyerWorkspace.shortlistTitle')}</h3>
-                    <p className="bw-panel-hint">{t('buyerWorkspace.shortlistHint')}</p>
-
-                    {shortlistedCards.length > 0 && (
-                      <>
-                        <ShortlistGapPanel
-                          suppliers={shortlistedCards}
-                          industryId={selectedIndustry}
-                          onRequestEvidence={canSeeDetails ? handleGapRequestEvidence : undefined}
-                          requestLabel={t('buyerWorkspace.requestEvidence')}
-                        />
-                        <div className="bw-supplier-grid">
-                          {shortlistedCards.map((supplier) => (
-                            <SupplierCard
-                              key={`sl-${supplierKey(supplier)}`}
-                              supplier={supplier}
-                              industryId={selectedIndustry}
-                              onSelect={addCompare}
-                              compareLabel={t('buyerWorkspace.addToCompare')}
-                              hideShortlist
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    {compareRows.length > 0 && (
-                      <>
-                        <h3 className="bw-panel-title" style={{ marginTop: shortlistedCards.length > 0 ? 20 : 0 }}>
-                          {t('buyerWorkspace.comparison')}
-                        </h3>
-                        <CapabilityCompareTable
-                          rows={compareRows}
-                          industryId={selectedIndustry}
-                          canSeeDetails={canSeeDetails}
-                          maskName={(_, index) => formatMaskedManufacturerLabel(index)}
-                        />
-                        <div className="bw-next-step">
-                          <span className="app-page-subtitle" style={{ margin: 0 }}>
-                            {t('buyerWorkspace.compareHint')}
-                          </span>
-                          <Link to={sourcingUrl} className="app-page-btn-primary">
-                            {t('buyerWorkspace.goToRfq')}
-                          </Link>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-
         {activeTab === 'track' && (
+
           <div className="app-page-card">
             <h3 className="bw-panel-title">{t('buyerWorkspace.tracking')}</h3>
             <p className="bw-panel-hint">{t('buyerWorkspace.trackHint')}</p>
@@ -913,7 +613,6 @@ export default function BuyerWorkspace() {
               </div>
             )}
           </div>
-        )}
       </div>
     </AppLayout>
   )

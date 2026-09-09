@@ -27,6 +27,7 @@ import {
 import {
   AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
   AUDITOR_EXPERTISE_OPTIONS,
+  AUDIT_SERVICE_ITEMS,
   defaultAuditorServiceCategories,
 } from '../data/auditServices'
 import './Login.css'
@@ -44,7 +45,10 @@ const INDUSTRIES = [
   { id: 'household-products', label: 'Household Products' },
   { id: 'nuclear', label: 'Nuclear' },
 ]
-const SERVICE_EXPERTISE_OPTIONS = AUDIT_AND_SERVICE_EXPERTISE_OPTIONS
+const SERVICE_EXPERTISE_OPTIONS = [
+  ...AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  ...AUDIT_SERVICE_ITEMS,
+]
 const AUDITOR_EXPERTISE_OPTIONS_UI = AUDITOR_EXPERTISE_OPTIONS
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
@@ -793,7 +797,7 @@ function RegisterForm() {
                     ))}
                   </div>
                   <div className="reg-domain-hint" style={{ marginTop: 8 }}>
-                    Checked categories appear in Service Hub and audit requests for your industry.
+                    Same items as Profile and the Service map, including audit kinds.
                   </div>
                 </div>
               )}

@@ -66,7 +66,7 @@ export const COMPANY_WORKFLOW_CHAINS = [
     clusterId: 'sourcing',
     description: 'RFQ → award → project → PO → IATF binder → PPAP.',
     steps: [
-      { id: 'rfq', label: 'RFQ', path: (ctx) => (ctx.rfqId ? `/rfq-comparison/${ctx.rfqId}` : '/hub/procurement') },
+      { id: 'rfq', label: 'RFQ', path: (ctx) => (ctx.rfqId ? `/rfq-comparison/${ctx.rfqId}` : '/sourcing') },
       { id: 'award', label: 'Award', path: (ctx) => (ctx.rfqId ? `/rfq-comparison/${ctx.rfqId}` : IATF_CONTROL_PATH) },
       { id: 'project', label: 'Project', path: (ctx) => (
         ctx.projectId ? `/management/ops/projects/project/${ctx.projectId}` : '/management/ops/projects'

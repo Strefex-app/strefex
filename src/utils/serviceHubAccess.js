@@ -1,7 +1,7 @@
 import { normalizeAccountTypes } from './networkRoles'
 
 /** Buyer / seller order & discover entry — Intelligent Sourcing. */
-export const BUYER_SERVICE_SOURCING_PATH = '/hub/procurement'
+export const BUYER_SERVICE_SOURCING_PATH = '/sourcing'
 
 /** @deprecated Same as BUYER_SERVICE_SOURCING_PATH — catalog Exec Summary removed. */
 export const BUYER_SERVICE_INDUSTRY_PATH = BUYER_SERVICE_SOURCING_PATH

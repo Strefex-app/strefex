@@ -185,6 +185,40 @@ function useMapFrameSize(defaultWidth = 800, defaultHeight = 360) {
 const viteBase = import.meta.env.BASE_URL || '/'
 const geoUrl = `${viteBase.endsWith('/') ? viteBase : `${viteBase}/`}geo/ne_110m_admin_0_countries.geojson`
 
+let cachedWorldGeo = null
+let worldGeoPromise = null
+
+function useWorldGeography() {
+  const [geography, setGeography] = useState(() => cachedWorldGeo)
+
+  useEffect(() => {
+    if (cachedWorldGeo) {
+      setGeography(cachedWorldGeo)
+      return
+    }
+    if (!worldGeoPromise) {
+      worldGeoPromise = fetch(geoUrl)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          return r.json()
+        })
+        .then((geo) => {
+          cachedWorldGeo = geo
+          return geo
+        })
+    }
+    let cancelled = false
+    worldGeoPromise
+      .then((geo) => {
+        if (!cancelled) setGeography(geo)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  return geography
+}
+
 const defaultLocations = [
   { name: 'New York', coordinates: [-74.006, 40.7128], riskLevel: 22 },
   { name: 'London', coordinates: [-0.1276, 51.5074], riskLevel: 35 },
@@ -221,6 +255,7 @@ const WorldMap = ({
 }) => {
   const isExecutive = variant === 'executive' || variant === 'sourcing'
   const palette = useMapPalette()
+  const worldGeo = useWorldGeography()
   const [hoveredMarker, setHoveredMarker] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const { containerRef, width: mapWidth, height: mapHeight } = useMapFrameSize()
@@ -285,7 +320,8 @@ const WorldMap = ({
               step={[10, 10]}
               fill="transparent"
             />
-            <Geographies geography={geoUrl}>
+            {worldGeo ? (
+            <Geographies geography={worldGeo}>
               {({ geographies }) =>
                 geographies.map((geo) => (
                   <Geography
@@ -303,6 +339,7 @@ const WorldMap = ({
                 ))
               }
             </Geographies>
+            ) : null}
 
             {hasLaneList
               ? lanes.map((lane, i) => {
@@ -474,7 +511,8 @@ const WorldMap = ({
           </g>
         ) : (
           <ZoomableGroup center={[20, 30]} zoom={1} minZoom={1} maxZoom={1} filterZoomEvent={() => false}>
-            <Geographies geography={geoUrl}>
+            {worldGeo ? (
+            <Geographies geography={worldGeo}>
               {({ geographies }) =>
                 geographies.map((geo) => (
                   <Geography
@@ -498,6 +536,7 @@ const WorldMap = ({
                 ))
               }
             </Geographies>
+            ) : null}
             {displayLocations.map((location, index) => {
               const isSelected = selectedId && location.id === selectedId
               const isHovered = hoveredMarker === index

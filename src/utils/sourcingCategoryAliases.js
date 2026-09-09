@@ -6,8 +6,13 @@
  * (see unifiedSourcingTaxonomy.js) so browse cards use those ids.
  *
  * Alias maps below are retained for documentation / legacy data only —
- * expand* helpers are identity (no fan-out).
+ * expand* helpers are identity (no fan-out), except audit service kinds.
  */
+
+import {
+  AUDIT_SERVICE_ITEM_IDS,
+  AUDIT_SERVICES_CATEGORY_ID,
+} from '../data/auditServices'
 
 /** Platform equipment category → primary Intelligent Sourcing equipment category id(s). */
 export const EQUIPMENT_PLATFORM_TO_SOURCING = {
@@ -287,8 +292,25 @@ export function expandProductCategoryIds(ids = []) {
   return identityIds(ids)
 }
 
+function normalizeServiceCategoryId(raw) {
+  const id = String(raw || '').trim()
+  if (id.startsWith('svc:audit:')) return id.slice('svc:audit:'.length)
+  return id
+}
+
 export function expandServiceCategoryIds(ids = []) {
-  return identityIds(ids)
+  const out = new Set()
+  identityIds(ids).forEach((raw) => {
+    const id = normalizeServiceCategoryId(raw)
+    if (id) out.add(id)
+  })
+  const hasKind = AUDIT_SERVICE_ITEM_IDS.some((k) => out.has(k))
+  const hasParent = out.has(AUDIT_SERVICES_CATEGORY_ID)
+  if (hasParent && !hasKind) {
+    AUDIT_SERVICE_ITEM_IDS.forEach((k) => out.add(k))
+  }
+  if (hasKind) out.add(AUDIT_SERVICES_CATEGORY_ID)
+  return [...out]
 }
 
 export function accountHasSellerRole(account) {
@@ -333,8 +355,9 @@ export function sourcingSupplierMatchesDomainCategory(supplier, domain, category
     const serviceIds = [
       ...(supplier.serviceCategoryIds || []),
       ...(supplier.categoryIds || []),
-    ].map(String)
-    return serviceIds.includes(String(categoryId))
+    ].map((id) => normalizeServiceCategoryId(id)).filter(Boolean)
+    if (subcatId) return serviceIds.includes(normalizeServiceCategoryId(subcatId))
+    return serviceIds.includes(normalizeServiceCategoryId(categoryId))
   }
 
   if (!types.has('seller')) return false

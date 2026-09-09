@@ -3646,7 +3646,15 @@ transitFor(sup) {
     function matchesCategory(x, domainId, catId, subId) {
       if (domainId === "service") {
         if (!catId) return true;
-        const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []);
+        const svc = [].concat(x.serviceCategoryIds || [], x.categoryIds || []).map(function (id) {
+          var s = String(id || "");
+          return s.indexOf("svc:audit:") === 0 ? s.slice(10) : s;
+        });
+        if (subId) {
+          var subKey = String(subId || "");
+          if (subKey.indexOf("svc:audit:") === 0) subKey = subKey.slice(10);
+          return hasId(svc, subKey);
+        }
         return hasId(svc, catId);
       }
       const domainIds = domainId === "equipment"

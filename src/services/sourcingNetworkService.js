@@ -4,6 +4,7 @@
 import { isSupabaseConfigured, supabase } from '../config/supabase'
 import { sourcingNetworkRowToAccount } from '../utils/companyTaxonomyPayload'
 import { publishAccountsToNetworkDirectory } from '../utils/accountSourcingCompleteness'
+import { mergeAccountsPreferFilled } from '../utils/keepExistingAccountFields'
 
 export async function fetchSourcingNetworkAccounts({ limit = 500 } = {}) {
   if (!isSupabaseConfigured || !supabase) return []
@@ -48,11 +49,10 @@ export function mergeSourcingNetworkIntoRegistry(localAccounts = [], networkAcco
       byKey.set(k, remote)
       return
     }
+    const filled = mergeAccountsPreferFilled(remote, local)
     byKey.set(k, {
-      ...local,
-      ...remote,
-      /* Prefer non-empty local edits that may be fresher than RPC lag */
-      industries: (remote.industries?.length ? remote.industries : local.industries) || [],
+      ...filled,
+      industries: (remote.industries?.length ? remote.industries : local.industries) || filled.industries || [],
       categories: Object.keys(remote.categories || {}).length ? remote.categories : (local.categories || {}),
       productCategories: Object.keys(remote.productCategories || {}).length
         ? remote.productCategories
@@ -67,9 +67,9 @@ export function mergeSourcingNetworkIntoRegistry(localAccounts = [], networkAcco
         ? remote.serviceCategories
         : local.serviceCategories) || [],
       accountTypes: (remote.accountTypes?.length ? remote.accountTypes : local.accountTypes) || [remote.accountType || 'seller'],
-      country: remote.country || local.country || '',
-      city: remote.city || local.city || '',
-      address: remote.address || local.address || '',
+      country: filled.country || '',
+      city: filled.city || '',
+      address: filled.address || '',
       source: remote.source || local.source || 'database',
       /* Sourcing metrics live in profile metadata / registry — RPC rows usually omit them */
       fitLevel: remote.fitLevel ?? local.fitLevel,

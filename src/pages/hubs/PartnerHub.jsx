@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { NETWORK_SOURCING_PATH } from '../../constants/rfqPaths'
 import AppLayout from '../../components/AppLayout'
 import { useAuthStore } from '../../store/authStore'
 import { useSubscriptionStore } from '../../services/featureFlags'
@@ -93,7 +94,7 @@ export default function PartnerHub() {
             <h3 className="hub-tools-group__label">Platform services</h3>
             <div className="hub-landing__grid">
               <HubToolCard
-                to={isServiceProvider ? '/service-hub' : '/hub/procurement'}
+                to={isServiceProvider ? '/service-hub' : NETWORK_SOURCING_PATH}
                 icon="service-requests"
                 iconStyle={ICON.services}
                 title={isServiceProvider ? 'Service categories' : 'Services via Sourcing'}
@@ -104,7 +105,7 @@ export default function PartnerHub() {
                 }
               />
               <HubToolCard
-                to={isServiceProvider ? '/service-provider-dashboard' : '/hub/procurement'}
+                to={isServiceProvider ? '/service-provider-dashboard' : NETWORK_SOURCING_PATH}
                 icon="check-square"
                 iconStyle={ICON.profile}
                 title="Service requests"

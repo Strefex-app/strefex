@@ -34,8 +34,12 @@ import {
   sourcingMetricsFormFromSource,
   sourcingMetricsRegistryPatch,
 } from '../utils/sourcingMetrics'
-import '../styles/app-page.css'
-import './SuperAdminAccountDetailPage.css'
+import { firstFilledText, firstFilledObject, mergeAccountsPreferFilled, omitEmptyCompanyScalars } from '../utils/keepExistingAccountFields'
+import {
+  AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  AUDITOR_EXPERTISE_OPTIONS,
+  AUDIT_SERVICE_ITEMS,
+} from '../data/auditServices'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -52,11 +56,9 @@ const PLATFORM_INDUSTRY_OPTIONS = [
   { id: 'nuclear', label: 'Nuclear' },
 ]
 
-const SERVICE_EXPERTISE_OPTIONS = [
-  { id: 'project-management', label: 'Project Management' },
-  { id: 'supplier-services', label: 'Supplier Services' },
-  { id: 'quality-services', label: 'Quality & Compliance' },
-  { id: 'supplier-audit', label: 'Supplier Audit' },
+const SERVICE_PROVIDER_EXPERTISE_OPTIONS = [
+  ...AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  ...AUDIT_SERVICE_ITEMS,
 ]
 
 function readIndustryFromSource(source) {
@@ -307,26 +309,33 @@ export default function SuperAdminAccountDetailPage() {
 
   const syncFormFromCompany = useCallback((c, plist) => {
     const primary = Array.isArray(plist) && plist.length ? plist[0] : null
-    const industryId = readIndustryFromSource(c) || readIndustryFromSource(primary) || ''
+    const reg = findRegistryAccount(c?.email || c?._registryKey || c?.id)
+      || findRegistryAccount(primary?.email)
+    const industryId = readIndustryFromSource(c)
+      || readIndustryFromSource(primary)
+      || (Array.isArray(reg?.industries) && String(reg.industries[0] || ''))
+      || ''
     const accountTypes = readAccountTypesFromSource(c, primary)
+    const filledName = firstFilledText(c?.name, c?.company, reg?.company, primary?.company_name)
     setCompany((prev) => ({
       ...(prev && prev.id === c?.id ? prev : {}),
       ...c,
+      name: filledName || c?.name || prev?.name || '',
       account_types: accountTypes,
       account_type: accountTypes[0] || c?.account_type || 'seller',
     }))
     setForm({
-      name: c?.name || '',
-      email: c?.email || '',
-      phone: c?.phone || '',
-      website: c?.website || '',
-      country: c?.country || '',
-      city: c?.city || '',
-      address: c?.address || c?.metadata?.address || '',
+      name: filledName,
+      email: firstFilledText(c?.email, primary?.email, reg?.email),
+      phone: firstFilledText(c?.phone, primary?.phone, reg?.phone),
+      website: firstFilledText(c?.website, reg?.website),
+      country: firstFilledText(c?.country, reg?.country),
+      city: firstFilledText(c?.city, reg?.city),
+      address: firstFilledText(c?.address, c?.metadata?.address, reg?.address),
       account_types: accountTypes,
-      plan: c?.plan || 'start',
-      contactName: primary?.full_name || c?._contactName || '',
-      contactPhone: primary?.phone || c?._contactPhone || '',
+      plan: c?.plan || reg?.plan || 'start',
+      contactName: firstFilledText(primary?.full_name, c?._contactName, reg?.contactName),
+      contactPhone: firstFilledText(primary?.phone, c?._contactPhone, c?.phone, reg?.phone),
       contactProfileId: primary?.id || c?._profileId || '',
       industryId,
       productSubs: (() => {
@@ -366,9 +375,11 @@ export default function SuperAdminAccountDetailPage() {
       serviceCategories: (() => {
         const fromCompany = readServiceCategoriesFromSource(c)
         if (fromCompany.length) return fromCompany
-        return readServiceCategoriesFromSource(primary)
+        const fromProfile = readServiceCategoriesFromSource(primary)
+        if (fromProfile.length) return fromProfile
+        return Array.isArray(reg?.serviceCategories) ? [...reg.serviceCategories] : []
       })(),
-      sourcingMetrics: sourcingMetricsFormFromSource(c, findRegistryAccount(c?.email || c?._registryKey)),
+      sourcingMetrics: sourcingMetricsFormFromSource(c, reg),
     })
     const saved = readReceivingPlantsFromAccount(
       { receivingPlants: c?.metadata?.receiving_plants },
@@ -579,7 +590,13 @@ export default function SuperAdminAccountDetailPage() {
 
   const saveAccountProfile = async () => {
     if (!company || (!isCloud && !isLocal && !company._fromStub && !company._local)) return
-    if (!form.name.trim()) {
+    const existingLocal = findRegistryAccount(registryKey)
+      || findRegistryAccount(form.email)
+      || findRegistryAccount(company.email)
+      || findRegistryAccount(company.id)
+      || {}
+    const resolvedName = firstFilledText(form.name, company.name, company.company, existingLocal.company)
+    if (!resolvedName) {
       setError('Company name is required.')
       return
     }
@@ -588,27 +605,38 @@ export default function SuperAdminAccountDetailPage() {
     setSavedMsg('')
     try {
       const nextAddress = form.address.trim()
-      const emailKey = (form.email || company.email || registryKey || '').trim().toLowerCase()
+      const emailKey = (form.email || company.email || registryKey || existingLocal.email || '').trim().toLowerCase()
       const lookup = registryKey || emailKey || company._registryKey
       const nextIndustryId = String(form.industryId || '').trim()
-      const nextIndustries = nextIndustryId ? [nextIndustryId] : []
+        || (Array.isArray(company.industries) && String(company.industries[0] || ''))
+        || (Array.isArray(existingLocal.industries) && String(existingLocal.industries[0] || ''))
+        || ''
+      const nextIndustries = nextIndustryId
+        ? [nextIndustryId]
+        : (Array.isArray(company.industries) && company.industries.length
+          ? company.industries
+          : (Array.isArray(existingLocal.industries) ? existingLocal.industries : []))
       const productSanitized = sanitizeSubMap(form.productSubs)
       const equipmentSanitized = sanitizeSubMap(form.equipmentSubs)
       const nextCategories = equipmentSanitized.parents.length
         ? { [nextIndustryId]: [...equipmentSanitized.parents] }
-        : {}
+        : firstFilledObject(company.categories, company.metadata?.categories, existingLocal.categories)
       const nextProductCategories = productSanitized.parents.length
         ? { [nextIndustryId]: [...productSanitized.parents] }
-        : {}
+        : firstFilledObject(company.productCategories, company.metadata?.product_categories, existingLocal.productCategories)
       const nextEquipmentSubcategories = Object.keys(equipmentSanitized.subs).length
         ? { [nextIndustryId]: equipmentSanitized.subs }
-        : {}
+        : firstFilledObject(company.equipmentSubcategories, company.metadata?.equipment_subcategories, existingLocal.equipmentSubcategories)
       const nextProductSubcategories = Object.keys(productSanitized.subs).length
         ? { [nextIndustryId]: productSanitized.subs }
-        : {}
-      const nextServiceCategories = Array.isArray(form.serviceCategories)
+        : firstFilledObject(company.productSubcategories, company.metadata?.product_subcategories, existingLocal.productSubcategories)
+      const nextServiceCategories = Array.isArray(form.serviceCategories) && form.serviceCategories.length
         ? [...form.serviceCategories]
-        : []
+        : (Array.isArray(company.service_categories) && company.service_categories.length
+          ? [...company.service_categories]
+          : (Array.isArray(company.metadata?.service_categories) && company.metadata.service_categories.length
+            ? [...company.metadata.service_categories]
+            : (Array.isArray(existingLocal.serviceCategories) ? [...existingLocal.serviceCategories] : [])))
       const nextSourcingMetrics = parseSourcingMetricsForm(form.sourcingMetrics)
       const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
       const nextAccountTypes = (() => {
@@ -626,29 +654,31 @@ export default function SuperAdminAccountDetailPage() {
 
       if (isLocal || (company._local && !companyId)) {
         if (!lookup && !emailKey) throw new Error('Missing local account key.')
-        const patch = {
-          company: form.name.trim(),
-          name: form.contactName.trim() || undefined,
-          email: emailKey || undefined,
-          phone: form.phone.trim() || form.contactPhone.trim() || '',
-          website: form.website.trim() || '',
-          country: form.country.trim() || '',
-          city: form.city.trim() || '',
-          address: nextAddress || '',
+        const patch = mergeAccountsPreferFilled({
+          company: resolvedName,
+          name: form.contactName.trim(),
+          email: emailKey,
+          phone: form.phone.trim() || form.contactPhone.trim(),
+          website: form.website.trim(),
+          country: form.country.trim(),
+          city: form.city.trim(),
+          address: nextAddress,
           accountType: primaryAccountType,
           accountTypes: nextAccountTypes,
-          plan: form.plan || undefined,
-          receivingPlants: normalizeReceivingPlants(plants),
-          companyId: company.id || undefined,
+          plan: form.plan,
           industries: nextIndustries,
           categories: nextCategories,
           productCategories: nextProductCategories,
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+        }, existingLocal)
+        Object.assign(patch, {
+          receivingPlants: normalizeReceivingPlants(plants),
+          companyId: company.id || existingLocal.companyId || undefined,
           ...sourcingRegistryPatch,
-          visibilityTier: company.visibility_tier || company.visibilityTier || undefined,
-        }
+          visibilityTier: company.visibility_tier || company.visibilityTier || existingLocal.visibilityTier || undefined,
+        })
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
         if (!updatedLocal && emailKey) {
           updatedLocal = updateAccount(emailKey, patch)
@@ -688,8 +718,8 @@ export default function SuperAdminAccountDetailPage() {
               await profilesService.updateProfilePrivileged({
                 id: profileId,
                 ...(linkCompanyId ? { company_id: linkCompanyId } : {}),
-                full_name: form.contactName.trim() || null,
-                phone: form.contactPhone.trim() || null,
+                ...(form.contactName.trim() ? { full_name: form.contactName.trim() } : {}),
+                ...(form.contactPhone.trim() ? { phone: form.contactPhone.trim() } : {}),
                 metadata: mergeSourcingMetricsIntoMetadata({
                   ...(existingProfile?.metadata || company.metadata || {}),
                   account_type: primaryAccountType,
@@ -724,11 +754,11 @@ export default function SuperAdminAccountDetailPage() {
         accountTypes: nextAccountTypes,
         existingMetadata: mergeSourcingMetricsIntoMetadata({
           ...(company.metadata || {}),
-          address: nextAddress || null,
+          address: nextAddress || company.address || company.metadata?.address || null,
         }, nextSourcingMetrics),
       })
-      const companyPayload = {
-        name: form.name.trim(),
+      const companyPayload = omitEmptyCompanyScalars({
+        name: resolvedName,
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
         website: form.website.trim() || null,
@@ -737,7 +767,7 @@ export default function SuperAdminAccountDetailPage() {
         address: nextAddress || null,
         plan: form.plan || company.plan,
         ...taxonomy.companyColumns,
-      }
+      }, company)
       const merged = {
         ...company,
         ...companyPayload,
@@ -776,8 +806,8 @@ export default function SuperAdminAccountDetailPage() {
           await profilesService.updateProfilePrivileged({
             id: profileId,
             company_id: companyId,
-            full_name: form.contactName.trim() || null,
-            phone: form.contactPhone.trim() || null,
+            ...(form.contactName.trim() ? { full_name: form.contactName.trim() } : {}),
+            ...(form.contactPhone.trim() ? { phone: form.contactPhone.trim() } : {}),
             metadata: mergeSourcingMetricsIntoMetadata({
               ...(existingProfile?.metadata || company.metadata || {}),
               ...taxonomy.metadataPatch,
@@ -791,8 +821,8 @@ export default function SuperAdminAccountDetailPage() {
             if (!found) {
               return [{
                 id: profileId,
-                full_name: form.contactName.trim(),
-                phone: form.contactPhone.trim(),
+                full_name: form.contactName.trim() || existingProfile?.full_name || '',
+                phone: form.contactPhone.trim() || existingProfile?.phone || '',
                 company_id: companyId,
                 email: emailKey || form.email,
                 metadata: { ...(existingProfile?.metadata || {}), ...nextMeta },
@@ -802,8 +832,8 @@ export default function SuperAdminAccountDetailPage() {
               p.id === profileId
                 ? {
                   ...p,
-                  full_name: form.contactName.trim(),
-                  phone: form.contactPhone.trim(),
+                  full_name: form.contactName.trim() || p.full_name,
+                  phone: form.contactPhone.trim() || p.phone,
                   company_id: companyId,
                   metadata: {
                     ...(p.metadata || {}),
@@ -822,11 +852,11 @@ export default function SuperAdminAccountDetailPage() {
       }
 
       if (emailKey) {
-        const existing = updateAccount(emailKey, {
-          company: form.name.trim(),
-          country: form.country.trim() || '',
-          city: form.city.trim() || '',
-          address: nextAddress || '',
+        const registryPatch = mergeAccountsPreferFilled({
+          company: resolvedName,
+          country: form.country.trim(),
+          city: form.city.trim(),
+          address: nextAddress,
           accountType: primaryAccountType,
           accountTypes: nextAccountTypes,
           industries: nextIndustries,
@@ -835,20 +865,23 @@ export default function SuperAdminAccountDetailPage() {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+        }, existingLocal)
+        const existing = updateAccount(emailKey, {
+          ...registryPatch,
           companyId,
           visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
-          plan: form.plan || company.plan || 'start',
+          plan: form.plan || company.plan || existingLocal.plan || 'start',
           ...sourcingRegistryPatch,
         })
         if (!existing) {
           registerAccount({
             id: form.contactProfileId || emailKey,
             email: emailKey,
-            company: form.name.trim(),
+            company: resolvedName,
             companyId,
-            country: form.country.trim() || '',
-            city: form.city.trim() || '',
-            address: nextAddress || '',
+            country: registryPatch.country,
+            city: registryPatch.city,
+            address: registryPatch.address,
             accountType: primaryAccountType,
             accountTypes: nextAccountTypes,
             plan: form.plan || 'start',
@@ -1215,16 +1248,18 @@ export default function SuperAdminAccountDetailPage() {
                   || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
                   <>
                     <h3 className="saad-h3">Service expertise</h3>
-                    <p className="saad-muted">Checked services appear in the Service Executive Summary for the selected industry.</p>
+                    <p className="saad-muted">
+                      Same items as the service provider Profile and the Service map. Blank fields on this form are left unchanged when you save.
+                    </p>
                     <div className="saad-category-checklist">
                       {((Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')
-                        ? SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id === 'supplier-audit')
-                        : SERVICE_EXPERTISE_OPTIONS.filter((s) => s.id !== 'supplier-audit')
+                        ? AUDITOR_EXPERTISE_OPTIONS
+                        : SERVICE_PROVIDER_EXPERTISE_OPTIONS
                       ).map((svc) => (
                         <ToggleCheckButton
                           key={svc.id}
                           checked={(form.serviceCategories || []).includes(svc.id)}
-                          disabled={savingProfile || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')}
+                          disabled={savingProfile}
                           onChange={(checked) => {
                             setForm((prev) => {
                               const list = Array.isArray(prev.serviceCategories) ? prev.serviceCategories : []

@@ -102,7 +102,7 @@ export function sourcingNetworkRowToAccount(row) {
     id: row.id,
     companyId: row.id,
     email,
-    company: row.company || 'Company',
+    company: String(row.company || '').trim() || String(row.email || '').trim() || 'Company',
     contactName: row.contact_name || '',
     accountType: String(row.account_type || types[0] || 'seller'),
     accountTypes: types,

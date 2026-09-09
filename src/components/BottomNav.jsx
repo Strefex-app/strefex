@@ -39,7 +39,7 @@ const BottomNav = () => {
       core.push({ id: 'home', label: t('nav.home'), icon: 'home', path: '/main-menu' })
     }
     if (showSourcing) {
-      core.push({ id: 'sourcing', label: t('nav.sourcing'), icon: 'search', path: '/hub/procurement' })
+      core.push({ id: 'sourcing', label: t('nav.sourcing'), icon: 'search', path: '/sourcing' })
     }
     if (showManagement) {
       core.push({ id: 'management', label: t('nav.management'), icon: 'management', path: '/management' })
@@ -60,10 +60,7 @@ const BottomNav = () => {
         const isActive =
           location.pathname === item.path
           || (item.id === 'home' && location.pathname === '/main-menu')
-          || (item.id === 'sourcing' && (
-            location.pathname.startsWith('/hub/procurement')
-            || location.pathname === '/sourcing'
-          ))
+          || (item.id === 'sourcing' && location.pathname === '/sourcing')
           || (item.id === 'management' && location.pathname.startsWith('/management'))
         return (
           <button

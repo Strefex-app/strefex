@@ -6,6 +6,7 @@ import {
 import {
   expandEquipmentCategoryIds,
   expandProductCategoryIds,
+  expandServiceCategoryIds,
   expandSubcategoryIds,
   sourcingSupplierMatchesDomainCategory,
 } from '../utils/sourcingCategoryAliases'
@@ -105,13 +106,30 @@ describe('1:1 Profile ↔ sourcing matching', () => {
     expect(sourcingSupplierMatchesDomainCategory(sp, 'service', 'audit')).toBe(false)
   })
 
+  it('expands audit-services parent to map kinds and matches process-audit', () => {
+    expect(expandServiceCategoryIds(['audit-services'])).toEqual(
+      expect.arrayContaining(['audit-services', 'process-audit', 'supplier-audit']),
+    )
+    const auditor = {
+      accountTypes: ['auditor'],
+      serviceCategoryIds: expandServiceCategoryIds(['process-audit']),
+      categoryIds: expandServiceCategoryIds(['process-audit']),
+    }
+    expect(sourcingSupplierMatchesDomainCategory(auditor, 'service', 'audit-services')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(auditor, 'service', 'audit-services', 'process-audit')).toBe(true)
+    expect(sourcingSupplierMatchesDomainCategory(auditor, 'service', 'audit-services', 'system-audit')).toBe(false)
+  })
+
   it('overlay uses Profile subcategory ids (not plastic-0 style)', () => {
     const { categories, subcats } = buildSourcingTaxonomyOverlay()
     expect(categories['product:automotive']?.some((c) => c.id === 'plastic')).toBe(true)
     expect(categories['equipment:automotive']?.some((c) => c.id === 'mold-makers')).toBe(true)
     expect(categories['service:automotive']?.map((c) => c.id)).toEqual(
-      expect.arrayContaining(['project-management', 'supplier-services', 'quality-services']),
+      expect.arrayContaining(['project-management', 'supplier-services', 'quality-services', 'audit-services']),
     )
+    const auditSubs = subcats['service:automotive:audit-services'] || []
+    expect(auditSubs.some((s) => s.id === 'process-audit')).toBe(true)
+    expect(auditSubs.some((s) => s.id === 'system-audit')).toBe(true)
     const plasticSubs = subcats['product:automotive:plastic'] || []
     expect(plasticSubs.some((s) => s.id === 'plastic-injection')).toBe(true)
     expect(plasticSubs.some((s) => /^plastic-\d+$/.test(s.id))).toBe(false)

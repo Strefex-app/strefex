@@ -23,7 +23,7 @@ const DIRECTORY_CLUSTERS = [
     description: 'Find service support via Sourcing and industry selection',
     icon: 'refresh',
     color: '#e65100',
-    path: '/hub/procurement',
+    path: '/sourcing',
     meta: ['Directory'],
   },
 ]
@@ -46,7 +46,7 @@ export function getNetworkHomeClusters({
       description: 'Intelligent Sourcing — plant location, supplier map, compare, and RFQ',
       icon: 'search',
       color: '#0A2540',
-      path: '/hub/procurement',
+      path: '/sourcing',
       meta: ['Buyer tools'],
       stats: rfqStats
         ? [

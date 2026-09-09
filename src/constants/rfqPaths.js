@@ -1,13 +1,13 @@
-/** Canonical Sourcing paths under /management/sourcing/… */
+/** Tenant Management cluster (price calculator, vendors, procurement). Not the marketplace map. */
 export const SOURCING_CLUSTER_PATH = '/management/sourcing'
 /** Legacy workspace URL — redirects to company price calculator. */
 export const SOURCING_WORKSPACE_PATH = '/management/sourcing/workspace'
-/** Primary Network Sourcing workspace (Intelligent Sourcing design). */
-export const BUYER_WORKSPACE_PATH = '/hub/procurement'
-/** Track quotes only — same path with tab. */
-export const BUYER_TRACK_PATH = '/hub/procurement?tab=track'
-/** Legacy alias — same page, prefer BUYER_WORKSPACE_PATH in new links. */
-export const BUYER_WORKSPACE_LEGACY_PATH = '/dashboard/buyer'
+/** Marketplace Intelligent Sourcing (map, compare, RFQ). */
+export const NETWORK_SOURCING_PATH = '/sourcing'
+/** Same as NETWORK_SOURCING_PATH. */
+export const BUYER_WORKSPACE_PATH = NETWORK_SOURCING_PATH
+/** Track quotes on Sourcing. */
+export const BUYER_TRACK_PATH = `${NETWORK_SOURCING_PATH}?tab=track`
 export const RFQ_PROCUREMENT_NEW_PATH = '/management/sourcing/register/new'
 export const RFQ_INTELLIGENCE_PATH = '/management/sourcing/intelligence'
 

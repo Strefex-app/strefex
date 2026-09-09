@@ -145,6 +145,7 @@ export const SupplierProfilePage = lazy(() => import('../pages/SupplierProfilePa
 export const SupplierDashboard = lazy(() => import('../pages/SupplierDashboard'))
 export const SupplierGovernanceAdmin = lazy(() => import('../pages/SupplierGovernanceAdmin'))
 export const NetworkSourcingRoute = lazy(() => import('../pages/NetworkSourcingRoute'))
+export const MarketplaceKeepAlive = lazy(() => import('../pages/MarketplaceKeepAlive'))
 export const SupplierWorkspace = lazy(() => import('../pages/SupplierWorkspace'))
 export const AdminDataIngestion = lazy(() => import('../pages/AdminDataIngestion'))
 export const PlatformDirectoryPage = lazy(() => import('../pages/PlatformDirectoryPage'))

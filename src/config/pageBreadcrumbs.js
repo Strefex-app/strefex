@@ -7,7 +7,7 @@ import {
 /** Standard breadcrumb roots — user always jumps to a known hub, never browser back. */
 export const PAGE_ROOTS = {
   management: { label: 'Management', to: '/management' },
-  buyers: { label: 'Sourcing', to: '/hub/procurement' },
+  buyers: { label: 'Sourcing', to: '/sourcing' },
   manufacturers: { label: 'Quoting', to: '/hub/partner' },
   governance: { label: 'Admin', to: '/hub/governance' },
   home: { label: 'Home', to: '/main-menu' },
@@ -29,9 +29,7 @@ function titleFromSlug(slug = '') {
  */
 const OWN_CHROME_PATHS = [
   '/main-menu',
-  '/hub/procurement',
   '/sourcing',
-  '/dashboard/buyer',
 ]
 
 function isOwnChromeLayout(pathname) {
@@ -42,7 +40,7 @@ function isOwnChromeLayout(pathname) {
 
 /** Non-management routes with explicit trails. */
 const EXACT_ROUTES = {
-  '/hub/procurement': { root: 'home', trail: [{ label: 'Sourcing' }] },
+  '/sourcing': { root: 'home', trail: [{ label: 'Sourcing' }] },
   '/hub/partner': { root: 'home', trail: [{ label: 'Quoting' }] },
   '/hub/governance': { root: 'home', trail: [{ label: 'Admin' }] },
   '/main-menu': { root: 'home', trail: [] },
@@ -59,7 +57,6 @@ const EXACT_ROUTES = {
   '/resources': { root: 'home', trail: [{ label: 'Resources' }] },
   '/tasks': { root: 'home', trail: [{ label: 'Tasks' }] },
   '/project': { root: 'home', trail: [{ label: 'Project' }] },
-  '/dashboard': { root: 'home', trail: [{ label: 'Sourcing' }] },
   '/dashboard/supplier': { root: 'home', trail: [{ label: 'Supplier workspace' }] },
   '/service-provider-dashboard': { root: 'home', trail: [{ label: 'Service provider' }] },
   '/service-requests': { root: 'home', trail: [{ label: 'Service Requests' }] },
@@ -73,8 +70,6 @@ const EXACT_ROUTES = {
   '/services': { root: 'home', trail: [{ label: 'Services' }] },
   '/equipment-request': { root: 'home', trail: [{ label: 'Equipment Request' }] },
   '/audit-request': { root: 'home', trail: [{ label: 'Audit Request' }] },
-  '/request-service': { root: 'home', trail: [{ label: 'Request Service' }] },
-  '/executive-summary': { root: 'home', trail: [{ label: 'Sourcing' }] },
   '/forge': { root: 'forge', trail: [] },
   '/admin/approvals': { root: 'governance', trail: [{ label: 'Approvals' }] },
   '/developer': { root: 'governance', trail: [{ label: 'Developer' }] },

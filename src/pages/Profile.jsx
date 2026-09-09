@@ -35,6 +35,7 @@ import { useServiceStore } from '../store/serviceStore'
 import {
   AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
   AUDITOR_EXPERTISE_OPTIONS,
+  AUDIT_SERVICE_ITEMS,
   defaultAuditorServiceCategories,
 } from '../data/auditServices'
 import {
@@ -357,7 +358,10 @@ const PLATFORM_INDUSTRY_OPTIONS = [
   { id: 'nuclear', label: 'Nuclear' },
 ]
 
-const SERVICE_EXPERTISE_OPTIONS = AUDIT_AND_SERVICE_EXPERTISE_OPTIONS
+const SERVICE_EXPERTISE_OPTIONS = [
+  ...AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
+  ...AUDIT_SERVICE_ITEMS,
+]
 const AUDITOR_EXPERTISE_OPTIONS_UI = AUDITOR_EXPERTISE_OPTIONS
 
 /* ── SVG helper icons ───────────────────────────────────────── */
@@ -1707,6 +1711,9 @@ const Profile = () => {
                   {accountType === 'service_provider' && (
                     <div className="prof-form-group full">
                       <label className="prof-form-label">Service expertise</label>
+                      <p className="prof-profile-attachments-hint">
+                        Same categories as Intelligent Sourcing Service, including audit kinds. Checked items appear on the map.
+                      </p>
                       <div className="prof-category-checklist">
                         {SERVICE_EXPERTISE_OPTIONS.map((svc) => (
                           <ToggleCheckButton

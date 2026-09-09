@@ -1,4 +1,6 @@
 /** Map industry hub ids (from industryStore) to exhibition catalog industry labels */
+import { BUYER_TRACK_PATH } from '../constants/rfqPaths'
+
 export const INDUSTRY_ID_TO_EXHIBITION_LABEL = {
   automotive: 'Automotive',
   machinery: 'Manufacturing',
@@ -119,7 +121,7 @@ export function collectPlatformCalendarEvents({
         title: r.title || 'RFQ',
         detail: 'Sent RFQ deadline',
         color: '#2e7d32',
-        href: '/hub/procurement?tab=track',
+        href: BUYER_TRACK_PATH,
       })
     }
   })

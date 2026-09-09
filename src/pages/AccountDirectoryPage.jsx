@@ -455,7 +455,7 @@ export default function AccountDirectoryPage() {
   return (
     <AppLayout>
       <div className="sd-page ad-directory-page">
-        <button type="button" className="app-page-back-link" onClick={() => navigate('/hub/procurement')}>
+        <button type="button" className="app-page-back-link" onClick={() => navigate('/sourcing')}>
           ← Back
         </button>
 
@@ -565,7 +565,7 @@ export default function AccountDirectoryPage() {
         <div className="sd-card" style={{ marginBottom: 20 }}>
           <div className="sd-card-header">
             <h2 className="sd-card-title">Search &amp; actions</h2>
-            <button type="button" className="sd-link-btn" onClick={() => navigate('/hub/procurement')}>
+            <button type="button" className="sd-link-btn" onClick={() => navigate('/sourcing')}>
               Sourcing →
             </button>
           </div>

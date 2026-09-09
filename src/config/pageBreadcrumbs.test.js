@@ -20,7 +20,7 @@ describe('pageBreadcrumbs', () => {
 
   it('uses own-chrome layout for Home and Sourcing only', () => {
     expect(resolvePageBreadcrumb('/main-menu').layout).toBe('custom')
-    expect(resolvePageBreadcrumb('/hub/procurement').layout).toBe('custom')
+    expect(resolvePageBreadcrumb('/sourcing').layout).toBe('custom')
     expect(resolvePageBreadcrumb('/management/sourcing/intelligence').layout).toBe('global')
     expect(resolvePageBreadcrumb('/management/ops/projects/new-project').layout).toBe('global')
   })

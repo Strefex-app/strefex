@@ -27,7 +27,7 @@ import './AppLayout.css'
  */
 const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home', homeNav: true },
-  { id: 'sourcing', tKey: 'nav.sourcing', path: '/hub/procurement', icon: 'search', sourcingNav: true },
+  { id: 'sourcing', tKey: 'nav.sourcing', path: '/sourcing', icon: 'search', sourcingNav: true },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management', managementNav: true },
   { id: 'calendar', tKey: 'nav.calendar', path: '/calendar', icon: 'calendar' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
@@ -183,11 +183,7 @@ export default function AppLayout({ children }) {
             .map((item) => {
               const isActive = location.pathname === item.path ||
                 (item.id === 'home' && location.pathname === '/main-menu') ||
-                (item.id === 'sourcing' && (
-                  location.pathname.startsWith('/hub/procurement') ||
-                  location.pathname === '/sourcing' ||
-                  location.pathname.startsWith('/dashboard/buyer')
-                )) ||
+                (item.id === 'sourcing' && location.pathname === '/sourcing') ||
                 (item.id === 'governance-hub' && (
                   location.pathname.startsWith('/hub/governance') ||
                   location.pathname.startsWith('/admin/approvals') ||

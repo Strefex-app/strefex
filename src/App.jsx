@@ -22,7 +22,6 @@ import { flushPendingWorkspacePushes } from './services/workspaceCloudSync'
 import { supabase } from './config/supabase'
 import IndustryGuard from './components/IndustryGuard'
 import { FORGE_PATHS, FORGE_PATH_CLUB_DOC } from './constants/forgeSpaceRoutes'
-import { BUYER_WORKSPACE_PATH } from './constants/rfqPaths'
 import { useSettingsStore } from './store/settingsStore'
 import { syncDomTheme } from './theme/syncDomTheme'
 import RfqIntelligenceRedirect from './pages/RfqIntelligenceRedirect'
@@ -41,7 +40,6 @@ import {
   VerifyEmail,
   SubscriptionPlans,
   TeamManagement,
-  Home,
   PlatformCalendar,
   Settings,
   Notifications,
@@ -165,7 +163,7 @@ import {
   SupplierProfilePage,
   SupplierDashboard,
   SupplierGovernanceAdmin,
-  NetworkSourcingRoute,
+  MarketplaceKeepAlive,
   SupplierWorkspace,
   AdminDataIngestion,
   PlatformDirectoryPage,
@@ -398,7 +396,10 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* ── Core pages ────────────────────────────────── */}
-          <Route path="/main-menu" element={<P><Home /></P>} />
+          <Route element={<P><MarketplaceKeepAlive /></P>}>
+            <Route path="/main-menu" element={<></>} />
+            <Route path="/sourcing" element={<></>} />
+          </Route>
           <Route path="/calendar" element={<P><PlatformCalendar /></P>} />
           <Route path="/settings" element={<P><Settings /></P>} />
           <Route path="/notifications" element={<P><Notifications /></P>} />
@@ -408,15 +409,10 @@ function App() {
           <Route path="/resources" element={<P><Resources /></P>} />
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
-          <Route path="/dashboard" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
           <Route path="/seller-dashboard" element={<P><Navigate to="/dashboard/supplier" replace /></P>} />
-          <Route path="/buyer-dashboard" element={<Navigate to="/hub/procurement?tab=track" replace />} />
-          <Route path="/hub/procurement" element={<P><NetworkSourcingRoute /></P>} />
-          <Route path="/sourcing" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
           <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
-          <Route path="/dashboard/buyer" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/dashboard/buyer/account-directory" element={<P><AccountDirectoryPage /></P>} />
           <Route path="/dashboard/buyer/platform-directory" element={<SuperAdmin><PlatformDirectoryPage /></SuperAdmin>} />
           <Route path="/dashboard/buyer/registered-suppliers" element={<SuperAdmin><RegisteredSuppliersPage /></SuperAdmin>} />
@@ -438,21 +434,15 @@ function App() {
           <Route path="/product-hub" element={<P><ProductHub /></P>} />
           <Route path="/product-hub/:industryId" element={<P><ProductIndustryLanding /></P>} />
           <Route path="/product-hub/:industryId/:categoryId" element={<P><ProductSubcategoryPage /></P>} />
-          <Route path="/product-hub/:industryId/:categoryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
-          <Route path="/product-hub/:industryId/:categoryId/:processId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/service-hub" element={<P><ServiceHub /></P>} />
-          <Route path="/service-hub/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
-          <Route path="/auditor-hub/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
 
           {/* ── Industry routes ───────────────────────────── */}
           <Route path="/machinery-industry" element={<Navigate to="/equipment-hub" replace />} />
           <Route path="/industry/:industryId" element={<Industry requiredTier="free"><IndustryHub /></Industry>} />
           <Route path="/industry/:industryId/overview" element={<Industry requiredTier="free"><IndustryOverview /></Industry>} />
-          <Route path="/industry/:industryId/dashboard" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/industry/:industryId/equipment" element={<Industry requiredTier="basic"><IndustryEquipmentLanding /></Industry>} />
           <Route path="/industry/:industryId/equipment/:categoryId" element={<Industry requiredTier="basic"><IndustryEquipmentCategory /></Industry>} />
           <Route path="/industry/:industryId/equipment/:categoryId/:itemId/suppliers" element={<Industry requiredTier="basic"><IndustryEquipmentSuppliers /></Industry>} />
-          <Route path="/industry/:industryId/equipment/:categoryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
           <Route path="/raw-materials" element={<P><RawMaterialsLanding /></P>} />
           <Route path="/raw-materials/:category" element={<P><RawMaterialsCategory /></P>} />
           <Route path="/raw-materials/:category/:materialId/suppliers" element={<P><MaterialSuppliers /></P>} />
@@ -498,8 +488,6 @@ function App() {
           <Route path="/industry/:industryId/services" element={<P><ServiceList /></P>} />
           <Route path="/audit-request" element={<P><AuditRequest /></P>} />
           <Route path="/industry/:industryId/audit-request" element={<P><AuditRequest /></P>} />
-          <Route path="/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
-          <Route path="/industry/:industryId/executive-summary" element={<Navigate to={BUYER_WORKSPACE_PATH} replace />} />
 
           {/* ── Profile ───────────────────────────────────── */}
           <Route path="/profile" element={<P><Profile /></P>} />

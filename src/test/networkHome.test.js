@@ -5,6 +5,7 @@ describe('Network home clusters', () => {
   it('shows Sourcing for buyers and home dashboard for manufacturers', () => {
     const buyer = getNetworkHomeClusters({ accountTypes: ['buyer'] }).map((c) => c.id)
     expect(buyer).toContain('intelligent-sourcing')
+    expect(getNetworkHomeClusters({ accountTypes: ['buyer'] }).find((c) => c.id === 'intelligent-sourcing').path).toBe('/sourcing')
     expect(buyer).not.toContain('executive-summary')
     expect(buyer).not.toContain('home-dashboard')
 

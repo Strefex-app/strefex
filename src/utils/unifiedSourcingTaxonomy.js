@@ -4,13 +4,25 @@
  */
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
+import { AUDIT_SERVICE_ITEMS, AUDIT_SERVICES_CATEGORY_ID } from '../data/auditServices'
 import { PLATFORM_TO_SOURCING_INDUSTRY } from './intelligentSourcingIndustryMap'
+
+const AUDIT_SERVICE_SUBS = AUDIT_SERVICE_ITEMS.map((i) => ({
+  id: i.id,
+  name: i.label,
+  description: i.label,
+}))
 
 export const SERVICE_PROFILE_CATEGORIES = [
   { id: 'project-management', name: 'Project Management', description: 'Programme, APQP and industrialisation support' },
   { id: 'supplier-services', name: 'Supplier Services', description: 'Logistics, install, obsolescence and supplier ops' },
   { id: 'quality-services', name: 'Quality & Compliance', description: 'Validation, certification and inspection' },
-  { id: 'audit-services', name: 'Audit Services', description: 'Supplier, process, system, product and compliance audits' },
+  {
+    id: AUDIT_SERVICES_CATEGORY_ID,
+    name: 'Audit Services',
+    description: 'Supplier, process, system, product and compliance audits',
+    subcategories: AUDIT_SERVICE_SUBS,
+  },
 ]
 
 const PLATFORM_INDUSTRIES = Object.keys(PLATFORM_TO_SOURCING_INDUSTRY)
@@ -85,9 +97,10 @@ export function buildSourcingTaxonomyOverlay() {
     }
 
     const serviceKey = `service:${sourcingInd}`
-    categories[serviceKey] = SERVICE_PROFILE_CATEGORIES.map((c) => catShape({ ...c, subcategories: [] }, 'clipboardCheck'))
+    categories[serviceKey] = SERVICE_PROFILE_CATEGORIES.map((c) => catShape(c, 'clipboardCheck'))
     SERVICE_PROFILE_CATEGORIES.forEach((c) => {
-      subcats[`${serviceKey}:${c.id}`] = []
+      const subs = Array.isArray(c.subcategories) ? c.subcategories : []
+      subcats[`${serviceKey}:${c.id}`] = subs.map((s) => subShape(c.name, s, 'clipboardCheck'))
     })
   })
 

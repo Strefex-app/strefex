@@ -20,7 +20,7 @@ describe('serviceHubAccess', () => {
   })
 
   it('exports buyer entry paths', () => {
-    expect(BUYER_SERVICE_SOURCING_PATH).toBe('/hub/procurement')
-    expect(BUYER_SERVICE_INDUSTRY_PATH).toBe('/hub/procurement')
+    expect(BUYER_SERVICE_SOURCING_PATH).toBe('/sourcing')
+    expect(BUYER_SERVICE_INDUSTRY_PATH).toBe('/sourcing')
   })
 })
