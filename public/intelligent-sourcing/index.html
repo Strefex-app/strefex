@@ -3071,7 +3071,25 @@ function tone3(v, good, ok, invert) {
   const g = invert ? n <= good : n >= good, o = invert ? n <= ok : n >= ok;
   return g ? GREEN : o ? AMBER : RED;
 }
-function initials(n) { return n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
+function finiteNum(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function safeFixed(v, digits) {
+  const n = finiteNum(v);
+  return n == null ? "—" : n.toFixed(digits == null ? 1 : digits);
+}
+function signedPct(v, suffix) {
+  const n = finiteNum(v);
+  if (n == null) return "—";
+  return (n > 0 ? "+" : "") + n.toFixed(1) + (suffix == null ? "%" : suffix);
+}
+function initials(n) {
+  const parts = String(n || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "—";
+  return parts.map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
 function km(a, b) {
   const R = 6371, r = Math.PI / 180;
   const dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
@@ -3498,6 +3516,30 @@ transitFor(sup) {
   }
 
   renderVals() {
+    try {
+      return this.renderValsInner();
+    } catch (err) {
+      console.error("[sourcing] renderVals", err);
+      const step = (this.state && this.state.step) || "home";
+      return {
+        isHome: step === "home",
+        isIndustry: step === "industry",
+        isCategory: step === "category",
+        isSubcat: step === "subcat",
+        isSummary: step === "summary",
+        isCompare: step === "compare",
+        isRfq: step === "rfq",
+        isGaps: step === "gaps",
+        isRegistration: step === "registration",
+        homeKpis: [], domains: [], alerts: [], nav: [],
+        cmpCols: [], cmpRows: [], cmpHas: false, cmpEmpty: true, cmpCount: 0,
+        rows: [], indicators: [], buyerName: "Receiving plant",
+        selCount: 0, hasSelection: false
+      };
+    }
+  }
+
+  renderValsInner() {
     const s = this.state, dd = D();
     const doms = dd.DOMAINS || [], inds = dd.INDUSTRIES || [];
     const dom = doms.filter(d => d.id === s.domain)[0];
@@ -3652,7 +3694,7 @@ transitFor(sup) {
         lead: lead == null ? 0 : Math.round(lead),
         fit: fit == null ? 0 : Math.round(fit),
         headroom: headroom == null ? 0 : headroom,
-        price: delta == null ? 0 : Number(delta.toFixed(1)),
+        price: finiteNum(delta) == null ? 0 : Number(finiteNum(delta).toFixed(1)),
         risk: band || "low",
         r0: Math.round(low / riskTotal * 100),
         r1: Math.round(med / riskTotal * 100),
@@ -3794,7 +3836,7 @@ transitFor(sup) {
     const categories = rawCats.map(c => ({
       name: c.name, icon: c.icon, desc: c.desc, procs: c.procs, suppliers: c.suppliers, lead: c.lead, headroom: c.headroom,
       riskDot: dotOf[c.risk], riskFg: fgOf[c.risk], riskLabel: labelOf[c.risk],
-      priceLabel: c.suppliers ? ((c.price > 0 ? "+" : "") + Number(c.price).toFixed(1) + "%") : "—",
+      priceLabel: c.suppliers ? signedPct(c.price) : "—",
       priceColor: !c.suppliers ? "var(--text-faint)" : c.price > 6 ? RED : c.price > 3 ? AMBER : GREEN,
       headColor: tone3(c.headroom, 15, 8),
       subLabel: this.subs(c.id).length + " subcategories",
@@ -3838,7 +3880,7 @@ transitFor(sup) {
       audColor: tone3(x.suppliers ? (x.audited / x.suppliers * 100) : 0, 55, 35),
       riskDot: dotOf[x.risk], riskFg: fgOf[x.risk], riskLabel: labelOf[x.risk],
       rule: x.risk === "high" ? RED : x.risk === "medium" ? AMBER : NAVY,
-      priceLabel: x.hasMetrics ? ((x.price > 0 ? "+" : "") + Number(x.price).toFixed(1) + "%") : "—",
+      priceLabel: x.hasMetrics ? signedPct(x.price) : "—",
       priceColor: !x.hasMetrics ? "var(--text-faint)" : x.price > 6 ? RED : x.price > 3 ? AMBER : GREEN,
       headColor: tone3(x.headroom, 15, 8),
       fitColor: tone3(x.fit, 80, 72),
@@ -4164,14 +4206,8 @@ transitFor(sup) {
       cells: picked.map(() => ({ text: "", note: "", best: false, font: "var(--font-sans)", weight: 500, fg: "var(--text-body)" }))
     });
     const cmpRows = picked.length ? (() => {
-      const num = (v) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : null;
-      };
-      const fixed = (v, digits) => {
-        const n = num(v);
-        return n == null ? "—" : n.toFixed(digits == null ? 1 : digits);
-      };
+      const num = (v) => finiteNum(v);
+      const fixed = (v, digits) => safeFixed(v, digits);
       const pct = (v) => {
         const n = num(v);
         return n == null ? "—" : (n + "%");
@@ -4306,7 +4342,7 @@ transitFor(sup) {
       const std = (cmpT[i] && cmpT[i].std) || {};
       return {
         name: x.name, initials: initials(x.name), turn: x.quoteTurn,
-        scope: s.selScope[x.name] || (x.industries[0] + " · shortlist"),
+        scope: s.selScope[x.name] || ((Array.isArray(x.industries) && x.industries[0]) ? (x.industries[0] + " · shortlist") : "shortlist"),
         transitTag: "ref: " + (std.days || "—") + " d " + (std.mode ? std.mode.replace(" freight", "") : "") + " → " + buyer.name,
         onRemove: () => this.setState(p => {
           const scopes = Object.assign({}, p.selScope); delete scopes[x.name];
@@ -4439,7 +4475,7 @@ transitFor(sup) {
       isRegistration: s.step === "registration",
       onRegistration: () => this.go("registration"),
       regStages, regPending, regTotals, regActions,
-      regHeadline: (stages.length ? stages[4].count : 0) + " of " + (stages.length ? stages[0].count.toLocaleString("en-US") : 0) + " accounts are map-visible",
+      regHeadline: ((stages[4] && stages[4].count) || 0) + " of " + ((stages[0] && stages[0].count != null) ? Number(stages[0].count).toLocaleString("en-US") : 0) + " accounts are map-visible",
       hiddenCount: hidden.length,
       cmpCols, cmpRows, cmpCount: picked.length,
       cmpHas: picked.length > 0, cmpEmpty: picked.length === 0,
@@ -4474,7 +4510,7 @@ transitFor(sup) {
         { label: "Incoterms", value: "FCA supplier plant", font: "var(--font-sans)", hint: "Applies to every recipient" },
         { label: "Currency", value: "EUR", font: "var(--font-mono)", hint: "Quotes normalised for comparison" },
         { label: "Payment terms", value: "60 days net", font: "var(--font-sans)", hint: "Deviation must be stated" },
-        { label: "Target price", value: cheapQuote ? ((cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "% idx") : "—", font: "var(--font-mono)", hint: cheapQuote ? "From declared price index on registered accounts" : "No declared price index in registry" },
+        { label: "Target price", value: cheapQuote ? signedPct(cheapQuote.delta, "% idx") : "—", font: "var(--font-mono)", hint: cheapQuote ? "From declared price index on registered accounts" : "No declared price index in registry" },
         { label: "Tooling ownership", value: "Buyer-owned", font: "var(--font-sans)", hint: "Tooling quoted separately" },
         { label: "Quote deadline", value: fmtDate(14), font: "var(--font-mono)", hint: "Median turnaround in this set: " + (picked.filter(x => Number.isFinite(Number(x.quoteTurn))).length ? Math.round(picked.filter(x => Number.isFinite(Number(x.quoteTurn))).reduce((a, b) => a + Number(b.quoteTurn), 0) / picked.filter(x => Number.isFinite(Number(x.quoteTurn))).length) : "—") + " d" }
       ],
@@ -4633,7 +4669,7 @@ transitFor(sup) {
       briefStats: briefCat ? [
         { label: "Suppliers", value: briefCat.suppliers, note: "registered in " + industryName, tone: NAVY },
         { label: "Avg lead", value: briefCat.lead ? briefCat.lead + " d" : "—", note: s.domain === "service" ? "engagement calendar days" : "production, ex-works", tone: NAVY },
-        { label: "Price index", value: briefCat.suppliers ? ((briefCat.price > 0 ? "+" : "") + Number(briefCat.price).toFixed(1) + "%") : "—", note: "from registered accounts", tone: briefCat.price > 6 ? RED : briefCat.price > 3 ? AMBER : GREEN },
+        { label: "Price index", value: briefCat.suppliers ? signedPct(briefCat.price) : "—", note: "from registered accounts", tone: briefCat.price > 6 ? RED : briefCat.price > 3 ? AMBER : GREEN },
         { label: "Headroom", value: briefCat.suppliers ? briefCat.headroom + "%" : "—", note: "from declared capacity", tone: tone3(briefCat.headroom, 15, 8) },
         { label: "Subcategories", value: this.subs(briefCat.id).length, note: "each with its own summary", tone: CYAN },
         { label: "Risk", value: labelOf[briefCat.risk] || "—", note: "from declared risk scores", tone: dotOf[briefCat.risk] || "var(--text-faint)" }
@@ -4645,10 +4681,10 @@ transitFor(sup) {
       ] : [],
       briefOnSub: briefCat ? () => this.setState({ panel: null, step: "subcat", category: briefCat.id, subcat: null }) : () => {},
       costRows,
-      costQuoted: cheapQuote ? ((cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "% vs baseline (" + cheapQuote.name + ")") : "—",
+      costQuoted: cheapQuote ? (signedPct(cheapQuote.delta) + " vs baseline (" + cheapQuote.name + ")") : "—",
       costDeltaTone: "var(--text-faint)",
       costDeltaNote: cheapQuote
-        ? cheapQuote.name + " has the lowest declared price index in scope (" + (cheapQuote.delta > 0 ? "+" : "") + Number(cheapQuote.delta).toFixed(1) + "%). " +
+        ? cheapQuote.name + " has the lowest declared price index in scope (" + signedPct(cheapQuote.delta) + "). " +
           (/301|lapsed/.test(String(cheapQuote.tariff || "")) ? "Duty of " + cheapQuote.tariff + " is declared on the account." : "No duty exposure declared on this account.")
         : "No declared price index on registered accounts in this scope.",
       exportOpts: EXPORT_SECTIONS.map(l => {

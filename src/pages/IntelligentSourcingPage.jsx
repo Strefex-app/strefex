@@ -468,7 +468,7 @@ export default function IntelligentSourcingPage() {
     const loadDirect = () => {
       setSrcDoc('')
       const themeParam = theme === 'dark' ? 'dark' : 'light'
-      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&theme=${themeParam}&t=${Date.now()}`)
+      setFrameSrc(`/intelligent-sourcing/index.html?embed=1&theme=${themeParam}&v=20260909b&t=${Date.now()}`)
       setStatus('ready')
     }
 
