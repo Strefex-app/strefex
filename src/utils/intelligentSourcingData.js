@@ -21,6 +21,7 @@ import {
   buildSourcingTaxonomyOverlay,
   getProfileSubIdsForParent,
 } from './unifiedSourcingTaxonomy'
+import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
 
 /** Design-canvas industry id → platform slug */
 export const SOURCING_INDUSTRY_TO_PLATFORM = SOURCING_INDUSTRY_TO_PLATFORM_MAP
@@ -156,6 +157,7 @@ function flattenSubcategoryIds(nested, { domain, industries } = {}) {
  * @param {object} account registry seller / service provider
  */
 export function accountToSourcingSupplier(account) {
+  account = flattenSourcingMetricsFromAccount(account) || account
   const name = account.company || account.companyName || account.name || account.contactName || account.email || 'Supplier'
   const [lon, lat] = getApproximateLngLatOrFallback({
     country: account.country,
@@ -237,6 +239,16 @@ export function accountToSourcingSupplier(account) {
     delta,
     spend: optionalNumber(account, 'annualSpend', 'spend', 'spendM'),
     quoteTurn: optionalNumber(account, 'quoteTurnDays', 'quoteTurn'),
+    employees: optionalNumber(account, 'employees', 'employeeCount'),
+    machines: optionalNumber(account, 'machines', 'machineCount'),
+    shifts: optionalNumber(account, 'shifts'),
+    respRate: optionalNumber(account, 'respRate', 'responseRate'),
+    langs: (() => {
+      const langs = account.langs || account.languages
+      if (Array.isArray(langs)) return langs.map(String).filter(Boolean).join(' · ') || null
+      const s = String(langs || '').trim()
+      return s || null
+    })(),
     profile: profileFromAccount(account),
     updatedDays: daysSince(account.updatedAt || account.registeredAt),
     certExpiry,

@@ -123,9 +123,11 @@
       window.__STREFEX_PLATFORM_SOURCING__ = plat;
       if (window.__STREFEX_SOURCING_BRIDGE__ && typeof window.__STREFEX_SOURCING_BRIDGE__.applyPlatform === 'function') {
         window.__STREFEX_SOURCING_BRIDGE__.applyPlatform(plat);
-      } else if (window.SOURCING_DATA && Array.isArray(plat.suppliers)) {
+      } else if (window.SOURCING_DATA && Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
         window.SOURCING_DATA.SUPPLIERS = plat.suppliers.slice();
         clearNonRegisteredSuppliers();
+        applyTaxonomy(plat);
+      } else if (window.SOURCING_DATA) {
         applyTaxonomy(plat);
       }
       if (window.SOURCING_DATA && Array.isArray(plat.buyers) && plat.buyers.length > 0) {

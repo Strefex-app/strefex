@@ -26,6 +26,14 @@ import {
   isAdminCreatedPlaceholderEmail,
   transferSellerAccountRights,
 } from '../utils/adminCreateSellerAccount'
+import SourcingMetricsFields from '../components/SourcingMetricsFields'
+import {
+  emptySourcingMetricsForm,
+  mergeSourcingMetricsIntoMetadata,
+  parseSourcingMetricsForm,
+  sourcingMetricsFormFromSource,
+  sourcingMetricsRegistryPatch,
+} from '../utils/sourcingMetrics'
 import '../styles/app-page.css'
 import './SuperAdminAccountDetailPage.css'
 
@@ -122,6 +130,7 @@ function emptyForm() {
     productSubs: {},
     equipmentSubs: {},
     serviceCategories: [],
+    sourcingMetrics: emptySourcingMetricsForm(),
   }
 }
 
@@ -359,6 +368,7 @@ export default function SuperAdminAccountDetailPage() {
         if (fromCompany.length) return fromCompany
         return readServiceCategoriesFromSource(primary)
       })(),
+      sourcingMetrics: sourcingMetricsFormFromSource(c, findRegistryAccount(c?.email || c?._registryKey)),
     })
     const saved = readReceivingPlantsFromAccount(
       { receivingPlants: c?.metadata?.receiving_plants },
@@ -599,6 +609,8 @@ export default function SuperAdminAccountDetailPage() {
       const nextServiceCategories = Array.isArray(form.serviceCategories)
         ? [...form.serviceCategories]
         : []
+      const nextSourcingMetrics = parseSourcingMetricsForm(form.sourcingMetrics)
+      const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
       const nextAccountTypes = (() => {
         const raw = Array.isArray(form.account_types) ? form.account_types : []
         const cleaned = [...new Set(
@@ -634,6 +646,7 @@ export default function SuperAdminAccountDetailPage() {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+          ...sourcingRegistryPatch,
           visibilityTier: company.visibility_tier || company.visibilityTier || undefined,
         }
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
@@ -677,7 +690,7 @@ export default function SuperAdminAccountDetailPage() {
                 ...(linkCompanyId ? { company_id: linkCompanyId } : {}),
                 full_name: form.contactName.trim() || null,
                 phone: form.contactPhone.trim() || null,
-                metadata: {
+                metadata: mergeSourcingMetricsIntoMetadata({
                   ...(existingProfile?.metadata || company.metadata || {}),
                   account_type: primaryAccountType,
                   account_types: nextAccountTypes,
@@ -687,14 +700,14 @@ export default function SuperAdminAccountDetailPage() {
                   equipment_subcategories: nextEquipmentSubcategories,
                   product_subcategories: nextProductSubcategories,
                   service_categories: nextServiceCategories,
-                },
+                }, nextSourcingMetrics),
               })
             }
           } catch {
             /* profile privileged update may be restricted */
           }
         }
-        setCompany(companyFromRegistryAccount(updatedLocal))
+        setCompany(companyFromRegistryAccount({ ...updatedLocal, ...sourcingRegistryPatch }))
         setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
         setSavedMsg('Account profile saved to local registry.')
         return
@@ -709,10 +722,10 @@ export default function SuperAdminAccountDetailPage() {
         serviceCategories: nextServiceCategories,
         accountType: primaryAccountType,
         accountTypes: nextAccountTypes,
-        existingMetadata: {
+        existingMetadata: mergeSourcingMetricsIntoMetadata({
           ...(company.metadata || {}),
           address: nextAddress || null,
-        },
+        }, nextSourcingMetrics),
       })
       const companyPayload = {
         name: form.name.trim(),
@@ -733,7 +746,10 @@ export default function SuperAdminAccountDetailPage() {
       }
       const vis = buildCompanyVisibilityUpdate(merged)
       companyPayload.visibility_tier = vis.visibility_tier
-      companyPayload.metadata = { ...companyPayload.metadata, ...vis.metadata }
+      companyPayload.metadata = mergeSourcingMetricsIntoMetadata(
+        { ...(companyPayload.metadata || {}), ...vis.metadata },
+        nextSourcingMetrics,
+      )
 
       const updated = await companiesService.update(companyId, companyPayload)
       setCompany(updated)
@@ -762,13 +778,15 @@ export default function SuperAdminAccountDetailPage() {
             company_id: companyId,
             full_name: form.contactName.trim() || null,
             phone: form.contactPhone.trim() || null,
-            metadata: {
+            metadata: mergeSourcingMetricsIntoMetadata({
               ...(existingProfile?.metadata || company.metadata || {}),
               ...taxonomy.metadataPatch,
-            },
+            }, nextSourcingMetrics),
           })
           setProfiles((prev) => {
-            const nextMeta = { ...taxonomy.metadataPatch }
+            const nextMeta = mergeSourcingMetricsIntoMetadata({
+              ...taxonomy.metadataPatch,
+            }, nextSourcingMetrics)
             const found = prev.some((p) => p.id === profileId)
             if (!found) {
               return [{
@@ -820,6 +838,7 @@ export default function SuperAdminAccountDetailPage() {
           companyId,
           visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
           plan: form.plan || company.plan || 'start',
+          ...sourcingRegistryPatch,
         })
         if (!existing) {
           registerAccount({
@@ -840,6 +859,7 @@ export default function SuperAdminAccountDetailPage() {
             productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
             visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
+            ...sourcingRegistryPatch,
           })
         }
       }
@@ -1221,6 +1241,28 @@ export default function SuperAdminAccountDetailPage() {
                         </ToggleCheckButton>
                       ))}
                     </div>
+                  </>
+                )}
+
+                {((Array.isArray(form.account_types) ? form.account_types : []).includes('seller')
+                  || (Array.isArray(form.account_types) ? form.account_types : []).includes('service_provider')
+                  || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
+                  <>
+                    <h3 className="saad-h3">Sourcing metrics</h3>
+                    <p className="saad-muted">
+                      Fill Intelligent Sourcing / Compare fields for this company. Blank stays as “—” in compare.
+                    </p>
+                    <SourcingMetricsFields
+                      values={form.sourcingMetrics || emptySourcingMetricsForm()}
+                      onChange={(next) => setForm((prev) => ({ ...prev, sourcingMetrics: next }))}
+                      disabled={savingProfile}
+                      title=""
+                      hint=""
+                      inputClassName=""
+                      labelClassName=""
+                      groupClassName="saad-field"
+                      gridClassName="saad-form-grid"
+                    />
                   </>
                 )}
 

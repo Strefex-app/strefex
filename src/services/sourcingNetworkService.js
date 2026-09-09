@@ -71,6 +71,38 @@ export function mergeSourcingNetworkIntoRegistry(localAccounts = [], networkAcco
       city: remote.city || local.city || '',
       address: remote.address || local.address || '',
       source: remote.source || local.source || 'database',
+      /* Sourcing metrics live in profile metadata / registry — RPC rows usually omit them */
+      fitLevel: remote.fitLevel ?? local.fitLevel,
+      riskLevel: remote.riskLevel ?? local.riskLevel,
+      capacityLevel: remote.capacityLevel ?? local.capacityLevel,
+      onTimePct: remote.onTimePct ?? local.onTimePct,
+      qualityPpm: remote.qualityPpm ?? local.qualityPpm,
+      leadTimeDays: remote.leadTimeDays ?? local.leadTimeDays,
+      priceIndex: remote.priceIndex ?? local.priceIndex,
+      annualSpend: remote.annualSpend ?? local.annualSpend,
+      quoteTurnDays: remote.quoteTurnDays ?? local.quoteTurnDays,
+      respRate: remote.respRate ?? local.respRate,
+      employees: remote.employees ?? local.employees,
+      machines: remote.machines ?? local.machines,
+      shifts: remote.shifts ?? local.shifts,
+      financialGrade: remote.financialGrade ?? local.financialGrade ?? local.fin,
+      tariffRegime: remote.tariffRegime ?? local.tariffRegime ?? local.tariff,
+      tier2: remote.tier2 ?? local.tier2,
+      auditStatus: remote.auditStatus ?? local.auditStatus,
+      auditIn: remote.auditIn ?? local.auditIn ?? local.auditDueDays,
+      certifications: (Array.isArray(remote.certifications) && remote.certifications.length)
+        ? remote.certifications
+        : local.certifications,
+      languages: remote.languages ?? local.languages ?? local.langs,
+      langs: remote.langs ?? local.langs ?? local.languages,
+      metadata: {
+        ...(local.metadata || {}),
+        ...(remote.metadata || {}),
+        sourcing_metrics: {
+          ...((local.metadata && local.metadata.sourcing_metrics) || {}),
+          ...((remote.metadata && remote.metadata.sourcing_metrics) || {}),
+        },
+      },
     })
   })
   const merged = [...byKey.values()]

@@ -5,6 +5,7 @@
  */
 
 import { getApproximateLngLat } from './accountApproximateLocation'
+import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
 
 export const SOURCING_VISIBILITY_FIELDS = [
   { key: 'country', label: 'Country', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'] },
@@ -120,7 +121,9 @@ export function describeSourcingGaps(gaps) {
 }
 
 function manufacturerDirectoryRow(account) {
-  const ensured = ensureSourcingFieldPlaceholders(account)
+  const ensured = ensureSourcingFieldPlaceholders(
+    flattenSourcingMetricsFromAccount(account) || account,
+  )
   const accountType = (() => {
     const types = Array.isArray(ensured.accountTypes) ? ensured.accountTypes : []
     if (types.includes('seller')) return 'seller'
@@ -155,11 +158,20 @@ function manufacturerDirectoryRow(account) {
     leadTimeDays: ensured.leadTimeDays,
     priceIndex: ensured.priceIndex,
     annualSpend: ensured.annualSpend,
+    quoteTurnDays: ensured.quoteTurnDays,
+    respRate: ensured.respRate,
+    employees: ensured.employees,
+    machines: ensured.machines,
+    shifts: ensured.shifts,
+    languages: ensured.languages || ensured.langs,
+    langs: ensured.langs || ensured.languages,
     financialGrade: ensured.financialGrade || ensured.fin,
     tariffRegime: ensured.tariffRegime || ensured.tariff,
     tier2: ensured.tier2 || ensured.subTierStatus,
-    auditIn: ensured.auditIn,
+    auditStatus: ensured.auditStatus,
+    auditIn: ensured.auditIn ?? ensured.auditDueDays,
     nextAuditAt: ensured.nextAuditAt,
+    certExpiry: ensured.certExpiry ?? ensured.certExpiryDays,
     profileCompleteness: ensured.profileCompleteness || ensured.profile_completeness,
     stage: ensured.stage,
     published: ensured.published,

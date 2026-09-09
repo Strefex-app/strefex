@@ -248,6 +248,11 @@ function buildEmbedShellCss(theme = 'light') {
   @media (min-width: 641px) {
     [data-stx-supplier-cards] { display: none !important; }
   }
+  [data-stx-supplier-cards][data-stx-filled="1"] {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
   /* Phone: stack page titles above tools so h1 is not crushed into a 1-word column */
   @media (max-width: 900px) {
     .stx-page-head {
@@ -459,6 +464,7 @@ export default function IntelligentSourcingPage() {
 
     // Direct same-origin iframe (React/Babel vendored under /intelligent-sourcing/vendor).
     // Avoids huge srcDoc documents that inherit production CSP and previously blocked unpkg.
+    // Remount only on theme — supplier payload updates via postMessage (phone-safe).
     const loadDirect = () => {
       setSrcDoc('')
       const themeParam = theme === 'dark' ? 'dark' : 'light'
@@ -485,7 +491,7 @@ export default function IntelligentSourcingPage() {
       })
 
     return () => { cancelled = true }
-  }, [payloadKey, theme])
+  }, [theme])
 
   useEffect(() => {
     if (status !== 'ready') return

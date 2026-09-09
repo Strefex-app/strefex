@@ -42,6 +42,14 @@ import {
   normalizeImageForOcr,
   rotateBlobQuarterTurnsCw,
 } from '../utils/ocrImageNormalize'
+import SourcingMetricsFields from '../components/SourcingMetricsFields'
+import {
+  emptySourcingMetricsForm,
+  mergeSourcingMetricsIntoMetadata,
+  parseSourcingMetricsForm,
+  sourcingMetricsFormFromSource,
+  sourcingMetricsRegistryPatch,
+} from '../utils/sourcingMetrics'
 import '../styles/app-page.css'
 import './Profile.css'
 
@@ -562,6 +570,7 @@ const Profile = () => {
     productSubs: {},
     equipmentSubs: {},
     serviceCategories: [],
+    sourcingMetrics: emptySourcingMetricsForm(),
   })
   const [profileAttachmentFiles, setProfileAttachmentFiles] = useState([])
   const [pendingProfileAttachments, setPendingProfileAttachments] = useState([])
@@ -640,6 +649,10 @@ const Profile = () => {
       productSubs: toSubMap(prodCats, prodSubsRaw),
       equipmentSubs: toSubMap(eqCats, eqSubsRaw),
       serviceCategories,
+      sourcingMetrics: sourcingMetricsFormFromSource(
+        { metadata: md, ...registryAcct },
+        registryAcct,
+      ),
     })
   }, [tenant, user, getAccountByEmail])
 
@@ -1063,6 +1076,8 @@ const Profile = () => {
         if (accountType === 'auditor') return defaultAuditorServiceCategories(raw)
         return raw
       })()
+      const nextSourcingMetrics = parseSourcingMetricsForm(companyForm.sourcingMetrics)
+      const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
 
       const persistLocalCategoryState = () => {
         try {
@@ -1110,6 +1125,10 @@ const Profile = () => {
               equipment_subcategories: nextEquipmentSubcategories,
               product_subcategories: nextProductSubcategories,
               service_categories: nextServiceCategories,
+              ...(() => {
+                const md = mergeSourcingMetricsIntoMetadata({}, nextSourcingMetrics)
+                return md
+              })(),
             },
           })
         }
@@ -1125,6 +1144,7 @@ const Profile = () => {
             equipmentSubcategories: nextEquipmentSubcategories,
             productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
+            ...sourcingRegistryPatch,
           })
         }
         persistLocalCategoryState()
@@ -1153,11 +1173,11 @@ const Profile = () => {
         productSubcategories: nextProductSubcategories,
         serviceCategories: nextServiceCategories,
         accountType,
-        existingMetadata: {
+        existingMetadata: mergeSourcingMetricsIntoMetadata({
           ...(tenant.metadata || {}),
           address: nextAddress || null,
           company_summary: nextSummary || null,
-        },
+        }, nextSourcingMetrics),
       })
       const companyPayload = {
         name: nextName,
@@ -1181,7 +1201,10 @@ const Profile = () => {
       }
       const vis = buildCompanyVisibilityUpdate(mergedForEval)
       companyPayload.visibility_tier = vis.visibility_tier
-      companyPayload.metadata = { ...companyPayload.metadata, ...vis.metadata }
+      companyPayload.metadata = mergeSourcingMetricsIntoMetadata(
+        { ...(companyPayload.metadata || {}), ...vis.metadata },
+        nextSourcingMetrics,
+      )
 
       const updatedCompany = await companiesService.update(tenant.id, companyPayload)
 
@@ -1198,10 +1221,10 @@ const Profile = () => {
       await profilesService.updateProfile({
         full_name: companyForm.fullName.trim(),
         phone: companyForm.phone.trim() || null,
-        metadata: {
+        metadata: mergeSourcingMetricsIntoMetadata({
           ...(tenant?.metadata || {}),
           ...taxonomy.metadataPatch,
-        },
+        }, nextSourcingMetrics),
       })
       setUser({
         ...(user || {}),
@@ -1221,7 +1244,7 @@ const Profile = () => {
           updatedCompany?.profile_attachments != null
             ? normalizeCompanyProfileAttachments(updatedCompany.profile_attachments)
             : tenant?.profile_attachments,
-        metadata: {
+        metadata: mergeSourcingMetricsIntoMetadata({
           ...(tenant?.metadata || {}),
           ...(updatedCompany?.metadata || {}),
           address: nextAddress || null,
@@ -1232,7 +1255,7 @@ const Profile = () => {
           equipment_subcategories: nextEquipmentSubcategories,
           product_subcategories: nextProductSubcategories,
           service_categories: nextServiceCategories,
-        },
+        }, nextSourcingMetrics),
       })
       if (user?.email) {
         updateRegistryAccount(user.email, {
@@ -1246,6 +1269,7 @@ const Profile = () => {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+          ...sourcingRegistryPatch,
         })
       }
       persistLocalCategoryState()
@@ -1735,6 +1759,15 @@ const Profile = () => {
                           </ToggleCheckButton>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {(accountType === 'seller' || accountType === 'service_provider' || accountType === 'auditor') && (
+                    <div className="prof-form-group full">
+                      <SourcingMetricsFields
+                        values={companyForm.sourcingMetrics || emptySourcingMetricsForm()}
+                        onChange={(next) => setCompanyForm((p) => ({ ...p, sourcingMetrics: next }))}
+                        disabled={savingCompany}
+                      />
                     </div>
                   )}
                   {canAttachCompanyProfile && (

@@ -28,7 +28,9 @@
       '@media (max-width:640px){',
       'main>header{padding:8px 12px!important}',
       '}',
-      '[data-stx-supplier-cards]{display:none!important}'
+      /* Cards only on phone when JS fills them; desktop always uses the table */
+      '@media (min-width:641px){[data-stx-supplier-cards]{display:none!important}}',
+      '[data-stx-supplier-cards][data-stx-filled="1"]{display:flex!important;flex-direction:column;gap:10px}'
     ].join('');
     document.documentElement.appendChild(s);
   } catch (e) { /* */ }
@@ -1583,8 +1585,9 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     var d = window.SOURCING_DATA;
     window.__STREFEX_ALLOW_DEMO_SEED__ = false;
     window.__STREFEX_SOURCING_DEMO_SEED__ = null;
-    /* Registry only — never restore canvas demo sellers. */
-    if (Array.isArray(plat.suppliers)) {
+    /* Registry only — never restore canvas demo sellers.
+     * Skip empty arrays so a race before network hydrate cannot wipe listed sellers. */
+    if (Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
       d.SUPPLIERS = plat.suppliers.filter(function (s) {
         return s && (s.source === "registered" || s.platformId);
       });
@@ -3063,7 +3066,9 @@ const NAVY = "var(--navy-800)", GREEN = "var(--signal-running)", AMBER = "var(--
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function tone3(v, good, ok, invert) {
-  const g = invert ? v <= good : v >= good, o = invert ? v <= ok : v >= ok;
+  if (v == null || !Number.isFinite(Number(v))) return "var(--text-faint)";
+  const n = Number(v);
+  const g = invert ? n <= good : n >= good, o = invert ? n <= ok : n >= ok;
   return g ? GREEN : o ? AMBER : RED;
 }
 function initials(n) { return n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
@@ -3116,16 +3121,17 @@ class Component extends DCLogic {
       if (!host) return;
       const phone = (typeof window !== "undefined" ? window.innerWidth : 1440) < 640;
       const rows = this._lastSupplierRows || [];
+      /* Always keep the bound supplier table as the fallback data source.
+       * Phone cards are an enhancement — never leave both empty (CSS !important hide). */
       if (!phone || !rows.length) {
         host.innerHTML = "";
         host.removeAttribute("data-stx-filled");
-        host.style.display = "none";
+        host.style.setProperty("display", "none", "important");
         if (table) table.style.display = "";
         return;
       }
-      if (table) table.style.display = "none";
       host.setAttribute("data-stx-filled", "1");
-      host.style.display = "flex";
+      host.style.setProperty("display", "flex", "important");
       host.style.flexDirection = "column";
       host.style.gap = "10px";
       const esc = (v) => String(v == null ? "" : v)
@@ -3146,6 +3152,8 @@ class Component extends DCLogic {
           '</div>' +
         '</div>'
       )).join("");
+      /* Hide dense table only after cards actually rendered */
+      if (table) table.style.display = host.children.length ? "none" : "";
       host.onclick = (ev) => {
         const t = ev.target && ev.target.closest ? ev.target.closest("[data-stx-card-toggle], [data-stx-card-idx]") : null;
         if (!t) return;
@@ -4130,17 +4138,23 @@ transitFor(sup) {
     };
     const mkRow = (label, hint, get, opts) => {
       const o = opts || {};
-      const raw = picked.map((x, i) => get(x, cmpT[i]));
+      const raw = picked.map((x, i) => {
+        try {
+          return get(x, cmpT[i]) || { t: "—" };
+        } catch (e) {
+          return { t: "—" };
+        }
+      });
       const nums = raw.map(r => (r && typeof r.n === "number") ? r.n : null);
       const bi = o.cmp ? bestIdx(nums, o.invert) : [];
       return {
         isRow: true, label, hint: hint || "",
         rowBg: "transparent", stickyBg: "var(--white)",
         cells: raw.map((r, i) => ({
-          text: r.t, note: r.note || "", best: bi.indexOf(i) >= 0,
+          text: (r && r.t != null) ? r.t : "—", note: (r && r.note) || "", best: bi.indexOf(i) >= 0,
           font: o.mono ? "var(--font-mono)" : "var(--font-sans)",
           weight: o.mono ? 600 : 500,
-          fg: r.fg || "var(--text-body)"
+          fg: (r && r.fg) || "var(--text-body)"
         }))
       };
     };
@@ -4149,55 +4163,107 @@ transitFor(sup) {
       rowBg: "var(--steel-100)", stickyBg: "var(--steel-100)",
       cells: picked.map(() => ({ text: "", note: "", best: false, font: "var(--font-sans)", weight: 500, fg: "var(--text-body)" }))
     });
-    const cmpRows = picked.length ? [
+    const cmpRows = picked.length ? (() => {
+      const num = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      const fixed = (v, digits) => {
+        const n = num(v);
+        return n == null ? "—" : n.toFixed(digits == null ? 1 : digits);
+      };
+      const pct = (v) => {
+        const n = num(v);
+        return n == null ? "—" : (n + "%");
+      };
+      const score = (v, suffix) => {
+        const n = num(v);
+        return n == null ? "—" : (n + (suffix || ""));
+      };
+      return [
       head("Scope & profile"),
-      mkRow("Industries served", "declared", x => ({ t: x.industries.join(", ") })),
-      mkRow("Annual spend with you", "your records · context, not a score", x => ({ t: "$" + x.spend.toFixed(1) + "M" }), { mono: true }),
-      mkRow("Plant size", "declared", x => ({
-        t: x.employees + " staff",
-        note: x.machines + " machines · " + x.shifts + (x.shifts === 1 ? " shift" : " shifts")
-      })),
+      mkRow("Industries served", "declared", x => ({ t: (Array.isArray(x.industries) && x.industries.length) ? x.industries.join(", ") : "—" })),
+      mkRow("Annual spend with you", "your records · context, not a score", x => ({ t: num(x.spend) == null ? "—" : ("$" + fixed(x.spend) + "M"), n: num(x.spend) }), { mono: true }),
+      mkRow("Plant size", "declared", x => {
+        const emp = num(x.employees);
+        const mach = num(x.machines);
+        const shifts = num(x.shifts);
+        if (emp == null && mach == null && shifts == null) return { t: "—" };
+        return {
+          t: emp == null ? "—" : (emp + " staff"),
+          note: [
+            mach == null ? null : (mach + " machines"),
+            shifts == null ? null : (shifts + (shifts === 1 ? " shift" : " shifts")),
+          ].filter(Boolean).join(" · ")
+        };
+      }),
       head("Capability & quality", CYAN),
-      mkRow("Supplier fit", "platform score", x => ({ t: x.fit + "/100", n: x.fit, fg: tone3(x.fit, 82, 70) }), { mono: true, cmp: true }),
-      mkRow("Risk index", "lower is better", x => ({ t: String(x.risk), n: x.risk, fg: tone3(x.risk, 28, 48, true) }), { mono: true, cmp: true, invert: true }),
-      mkRow("Capacity used", "declared", x => ({ t: x.cap + "%", n: x.cap, fg: x.cap > 92 ? RED : x.cap > 80 ? AMBER : "var(--text-body)" }), { mono: true, cmp: true, invert: true }),
-      mkRow("On-time delivery", "your receipts", x => ({ t: x.onTime + "%", n: x.onTime, fg: tone3(x.onTime, 95, 90) }), { mono: true, cmp: true }),
-      mkRow("Quality", "your receipts", x => ({ t: x.ppm.toLocaleString("en-US") + " ppm", n: x.ppm, fg: tone3(x.ppm, 300, 600, true) }), { mono: true, cmp: true, invert: true }),
+      mkRow("Supplier fit", "platform score", x => ({ t: score(x.fit, "/100"), n: num(x.fit), fg: tone3(x.fit, 82, 70) }), { mono: true, cmp: true }),
+      mkRow("Risk index", "lower is better", x => ({ t: num(x.risk) == null ? "—" : String(x.risk), n: num(x.risk), fg: tone3(x.risk, 28, 48, true) }), { mono: true, cmp: true, invert: true }),
+      mkRow("Capacity used", "declared", x => ({ t: pct(x.cap), n: num(x.cap), fg: num(x.cap) == null ? "var(--text-faint)" : (x.cap > 92 ? RED : x.cap > 80 ? AMBER : "var(--text-body)") }), { mono: true, cmp: true, invert: true }),
+      mkRow("On-time delivery", "your receipts", x => ({ t: pct(x.onTime), n: num(x.onTime), fg: tone3(x.onTime, 95, 90) }), { mono: true, cmp: true }),
+      mkRow("Quality", "your receipts", x => ({
+        t: num(x.ppm) == null ? "—" : (Number(x.ppm).toLocaleString("en-US") + " ppm"),
+        n: num(x.ppm),
+        fg: tone3(x.ppm, 300, 600, true)
+      }), { mono: true, cmp: true, invert: true }),
       head("Delivery to " + buyer.name + " (ref)", AMBER),
-      mkRow(this.isServiceDomain() ? "Service engagement" : "Production lead", this.isServiceDomain() ? "schedule+site+report" : "quoted", x => ({ t: x.lead + " d", n: x.lead }), { mono: true, cmp: true, invert: true }),
+      mkRow(this.isServiceDomain() ? "Service engagement" : "Production lead", this.isServiceDomain() ? "schedule+site+report" : "quoted", x => ({ t: num(x.lead) == null ? "—" : (x.lead + " d"), n: num(x.lead) }), { mono: true, cmp: true, invert: true }),
       mkRow("Transit (ref)", "modelled, not a quote", (x, t) => {
         const std = t.std || {};
-        return { t: (std.days || "—") + " d " + (std.mode ? "· " + std.mode.replace(" freight", "") : ""), n: std.days || null, note: t.dist.toLocaleString("en-US") + " km lane" };
+        const dist = num(t && t.dist);
+        return {
+          t: (std.days || "—") + " d " + (std.mode ? "· " + String(std.mode).replace(" freight", "") : ""),
+          n: std.days || null,
+          note: dist == null ? "" : (dist.toLocaleString("en-US") + " km lane")
+        };
       }, { mono: true, cmp: true, invert: true }),
       mkRow(this.isServiceDomain() ? "Est. completion (ref)" : "Est. delivery (ref)", this.isServiceDomain() ? "engagement + travel" : "production + transit", (x, t) => {
         const d = (t.std || {}).days;
         const travel = (typeof d === "number") ? d : 0;
-        const total = x.lead + travel;
+        const lead = num(x.lead);
+        if (lead == null) return { t: "—", n: null };
+        const total = lead + travel;
         return { t: fmtDate(total), n: total, note: total + " d total" };
       }, { mono: true, cmp: true, invert: true }),
       mkRow(this.isServiceDomain() ? "Fastest start (ref)" : "Fastest option (ref)", this.isServiceDomain() ? "remote or travel" : "air freight", (x, t) => {
-        const air = t.rows.filter(r => r.mode === "Air freight" || r.mode === "Remote delivery" || r.mode === "Team travel (air)")[0];
+        const air = (t.rows || []).filter(r => r.mode === "Air freight" || r.mode === "Remote delivery" || r.mode === "Team travel (air)")[0];
         return { t: air ? air.total : "—", note: air ? "ETA " + air.eta : "" };
       }, { mono: true }),
       head("Compliance & trade", RED),
-      mkRow("Certificates", "uploaded docs", x => ({ t: x.certs.join(" · "), note: x.certExpiry < 90 ? "One expires in " + x.certExpiry + " d" : "" , fg: x.certExpiry < 90 ? "#9A6B12" : "var(--text-body)" })),
-      mkRow("Audit status", "your audits", x => ({
-        t: x.auditIn < 0 ? "Overdue " + Math.abs(x.auditIn) + " d" : x.auditIn < 45 ? "Due in " + x.auditIn + " d" : "Valid",
-        fg: x.auditIn < 0 ? RED : x.auditIn < 45 ? AMBER : GREEN
+      mkRow("Certificates", "uploaded docs", x => ({
+        t: (Array.isArray(x.certs) && x.certs.length) ? x.certs.join(" · ") : "—",
+        note: num(x.certExpiry) != null && x.certExpiry < 90 ? ("One expires in " + x.certExpiry + " d") : "",
+        fg: num(x.certExpiry) != null && x.certExpiry < 90 ? "#9A6B12" : "var(--text-body)"
       })),
-      mkRow("Trade exposure", "customs", x => ({ t: x.tariff, fg: /301|lapsed/.test(x.tariff) ? RED : "var(--text-body)" })),
-      mkRow("Tier-2 visibility", "declared", x => ({ t: x.tier2, fg: x.tier2 === "Unknown" ? RED : x.tier2 === "Partial" ? AMBER : GREEN })),
-      mkRow("Financial grade", "registry", x => ({ t: x.fin, fg: /^A/.test(x.fin) ? GREEN : /^B/.test(x.fin) ? AMBER : RED })),
+      mkRow("Audit status", "your audits", x => {
+        const a = num(x.auditIn);
+        if (a == null) return { t: x.audit || "—", fg: "var(--text-faint)" };
+        return {
+          t: a < 0 ? "Overdue " + Math.abs(a) + " d" : a < 45 ? "Due in " + a + " d" : "Valid",
+          fg: a < 0 ? RED : a < 45 ? AMBER : GREEN
+        };
+      }),
+      mkRow("Trade exposure", "customs", x => ({ t: x.tariff || "—", fg: /301|lapsed/.test(String(x.tariff || "")) ? RED : "var(--text-body)" })),
+      mkRow("Tier-2 visibility", "declared", x => ({ t: x.tier2 || "—", fg: x.tier2 === "Unknown" ? RED : x.tier2 === "Partial" ? AMBER : GREEN })),
+      mkRow("Financial grade", "registry", x => ({ t: x.fin || "—", fg: /^A/.test(String(x.fin || "")) ? GREEN : /^B/.test(String(x.fin || "")) ? AMBER : RED })),
       head("Account data", CYAN),
-      mkRow("Profile completeness", "declared", x => ({ t: x.profile + "%", n: x.profile, fg: tone3(x.profile, 85, 65) }), { mono: true, cmp: true }),
-      mkRow("Last updated", "by the supplier", x => ({ t: x.updatedDays + " d ago", n: x.updatedDays, fg: x.updatedDays > 120 ? AMBER : "var(--text-body)" }), { mono: true, cmp: true, invert: true }),
-      mkRow("RFQ response rate", "your RFQs", x => ({ t: x.respRate + "%", n: x.respRate, fg: tone3(x.respRate, 75, 55) }), { mono: true, cmp: true }),
-      mkRow("Quote turnaround", "median", x => ({
-        t: Number.isFinite(Number(x.quoteTurn)) ? (x.quoteTurn + " d") : "—",
-        n: Number.isFinite(Number(x.quoteTurn)) ? x.quoteTurn : null
+      mkRow("Profile completeness", "declared", x => ({ t: pct(x.profile), n: num(x.profile), fg: tone3(x.profile, 85, 65) }), { mono: true, cmp: true }),
+      mkRow("Last updated", "by the supplier", x => ({
+        t: num(x.updatedDays) == null ? "—" : (x.updatedDays + " d ago"),
+        n: num(x.updatedDays),
+        fg: num(x.updatedDays) != null && x.updatedDays > 120 ? AMBER : "var(--text-body)"
       }), { mono: true, cmp: true, invert: true }),
-      mkRow("Working languages", "declared", x => ({ t: x.langs }))
-    ] : [];
+      mkRow("RFQ response rate", "your RFQs", x => ({ t: pct(x.respRate), n: num(x.respRate), fg: tone3(x.respRate, 75, 55) }), { mono: true, cmp: true }),
+      mkRow("Quote turnaround", "median", x => ({
+        t: num(x.quoteTurn) == null ? "—" : (x.quoteTurn + " d"),
+        n: num(x.quoteTurn)
+      }), { mono: true, cmp: true, invert: true }),
+      mkRow("Working languages", "declared", x => ({
+        t: Array.isArray(x.langs) ? x.langs.join(", ") : (x.langs || "—")
+      }))
+      ];
+    })() : [];
 
     /* ── RFQ: one standard form, industries drive only the quality block ── */
     const indNames = (dd.INDUSTRIES || []).map(i => i.name);
