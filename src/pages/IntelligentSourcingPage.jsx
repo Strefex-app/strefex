@@ -499,6 +499,7 @@ export default function IntelligentSourcingPage() {
       })
       return
     }
+    if (action === 'select-plant' && payload?.buyer) {
       setPlant(payload.buyer)
       return
     }

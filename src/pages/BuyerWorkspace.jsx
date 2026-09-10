@@ -613,6 +613,7 @@ export default function BuyerWorkspace() {
               </div>
             )}
           </div>
+        )}
       </div>
     </AppLayout>
   )
