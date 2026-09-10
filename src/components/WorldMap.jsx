@@ -320,8 +320,7 @@ const WorldMap = ({
               step={[10, 10]}
               fill="transparent"
             />
-            {worldGeo ? (
-            <Geographies geography={worldGeo}>
+            <Geographies geography={worldGeo || geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => (
                   <Geography
@@ -339,7 +338,6 @@ const WorldMap = ({
                 ))
               }
             </Geographies>
-            ) : null}
 
             {hasLaneList
               ? lanes.map((lane, i) => {
@@ -511,8 +509,7 @@ const WorldMap = ({
           </g>
         ) : (
           <ZoomableGroup center={[20, 30]} zoom={1} minZoom={1} maxZoom={1} filterZoomEvent={() => false}>
-            {worldGeo ? (
-            <Geographies geography={worldGeo}>
+            <Geographies geography={worldGeo || geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => (
                   <Geography
@@ -536,7 +533,6 @@ const WorldMap = ({
                 ))
               }
             </Geographies>
-            ) : null}
             {displayLocations.map((location, index) => {
               const isSelected = selectedId && location.id === selectedId
               const isHovered = hoveredMarker === index

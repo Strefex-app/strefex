@@ -9,7 +9,7 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260910b'
+export const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260910c'
 
 const SourcingCanvasContext = createContext({
   attachSlot: () => {},

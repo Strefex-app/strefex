@@ -1,6 +1,6 @@
 .persistent-marketplace-map {
   position: fixed;
-  z-index: 9;
+  z-index: 12;
   overflow: hidden;
   margin: 0;
   padding: 0;
