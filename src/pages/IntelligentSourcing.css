@@ -19,6 +19,7 @@ html[data-theme="dark"] .intelligent-sourcing-page {
 }
 
 .intelligent-sourcing-frame {
+  position: relative;
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
@@ -26,9 +27,7 @@ html[data-theme="dark"] .intelligent-sourcing-page {
   border: 0;
   display: block;
   background: var(--bg-primary, #f6f7f8);
-  /* iOS: allow the iframe document to scroll when content is taller than the frame */
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 html[data-theme="dark"] .intelligent-sourcing-frame {

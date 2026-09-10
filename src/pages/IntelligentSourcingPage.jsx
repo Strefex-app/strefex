@@ -243,7 +243,15 @@ function buildEmbedShellCss(theme = 'light') {
       flex-wrap: nowrap !important;
     }
   }
-  html, body { max-width: 100%; overflow-x: clip; }
+  html, body {
+    max-width: 100%;
+    height: auto !important;
+    overflow-x: clip;
+    overflow-y: auto !important;
+  }
+  supplier-map svg, .world-map-container svg {
+    touch-action: pan-y !important;
+  }
   @media (max-width: 640px) {
     main > header { padding: 8px 12px !important; }
   }

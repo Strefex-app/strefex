@@ -1360,7 +1360,6 @@ export default function Home() {
           {/* Map + pulse — RFQ KPI colors, lanes to plant, transport lead times */}
           <div className="home-dash__map-row">
             <ExecutiveLocationMap
-              sharedSurface="home"
               className="home-dash__map-widget"
               title={mapFocus && MAP_FOCUS[mapFocus]
                 ? `${MAP_FOCUS[mapFocus].label} · map`

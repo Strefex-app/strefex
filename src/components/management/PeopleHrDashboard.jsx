@@ -274,7 +274,6 @@ export default function PeopleHrDashboard() {
 
         <ExecutiveLocationMap
           className="phd__map-widget"
-          sharedSurface="hr"
           title="Employee locations"
           disclaimer=""
           locations={plantHeadcountPins}

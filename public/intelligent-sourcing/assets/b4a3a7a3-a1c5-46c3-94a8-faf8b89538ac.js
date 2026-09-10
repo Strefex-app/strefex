@@ -2,12 +2,12 @@
    Attributes:
      metric="risk|fit|cap"          pin colour scale
      focus="all|europe|namerica|apac"
-     highlight="<supplier name>"    focused supplier (lane drawn on hover/selection)
-     lanes='[{"name","lat","lon","lead","transit","eta","mode"}]'
+     highlight="<plant key>"        focused plant (lane drawn on hover/selection)
+     lanes='[{"id","name","lat","lon","lead","transit","eta","mode"}]'
      buyer='{"name","lat","lon"}'
      show-lanes="all"               draw every lane at once (compare delivery time)
      height="520"
-   Events: pin-hover (detail: {name}) so the host can sync focus. */
+   Events: pin-hover / pin-select (detail: {id, name}) so the host can sync focus. */
 (function () {
   var ATLAS = (window.__resources && window.__resources.worldAtlas) || "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
 
@@ -59,6 +59,14 @@
       .replace(/"/g, "&quot;");
   }
 
+  function plantKey(s) {
+    if (!s) return "";
+    if (s.id && String(s.id).indexOf("pid:") === 0) return String(s.id);
+    var lat = Number(s.lat), lon = Number(s.lon);
+    var geo = [isFinite(lat) ? lat.toFixed(4) : "", isFinite(lon) ? lon.toFixed(4) : ""].join(",");
+    if (s.platformId) return "pid:" + String(s.platformId) + "@" + geo;
+    return "loc:" + [s.name || "", s.city || "", s.cc || "", geo].join("|");
+  }
   function shortLabel(name) {
     var raw = String(name || "").trim();
     if (!raw) return "";
@@ -145,12 +153,18 @@
       var lanes = this.json("lanes", []);
       var buyer = this.json("buyer", null);
       var laneBy = {};
-      lanes.forEach(function (l) { laneBy[l.name] = l; });
+      lanes.forEach(function (l) {
+        var k = l.id || plantKey(l);
+        laneBy[k] = l;
+        if (l.name && !laneBy[l.name]) laneBy[l.name] = l;
+      });
 
       function findSupplier(nm) {
         var lower = String(nm || "").toLowerCase();
         if (!lower) return null;
         for (var i = 0; i < all.length; i += 1) {
+          if (plantKey(all[i]) === nm) return all[i];
+          if (String(all[i].platformId || "") === String(nm || "").replace(/^pid:/, "")) return all[i];
           if (String(all[i].name || "").toLowerCase() === lower) return all[i];
         }
         return null;
@@ -164,13 +178,14 @@
       }
       if (lanes.length) {
         data = lanes.map(function (l) {
-          var s = findSupplier(l.name) || {};
+          var s = findSupplier(l.id || l.name) || {};
           var lat = l.lat != null ? Number(l.lat) : Number(s.lat);
           var lon = l.lon != null ? Number(l.lon) : Number(s.lon);
-          return {
+          var row = {
+            id: l.id || plantKey(l) || plantKey(s),
             name: l.name || s.name || "Supplier",
-            city: s.city || "—",
-            cc: s.cc || "—",
+            city: s.city || l.city || "—",
+            cc: s.cc || l.cc || "—",
             lat: lat,
             lon: lon,
             fit: s.fit != null ? s.fit : 70,
@@ -179,6 +194,8 @@
             spend: s.spend != null ? s.spend : 2,
             lead: l.lead != null ? l.lead : s.lead
           };
+          row.id = row.id || plantKey(row);
+          return row;
         }).filter(hasCoords);
       } else if (only.length) {
         data = only.map(findSupplier).filter(function (s) { return s && hasCoords(s); });
@@ -189,6 +206,11 @@
       if (!data.length && all.length) {
         data = all.filter(hasCoords);
       }
+      data = data.map(function (s) {
+        var row = Object.assign({}, s);
+        row.id = row.id || plantKey(row);
+        return row;
+      });
 
       var hostW = (host.getBoundingClientRect && host.getBoundingClientRect().width) || 1000;
       var compact = hostW > 0 && hostW < 720;
@@ -208,17 +230,17 @@
       }
       var path = d3.geoPath(proj);
 
-      var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:' + H + 'px;display:block;background:#EEF0F2;border-radius:6px;touch-action:manipulation" role="img" aria-label="Supplier locations — ' + data.length + ' plants">'];
-      svg.push('<path d="' + path({ type: "Sphere" }) + '" fill="#EEF0F2"/>');
-      svg.push('<path d="' + path(d3.geoGraticule10()) + '" fill="none" stroke="#DDE1E4" stroke-width=".6"/>');
+      var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:' + H + 'px;display:block;background:#EEF0F2;border-radius:6px;touch-action:pan-y" role="img" aria-label="Supplier locations — ' + data.length + ' plants">'];
+      svg.push('<path d="' + path({ type: "Sphere" }) + '" fill="#EEF0F2" style="pointer-events:none"/>');
+      svg.push('<path d="' + path(d3.geoGraticule10()) + '" fill="none" stroke="#DDE1E4" stroke-width=".6" style="pointer-events:none"/>');
       this._land.features.forEach(function (f) {
         var d = path(f);
-        if (d) svg.push('<path d="' + d + '" fill="#DCE1E6" stroke="#F6F7F8" stroke-width=".7"/>');
+        if (d) svg.push('<path d="' + d + '" fill="#DCE1E6" stroke="#F6F7F8" stroke-width=".7" style="pointer-events:none"/>');
       });
 
       /* ── lanes: dotted great-circle from the receiving plant to the supplier ── */
       function laneMarkup(s, strong) {
-        var l = laneBy[s.name];
+        var l = laneBy[s.id] || laneBy[s.name];
         if (!buyer || !l) return "";
         var d = path({ type: "LineString", coordinates: [[buyer.lon, buyer.lat], [s.lon, s.lat]] });
         if (!d) return "";
@@ -243,10 +265,10 @@
         var laneLayer = data.map(function (s) {
           var faint = laneMarkup(s, false), strongMk = laneMarkup(s, true);
           if (!faint && !strongMk) return "";
-          var showFaint = showAll || s.name === highlight;
-          return '<g data-lane="' + escapeXml(s.name) + '">' +
-            '<g data-lane-faint style="opacity:' + (showFaint && s.name !== highlight ? 1 : 0) + '">' + faint + '</g>' +
-            '<g data-lane-strong style="opacity:' + (s.name === highlight ? 1 : 0) + '">' + strongMk + '</g></g>';
+          var showFaint = showAll || s.id === highlight || s.name === highlight;
+          return '<g data-lane="' + escapeXml(s.id || s.name) + '">' +
+            '<g data-lane-faint style="opacity:' + (showFaint && s.id !== highlight && s.name !== highlight ? 1 : 0) + '">' + faint + '</g>' +
+            '<g data-lane-strong style="opacity:' + (s.id === highlight || s.name === highlight ? 1 : 0) + '">' + strongMk + '</g></g>';
         }).join("");
         svg.push('<g data-lanes>' + laneLayer + '</g>');
       }
@@ -260,11 +282,11 @@
         if (!Number.isFinite(spend) || spend < 0) spend = 2;
         var r = (5 + Math.sqrt(spend) * 2.1) * pinScale;
         if (compact) r = Math.max(7.5, r);
-        var isStrong = highlight === s.name;
+        var isStrong = highlight === s.id || highlight === s.name;
         var pinLabel = compact ? "" : shortLabel(s.name);
         var hit = Math.max(r + 14, 22);
         svg.push(
-          '<g data-name="' + escapeXml(s.name) + '" style="cursor:pointer">' +
+          '<g data-id="' + escapeXml(s.id || s.name) + '" data-name="' + escapeXml(s.name) + '" style="cursor:pointer">' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + hit.toFixed(1) + '" fill="transparent"/>' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (r + 7).toFixed(1) + '" fill="' + t.ring + '"/>' +
           '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + t.fill + '" stroke="' + (isStrong ? "#0A2540" : "#fff") + '" stroke-width="' + (isStrong ? 2.6 : 1.6) + '"/>' +
@@ -311,10 +333,11 @@
       var tip = this.querySelector("[data-tip]");
       this.querySelectorAll("g[data-name]").forEach(function (g) {
         var nm = g.getAttribute("data-name");
+        var sid = g.getAttribute("data-id") || nm;
         function showTip(clientX, clientY) {
-          var s = data.filter(function (x) { return x.name === nm; })[0];
+          var s = data.filter(function (x) { return x.id === sid || (!x.id && x.name === nm); })[0];
           if (!s) return;
-          var l = laneBy[nm] || {};
+          var l = laneBy[sid] || laneBy[nm] || {};
           tip.innerHTML =
             '<strong style="font-weight:600">' + escapeXml(s.name) + '</strong> · ' + escapeXml(s.city) + ', ' + escapeXml(s.cc) +
             '<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:#9DB1C8">' +
@@ -329,11 +352,11 @@
           tip.style.left = Math.min(Math.max(8, (clientX || 0) - bb.left + 14), Math.max(8, bb.width - 180)) + "px";
           tip.style.top = Math.max(8, (clientY || 0) - bb.top - 12) + "px";
           host.querySelectorAll("g[data-lane]").forEach(function (lg) {
-            var mine = lg.getAttribute("data-lane") === nm;
+            var mine = lg.getAttribute("data-lane") === sid;
             lg.querySelector("[data-lane-strong]").style.opacity = mine ? 1 : 0;
             lg.querySelector("[data-lane-faint]").style.opacity = (!mine && showAll) ? 1 : 0;
           });
-          host.dispatchEvent(new CustomEvent("pin-hover", { detail: { name: nm }, bubbles: true }));
+          host.dispatchEvent(new CustomEvent("pin-hover", { detail: { id: sid, name: nm }, bubbles: true, composed: true }));
         }
         function hideTip() {
           tip.style.opacity = "0";
@@ -351,9 +374,9 @@
         });
         g.addEventListener("mouseleave", hideTip);
         g.addEventListener("click", function (ev) {
-          ev.preventDefault();
           ev.stopPropagation();
-          host.setAttribute("highlight", nm);
+          host.setAttribute("highlight", sid);
+          host.dispatchEvent(new CustomEvent("pin-select", { detail: { id: sid, name: nm }, bubbles: true, composed: true }));
         });
         g.addEventListener("touchstart", function (ev) {
           var t = ev.changedTouches && ev.changedTouches[0];

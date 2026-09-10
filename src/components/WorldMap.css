@@ -40,6 +40,11 @@
   max-height: 100%;
   background: var(--map-ocean, #eef0f2) !important;
   overflow: hidden;
+  touch-action: pan-y;
+}
+
+.world-map-container .rsm-geography {
+  pointer-events: none;
 }
 
 .map-marker {

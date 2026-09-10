@@ -330,9 +330,9 @@ const WorldMap = ({
                     stroke={palette.landStroke}
                     strokeWidth={0.7}
                     style={{
-                      default: { outline: 'none' },
-                      hover: { outline: 'none', fill: palette.land },
-                      pressed: { outline: 'none' },
+                      default: { outline: 'none', pointerEvents: 'none' },
+                      hover: { outline: 'none', fill: palette.land, pointerEvents: 'none' },
+                      pressed: { outline: 'none', pointerEvents: 'none' },
                     }}
                   />
                 ))
@@ -520,14 +520,15 @@ const WorldMap = ({
                     strokeWidth={0.55}
                     strokeOpacity={DEFAULT_LAND.borderOpacity}
                     style={{
-                      default: { outline: 'none' },
+                      default: { outline: 'none', pointerEvents: 'none' },
                       hover: {
                         outline: 'none',
                         fill: DEFAULT_LAND.landHover,
                         stroke: DEFAULT_LAND.border,
                         strokeOpacity: Math.min(0.95, DEFAULT_LAND.borderOpacity + 0.3),
+                        pointerEvents: 'none',
                       },
-                      pressed: { outline: 'none' },
+                      pressed: { outline: 'none', pointerEvents: 'none' },
                     }}
                   />
                 ))
