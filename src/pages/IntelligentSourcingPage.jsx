@@ -18,7 +18,6 @@ import {
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 import { usePersistentSourcingCanvas } from '../components/PersistentSourcingCanvas'
 import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
-import useMarketplaceMapStore from '../store/marketplaceMapStore'
 import {
   createAndSendNetworkRfq,
   sourcingRfqOpenContext,
@@ -211,6 +210,7 @@ const SOURCING_MAP_NIGHT_SCRIPT = `
     applyTheme(d.theme);
   });
   applyTheme(window.__STREFEX_PLATFORM_THEME__ || 'light');
+  window.addEventListener('strefex-map-painted', function () { recolor(document); });
 })();
 </script>
 `
@@ -431,16 +431,12 @@ export default function IntelligentSourcingPage() {
   const slotRef = useRef(null)
   const taxonomySentRef = useRef(false)
   const { attachSlot, iframeRef, frameReady } = usePersistentSourcingCanvas()
-  const setSourcingView = useMarketplaceMapStore((s) => s.setSourcingView)
   const status = frameReady ? 'ready' : 'loading'
 
   useLayoutEffect(() => {
     attachSlot(slotRef.current)
-    return () => {
-      attachSlot(null)
-      setSourcingView({ slot: null, locations: [] })
-    }
-  }, [attachSlot, setSourcingView])
+    return () => attachSlot(null)
+  }, [attachSlot])
 
   const pushPlatformToFrame = useCallback(() => {
     const win = iframeRef.current?.contentWindow
@@ -488,17 +484,6 @@ export default function IntelligentSourcingPage() {
       pushPlatformToFrame()
       return
     }
-    if (action === 'shared-map') {
-      setSourcingView({
-        locations: Array.isArray(payload?.locations) ? payload.locations : [],
-        plantLocation: payload?.plant || null,
-        lanes: Array.isArray(payload?.lanes) && payload.lanes.length ? payload.lanes : null,
-        metric: payload?.metric || 'risk',
-        selectedId: payload?.selectedId || null,
-        slot: payload?.slot || null,
-      })
-      return
-    }
     if (action === 'select-plant' && payload?.buyer) {
       setPlant(payload.buyer)
       return
@@ -541,7 +526,6 @@ export default function IntelligentSourcingPage() {
     plant?.id,
     pushPlatformToFrame,
     setPlant,
-    setSourcingView,
     setTenant,
     tenant,
     updateAccount,

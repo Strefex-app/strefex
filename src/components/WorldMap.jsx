@@ -10,6 +10,7 @@ import {
   ZoomableGroup,
 } from 'react-simple-maps'
 import './WorldMap.css'
+import { loadWorldGeography, getWorldGeographyUrl, getCachedWorldGeography } from '../utils/worldGeography'
 
 /** Day defaults for Intelligent Sourcing `<supplier-map>` (overridden by --map-* CSS vars). */
 export const SOURCING_MAP_COLORS = {
@@ -173,50 +174,36 @@ function useMapFrameSize(defaultWidth = 800, defaultHeight = 360) {
     const ro = new ResizeObserver(() => update())
     ro.observe(el)
     window.addEventListener('orientationchange', update)
+    window.addEventListener('resize', update)
     return () => {
       ro.disconnect()
       window.removeEventListener('orientationchange', update)
+      window.removeEventListener('resize', update)
     }
   }, [])
 
   return { containerRef, ...size }
 }
 
-const viteBase = import.meta.env.BASE_URL || '/'
-const geoUrl = `${viteBase.endsWith('/') ? viteBase : `${viteBase}/`}geo/ne_110m_admin_0_countries.geojson`
-
-let cachedWorldGeo = null
-let worldGeoPromise = null
+const geoUrl = getWorldGeographyUrl()
 
 function useWorldGeography() {
-  const [geography, setGeography] = useState(() => cachedWorldGeo)
+  const [geography, setGeography] = useState(() => getCachedWorldGeography())
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    if (cachedWorldGeo) {
-      setGeography(cachedWorldGeo)
-      return
-    }
-    if (!worldGeoPromise) {
-      worldGeoPromise = fetch(geoUrl)
-        .then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`)
-          return r.json()
-        })
-        .then((geo) => {
-          cachedWorldGeo = geo
-          return geo
-        })
-    }
     let cancelled = false
-    worldGeoPromise
+    loadWorldGeography()
       .then((geo) => {
         if (!cancelled) setGeography(geo)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
     return () => { cancelled = true }
   }, [])
 
-  return geography
+  return { geography, failed }
 }
 
 const defaultLocations = [
@@ -255,7 +242,7 @@ const WorldMap = ({
 }) => {
   const isExecutive = variant === 'executive' || variant === 'sourcing'
   const palette = useMapPalette()
-  const worldGeo = useWorldGeography()
+  const { geography: worldGeo, failed: geoFailed } = useWorldGeography()
   const [hoveredMarker, setHoveredMarker] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const { containerRef, width: mapWidth, height: mapHeight } = useMapFrameSize()
@@ -265,7 +252,13 @@ const WorldMap = ({
     ? (narrowMap ? 'xMidYMid meet' : 'xMidYMid slice')
     : 'xMidYMid meet')
 
-  const displayLocations = locations || defaultLocations
+  const displayLocations = useMemo(() => {
+    const raw = locations || defaultLocations
+    return (Array.isArray(raw) ? raw : []).filter((loc) => {
+      const c = loc?.coordinates
+      return Array.isArray(c) && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1]))
+    })
+  }, [locations])
 
   const selectedLoc = useMemo(() => {
     if (!selectedId) return null
@@ -282,16 +275,17 @@ const WorldMap = ({
     [mapWidth, mapHeight],
   )
 
-  const handleMouseMove = (e) => {
-    setTooltipPosition({ x: e.clientX, y: e.clientY })
-  }
-
+  const hoverLoc = hoveredMarker != null ? displayLocations[hoveredMarker] : null
   const plantCoords = plantLocation?.coordinates
   const laneTo = hotLoc?.coordinates
   const hasLaneList = Array.isArray(lanes) && lanes.length > 0
   const showStrongLane = Boolean(
     isExecutive && showLane && plantCoords && laneTo && !hasLaneList,
   )
+
+  const handleMouseMove = (e) => {
+    setTooltipPosition({ x: e.clientX, y: e.clientY })
+  }
 
   return (
     <div
@@ -300,6 +294,12 @@ const WorldMap = ({
       style={{ height, background: isExecutive ? palette.ocean : DEFAULT_LAND.ocean }}
       onMouseMove={handleMouseMove}
     >
+      {geoFailed && !worldGeo ? (
+        <div className="world-map-status">Map geography unavailable</div>
+      ) : null}
+      {!worldGeo && !geoFailed ? (
+        <div className="world-map-status">Loading geography…</div>
+      ) : null}
       <ComposableMap
         width={mapWidth}
         height={mapHeight}
@@ -564,7 +564,7 @@ const WorldMap = ({
         )}
       </ComposableMap>
 
-      {showTooltip && hoveredMarker !== null && displayLocations[hoveredMarker] && (
+      {showTooltip && hoverLoc ? (
         <div
           className={`map-tooltip${isExecutive ? ' map-tooltip--executive' : ''}`}
           style={{
@@ -575,52 +575,56 @@ const WorldMap = ({
               : null),
           }}
         >
-          <div className="map-tooltip-name">{displayLocations[hoveredMarker].name}</div>
-          {displayLocations[hoveredMarker].city ? (
+          <div className="map-tooltip-name stx-text-wrap">{hoverLoc.name || hoverLoc.label}</div>
+          {hoverLoc.city ? (
             <div
               className="map-tooltip-city"
               style={isExecutive ? { color: palette.tipMuted } : undefined}
             >
-              {displayLocations[hoveredMarker].city}
-              {displayLocations[hoveredMarker].country
-                && displayLocations[hoveredMarker].country !== '—'
-                ? `, ${displayLocations[hoveredMarker].country}`
+              {hoverLoc.city}
+              {hoverLoc.country && hoverLoc.country !== '—'
+                ? `, ${hoverLoc.country}`
                 : ''}
             </div>
           ) : null}
-          {Number.isFinite(Number(displayLocations[hoveredMarker].count)) ? (
+          {Number.isFinite(Number(hoverLoc.count)) ? (
             <div
               className="map-tooltip-fit"
               style={isExecutive ? { color: palette.tipMuted } : undefined}
             >
-              {Number(displayLocations[hoveredMarker].count)} employee
-              {Number(displayLocations[hoveredMarker].count) === 1 ? '' : 's'}
+              {Number(hoverLoc.count)} employee
+              {Number(hoverLoc.count) === 1 ? '' : 's'}
             </div>
           ) : null}
-          {isExecutive && displayLocations[hoveredMarker].relationLabel ? (
+          {isExecutive && hoverLoc.relationLabel ? (
             <div className="map-tooltip-fit" style={{ color: '#fff' }}>
-              {displayLocations[hoveredMarker].relationLabel}
-              {displayLocations[hoveredMarker].transitLabel
-                ? ` · ${displayLocations[hoveredMarker].transitLabel}`
+              {hoverLoc.relationLabel}
+              {hoverLoc.transitLabel
+                ? ` · ${hoverLoc.transitLabel}`
                 : ''}
             </div>
           ) : null}
-          {isExecutive && !displayLocations[hoveredMarker].relationLabel
-            && Number.isFinite(Number(displayLocations[hoveredMarker].riskLevel)) ? (
-            <div className="map-tooltip-fit" style={{ color: '#fff' }}>
-              risk {displayLocations[hoveredMarker].riskLevel}
-              {Number.isFinite(Number(displayLocations[hoveredMarker].fitLevel))
-                ? ` · fit ${displayLocations[hoveredMarker].fitLevel}`
+          {isExecutive && (Number.isFinite(Number(hoverLoc.riskLevel ?? hoverLoc.risk))
+            || Number.isFinite(Number(hoverLoc.fitLevel ?? hoverLoc.fit))) ? (
+            <div className="map-tooltip-fit" style={{ color: palette.tipMuted }}>
+              {Number.isFinite(Number(hoverLoc.riskLevel ?? hoverLoc.risk))
+                ? `risk ${hoverLoc.riskLevel ?? hoverLoc.risk}`
+                : ''}
+              {Number.isFinite(Number(hoverLoc.fitLevel ?? hoverLoc.fit))
+                ? ` · fit ${hoverLoc.fitLevel ?? hoverLoc.fit}`
+                : ''}
+              {Number.isFinite(Number(hoverLoc.capacityLevel ?? hoverLoc.cap))
+                ? ` · cap ${hoverLoc.capacityLevel ?? hoverLoc.cap}`
                 : ''}
             </div>
           ) : null}
-          {!isExecutive && displayLocations[hoveredMarker].rating ? (
+          {!isExecutive && hoverLoc.rating ? (
             <div className="map-tooltip-rating">
-              Rating: {displayLocations[hoveredMarker].rating} ★
+              Rating: {hoverLoc.rating} ★
             </div>
           ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

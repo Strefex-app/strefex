@@ -394,6 +394,10 @@ export function slimSourcingSupplier(row) {
     if (Array.isArray(v) && v.length === 0) return
     out[key] = v
   })
+  ;['lat', 'lon', 'risk', 'fit', 'cap', 'lead', 'name', 'platformId', 'source'].forEach((key) => {
+    if (row[key] == null || row[key] === '') return
+    out[key] = row[key]
+  })
   return out
 }
 

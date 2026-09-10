@@ -10,10 +10,8 @@ const emptyView = () => ({
   showLane: true,
 })
 
-export function mapSurfaceFromPath(pathname, search = '') {
-  const tab = new URLSearchParams(search || '').get('tab')
+export function mapSurfaceFromPath(pathname) {
   if (pathname === '/main-menu') return 'home'
-  if (pathname === '/sourcing' && tab !== 'track') return 'sourcing'
   if (pathname === '/management/people') return 'hr'
   return 'none'
 }

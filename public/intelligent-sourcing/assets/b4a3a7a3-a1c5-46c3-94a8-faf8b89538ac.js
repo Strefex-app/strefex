@@ -10,15 +10,45 @@
    Events: pin-hover (detail: {name}) so the host can sync focus. */
 (function () {
   var ATLAS = (window.__resources && window.__resources.worldAtlas) || "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
-  var topoPromise = null;
 
   function libsReady() {
-    return new Promise(function (res) {
+    return new Promise(function (res, rej) {
+      var n = 0;
       (function check() {
-        if (window.d3 && window.d3.geoNaturalEarth1 && window.topojson) res(true);
-        else setTimeout(check, 60);
+        if (window.d3 && window.d3.geoNaturalEarth1 && window.topojson) return res(true);
+        n += 1;
+        if (n > 80) return rej(new Error("d3/topojson missing"));
+        setTimeout(check, 60);
       })();
     });
+  }
+
+  function loadLand() {
+    if (window.__STREFEX_MAP_LAND__) return Promise.resolve(window.__STREFEX_MAP_LAND__);
+    function fromTopo(topo) {
+      if (topo && topo.objects && topo.objects.countries && window.topojson) {
+        return topojson.feature(topo, topo.objects.countries);
+      }
+      if (topo && Array.isArray(topo.features)) return topo;
+      throw new Error("unrecognized geography");
+    }
+    var p = fetch(ATLAS)
+      .then(function (r) {
+        if (!r.ok) throw new Error("atlas " + r.status);
+        return r.json();
+      })
+      .then(fromTopo)
+      .catch(function () {
+        return fetch("/geo/ne_110m_admin_0_countries.geojson").then(function (r) {
+          if (!r.ok) throw new Error("geojson " + r.status);
+          return r.json();
+        });
+      })
+      .then(function (land) {
+        window.__STREFEX_MAP_LAND__ = land;
+        return land;
+      });
+    return p;
   }
 
   function escapeXml(s) {
@@ -66,6 +96,8 @@
         'letter-spacing:.12em;text-transform:uppercase;color:#8B9298">Loading supplier geography…</div>';
       this.boot();
       var host = this;
+      this._onData = function () { if (host._land) host.paint(); };
+      window.addEventListener("strefex-sourcing-data", this._onData);
       if (typeof ResizeObserver !== "undefined") {
         var t = null;
         this._ro = new ResizeObserver(function () {
@@ -77,12 +109,15 @@
     }
     attributeChangedCallback() { if (this._land) this.paint(); }
 
+    disconnectedCallback() {
+      if (this._onData) window.removeEventListener("strefex-sourcing-data", this._onData);
+      if (this._ro) this._ro.disconnect();
+    }
+
     async boot() {
       try {
         await libsReady();
-        if (!topoPromise) topoPromise = fetch(ATLAS).then(function (r) { return r.json(); });
-        var topo = await topoPromise;
-        this._land = topojson.feature(topo, topo.objects.countries);
+        this._land = await loadLand();
         this.paint();
       } catch (e) {
         var s = this.querySelector("[data-skel]");
@@ -95,6 +130,7 @@
     }
 
     paint() {
+      if (!this._land || !Array.isArray(this._land.features)) return;
       var host = this;
       var all = ((window.SOURCING_DATA && window.SOURCING_DATA.SUPPLIERS) || []).filter(function (s) {
         return s && (s.source === "registered" || s.platformId);
@@ -316,13 +352,17 @@
         g.addEventListener("mouseleave", hideTip);
         g.addEventListener("click", function (ev) {
           ev.preventDefault();
-          showTip(ev.clientX, ev.clientY);
+          ev.stopPropagation();
+          host.setAttribute("highlight", nm);
         });
         g.addEventListener("touchstart", function (ev) {
           var t = ev.changedTouches && ev.changedTouches[0];
           if (t) showTip(t.clientX, t.clientY);
         }, { passive: true });
       });
+      try {
+        window.dispatchEvent(new CustomEvent("strefex-map-painted"));
+      } catch (e) {}
     }
   }
   if (!customElements.get("supplier-map")) customElements.define("supplier-map", SupplierMap);

@@ -171,7 +171,10 @@ export default function PeopleHrDashboard() {
       })),
     ]
 
-    return pins
+    return pins.filter((p) => {
+      const c = p.coordinates
+      return Array.isArray(c) && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1]))
+    })
   }, [companyPlants, data.byLocation])
 
   useEffect(() => {

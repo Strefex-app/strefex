@@ -18,6 +18,20 @@
   background: var(--map-ocean, #eef0f2);
 }
 
+.world-map-status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--color-text-muted, #6e767c);
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: var(--font-regular);
+}
+
 .world-map-container svg {
   display: block;
   width: 100%;
