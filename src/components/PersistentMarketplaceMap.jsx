@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import WorldMap from './WorldMap'
 import { usePersistentSourcingCanvas } from './PersistentSourcingCanvas'
@@ -20,8 +21,9 @@ export default function PersistentMarketplaceMap() {
   const setHomeView = useMarketplaceMapStore((s) => s.setHomeView)
   const setSourcingView = useMarketplaceMapStore((s) => s.setSourcingView)
   const setHrView = useMarketplaceMapStore((s) => s.setHrView)
-  const { iframeRef, frameReady } = usePersistentSourcingCanvas()
+  const { iframeRef, frameReady, canvasHost } = usePersistentSourcingCanvas()
   const { pathname, search } = useLocation()
+  const contained = surface === 'sourcing' && Boolean(canvasHost)
 
   useEffect(() => {
     setSurface(mapSurfaceFromPath(pathname, search))
@@ -34,16 +36,19 @@ export default function PersistentMarketplaceMap() {
     if (!host) return undefined
     const sync = () => {
       if ((surface === 'home' || surface === 'hr') && viewports[surface]) {
+        host.classList.remove('is-contained')
         place(host, viewports[surface].getBoundingClientRect())
         return
       }
       if (surface === 'sourcing') {
         const frame = iframeRef.current
-        const rect = readSourcingMapRect(frame, sourcing.slot)
+        const rect = readSourcingMapRect(frame, sourcing.slot, contained)
         if (!rect) {
           park(host)
           return
         }
+        if (contained) host.classList.add('is-contained')
+        else host.classList.remove('is-contained')
         place(host, rect)
         return
       }
@@ -58,28 +63,30 @@ export default function PersistentMarketplaceMap() {
     const slotEl = innerDoc?.querySelector('[data-stx-shared-map]')
     innerWin?.addEventListener('scroll', sync, true)
     innerWin?.addEventListener('resize', sync)
+    innerDoc?.addEventListener('scroll', sync, true)
     const ro = typeof ResizeObserver !== 'undefined' && slotEl
       ? new ResizeObserver(sync)
       : null
     if (ro && slotEl) ro.observe(slotEl)
-    const tick = surface === 'sourcing' ? window.setInterval(sync, 400) : null
+    const tick = surface === 'sourcing' ? window.setInterval(sync, 250) : null
     requestAnimationFrame(sync)
     return () => {
       window.removeEventListener('resize', sync)
       window.removeEventListener('scroll', sync, true)
       innerWin?.removeEventListener('scroll', sync, true)
       innerWin?.removeEventListener('resize', sync)
+      innerDoc?.removeEventListener('scroll', sync, true)
       ro?.disconnect()
       if (tick) window.clearInterval(tick)
     }
-  }, [surface, viewports, sourcing.slot, iframeRef, frameReady])
+  }, [surface, viewports, sourcing.slot, iframeRef, frameReady, contained])
 
   const showLane = view.showLane !== false && Boolean(view.plantLocation)
 
-  return (
+  const node = (
     <div
       ref={hostRef}
-      className="persistent-marketplace-map is-parked"
+      className={`persistent-marketplace-map is-parked${contained ? ' is-contained' : ''}`}
       aria-hidden="true"
     >
       <WorldMap
@@ -100,22 +107,30 @@ export default function PersistentMarketplaceMap() {
       />
     </div>
   )
+
+  if (contained) return createPortal(node, canvasHost)
+  return node
 }
 
-function readSourcingMapRect(iframe, postedSlot) {
+function readSourcingMapRect(iframe, postedSlot, contained) {
   if (!iframe) return null
   const frameRect = iframe.getBoundingClientRect()
   if (frameRect.width < 8 || frameRect.height < 8) return null
+  const viewH = iframe.clientHeight || frameRect.height
+  const viewW = iframe.clientWidth || frameRect.width
   try {
     const el = iframe.contentDocument?.querySelector('[data-stx-shared-map]')
     if (el) {
       const r = el.getBoundingClientRect()
       if (r.width >= 8 && r.height >= 8) {
-        return {
-          top: frameRect.top + r.top,
-          left: frameRect.left + r.left,
-          width: r.width,
-          height: r.height,
+        const local = { top: r.top, left: r.left, width: r.width, height: r.height }
+        if (local.top + local.height < 8 || local.top > viewH - 8) return null
+        if (local.left + local.width < 8 || local.left > viewW - 8) return null
+        return contained ? local : {
+          top: frameRect.top + local.top,
+          left: frameRect.left + local.left,
+          width: local.width,
+          height: local.height,
         }
       }
     }
@@ -125,9 +140,12 @@ function readSourcingMapRect(iframe, postedSlot) {
   const width = Number(slot.width || 0)
   const height = Number(slot.height || 0)
   if (width < 8 || height < 8) return null
+  const local = { top: Number(slot.top || 0), left: Number(slot.left || 0), width, height }
+  if (local.top + local.height < 8 || local.top > viewH - 8) return null
+  if (contained) return local
   return {
-    top: frameRect.top + Number(slot.top || 0),
-    left: frameRect.left + Number(slot.left || 0),
+    top: frameRect.top + local.top,
+    left: frameRect.left + local.left,
     width,
     height,
   }

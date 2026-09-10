@@ -9,12 +9,13 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260910c'
+export const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260910d'
 
 const SourcingCanvasContext = createContext({
   attachSlot: () => {},
   iframeRef: { current: null },
   frameReady: false,
+  canvasHost: null,
 })
 
 export function usePersistentSourcingCanvas() {
@@ -29,6 +30,7 @@ export function PersistentSourcingCanvasProvider({ children }) {
   const iframeRef = useRef(null)
   const hostRef = useRef(null)
   const slotRef = useRef(null)
+  const [canvasHost, setCanvasHost] = useState(null)
   const [booted, setBooted] = useState(false)
   const [frameReady, setFrameReady] = useState(false)
   const [live, setLive] = useState(false)
@@ -37,6 +39,11 @@ export function PersistentSourcingCanvasProvider({ children }) {
     slotRef.current = el
     if (el) setBooted(true)
     setLive(Boolean(el))
+  }, [])
+
+  const setHostNode = useCallback((el) => {
+    hostRef.current = el
+    setCanvasHost(el)
   }, [])
 
   useLayoutEffect(() => {
@@ -73,14 +80,14 @@ export function PersistentSourcingCanvasProvider({ children }) {
   }, [live])
 
   const value = useMemo(
-    () => ({ attachSlot, iframeRef, frameReady }),
-    [attachSlot, frameReady],
+    () => ({ attachSlot, iframeRef, frameReady, canvasHost }),
+    [attachSlot, frameReady, canvasHost],
   )
 
   return (
     <SourcingCanvasContext.Provider value={value}>
       {children}
-      <div ref={hostRef} className="persistent-sourcing-canvas is-parked" aria-hidden="true">
+      <div ref={setHostNode} className="persistent-sourcing-canvas is-parked" aria-hidden="true">
         {booted ? (
           <iframe
             ref={iframeRef}

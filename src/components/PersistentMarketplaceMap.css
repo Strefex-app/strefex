@@ -16,6 +16,11 @@
   pointer-events: none;
 }
 
+.persistent-marketplace-map.is-contained {
+  position: absolute;
+  z-index: 2;
+}
+
 .persistent-marketplace-map.is-live {
   opacity: 1;
   pointer-events: auto;
