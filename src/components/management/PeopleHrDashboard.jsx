@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useHrSpaceStore from '../../store/hrSpaceStore'
 import useSourcingPlantStore from '../../store/sourcingPlantStore'
@@ -10,16 +10,8 @@ import { buildPeopleHrDashboard } from '../../utils/peopleHrDashboard'
 import { hrCanon } from '../../data/companyWorkflows'
 import ExecutiveLocationMap from '../ExecutiveLocationMap'
 import { SOURCING_MAP_COLORS } from '../WorldMap'
+import useMarketplaceMapStore from '../../store/marketplaceMapStore'
 import './PeopleHrDashboard.css'
-
-/** Catalog plants always available so the HR map can show every site, not only the selected receiving plant. */
-const CATALOG_PLANTS = [
-  { id: 'muc', name: 'Munich plant', city: 'Munich', country: 'Germany', lat: 48.14, lon: 11.58 },
-  { id: 'det', name: 'Detroit plant', city: 'Detroit', country: 'United States', lat: 42.33, lon: -83.05 },
-  { id: 'qro', name: 'Querétaro plant', city: 'Querétaro', country: 'Mexico', lat: 20.59, lon: -100.39 },
-  { id: 'sha', name: 'Shanghai plant', city: 'Shanghai', country: 'China', lat: 31.23, lon: 121.47 },
-  { id: 'hkg', name: 'Hong Kong plant', city: 'Hong Kong', country: 'Hong Kong', lat: 22.32, lon: 114.17 },
-]
 
 function Delta({ pct, direction }) {
   if (!direction) {
@@ -69,7 +61,9 @@ export default function PeopleHrDashboard() {
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
   const plant = useSourcingPlantStore((s) => s.plant)
-  const [selectedLocId, setSelectedLocId] = useState(null)
+  const selectedLocId = useMarketplaceMapStore((s) => s.hr.selectedId)
+  const setHrView = useMarketplaceMapStore((s) => s.setHrView)
+  const setSelectedLocId = (id) => setHrView({ selectedId: id || null })
   const yearOptions = useMemo(() => hireYearsFromEmployees(employees), [employees])
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
 
@@ -98,9 +92,6 @@ export default function PeopleHrDashboard() {
   const companyPlants = useMemo(() => {
     const fromBuyer = buildBuyerPlants({ tenant, user, account: myAccount })
     const merged = new Map()
-    CATALOG_PLANTS.forEach((p) => {
-      merged.set(p.id, { ...p })
-    })
     fromBuyer.forEach((p) => {
       merged.set(p.id || `buyer-${p.name}`, {
         id: p.id,
@@ -182,6 +173,17 @@ export default function PeopleHrDashboard() {
 
     return pins
   }, [companyPlants, data.byLocation])
+
+  useEffect(() => {
+    setHrView({
+      locations: plantHeadcountPins,
+      plantLocation: null,
+      lanes: null,
+      metric: 'risk',
+      selectedId: selectedLocId,
+      showLane: false,
+    })
+  }, [setHrView, plantHeadcountPins, selectedLocId])
 
   const plantLocationBars = data.byLocation
   const hq = plantLocationBars.find((r) => r.label !== 'Unspecified') || plantLocationBars[0]
@@ -269,6 +271,7 @@ export default function PeopleHrDashboard() {
 
         <ExecutiveLocationMap
           className="phd__map-widget"
+          sharedSurface="hr"
           title="Employee locations"
           disclaimer=""
           locations={plantHeadcountPins}

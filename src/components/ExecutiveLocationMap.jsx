@@ -1,5 +1,7 @@
+import { useLayoutEffect, useRef } from 'react'
 import WorldMap, { MAP_PIN_TONES } from './WorldMap'
 import { MAP_TRANSPORT_MODES } from '../utils/transitLeadTime'
+import useMarketplaceMapStore from '../store/marketplaceMapStore'
 import './ExecutiveLocationMap.css'
 
 const DEFAULT_DISCLAIMER =
@@ -31,9 +33,19 @@ export default function ExecutiveLocationMap({
   activeMapTopic = null,
   onMapTopicChange = null,
   mapFit = null,
+  /** Register this viewport on the shared WorldMap (`home` or `hr`). */
+  sharedSurface = null,
 }) {
   const plantLabel = plantLegendLabel
     || (plantLocation?.name ? `Receiving plant · ${plantLocation.name}` : 'Receiving plant')
+  const viewportRef = useRef(null)
+  const setViewportEl = useMarketplaceMapStore((s) => s.setViewportEl)
+
+  useLayoutEffect(() => {
+    if (!sharedSurface) return undefined
+    setViewportEl(sharedSurface, viewportRef.current)
+    return () => setViewportEl(sharedSurface, null)
+  }, [sharedSurface, setViewportEl])
 
   const hideToneLegend = legendMode === 'plants' || legendMode === 'none'
   const topicList = Array.isArray(mapTopics) ? mapTopics.filter(Boolean) : []
@@ -102,7 +114,8 @@ export default function ExecutiveLocationMap({
       {disclaimer ? (
         <p className="exec-loc-map__disclaimer stx-text-wrap">{disclaimer}</p>
       ) : null}
-      <div className="exec-loc-map__viewport">
+      <div className="exec-loc-map__viewport" ref={viewportRef}>
+        {sharedSurface ? null : (
         <WorldMap
           variant="sourcing"
           locations={locations}
@@ -114,6 +127,7 @@ export default function ExecutiveLocationMap({
           lanes={lanes}
           fit={mapFit}
         />
+        )}
       </div>
       <div className="exec-loc-map__legend">
         {chips.map((item) => (

@@ -3,6 +3,8 @@ import {
   accountToSourcingSupplier,
   platformIndustryFromSourcing,
   buildBuyerPlants,
+  slimSourcingSupplier,
+  buildPlatformSourcingPayload,
 } from '../utils/intelligentSourcingData'
 import { sourcingSupplierMatchesDomainCategory } from '../utils/sourcingCategoryAliases'
 import {
@@ -243,5 +245,29 @@ describe('accountSourcingCompleteness', () => {
     expect(dir.some((r) => r.email === 'plant@maker.de')).toBe(true)
     const merged = mergeNetworkManufacturersWithAccounts([])
     expect(merged.some((r) => r.company === 'Maker GmbH')).toBe(true)
+  })
+
+  it('slims empty supplier fields and can omit taxonomy from the iframe payload', () => {
+    const slim = slimSourcingSupplier({
+      name: 'Forge',
+      city: '',
+      fin: '—',
+      certs: [],
+      lead: 0,
+      incomplete: false,
+    })
+    expect(slim.name).toBe('Forge')
+    expect(slim.lead).toBe(0)
+    expect(slim.incomplete).toBe(false)
+    expect(slim.city).toBeUndefined()
+    expect(slim.fin).toBeUndefined()
+    expect(slim.certs).toBeUndefined()
+
+    const withTax = buildPlatformSourcingPayload({ registrySellers: [] })
+    const withoutTax = buildPlatformSourcingPayload({ registrySellers: [], includeTaxonomy: false })
+    expect(withTax.taxonomy).toBeTruthy()
+    expect(withTax.taxonomyVersion).toBeTruthy()
+    expect(withoutTax.taxonomy).toBeUndefined()
+    expect(withoutTax.taxonomyVersion).toBe(withTax.taxonomyVersion)
   })
 })

@@ -11,6 +11,8 @@ import UpgradePrompt from './components/UpgradePrompt'
 import PWAUpdateBanner from './components/PWAUpdateBanner'
 import PwaNotificationPrompt from './components/PwaNotificationPrompt'
 import AppLayout from './components/AppLayout'
+import { PersistentSourcingCanvasProvider } from './components/PersistentSourcingCanvas'
+import PersistentMarketplaceMap from './components/PersistentMarketplaceMap'
 import authService from './services/authService'
 import {
   getNotificationPermission,
@@ -379,6 +381,8 @@ function App() {
         {showPushPrompt && <PwaNotificationPrompt />}
         <WorkspaceSyncOnNavigate />
         <AnalyticsProvider>
+        <PersistentSourcingCanvasProvider>
+        <PersistentMarketplaceMap />
         <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* ── Public ────────────────────────────────────── */}
@@ -627,6 +631,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </Suspense>
+        </PersistentSourcingCanvasProvider>
         </AnalyticsProvider>
       </Router>
     </ErrorBoundary>

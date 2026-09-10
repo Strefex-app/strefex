@@ -1,0 +1,26 @@
+.persistent-marketplace-map {
+  position: fixed;
+  z-index: 9;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--map-ocean, #eef0f2);
+}
+
+.persistent-marketplace-map.is-parked {
+  top: 0;
+  left: -12000px;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.persistent-marketplace-map.is-live {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.persistent-marketplace-map .world-map-container {
+  height: 100% !important;
+}

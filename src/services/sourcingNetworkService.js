@@ -6,7 +6,17 @@ import { sourcingNetworkRowToAccount } from '../utils/companyTaxonomyPayload'
 import { publishAccountsToNetworkDirectory } from '../utils/accountSourcingCompleteness'
 import { mergeAccountsPreferFilled } from '../utils/keepExistingAccountFields'
 
-export async function fetchSourcingNetworkAccounts({ limit = 500 } = {}) {
+const NETWORK_FETCH_TTL_MS = 90_000
+
+let inflight = null
+let cache = { rows: null, at: 0, limit: 0 }
+
+export function resetSourcingNetworkFetchCache() {
+  inflight = null
+  cache = { rows: null, at: 0, limit: 0 }
+}
+
+async function rpcListSourcingNetworkAccounts(limit) {
   if (!isSupabaseConfigured || !supabase) return []
   try {
     const { data, error } = await supabase.rpc('list_sourcing_network_accounts', {
@@ -23,6 +33,32 @@ export async function fetchSourcingNetworkAccounts({ limit = 500 } = {}) {
     console.warn('[sourcingNetwork] fetch failed:', err?.message || err)
     return []
   }
+}
+
+/**
+ * Shared network directory fetch. Home and Sourcing share one in-flight
+ * request and a short TTL so keep-alive does not double the RPC traffic.
+ */
+export async function fetchSourcingNetworkAccounts({ limit = 500, force = false } = {}) {
+  const wanted = Math.min(Math.max(Number(limit) || 500, 1), 2000)
+  if (!force && inflight) return inflight
+  if (
+    !force
+    && Array.isArray(cache.rows)
+    && cache.limit >= wanted
+    && (Date.now() - cache.at) < NETWORK_FETCH_TTL_MS
+  ) {
+    return cache.rows
+  }
+  inflight = rpcListSourcingNetworkAccounts(wanted)
+    .then((rows) => {
+      cache = { rows, at: Date.now(), limit: wanted }
+      return rows
+    })
+    .finally(() => {
+      inflight = null
+    })
+  return inflight
 }
 
 /**

@@ -3,14 +3,16 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import Home from './Home'
 import IntelligentSourcingPage from './IntelligentSourcingPage'
 import BuyerWorkspace from './BuyerWorkspace'
+import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
+import { useAccountRegistry } from '../store/accountRegistry'
 import './MarketplaceKeepAlive.css'
 
 const TRACK_TABS = new Set(['track'])
 
 /**
- * Keep Home + Sourcing mounted when switching between them so the world
- * geography (Home WorldMap / Sourcing iframe atlas) is not fetched again.
- * Pins still update from RFQs, activities, and sourcing filters.
+ * Keep Home mounted when switching to Sourcing so WorldMap geography stays
+ * in memory. The Sourcing iframe is parked separately (PersistentSourcingCanvas)
+ * so leaving /sourcing does not re-download the atlas.
  */
 export default function MarketplaceKeepAlive() {
   const { pathname } = useLocation()
@@ -21,12 +23,20 @@ export default function MarketplaceKeepAlive() {
   const isTrack = pathname === '/sourcing' && TRACK_TABS.has(tab)
 
   const [keepHome, setKeepHome] = useState(isHome)
-  const [keepSourcing, setKeepSourcing] = useState(isSourcingMap)
+  const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
 
   useEffect(() => {
     if (isHome) setKeepHome(true)
-    if (isSourcingMap) setKeepSourcing(true)
-  }, [isHome, isSourcingMap])
+  }, [isHome])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSourcingNetworkAccounts({ limit: 800 }).then((rows) => {
+      if (cancelled || !rows.length) return
+      mergeNetworkAccounts(rows)
+    })
+    return () => { cancelled = true }
+  }, [mergeNetworkAccounts])
 
   return (
     <>
@@ -39,15 +49,7 @@ export default function MarketplaceKeepAlive() {
           <Home />
         </div>
       ) : null}
-      {keepSourcing ? (
-        <div
-          className="marketplace-keepalive-pane"
-          hidden={!isSourcingMap}
-          inert={!isSourcingMap ? true : undefined}
-        >
-          <IntelligentSourcingPage />
-        </div>
-      ) : null}
+      {isSourcingMap ? <IntelligentSourcingPage /> : null}
       {isTrack ? <BuyerWorkspace /> : null}
     </>
   )

@@ -10,11 +10,11 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import ExecutiveLocationMap from '../components/ExecutiveLocationMap'
+import useMarketplaceMapStore from '../store/marketplaceMapStore'
 import { BUYER_WORKSPACE_PATH, buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { buildBuyerPlants } from '../utils/intelligentSourcingData'
 import { getApproximateLngLatOrFallback } from '../utils/accountApproximateLocation'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
-import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
 import {
   hasBuyerSide,
@@ -190,12 +190,13 @@ export default function Home() {
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
-  const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const setTenant = useAuthStore((s) => s.setTenant)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
-  const [selectedLocId, setSelectedLocId] = useState(null)
+  const selectedLocId = useMarketplaceMapStore((s) => s.home.selectedId)
+  const setHomeView = useMarketplaceMapStore((s) => s.setHomeView)
+  const setSelectedLocId = (id) => setHomeView({ selectedId: id || null })
   const [plantsPanelOpen, setPlantsPanelOpen] = useState(false)
   const [mapFocus, setMapFocus] = useState(null)
   const [transportMode, setTransportMode] = useState('sea')
@@ -209,16 +210,6 @@ export default function Home() {
   useEffect(() => {
     ensureAllAccountsSourcingFields()
   }, [ensureAllAccountsSourcingFields])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const rows = await fetchSourcingNetworkAccounts({ limit: 800 })
-      if (cancelled || !rows.length) return
-      mergeNetworkAccounts(rows)
-    })()
-    return () => { cancelled = true }
-  }, [mergeNetworkAccounts])
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
@@ -703,6 +694,16 @@ export default function Home() {
         color: MAP_FOCUS[k].color,
       }))
   }, [mapFocus, rfqMapRelations])
+
+  useEffect(() => {
+    setHomeView({
+      locations: mapDisplayLocations,
+      plantLocation,
+      lanes: mapLanes,
+      metric: 'risk',
+      selectedId: selectedLocId,
+    })
+  }, [setHomeView, mapDisplayLocations, plantLocation, mapLanes, selectedLocId])
 
   const handleKpiMapFocus = (key, path) => {
     if (!MAP_FOCUS[key]) {
@@ -1359,6 +1360,7 @@ export default function Home() {
           {/* Map + pulse — RFQ KPI colors, lanes to plant, transport lead times */}
           <div className="home-dash__map-row">
             <ExecutiveLocationMap
+              sharedSurface="home"
               className="home-dash__map-widget"
               title={mapFocus && MAP_FOCUS[mapFocus]
                 ? `${MAP_FOCUS[mapFocus].label} · map`

@@ -2,7 +2,7 @@
  * Network Intelligent Sourcing — embeds public/intelligent-sourcing design 1:1.
  * Create RFQ opens the unified form → rfqStore (same path as Executive Summary).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import BuyerRfqCreateForm from '../components/buyer/BuyerRfqCreateForm'
@@ -16,7 +16,9 @@ import {
   serializeSourcingRfqList,
 } from '../utils/intelligentSourcingData'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
-import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
+import { usePersistentSourcingCanvas } from '../components/PersistentSourcingCanvas'
+import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
+import useMarketplaceMapStore from '../store/marketplaceMapStore'
 import {
   createAndSendNetworkRfq,
   sourcingRfqOpenContext,
@@ -363,8 +365,6 @@ function categoryOptionsForIndustry(industryId, extraCategoryId = '', rfqType = 
   return [...map.values()]
 }
 
-const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260909d'
-
 export default function IntelligentSourcingPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -373,7 +373,6 @@ export default function IntelligentSourcingPage() {
   const isSuperAdmin = role === 'superadmin'
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
-  const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const plant = useSourcingPlantStore((s) => s.plant)
@@ -388,16 +387,6 @@ export default function IntelligentSourcingPage() {
   useEffect(() => {
     ensureAllAccountsSourcingFields()
   }, [ensureAllAccountsSourcingFields])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const rows = await fetchSourcingNetworkAccounts({ limit: 800 })
-      if (cancelled || !rows.length) return
-      mergeNetworkAccounts(rows)
-    })()
-    return () => { cancelled = true }
-  }, [mergeNetworkAccounts, user?.email, tenant?.id])
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
@@ -426,6 +415,7 @@ export default function IntelligentSourcingPage() {
         user,
         account: myAccount,
         buyerIndustries: selectedIndustries || myAccount?.industries || [],
+        includeTaxonomy: false,
       }),
       rfqs: buyerRfqs,
     }),
@@ -434,20 +424,35 @@ export default function IntelligentSourcingPage() {
 
   const payloadKey = useMemo(() => JSON.stringify(platformPayload), [platformPayload])
 
-  const [frameSrc] = useState(SOURCING_FRAME_SRC)
-  const [status, setStatus] = useState('loading')
   const [showRfqModal, setShowRfqModal] = useState(false)
   const [rfqContext, setRfqContext] = useState(null)
   const [lastCreatedRfq, setLastCreatedRfq] = useState(null)
   const [sendError, setSendError] = useState('')
-  const iframeRef = useRef(null)
+  const slotRef = useRef(null)
+  const taxonomySentRef = useRef(false)
+  const { attachSlot, iframeRef, frameReady } = usePersistentSourcingCanvas()
+  const setSourcingView = useMarketplaceMapStore((s) => s.setSourcingView)
+  const status = frameReady ? 'ready' : 'loading'
+
+  useLayoutEffect(() => {
+    attachSlot(slotRef.current)
+    return () => {
+      attachSlot(null)
+      setSourcingView({ slot: null, locations: [] })
+    }
+  }, [attachSlot, setSourcingView])
 
   const pushPlatformToFrame = useCallback(() => {
     const win = iframeRef.current?.contentWindow
     if (!win) return
     try {
+      const payload = JSON.parse(payloadKey)
+      if (!taxonomySentRef.current) {
+        payload.taxonomy = buildSourcingTaxonomyOverlay()
+        taxonomySentRef.current = true
+      }
       win.postMessage(
-        { source: 'strefex-platform', action: 'apply-platform', payload: JSON.parse(payloadKey) },
+        { source: 'strefex-platform', action: 'apply-platform', payload },
         '*',
       )
       win.postMessage(
@@ -455,7 +460,7 @@ export default function IntelligentSourcingPage() {
         '*',
       )
     } catch { /* not ready */ }
-  }, [payloadKey, theme])
+  }, [iframeRef, payloadKey, theme])
 
   useEffect(() => {
     if (status !== 'ready') return
@@ -479,10 +484,21 @@ export default function IntelligentSourcingPage() {
     if (!data || data.source !== 'strefex-intelligent-sourcing') return
     const { action, payload } = data
     if (action === 'ready') {
+      taxonomySentRef.current = false
       pushPlatformToFrame()
       return
     }
-    if (action === 'select-plant' && payload?.buyer) {
+    if (action === 'shared-map') {
+      setSourcingView({
+        locations: Array.isArray(payload?.locations) ? payload.locations : [],
+        plantLocation: payload?.plant || null,
+        lanes: Array.isArray(payload?.lanes) && payload.lanes.length ? payload.lanes : null,
+        metric: payload?.metric || 'risk',
+        selectedId: payload?.selectedId || null,
+        slot: payload?.slot || null,
+      })
+      return
+    }
       setPlant(payload.buyer)
       return
     }
@@ -524,6 +540,7 @@ export default function IntelligentSourcingPage() {
     plant?.id,
     pushPlatformToFrame,
     setPlant,
+    setSourcingView,
     setTenant,
     tenant,
     updateAccount,
@@ -600,16 +617,7 @@ export default function IntelligentSourcingPage() {
                 Loading Sourcing…
               </div>
             )}
-            <iframe
-              ref={iframeRef}
-              className="intelligent-sourcing-frame"
-              title="Intelligent Sourcing"
-              src={frameSrc}
-              onLoad={() => {
-                setStatus('ready')
-                pushPlatformToFrame()
-              }}
-            />
+            <div ref={slotRef} className="intelligent-sourcing-frame" />
           </>
         )}
 

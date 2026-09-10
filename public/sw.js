@@ -13,7 +13,7 @@
  */
 
 /** Bump when you need clients to drop all cached JS/CSS (e.g. removed major UI). */
-const CACHE_VERSION = 'strefex-v29'
+const CACHE_VERSION = 'strefex-v31'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 const SHELL_URL = '/index.html'
@@ -23,6 +23,8 @@ const PRECACHE_URLS = [
   '/apple-touch-icon.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
+  '/geo/ne_110m_admin_0_countries.geojson',
+  '/intelligent-sourcing/assets/5d9e267c-1cbb-4f8a-85f6-b043d1245fab.json',
 ]
 
 const OFFLINE_HTML = `<!DOCTYPE html>
@@ -100,8 +102,15 @@ function isNavigationRequest(request) {
   return request.mode === 'navigate'
 }
 
+function isMapAtlas(url) {
+  if (url.origin !== self.location.origin) return false
+  if (url.pathname.startsWith('/geo/') && /\.geojson$/i.test(url.pathname)) return true
+  if (url.pathname.startsWith('/intelligent-sourcing/assets/') && /\.json$/i.test(url.pathname)) return true
+  return false
+}
+
 function isStaticAsset(url) {
-  return /\.(js|css|woff2?|ttf|eot|png|jpe?g|gif|svg|webp|ico|webmanifest)(\?.*)?$/i.test(url.pathname)
+  return /\.(js|css|woff2?|ttf|eot|png|jpe?g|gif|svg|webp|ico|webmanifest|geojson)(\?.*)?$/i.test(url.pathname)
 }
 
 /** Hashed app chunks — prefer network so users do not run an old bundle after deploy. */
@@ -162,6 +171,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
 
   if (!url.protocol.startsWith('http')) return
+
+  // World geography — cache-first (does not change with supplier pins).
+  if (isMapAtlas(url)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE))
+    return
+  }
 
   // Same-origin marketing / Intelligent Sourcing static files — network first, never HTML-as-JS
   if (url.origin === self.location.origin && (

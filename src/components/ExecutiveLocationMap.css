@@ -130,7 +130,6 @@ html[data-theme="dark"] .exec-loc-map__topic:not(.is-active),
   border: 1px solid var(--sourcing-border);
   background: var(--sourcing-ocean);
   position: relative;
-  isolation: isolate;
 }
 
 .exec-loc-map__viewport .world-map-container {

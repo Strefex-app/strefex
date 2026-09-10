@@ -18,6 +18,7 @@ import {
   SOURCING_INDUSTRY_TO_PLATFORM as SOURCING_INDUSTRY_TO_PLATFORM_MAP,
 } from './intelligentSourcingIndustryMap'
 import {
+  SOURCING_TAXONOMY_VERSION,
   buildSourcingTaxonomyOverlay,
   getProfileSubIdsForParent,
 } from './unifiedSourcingTaxonomy'
@@ -382,18 +383,33 @@ export function platformIndustryFromSourcing(industryId) {
   return SOURCING_INDUSTRY_TO_PLATFORM[industryId] || industryId || null
 }
 
+/** Drop empty compare/map fields so postMessage stays small. Keep 0 / false. */
+export function slimSourcingSupplier(row) {
+  if (!row || typeof row !== 'object') return row
+  const out = {}
+  Object.keys(row).forEach((key) => {
+    const v = row[key]
+    if (v == null || v === '') return
+    if (v === '—') return
+    if (Array.isArray(v) && v.length === 0) return
+    out[key] = v
+  })
+  return out
+}
+
 export function buildPlatformSourcingPayload({
   registrySellers = [],
   tenant,
   user,
   account,
   buyerIndustries = [],
+  includeTaxonomy = true,
 } = {}) {
   /* Intelligent Sourcing lists/indicators use registered accounts only — never static seed. */
   const suppliers = buildSourcingSuppliers({
     registrySellers,
     includeSeeded: false,
-  })
+  }).map(slimSourcingSupplier)
   const buyers = buildBuyerPlants({ tenant, user, account })
   const registeredIndustryIds = [
     ...new Set([
@@ -401,14 +417,16 @@ export function buildPlatformSourcingPayload({
       ...buyerIndustries.map((id) => PLATFORM_TO_SOURCING_INDUSTRY[id]).filter(Boolean),
     ]),
   ]
-  return {
+  const payload = {
     suppliers,
     buyers,
     registeredIndustryIds,
-    taxonomy: buildSourcingTaxonomyOverlay(),
+    taxonomyVersion: SOURCING_TAXONOMY_VERSION,
     userInitials: initialsFromUser(user, account),
     allowDemoSeed: false,
   }
+  if (includeTaxonomy) payload.taxonomy = buildSourcingTaxonomyOverlay()
+  return payload
 }
 
 function initialsFromUser(user, account) {

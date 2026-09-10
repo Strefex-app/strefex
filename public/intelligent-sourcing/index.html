@@ -1635,7 +1635,6 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
 <script src="assets/99eca733-7ff7-4470-87d5-d54710858547.js"></script>
 <script src="/intelligent-sourcing/platform-merge.js"></script>
 
-<script src="assets/b4a3a7a3-a1c5-46c3-94a8-faf8b89538ac.js"></script>
 <script src="assets/99ed347d-d24a-4fcd-91ef-e5e78e4ac171.js"></script>
 <script src="assets/0d6196d0-d61b-4fcf-8ecc-7480de081379.js"></script>
 <script src="assets/686ecbe9-b7ab-4dbd-80a9-b7537bb90ef7.js"></script>
@@ -2291,7 +2290,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                     </button>
                   </div>
                 </div>
-                <x-import component-from-global-scope="supplier-map" metric="{{ metric }}" focus="{{ focus }}" highlight="{{ highlightName }}" names="{{ mapNames }}" lanes="{{ mapLanes }}" buyer="{{ mapBuyer }}" showlanes="{{ showLanes }}" height="{{ mapHeight }}" hint-size="100%,600px"></x-import>
+                <div data-stx-shared-map style="height:{{ mapHeight }}px;width:100%;border:1px solid var(--border-hairline);border-radius:6px;background:var(--map-ocean,#EEF0F2);box-sizing:border-box"></div>
                 <div style="font-size:12px; line-height:1.5; color:var(--text-faint); margin-top:10px">Hover a pin for the lane from {{ buyerName }} with make and transit days; use <strong style="color:var(--text-body)">Compare delivery time</strong> to draw every lane at once. Indicative only — not a carrier quote. <span sc-camel-on-click="{{ onRegistration }}" style="color:var(--navy-700); text-decoration:underline; cursor:pointer">{{ hiddenCount }} registered suppliers are not mapped</span> — they have not passed verification, so their plant coordinates are unconfirmed.</div>
               </div>
 
@@ -3202,6 +3201,37 @@ class Component extends DCLogic {
       const buyer = this.plantList().find(b => b.id === buyerId) || null;
       (window.__STREFEX_SOURCING_BRIDGE__ || {}).emit && window.__STREFEX_SOURCING_BRIDGE__.emit("select-plant", { buyer });
     } catch (e) {}
+  }
+  publishSharedMap(sups, buyer, s) {
+    requestAnimationFrame(() => {
+      try {
+        const el = document.querySelector("[data-stx-shared-map]");
+        const r = el ? el.getBoundingClientRect() : null;
+        const locs = (sups || []).filter(x => x && Number.isFinite(Number(x.lat)) && Number.isFinite(Number(x.lon))).map(x => ({
+          id: x.platformId || x.name,
+          name: x.name,
+          city: x.city,
+          coordinates: [Number(x.lon), Number(x.lat)],
+          riskLevel: x.risk,
+          fitLevel: x.fit,
+          capacityLevel: x.cap,
+        }));
+        const plant = buyer && Number.isFinite(Number(buyer.lat)) && Number.isFinite(Number(buyer.lon))
+          ? { name: String(buyer.name || "").replace(" plant", ""), coordinates: [Number(buyer.lon), Number(buyer.lat)] }
+          : null;
+        const lanes = s.showLanes && plant
+          ? locs.map(loc => ({ id: loc.id, from: plant.coordinates, to: loc.coordinates, toId: loc.id }))
+          : null;
+        (window.__STREFEX_SOURCING_BRIDGE__ || {}).emit && window.__STREFEX_SOURCING_BRIDGE__.emit("shared-map", {
+          slot: r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null,
+          locations: locs,
+          plant: plant,
+          lanes: lanes,
+          metric: (s && s.metric) || "risk",
+          selectedId: s && s.highlight ? s.highlight : null,
+        });
+      } catch (e) {}
+    });
   }
   setPlant(id, key, value) {
     this.setState(p => ({
@@ -4564,6 +4594,7 @@ transitFor(sup) {
       formCols3: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(3,minmax(0,1fr))",
       formCols4: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(4,minmax(0,1fr))",
       mapHeight: phone ? 340 : narrow ? 420 : 560,
+      _sharedMap: (this.publishSharedMap(s.category ? sups : [], buyer, s), null),
       onToggleNav: () => this.setState(p => ({ navOpen: !p.navOpen })),
       navOpen: s.navOpen,
       onCloseNav: () => this.setState({ navOpen: false }),

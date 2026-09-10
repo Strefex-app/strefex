@@ -7,6 +7,9 @@ import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustry
 import { AUDIT_SERVICE_ITEMS, AUDIT_SERVICES_CATEGORY_ID } from '../data/auditServices'
 import { PLATFORM_TO_SOURCING_INDUSTRY } from './intelligentSourcingIndustryMap'
 
+/** Bump when overlay shape changes so the iframe can skip a repeat taxonomy payload. */
+export const SOURCING_TAXONOMY_VERSION = '2026-09-10'
+
 const AUDIT_SERVICE_SUBS = AUDIT_SERVICE_ITEMS.map((i) => ({
   id: i.id,
   name: i.label,
