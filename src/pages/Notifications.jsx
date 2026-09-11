@@ -11,6 +11,7 @@ import { useAccountRegistry } from '../store/accountRegistry'
 import { tenantKey } from '../utils/tenantStorage'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { rfqIntelligenceUrl } from '../constants/rfqPaths'
+import { useSettingsStore } from '../store/settingsStore'
 import '../styles/app-page.css'
 import './Notifications.css'
 
@@ -45,6 +46,8 @@ export default function Notifications() {
   const navigate = useNavigate()
   const { getPlannedExhibitions } = useExhibitionStore()
   const planned = getPlannedExhibitions()
+  const exhibitionReminders = useSettingsStore((s) => s.exhibitionReminders)
+  const reminderExhibitionIds = useExhibitionStore((s) => s.reminderExhibitions)
 
   const user = useAuthStore((s) => s.user)
   const role = useAuthStore((s) => s.role)
@@ -236,54 +239,59 @@ export default function Notifications() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  planned.forEach((ex) => {
-    const start = new Date(ex.startDate + 'T00:00:00')
-    start.setHours(0, 0, 0, 0)
-    const diff = Math.ceil((start - today) / 86400000)
+  if (exhibitionReminders) {
+    planned.filter((ex) => reminderExhibitionIds.includes(ex.id)).forEach((ex) => {
+      const start = new Date(ex.startDate + 'T00:00:00')
+      start.setHours(0, 0, 0, 0)
+      const diff = Math.ceil((start - today) / 86400000)
 
-    if (diff <= 30 && diff > 0) {
-      allNotifications.push({
-        id: `${ex.id}-1m`,
-        exhibition: ex,
-        type: 'reminder',
-        urgency: diff <= 1 ? 'urgent' : diff <= 7 ? 'warning' : 'info',
-        message: diff === 1 ? 'Starts TOMORROW!' : diff <= 7 ? `Starts in ${diff} days` : `Starts in ${diff} days (within 1 month)`,
-        daysLeft: diff,
-        icon: diff <= 1 ? 'urgent' : diff <= 7 ? 'week' : 'month',
-      })
-    }
-    if (diff === 0) {
-      allNotifications.push({
-        id: `${ex.id}-today`,
-        exhibition: ex,
-        type: 'today',
-        urgency: 'today',
-        message: 'Exhibition starts TODAY!',
-        daysLeft: 0,
-        icon: 'today',
-      })
-    }
-    if (diff < 0 && diff >= -7) {
-      const endDate = new Date(ex.endDate + 'T00:00:00')
-      if (today <= endDate) {
+      if (diff <= 30 && diff > 0) {
         allNotifications.push({
-          id: `${ex.id}-ongoing`,
+          id: `${ex.id}-1m`,
           exhibition: ex,
-          type: 'ongoing',
-          urgency: 'ongoing',
-          message: 'Exhibition is currently ongoing',
+          type: 'reminder',
+          urgency: diff <= 1 ? 'urgent' : diff <= 7 ? 'warning' : 'info',
+          message: diff === 1 ? 'Starts TOMORROW!' : diff <= 7 ? `Starts in ${diff} days` : `Starts in ${diff} days (within 1 month)`,
           daysLeft: diff,
-          icon: 'ongoing',
+          icon: diff <= 1 ? 'urgent' : diff <= 7 ? 'week' : 'month',
         })
       }
-    }
-  })
+      if (diff === 0) {
+        allNotifications.push({
+          id: `${ex.id}-today`,
+          exhibition: ex,
+          type: 'today',
+          urgency: 'today',
+          message: 'Exhibition starts TODAY!',
+          daysLeft: 0,
+          icon: 'today',
+        })
+      }
+      if (diff < 0 && diff >= -7) {
+        const endDate = new Date(ex.endDate + 'T00:00:00')
+        if (today <= endDate) {
+          allNotifications.push({
+            id: `${ex.id}-ongoing`,
+            exhibition: ex,
+            type: 'ongoing',
+            urgency: 'ongoing',
+            message: 'Exhibition is currently ongoing',
+            daysLeft: diff,
+            icon: 'ongoing',
+          })
+        }
+      }
+    })
+  }
 
-  const scheduled = planned.filter((ex) => {
-    const start = new Date(ex.startDate + 'T00:00:00')
-    const diff = Math.ceil((start - today) / 86400000)
-    return diff > 30
-  })
+  const scheduled = exhibitionReminders
+    ? planned.filter((ex) => {
+      if (!reminderExhibitionIds.includes(ex.id)) return false
+      const start = new Date(ex.startDate + 'T00:00:00')
+      const diff = Math.ceil((start - today) / 86400000)
+      return diff > 30
+    })
+    : []
 
   allNotifications.sort((a, b) => a.daysLeft - b.daysLeft)
 
@@ -896,7 +904,7 @@ export default function Notifications() {
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <h3>No Notifications</h3>
-              <p>Plan exhibitions from the <strong>Exhibition Calendar</strong> to receive reminders.</p>
+              <p>On Exhibition Calendar, star a fair to plan it, then use the bell to turn that reminder on or off. Settings has a master switch for all exhibition reminders.</p>
               <button type="button" className="notif-goto-cal" onClick={() => navigate('/profile/calendar')}>
                 Open Exhibition Calendar
               </button>

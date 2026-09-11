@@ -1,10 +1,44 @@
 import { create } from 'zustand'
+import { exhibitionMonth, exhibitionYear, parseExhibitionDate } from '../utils/exhibitionDate'
+
+const PLAN_KEY = 'strefex-planned-exhibitions'
+const REMIND_KEY = 'strefex-exhibition-remind-ids'
+
+function loadIdList(key) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function loadReminderIds(planned) {
+  try {
+    const raw = localStorage.getItem(REMIND_KEY)
+    if (raw === null) {
+      if (planned.length) persistPlans(planned, planned)
+      return planned
+    }
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function persistPlans(planned, reminders) {
+  try {
+    localStorage.setItem(PLAN_KEY, JSON.stringify(planned))
+    localStorage.setItem(REMIND_KEY, JSON.stringify(reminders))
+  } catch { /* */ }
+}
 
 /**
  * Global exhibition catalog for Profile / Platform calendars.
  * Dates and venues change — verify each year against official organisers (linked in `website`).
- * Last full review: 2026-03 (Hannover Messe, CHINAPLAS rotation, Bauma triennial, FABTECH rotation,
- * Fakuma, LogiMAT, Arab Health, Metal-Expo St. Petersburg, Automatica biennial).
+ * Last full review: 2026-09 (Hannover Messe, IAA Transportation, IMTS, CHINAPLAS,
+ * Automechanika, EuroBLECH, Fakuma, K, Tube/Wire, Bauma, Formnext, LogiMAT — 2026–2028).
  */
 const useExhibitionStore = create((set, get) => ({
   exhibitions: [
@@ -38,7 +72,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-26-003', name: 'IAA Transportation 2026', industry: 'Automotive',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2026-09-22', endDate: '2026-09-27',
+      startDate: '2026-09-15', endDate: '2026-09-20',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Commercial Vehicles', 'Logistics', 'Trailers'],
       description: 'Global platform for transport and logistics.',
@@ -104,6 +138,17 @@ const useExhibitionStore = create((set, get) => ({
       color: '#3498db',
     },
     {
+      id: 'ex-26-013b', name: 'CeMAT Asia Shanghai 2026', industry: 'Manufacturing',
+      country: 'China', city: 'Shanghai', venue: 'Shanghai New International Expo Centre',
+      startDate: '2026-11-03', endDate: '2026-11-06',
+      tier: ['OEM', 'Tier 1', 'Tier 2'],
+      equipment: ['Material Handling', 'Logistics Automation', 'Warehouse Systems', 'Packaging'],
+      description: 'Asia\'s premier logistics technology exhibition — official 3–6 November 2026 at SNIEC.',
+      website: 'https://www.cemat-asia.com',
+      visitors: '65,000+', exhibitors: '700+',
+      color: '#3498db',
+    },
+    {
       id: 'ex-26-014', name: 'LogiMAT Stuttgart 2026', industry: 'Manufacturing',
       country: 'Germany', city: 'Stuttgart', venue: 'Messe Stuttgart',
       startDate: '2026-03-24', endDate: '2026-03-26',
@@ -112,17 +157,6 @@ const useExhibitionStore = create((set, get) => ({
       description: 'International trade fair for intralogistics solutions and process management.',
       website: 'https://www.logimat-messe.de',
       visitors: '65,000+', exhibitors: '1,600+',
-      color: '#3498db',
-    },
-    {
-      id: 'ex-26-015', name: 'Automatica Munich 2026', industry: 'Manufacturing',
-      country: 'Germany', city: 'Munich', venue: 'Messe München',
-      startDate: '2026-06-22', endDate: '2026-06-25',
-      tier: ['OEM', 'Tier 1', 'Tier 2'],
-      equipment: ['Robotics', 'Assembly', 'Machine Vision', 'Industrial AI'],
-      description: 'Leading exhibition for smart automation and robotics.',
-      website: 'https://www.automatica-munich.com',
-      visitors: '46,000+', exhibitors: '750+',
       color: '#3498db',
     },
     {
@@ -321,6 +355,17 @@ const useExhibitionStore = create((set, get) => ({
       visitors: '30,000+', exhibitors: '600+',
       color: '#16a085',
     },
+    {
+      id: 'ex-26-062', name: 'Aluminium Düsseldorf 2026', industry: 'Raw Materials',
+      country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
+      startDate: '2026-10-06', endDate: '2026-10-08',
+      tier: ['Raw Materials', 'OEM'],
+      equipment: ['Aluminium Products', 'Processing Equipment', 'Recycling'],
+      description: 'World trade fair and conference for the aluminium industry.',
+      website: 'https://www.aluminium-exhibition.com',
+      visitors: '23,000+', exhibitors: '900+',
+      color: '#16a085',
+    },
 
     // ═══════════════════════════════════════════════════════════
     // 2027 EXHIBITIONS
@@ -328,9 +373,9 @@ const useExhibitionStore = create((set, get) => ({
 
     // ─── AUTOMOTIVE ──────────────────────────────────────────
     {
-      id: 'ex-001', name: 'Automechanika Frankfurt', industry: 'Automotive',
+      id: 'ex-001', name: 'Automechanika Frankfurt 2028', industry: 'Automotive',
       country: 'Germany', city: 'Frankfurt', venue: 'Messe Frankfurt',
-      startDate: '2027-09-14', endDate: '2027-09-18',
+      startDate: '2028-09-12', endDate: '2028-09-16',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automotive Parts', 'Diagnostics', 'Electronics'],
       description: 'World\'s leading trade fair for the automotive aftermarket.',
@@ -383,9 +428,9 @@ const useExhibitionStore = create((set, get) => ({
       color: '#e74c3c',
     },
     {
-      id: 'ex-006', name: 'IAA Transportation', industry: 'Automotive',
+      id: 'ex-006', name: 'IAA Transportation 2028', industry: 'Automotive',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-09-20', endDate: '2027-09-25',
+      startDate: '2028-09-19', endDate: '2028-09-24',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Commercial Vehicles', 'Logistics', 'Trailers'],
       description: 'Global platform for transport and logistics.',
@@ -398,10 +443,21 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-010', name: 'Hannover Messe', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-04-05', endDate: '2027-04-09',
+      startDate: '2027-04-05', endDate: '2027-04-08',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Automation', 'Robotics', 'Industry 4.0', 'Energy'],
       description: 'World\'s leading industrial trade fair for technology and innovation.',
+      website: 'https://www.hannovermesse.de',
+      visitors: '130,000+', exhibitors: '4,000+',
+      color: '#3498db',
+    },
+    {
+      id: 'ex-010b', name: 'Hannover Messe 2028', industry: 'Manufacturing',
+      country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
+      startDate: '2028-04-24', endDate: '2028-04-27',
+      tier: ['OEM', 'Tier 1', 'Tier 2'],
+      equipment: ['Automation', 'Robotics', 'Industry 4.0', 'Energy'],
+      description: 'World\'s leading industrial trade fair — 2028 edition (official Deutsche Messe dates).',
       website: 'https://www.hannovermesse.de',
       visitors: '130,000+', exhibitors: '4,000+',
       color: '#3498db',
@@ -418,9 +474,9 @@ const useExhibitionStore = create((set, get) => ({
       color: '#3498db',
     },
     {
-      id: 'ex-012', name: 'IMTS – International Manufacturing Technology Show', industry: 'Manufacturing',
+      id: 'ex-012', name: 'IMTS Chicago 2028', industry: 'Manufacturing',
       country: 'USA', city: 'Chicago', venue: 'McCormick Place',
-      startDate: '2027-09-13', endDate: '2027-09-18',
+      startDate: '2028-09-11', endDate: '2028-09-16',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Machine Tools', 'Additive Manufacturing', 'Robotics'],
       description: 'North America\'s largest manufacturing technology event.',
@@ -464,9 +520,9 @@ const useExhibitionStore = create((set, get) => ({
 
     // ─── PLASTICS ────────────────────────────────────────────
     {
-      id: 'ex-020', name: 'K Düsseldorf', industry: 'Plastic',
+      id: 'ex-020', name: 'K Düsseldorf 2028', industry: 'Plastic',
       country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
-      startDate: '2027-10-13', endDate: '2027-10-20',
+      startDate: '2028-10-18', endDate: '2028-10-25',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Injection Molding', 'Extrusion', 'Blow Molding', 'Recycling'],
       description: 'The world\'s No. 1 trade fair for plastics and rubber.',
@@ -489,7 +545,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-022', name: 'CHINAPLAS 2027', industry: 'Plastic',
       country: 'China', city: 'Shenzhen', venue: 'Shenzhen World Exhibition & Convention Center',
-      startDate: '2027-04-15', endDate: '2027-04-18',
+      startDate: '2027-04-13', endDate: '2027-04-16',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Injection Molding', 'Extrusion', 'Recycling', 'Materials'],
       description: 'Asia\'s largest plastics and rubber trade fair.',
@@ -498,9 +554,9 @@ const useExhibitionStore = create((set, get) => ({
       color: '#27ae60',
     },
     {
-      id: 'ex-023', name: 'Fakuma', industry: 'Plastic',
+      id: 'ex-023', name: 'Fakuma 2028', industry: 'Plastic',
       country: 'Germany', city: 'Friedrichshafen', venue: 'Messe Friedrichshafen',
-      startDate: '2027-10-12', endDate: '2027-10-16',
+      startDate: '2028-10-17', endDate: '2028-10-21',
       tier: ['Tier 1', 'Tier 2'],
       equipment: ['Injection Molding', 'Thermoforming', 'Tooling'],
       description: 'International trade fair for plastics processing.',
@@ -522,9 +578,9 @@ const useExhibitionStore = create((set, get) => ({
 
     // ─── METAL / METALWORKING ────────────────────────────────
     {
-      id: 'ex-030', name: 'EuroBLECH', industry: 'Metal',
+      id: 'ex-030', name: 'EuroBLECH 2028', industry: 'Metal',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-10-21', endDate: '2027-10-24',
+      startDate: '2028-10-24', endDate: '2028-10-27',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Sheet Metal', 'Laser Cutting', 'Welding', 'Forming'],
       description: 'International sheet metal working technology exhibition.',
@@ -557,7 +613,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-033', name: 'GIFA / METEC / THERMPROCESS / NEWCAST', industry: 'Metal',
       country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
-      startDate: '2027-06-16', endDate: '2027-06-20',
+      startDate: '2027-06-21', endDate: '2027-06-25',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Casting', 'Foundry', 'Metallurgy', 'Heat Treatment'],
       description: 'The Bright World of Metals — global foundry and metallurgy showcase.',
@@ -647,9 +703,9 @@ const useExhibitionStore = create((set, get) => ({
 
     // ─── RAW MATERIALS ───────────────────────────────────────
     {
-      id: 'ex-050', name: 'Aluminium World Trade Fair', industry: 'Raw Materials',
+      id: 'ex-050', name: 'Aluminium World Trade Fair 2028', industry: 'Raw Materials',
       country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
-      startDate: '2027-10-05', endDate: '2027-10-07',
+      startDate: '2028-10-10', endDate: '2028-10-12',
       tier: ['Raw Materials', 'OEM'],
       equipment: ['Aluminium Products', 'Processing Equipment', 'Recycling'],
       description: 'World trade fair and conference for the aluminium industry.',
@@ -658,9 +714,9 @@ const useExhibitionStore = create((set, get) => ({
       color: '#16a085',
     },
     {
-      id: 'ex-051', name: 'TUBE Düsseldorf', industry: 'Raw Materials',
+      id: 'ex-051', name: 'TUBE Düsseldorf 2028', industry: 'Raw Materials',
       country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
-      startDate: '2027-04-07', endDate: '2027-04-11',
+      startDate: '2028-04-03', endDate: '2028-04-07',
       tier: ['OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Tube', 'Pipe', 'Steel Processing'],
       description: 'International tube and pipe trade fair.',
@@ -669,9 +725,9 @@ const useExhibitionStore = create((set, get) => ({
       color: '#16a085',
     },
     {
-      id: 'ex-052', name: 'WIRE Düsseldorf', industry: 'Raw Materials',
+      id: 'ex-052', name: 'WIRE Düsseldorf 2028', industry: 'Raw Materials',
       country: 'Germany', city: 'Düsseldorf', venue: 'Messe Düsseldorf',
-      startDate: '2027-04-07', endDate: '2027-04-11',
+      startDate: '2028-04-03', endDate: '2028-04-07',
       tier: ['Tier 1', 'Tier 2', 'Raw Materials'],
       equipment: ['Wire', 'Cable', 'Fiber Optics', 'Fasteners'],
       description: 'International wire and cable trade fair.',
@@ -727,7 +783,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-057', name: 'Formnext', industry: 'Manufacturing',
       country: 'Germany', city: 'Frankfurt', venue: 'Messe Frankfurt',
-      startDate: '2027-11-16', endDate: '2027-11-19',
+      startDate: '2027-10-26', endDate: '2027-10-29',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['3D Printing', 'Additive Manufacturing', 'Materials'],
       description: 'Leading trade fair for additive manufacturing and next-gen solutions.',
@@ -751,7 +807,7 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-060', name: 'CeMAT Hannover', industry: 'Manufacturing',
       country: 'Germany', city: 'Hanover', venue: 'Deutsche Messe',
-      startDate: '2027-04-05', endDate: '2027-04-09',
+      startDate: '2027-04-05', endDate: '2027-04-08',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Intralogistics', 'Material Handling', 'Conveyor Systems', 'Warehouse Automation', 'AGV'],
       description: 'World\'s leading trade fair for intralogistics and supply chain management, co-located with Hannover Messe.',
@@ -762,10 +818,10 @@ const useExhibitionStore = create((set, get) => ({
     {
       id: 'ex-061', name: 'CeMAT Asia (Shanghai)', industry: 'Manufacturing',
       country: 'China', city: 'Shanghai', venue: 'Shanghai New International Expo Centre',
-      startDate: '2027-10-26', endDate: '2027-10-29',
+      startDate: '2027-11-02', endDate: '2027-11-05',
       tier: ['OEM', 'Tier 1', 'Tier 2'],
       equipment: ['Material Handling', 'Logistics Automation', 'Warehouse Systems', 'Packaging'],
-      description: 'Asia\'s premier logistics technology exhibition — CeMAT edition for the Asian market.',
+      description: 'Asia\'s premier logistics technology exhibition — CeMAT edition for the Asian market (2027 dates typical early November; confirm on organiser site).',
       website: 'https://www.cemat-asia.com',
       visitors: '65,000+', exhibitors: '700+',
       color: '#3498db',
@@ -774,6 +830,17 @@ const useExhibitionStore = create((set, get) => ({
       id: 'ex-062', name: 'LogiMAT Stuttgart', industry: 'Manufacturing',
       country: 'Germany', city: 'Stuttgart', venue: 'Messe Stuttgart',
       startDate: '2027-03-16', endDate: '2027-03-18',
+      tier: ['Tier 1', 'Tier 2'],
+      equipment: ['Warehouse Management', 'Conveyor Technology', 'Picking Systems', 'AGV'],
+      description: 'International trade fair for intralogistics solutions and process management.',
+      website: 'https://www.logimat-messe.de',
+      visitors: '65,000+', exhibitors: '1,600+',
+      color: '#3498db',
+    },
+    {
+      id: 'ex-062b', name: 'LogiMAT Stuttgart 2028', industry: 'Manufacturing',
+      country: 'Germany', city: 'Stuttgart', venue: 'Messe Stuttgart',
+      startDate: '2028-03-21', endDate: '2028-03-23',
       tier: ['Tier 1', 'Tier 2'],
       equipment: ['Warehouse Management', 'Conveyor Technology', 'Picking Systems', 'AGV'],
       description: 'International trade fair for intralogistics solutions and process management.',
@@ -1085,34 +1152,63 @@ const useExhibitionStore = create((set, get) => ({
   // Tier levels
   tierLevels: ['All', 'OEM', 'Tier 1', 'Tier 2', 'Raw Materials'],
 
-  // Planned exhibitions (user-selected to attend)
-  plannedExhibitions: [],
+  // Planned exhibitions (attend) and optional per-fair reminders
+  plannedExhibitions: loadIdList(PLAN_KEY),
+  reminderExhibitions: loadReminderIds(loadIdList(PLAN_KEY)),
 
   addPlannedExhibition: (exhibitionId) => set((state) => {
     if (state.plannedExhibitions.includes(exhibitionId)) return state
-    return { plannedExhibitions: [...state.plannedExhibitions, exhibitionId] }
+    const plannedExhibitions = [...state.plannedExhibitions, exhibitionId]
+    const reminderExhibitions = state.reminderExhibitions.includes(exhibitionId)
+      ? state.reminderExhibitions
+      : [...state.reminderExhibitions, exhibitionId]
+    persistPlans(plannedExhibitions, reminderExhibitions)
+    return { plannedExhibitions, reminderExhibitions }
   }),
 
-  removePlannedExhibition: (exhibitionId) => set((state) => ({
-    plannedExhibitions: state.plannedExhibitions.filter((id) => id !== exhibitionId),
-  })),
+  removePlannedExhibition: (exhibitionId) => set((state) => {
+    const plannedExhibitions = state.plannedExhibitions.filter((id) => id !== exhibitionId)
+    const reminderExhibitions = state.reminderExhibitions.filter((id) => id !== exhibitionId)
+    persistPlans(plannedExhibitions, reminderExhibitions)
+    return { plannedExhibitions, reminderExhibitions }
+  }),
 
   isPlanned: (exhibitionId) => get().plannedExhibitions.includes(exhibitionId),
 
+  isReminded: (exhibitionId) => get().reminderExhibitions.includes(exhibitionId),
+
+  toggleExhibitionReminder: (exhibitionId) => set((state) => {
+    const on = !state.reminderExhibitions.includes(exhibitionId)
+    let plannedExhibitions = state.plannedExhibitions
+    let reminderExhibitions = state.reminderExhibitions
+    if (on) {
+      if (!plannedExhibitions.includes(exhibitionId)) {
+        plannedExhibitions = [...plannedExhibitions, exhibitionId]
+      }
+      reminderExhibitions = [...reminderExhibitions, exhibitionId]
+    } else {
+      reminderExhibitions = reminderExhibitions.filter((id) => id !== exhibitionId)
+    }
+    persistPlans(plannedExhibitions, reminderExhibitions)
+    return { plannedExhibitions, reminderExhibitions }
+  }),
+
   getPlannedExhibitions: () => {
     const { exhibitions, plannedExhibitions } = get()
-    return exhibitions.filter((e) => plannedExhibitions.includes(e.id)).sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    return exhibitions
+      .filter((e) => plannedExhibitions.includes(e.id))
+      .sort((a, b) => parseExhibitionDate(a.startDate) - parseExhibitionDate(b.startDate))
   },
 
-  // Generate notifications / reminders for planned exhibitions
   getExhibitionReminders: () => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const planned = get().getPlannedExhibitions()
+    const remindedIds = new Set(get().reminderExhibitions)
+    const planned = get().getPlannedExhibitions().filter((ex) => remindedIds.has(ex.id))
     const reminders = []
 
     planned.forEach((ex) => {
-      const start = new Date(ex.startDate)
+      const start = parseExhibitionDate(ex.startDate)
       start.setHours(0, 0, 0, 0)
       const diffDays = Math.ceil((start - today) / 86400000)
 
@@ -1160,27 +1256,18 @@ const useExhibitionStore = create((set, get) => ({
     }
     if (filters.month && filters.month !== 'All') {
       const monthIdx = parseInt(filters.month, 10)
-      results = results.filter((e) => {
-        const startMonth = new Date(e.startDate).getMonth()
-        return startMonth === monthIdx
-      })
+      results = results.filter((e) => exhibitionMonth(e.startDate) === monthIdx)
     }
     if (filters.year && filters.year !== 'All') {
       const yr = parseInt(filters.year, 10)
-      results = results.filter((e) => new Date(e.startDate).getFullYear() === yr)
+      results = results.filter((e) => exhibitionYear(e.startDate) === yr)
     }
 
-    return results.sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    return results.sort((a, b) => parseExhibitionDate(a.startDate) - parseExhibitionDate(b.startDate))
   },
 
-  // Get exhibitions for a specific day
   getExhibitionsForDate: (dateStr) => {
-    const date = new Date(dateStr)
-    return get().exhibitions.filter((e) => {
-      const start = new Date(e.startDate)
-      const end = new Date(e.endDate)
-      return date >= start && date <= end
-    })
+    return get().exhibitions.filter((e) => dateStr >= e.startDate && dateStr <= e.endDate)
   },
 }))
 

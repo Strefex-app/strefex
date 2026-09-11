@@ -3,6 +3,7 @@
 // Other helpers still stub until wired to the same provider.
 
 import { isSupabaseConfigured, supabase } from '../config/supabase'
+import { isEmailNotificationsEnabled } from '../store/settingsStore'
 
 const PLATFORM_OWNER_EMAIL = 'STREFEX@strfgroup.ru'
 
@@ -85,6 +86,7 @@ export const emailService = {
 
   // RFQ invite email to supplier
   sendRfqInvite: async ({ email, supplierName, rfqTitle, deadline, buyerName, registerUrl }) => {
+    if (!isEmailNotificationsEnabled()) return { success: false, skipped: true, reason: 'email_pref_off' }
     const joinLine = registerUrl
       ? `\n        Not on STREFEX yet? Create your seller account here:\n        ${registerUrl}\n`
       : '\n        If you are new to STREFEX, register as a seller first, then sign in to respond.\n'
@@ -215,6 +217,7 @@ ${joinLine}
   // RFQ response notice to buyer
   sendRfqResponseNotice: async ({ buyerEmail, rfqTitle, supplierName }) => {
     if (!buyerEmail) return { success: false, skipped: true }
+    if (!isEmailNotificationsEnabled()) return { success: false, skipped: true, reason: 'email_pref_off' }
     const emailData = {
       to: buyerEmail,
       subject: `RFQ Response Received - ${rfqTitle}`,
@@ -230,6 +233,7 @@ ${joinLine}
   // RFQ deadline reminder email to supplier
   sendRfqReminder: async ({ email, rfqTitle, deadline, hoursLeft }) => {
     if (!email) return { success: false, skipped: true }
+    if (!isEmailNotificationsEnabled()) return { success: false, skipped: true, reason: 'email_pref_off' }
     const emailData = {
       to: email,
       subject: `Reminder: RFQ deadline approaching - ${rfqTitle}`,

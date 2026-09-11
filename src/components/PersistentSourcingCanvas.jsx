@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -9,7 +10,39 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_SRC = '/intelligent-sourcing/index.html?embed=1&v=20260910g'
+export const SOURCING_FRAME_VERSION = '20260911a'
+
+function readSourcingTheme() {
+  try {
+    if (document.documentElement.getAttribute('data-theme') === 'dark') return 'dark'
+  } catch { /* */ }
+  try {
+    if (localStorage.getItem('strefex-theme') === 'dark') return 'dark'
+  } catch { /* */ }
+  return 'light'
+}
+
+export function sourcingFrameSrc() {
+  return `/intelligent-sourcing/index.html?embed=1&v=${SOURCING_FRAME_VERSION}`
+}
+
+function paintFrameTheme(iframe) {
+  const theme = readSourcingTheme()
+  try {
+    const doc = iframe?.contentDocument
+    const root = doc?.documentElement
+    if (root) {
+      root.setAttribute('data-theme', theme)
+      root.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+    }
+    const win = iframe?.contentWindow
+    if (!win) return
+    win.__STREFEX_PLATFORM_THEME__ = theme
+    if (typeof win.__STREFEX_APPLY_SOURCING_THEME__ === 'function') {
+      win.__STREFEX_APPLY_SOURCING_THEME__(theme)
+    }
+  } catch { /* */ }
+}
 
 const SourcingCanvasContext = createContext({
   attachSlot: () => {},
@@ -34,11 +67,27 @@ export function PersistentSourcingCanvasProvider({ children }) {
   const [booted, setBooted] = useState(false)
   const [frameReady, setFrameReady] = useState(false)
   const [live, setLive] = useState(false)
+  const frameSrcRef = useRef('')
 
   const attachSlot = useCallback((el) => {
     slotRef.current = el
     if (el) setBooted(true)
     setLive(Boolean(el))
+  }, [])
+
+  if (booted && !frameSrcRef.current) {
+    frameSrcRef.current = sourcingFrameSrc()
+  }
+
+  const onFrameLoad = useCallback(() => {
+    setFrameReady(true)
+    paintFrameTheme(iframeRef.current)
+  }, [])
+
+  useEffect(() => {
+    const send = () => paintFrameTheme(iframeRef.current)
+    window.addEventListener('themechange', send)
+    return () => window.removeEventListener('themechange', send)
   }, [])
 
   useLayoutEffect(() => {
@@ -78,8 +127,8 @@ export function PersistentSourcingCanvasProvider({ children }) {
               ref={iframeRef}
               className="persistent-sourcing-canvas__frame"
               title="Intelligent Sourcing"
-              src={SOURCING_FRAME_SRC}
-              onLoad={() => setFrameReady(true)}
+              src={frameSrcRef.current}
+              onLoad={onFrameLoad}
             />
           ) : null}
         </div>

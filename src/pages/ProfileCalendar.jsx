@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import useExhibitionStore from '../store/exhibitionStore'
+import { exhibitionYear, parseExhibitionDate } from '../utils/exhibitionDate'
 import './ProfileCalendar.css'
 import { useTranslation } from '../i18n/useTranslation'
 
@@ -33,10 +34,13 @@ const ProfileCalendar = () => {
     getEquipmentTags,
     getFilteredExhibitions,
     plannedExhibitions,
+    reminderExhibitions,
     addPlannedExhibition,
     removePlannedExhibition,
+    toggleExhibitionReminder,
     getPlannedExhibitions,
     getExhibitionReminders,
+    exhibitions,
   } = useExhibitionStore()
 
   const countries = getCountries()
@@ -45,7 +49,7 @@ const ProfileCalendar = () => {
   // View mode: calendar | list
   const [viewMode, setViewMode] = useState('calendar')
   // Calendar year & month — default to current year/month
-  const [calYear, setCalYear] = useState(2026)
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
 
   // Filters
@@ -71,10 +75,15 @@ const ProfileCalendar = () => {
   const filteredExhibitions = useMemo(() => getFilteredExhibitions(filters), [filters, getFilteredExhibitions])
 
   // Group exhibitions by month for list view
+  const catalogYears = useMemo(() => {
+    const years = new Set(exhibitions.map((ex) => exhibitionYear(ex.startDate)))
+    return [...years].filter((y) => y >= 2026).sort()
+  }, [exhibitions])
+
   const groupedByMonth = useMemo(() => {
     const groups = {}
     filteredExhibitions.forEach((ex) => {
-      const d = new Date(ex.startDate)
+      const d = parseExhibitionDate(ex.startDate)
       const key = `${d.getFullYear()}-${d.getMonth()}`
       if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), items: [] }
       groups[key].items.push(ex)
@@ -149,10 +158,14 @@ const ProfileCalendar = () => {
   }
 
   // Reminders
-  const reminders = useMemo(() => getExhibitionReminders(), [getExhibitionReminders, plannedExhibitions])
+  const reminders = useMemo(
+    () => getExhibitionReminders(),
+    [getExhibitionReminders, plannedExhibitions, reminderExhibitions],
+  )
   const plannedList = useMemo(() => getPlannedExhibitions(), [getPlannedExhibitions, plannedExhibitions])
 
   const isExPlanned = useCallback((id) => plannedExhibitions.includes(id), [plannedExhibitions])
+  const isExReminded = useCallback((id) => reminderExhibitions.includes(id), [reminderExhibitions])
 
   const togglePlanned = (ex) => {
     if (isExPlanned(ex.id)) removePlannedExhibition(ex.id)
@@ -187,11 +200,11 @@ const ProfileCalendar = () => {
     const description = `${ex.description}\\n\\nIndustry: ${ex.industry}\\nTier: ${ex.tier.join(', ')}\\nEquipment: ${ex.equipment.join(', ')}\\nVisitors: ${ex.visitors}\\nExhibitors: ${ex.exhibitors}\\nWebsite: ${ex.website}`
 
     // Alarms: 1 month, 1 week, 1 day before
-    const alarms = [
+    const alarms = isExReminded(ex.id) ? [
       `BEGIN:VALARM\r\nTRIGGER:-P30D\r\nACTION:DISPLAY\r\nDESCRIPTION:${ex.name} starts in 1 month\r\nEND:VALARM`,
       `BEGIN:VALARM\r\nTRIGGER:-P7D\r\nACTION:DISPLAY\r\nDESCRIPTION:${ex.name} starts in 1 week\r\nEND:VALARM`,
       `BEGIN:VALARM\r\nTRIGGER:-P1D\r\nACTION:DISPLAY\r\nDESCRIPTION:${ex.name} starts tomorrow\r\nEND:VALARM`,
-    ]
+    ] : []
 
     return [
       'BEGIN:VCALENDAR',
@@ -599,8 +612,9 @@ const ProfileCalendar = () => {
             </select>
             <select value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>
               <option value="All">{t('exhibitionFilters.allYears')}</option>
-              <option value="2026">2026</option>
-              <option value="2027">2027</option>
+              {catalogYears.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
             {viewMode === 'list' && (
               <select value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>
@@ -632,9 +646,9 @@ const ProfileCalendar = () => {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               <div className="cal-year-btns">
-                <button type="button" className={calYear === 2026 ? 'active' : ''} onClick={() => setCalYear(2026)}>2026</button>
-                <button type="button" className={calYear === 2027 ? 'active' : ''} onClick={() => setCalYear(2027)}>2027</button>
-                <button type="button" className={calYear === 2028 ? 'active' : ''} onClick={() => setCalYear(2028)}>2028</button>
+                {catalogYears.map((y) => (
+                  <button type="button" key={y} className={calYear === y ? 'active' : ''} onClick={() => setCalYear(y)}>{y}</button>
+                ))}
               </div>
             </div>
 
@@ -703,6 +717,7 @@ const ProfileCalendar = () => {
                         <span>{ex.city}, {ex.country}</span>
                       </div>
                     </div>
+                    <div className="plan-actions">
                     <button
                       type="button"
                       className={`plan-star-btn ${isExPlanned(ex.id) ? 'active' : ''}`}
@@ -711,6 +726,19 @@ const ProfileCalendar = () => {
                     >
                       {isExPlanned(ex.id) ? '★' : '☆'}
                     </button>
+                    <button
+                      type="button"
+                      className={`plan-bell-btn ${isExReminded(ex.id) ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); toggleExhibitionReminder(ex.id) }}
+                      title={isExReminded(ex.id) ? 'Turn off reminder' : 'Remind me'}
+                      aria-pressed={isExReminded(ex.id)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    </div>
                     <div className="event-tags">
                       <span className="tag-industry" style={{ background: INDUSTRY_COLORS[ex.industry] }}>{ex.industry}</span>
                     </div>
@@ -761,6 +789,18 @@ const ProfileCalendar = () => {
                             title={isExPlanned(ex.id) ? 'Remove from plan' : 'Add to plan'}
                           >
                             {isExPlanned(ex.id) ? '★' : '☆'}
+                          </button>
+                          <button
+                            type="button"
+                            className={`plan-bell-btn ${isExReminded(ex.id) ? 'active' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); toggleExhibitionReminder(ex.id) }}
+                            title={isExReminded(ex.id) ? 'Turn off reminder' : 'Remind me'}
+                            aria-pressed={isExReminded(ex.id)}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
                           </button>
                         </div>
                         <p className="list-event-desc">{ex.description}</p>
@@ -813,10 +853,18 @@ const ProfileCalendar = () => {
                     className={`plan-toggle-btn ${isExPlanned(selectedExhibition.id) ? 'planned' : ''}`}
                     onClick={() => togglePlanned(selectedExhibition)}
                   >
-                    {isExPlanned(selectedExhibition.id) ? '★ Planned — Reminders Active' : '☆ Add to My Plan'}
+                    {isExPlanned(selectedExhibition.id) ? '★ Planned' : '☆ Add to My Plan'}
                   </button>
-                  {isExPlanned(selectedExhibition.id) && (
-                    <span className="plan-reminder-note">Reminders: 1 month, 1 week, 1 day before</span>
+                  <button
+                    type="button"
+                    className={`plan-toggle-btn ${isExReminded(selectedExhibition.id) ? 'planned' : ''}`}
+                    onClick={() => toggleExhibitionReminder(selectedExhibition.id)}
+                    aria-pressed={isExReminded(selectedExhibition.id)}
+                  >
+                    {isExReminded(selectedExhibition.id) ? 'Reminders on' : 'Remind me'}
+                  </button>
+                  {isExReminded(selectedExhibition.id) && (
+                    <span className="plan-reminder-note">1 month, 1 week, and 1 day before the opening day</span>
                   )}
                 </div>
                 <p className="detail-description">{selectedExhibition.description}</p>

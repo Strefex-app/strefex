@@ -13,7 +13,18 @@ import {
 import './Settings.css'
 
 export default function Settings() {
-  const { theme, toggleTheme, language, setLanguage, pushNotifications, setPushNotifications } = useSettingsStore()
+  const {
+    theme,
+    toggleTheme,
+    language,
+    setLanguage,
+    pushNotifications,
+    setPushNotifications,
+    emailNotifications,
+    setEmailNotifications,
+    exhibitionReminders,
+    setExhibitionReminders,
+  } = useSettingsStore()
   const { t } = useTranslation()
   const [pushBusy, setPushBusy] = useState(false)
   const pushPermission = getNotificationPermission()
@@ -66,7 +77,13 @@ export default function Settings() {
                     <div className="settings-item-desc">{t('settings.nightModeDesc')}</div>
                   </div>
                 </div>
-                <button type="button" className={`settings-toggle ${theme === 'dark' ? 'on' : ''}`} onClick={toggleTheme} aria-label="Toggle night mode">
+                <button
+                  type="button"
+                  className={`settings-toggle ${theme === 'dark' ? 'on' : ''}`}
+                  onClick={toggleTheme}
+                  aria-label="Toggle night mode"
+                  aria-pressed={theme === 'dark'}
+                >
                   <span className="settings-toggle-knob" />
                 </button>
               </div>
@@ -143,7 +160,7 @@ export default function Settings() {
           <div className="settings-right">
             <div className="settings-card">
               <h2 className="settings-card-title">{t('settings.notifications')}</h2>
-              <p className="settings-card-desc" style={{ marginBottom: 12 }}>Manage how you receive alerts</p>
+              <p className="settings-card-desc" style={{ marginBottom: 12 }}>{t('settings.notificationsDesc')}</p>
 
               <div className="settings-item">
                 <div className="settings-item-info">
@@ -152,9 +169,16 @@ export default function Settings() {
                   </div>
                   <div>
                     <div className="settings-item-label">{t('settings.emailNotif')}</div>
+                    <div className="settings-item-desc stx-text-wrap">{t('settings.emailNotifDesc')}</div>
                   </div>
                 </div>
-                <button type="button" className="settings-toggle on" aria-label="Toggle email notifications">
+                <button
+                  type="button"
+                  className={`settings-toggle ${emailNotifications ? 'on' : ''}`}
+                  onClick={() => setEmailNotifications(!emailNotifications)}
+                  aria-label="Toggle email notifications"
+                  aria-pressed={emailNotifications}
+                >
                   <span className="settings-toggle-knob" />
                 </button>
               </div>
@@ -183,6 +207,7 @@ export default function Settings() {
                   onClick={handleTogglePush}
                   disabled={!pushSupported || pushPermission === 'denied' || pushBusy}
                   aria-label="Toggle push notifications"
+                  aria-pressed={Boolean(pushNotifications && pushPermission === 'granted')}
                 >
                   <span className="settings-toggle-knob" />
                 </button>
@@ -195,9 +220,16 @@ export default function Settings() {
                   </div>
                   <div>
                     <div className="settings-item-label">{t('settings.exhibitionReminders')}</div>
+                    <div className="settings-item-desc stx-text-wrap">{t('settings.exhibitionRemindersDesc')}</div>
                   </div>
                 </div>
-                <button type="button" className="settings-toggle on" aria-label="Toggle exhibition reminders">
+                <button
+                  type="button"
+                  className={`settings-toggle ${exhibitionReminders ? 'on' : ''}`}
+                  onClick={() => setExhibitionReminders(!exhibitionReminders)}
+                  aria-label="Toggle exhibition reminders"
+                  aria-pressed={exhibitionReminders}
+                >
                   <span className="settings-toggle-knob" />
                 </button>
               </div>

@@ -153,8 +153,9 @@
   padding: 0;
 }
 
-.settings-toggle.on {
-  background: var(--toggle-on);
+.settings-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .settings-toggle-knob {

@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Apply saved theme before first paint so [data-theme="dark"] rules (including code-split CSS) apply immediately -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a2540" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Apply saved theme before first paint so [data-theme="dark"] rules apply immediately -->
     <script>
       (function () {
         try {
@@ -10,20 +13,14 @@
           document.documentElement.setAttribute('data-theme', theme)
           document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
           var tm = document.querySelector('meta[name="theme-color"]')
-          if (tm) tm.setAttribute('content', theme === 'dark' ? '#0d0e10' : '#192a56')
+          if (tm) tm.setAttribute('content', theme === 'dark' ? '#0d0e10' : '#0a2540')
           var cs = document.querySelector('meta[name="color-scheme"]')
           if (cs) cs.setAttribute('content', theme === 'dark' ? 'dark light' : 'light dark')
         } catch (e) {}
       })()
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
 
-    <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
-
-    <!-- Theme / brand colour -->
-    <meta name="theme-color" content="#13151a" />
-    <meta name="color-scheme" content="dark light" />
 
     <!-- Primary meta -->
     <title>STREFEX Platform</title>

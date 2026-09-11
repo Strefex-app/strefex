@@ -4,54 +4,58 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Surfaces — RFQ “elevated” tier ───────────────────────── */
-  --bg-primary: #13151a;
-  --bg-card: #1a1d24;
-  --bg-surface: #22262f;
-  --bg-surface-hover: #2a3140;
-  --bg-input: #1a1d24;
+  /* ── Surfaces — day (night mode off). Night tokens live on html[data-theme="dark"]. ── */
+  --bg-primary: #f6f7f8;
+  --bg-card: #ffffff;
+  --bg-surface: #eef0f2;
+  --bg-surface-hover: #e2e5e7;
+  --bg-input: #ffffff;
 
   /* ── Typography & chrome ─────────────────────────────────── */
-  --color-primary: #e8eaf2;
-  --color-secondary: rgba(232, 234, 242, 0.74);
-  --color-muted: #6b7280;
-  --color-icon: #00d4ff;
-  --nav-bg: #13151a;
-  --nav-text: rgba(232, 234, 242, 0.9);
-  --nav-text-hover: #e8eaf2;
-  --nav-active-bg: rgba(0, 212, 255, 0.1);
-  --btn-primary-bg: #00d4ff;
-  --btn-primary-text: #0d0e10;
-  --btn-primary-hover: #5ce1ff;
-  --active-indicator: #00d4ff;
+  --color-primary: #0a2540;
+  --color-secondary: #2a3b4d;
+  --color-muted: #6e767c;
+  --color-icon: #0a2540;
+  --nav-bg: linear-gradient(180deg, #133154 0%, #0a2540 40%, #081c30 100%);
+  --nav-text: rgba(248, 250, 252, 0.92);
+  --nav-text-hover: #ffffff;
+  --nav-active-bg: rgba(255, 255, 255, 0.12);
+  --btn-primary-bg: #0a2540;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #133154;
+  --active-indicator: #3aa6c9;
 
-  /* ── Accents (RFQ cyan system) ───────────────────────────── */
-  --accent: #00d4ff;
-  --accent-hover: #5ce1ff;
-  --accent-light: rgba(0, 212, 255, 0.12);
-  --accent-text: #b8f4ff;
+  /* ── Accents ─────────────────────────────────────────────── */
+  --accent: #0a2540;
+  --accent-hover: #081c30;
+  --accent-light: rgba(10, 37, 64, 0.1);
+  --accent-text: #133154;
 
-  /* ── Danger (RFQ red) ───────────────────────────────────── */
-  --danger: #ff3d57;
-  --danger-hover: #ff6b7d;
-  --danger-light: rgba(255, 61, 87, 0.15);
-  --danger-text: #ffb3c0;
+  /* ── Danger ─────────────────────────────────────────────── */
+  --danger: #d2483f;
+  --danger-hover: #b33c35;
+  --danger-light: rgba(210, 72, 63, 0.12);
+  --danger-text: #b33c35;
 
   /* ── Borders & Shadows ─────────────────────────────────── */
-  --border-color: rgba(255, 255, 255, 0.07);
-  --border-light: rgba(255, 255, 255, 0.04);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 18px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --border-color: #e2e5e7;
+  --border-light: #eef0f2;
+  --shadow-sm: 0 1px 3px rgba(6, 24, 41, 0.08), 0 1px 2px rgba(6, 24, 41, 0.04);
+  --shadow-md: 0 4px 14px rgba(6, 24, 41, 0.1);
+  --shadow-lg: 0 8px 24px rgba(6, 24, 41, 0.12);
 
-  --link-color: #00d4ff;
+  --link-color: #3d5a96;
 
-  --input-border: rgba(255, 255, 255, 0.13);
-  --input-focus: #00d4ff;
-  --input-placeholder: #374151;
+  --input-border: #b6bbbe;
+  --input-focus: #0a2540;
+  --input-placeholder: #8b9298;
 
-  --toggle-off: #374151;
-  --toggle-on: #00d4ff;
+  --toggle-off: #b6bbbe;
+  --toggle-on: #0a2540;
+  --navy-deep: #0a2540;
+  --navy-mid: #133154;
+  --navy-accent: #3d5a96;
+  color-scheme: light;
 
   /* RFQ semantic aliases (widgets / RFQ routes may reference --rfqi-*) */
   --rfqi-bg: var(--bg-primary);
@@ -112,18 +116,18 @@
   --gc-text: var(--color-primary);
   --gc-text-2: var(--color-secondary);
   --gc-hover: var(--bg-surface-hover);
-  /* Gantt / task grid row lines (dark surfaces) */
-  --gc-tl-line: rgba(255, 255, 255, 0.08);
+  /* Gantt / task grid row lines */
+  --gc-tl-line: rgba(10, 37, 64, 0.08);
 
-  /* Status badges & soft callouts — RFQ neon tints */
-  --badge-success-bg: rgba(0, 230, 118, 0.14);
-  --badge-success-text: #9fffce;
-  --badge-warning-bg: rgba(255, 171, 0, 0.14);
-  --badge-warning-text: #ffd699;
-  --callout-warn-bg: rgba(255, 171, 0, 0.1);
-  --callout-warn-border: rgba(255, 171, 0, 0.35);
-  --callout-warn-text: #ffe8b8;
-  --surface-danger-soft: rgba(255, 61, 87, 0.12);
+  /* Status badges & soft callouts */
+  --badge-success-bg: rgba(95, 184, 92, 0.14);
+  --badge-success-text: #2f7a2c;
+  --badge-warning-bg: rgba(224, 162, 59, 0.14);
+  --badge-warning-text: #9a6b14;
+  --callout-warn-bg: rgba(224, 162, 59, 0.1);
+  --callout-warn-border: rgba(224, 162, 59, 0.35);
+  --callout-warn-text: #9a6b14;
+  --surface-danger-soft: rgba(210, 72, 63, 0.1);
 
   /* Intelligent Sourcing supplier-map canvas (locked hexes; same in day/night) */
   --map-ocean: #eef0f2;

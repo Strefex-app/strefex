@@ -13,14 +13,6 @@
     return false;
   }
 
-  function queryTheme() {
-    try {
-      return new URLSearchParams(location.search || '').get('theme') === 'dark' ? 'dark' : 'light';
-    } catch (e) {
-      return 'light';
-    }
-  }
-
   function ensureStylesheet(id, href) {
     if (document.getElementById(id)) return;
     var link = document.createElement('link');
@@ -28,14 +20,6 @@
     link.rel = 'stylesheet';
     link.href = href;
     (document.head || document.documentElement).appendChild(link);
-  }
-
-  function ensureScript(id, src) {
-    if (document.getElementById(id)) return;
-    var s = document.createElement('script');
-    s.id = id;
-    s.src = src;
-    (document.head || document.documentElement).appendChild(s);
   }
 
   function ensureEmbedShell() {
@@ -76,7 +60,6 @@
       (document.head || document.documentElement).appendChild(style);
     }
     ensureStylesheet('strefex-embed-night-css', '/intelligent-sourcing/embed-night.css');
-    ensureScript('strefex-embed-theme-js', '/intelligent-sourcing/embed-theme.js');
     try {
       document.documentElement.setAttribute('data-strefex-embed', '1');
     } catch (e) { /* */ }
@@ -147,12 +130,10 @@
   }
 
   ensureEmbedShell();
-  applyTheme(queryTheme());
   clearNonRegisteredSuppliers();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       ensureEmbedShell();
-      applyTheme(queryTheme());
       clearNonRegisteredSuppliers();
     });
   }

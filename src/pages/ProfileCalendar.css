@@ -249,7 +249,28 @@
 }
 
 /* Plan Star Button */
-.plan-star-btn {
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.plan-bell-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-muted);
+  padding: 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.plan-bell-btn:hover,
+.plan-bell-btn.active {
+  color: var(--accent);
+}
   background: none;
   border: none;
   font-size: 20px;
@@ -998,8 +1019,10 @@
 }
 
 .list-event-name {
-  font-size: 16px;
-  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-heading);
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
   margin: 0;
 }

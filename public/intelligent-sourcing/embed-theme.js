@@ -1,4 +1,4 @@
-/* Recolor sourcing maps/chips when platform theme changes (embed + postMessage). */
+/* Recolor sourcing maps/chips when platform theme changes. */
 (function () {
   var DAY = {
     ocean: '#EEF0F2', land: '#DCE1E6', landStroke: '#F6F7F8',
@@ -13,16 +13,37 @@
     tipMuted: '#9db1c8', tipStroke: 'rgba(255,255,255,0.18)', chip: '#1a1d24', chipText: '#e8eaf2',
     graticule: 'rgba(0,0,0,0.55)'
   };
+  var applied = '';
+  var raf = 0;
+  var pendingRoot = null;
 
   function palette() {
     return document.documentElement.getAttribute('data-theme') === 'dark' ? NIGHT : DAY;
   }
 
+  function resolveTheme() {
+    try {
+      if (window.parent && window.parent !== window && window.parent.document) {
+        var parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+        if (parentTheme === 'dark' || parentTheme === 'light') return parentTheme;
+      }
+    } catch (e) { /* */ }
+    try {
+      var stored = localStorage.getItem('strefex-theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (e) { /* */ }
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark' || attr === 'light') return attr;
+    return window.__STREFEX_PLATFORM_THEME__ === 'dark' ? 'dark' : 'light';
+  }
+
   function recolor(root) {
     var t = palette();
-    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var dark = t === NIGHT;
     var scope = root || document;
-    scope.querySelectorAll('svg').forEach(function (svg) {
+    var svgs = scope.querySelectorAll ? scope.querySelectorAll('svg') : [];
+    if (scope.nodeName === 'svg') svgs = [scope];
+    Array.prototype.forEach.call(svgs, function (svg) {
       var label = (svg.getAttribute('aria-label') || '').toLowerCase();
       if (label.indexOf('supplier') === -1 && label.indexOf('location') === -1) {
         var bg = svg.style && svg.style.background;
@@ -94,38 +115,69 @@
         if (stroke === '#0A2540' || stroke === '#00D4FF') c.setAttribute('stroke', t.plant);
       });
     });
-    scope.querySelectorAll('[data-skel]').forEach(function (el) {
-      el.style.background = t.ocean;
+    var skelRoot = scope.querySelectorAll ? scope : document;
+    if (skelRoot.querySelectorAll) {
+      skelRoot.querySelectorAll('[data-skel]').forEach(function (el) {
+        el.style.background = t.ocean;
+      });
+    }
+  }
+
+  function scheduleRecolor(root) {
+    pendingRoot = !pendingRoot || pendingRoot === document ? (root || document) : document;
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      var target = pendingRoot;
+      pendingRoot = null;
+      recolor(target);
     });
   }
 
   function applyTheme(mode) {
-    document.documentElement.setAttribute('data-theme', mode === 'dark' ? 'dark' : 'light');
-    recolor(document);
+    var next = mode === 'dark' ? 'dark' : 'light';
+    var root = document.documentElement;
+    applied = next;
+    root.setAttribute('data-theme', next);
+    root.style.colorScheme = next;
+    window.__STREFEX_PLATFORM_THEME__ = next;
+    scheduleRecolor(document);
   }
 
   window.__STREFEX_APPLY_SOURCING_THEME__ = applyTheme;
 
-  var mo = new MutationObserver(function () { recolor(document); });
-  function observe() {
+  function observeMaps() {
     if (!document.body) return;
+    var mo = new MutationObserver(function (records) {
+      var i;
+      var node;
+      for (i = 0; i < records.length; i += 1) {
+        var added = records[i].addedNodes;
+        var n;
+        for (n = 0; n < added.length; n += 1) {
+          node = added[n];
+          if (node.nodeType !== 1) continue;
+          if (node.nodeName === 'svg' || (node.querySelector && node.querySelector('svg, [data-skel]'))) {
+            scheduleRecolor(node);
+            return;
+          }
+        }
+      }
+    });
     mo.observe(document.body, { childList: true, subtree: true });
-    recolor(document);
   }
-  if (document.body) observe();
-  else document.addEventListener('DOMContentLoaded', observe);
+
+  if (document.body) observeMaps();
+  else document.addEventListener('DOMContentLoaded', observeMaps);
 
   window.addEventListener('message', function (ev) {
     var d = ev && ev.data;
     if (!d || d.source !== 'strefex-platform' || d.action !== 'set-theme') return;
     applyTheme(d.theme);
   });
+  window.addEventListener('strefex-map-painted', function () {
+    scheduleRecolor(document);
+  });
 
-  var boot = 'light';
-  try {
-    var q = new URLSearchParams(location.search || '');
-    if (q.get('theme') === 'dark') boot = 'dark';
-    else if (window.__STREFEX_PLATFORM_THEME__ === 'dark') boot = 'dark';
-  } catch (e) { /* */ }
-  applyTheme(boot);
+  applyTheme(resolveTheme());
 })();
