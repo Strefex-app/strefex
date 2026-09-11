@@ -2,14 +2,22 @@
 
 .auth-page-shell {
   position: relative;
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-right: calc(20px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(20px + env(safe-area-inset-left, 0px));
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .auth-page-backdrop {
@@ -88,6 +96,10 @@
 @media (max-width: 640px) {
   .auth-page-shell {
     padding: 16px;
+    padding-top: max(16px, calc(12px + env(safe-area-inset-top, 0px)));
+    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px)));
+    padding-bottom: max(16px, calc(12px + env(safe-area-inset-bottom, 0px)));
+    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px)));
   }
 
   .auth-page-shell__logo-wrap {
@@ -96,5 +108,25 @@
 
   .auth-page-shell__logo {
     width: min(100%, 260px);
+  }
+}
+
+@media (min-width: 768px) and (min-height: 800px) {
+  .auth-page-shell {
+    justify-content: center;
+  }
+}
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay) {
+  .auth-page-shell {
+    padding-top: max(20px, calc(12px + env(safe-area-inset-top, 0px)), calc(12px + env(titlebar-area-height, 0px)));
+  }
+}
+
+@media (max-width: 640px) and (display-mode: standalone),
+  (max-width: 640px) and (display-mode: fullscreen),
+  (max-width: 640px) and (display-mode: window-controls-overlay) {
+  .auth-page-shell {
+    /* Fallback when iOS reports 0 inset: keep content below the clock on iPhone 13+ */
+    padding-top: max(54px, calc(12px + env(safe-area-inset-top, 0px)), calc(12px + env(titlebar-area-height, 0px)));
   }
 }
