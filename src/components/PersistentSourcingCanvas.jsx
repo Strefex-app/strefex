@@ -10,7 +10,7 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_VERSION = '20260911a'
+export const SOURCING_FRAME_VERSION = '20260912c'
 
 function readSourcingTheme() {
   try {
@@ -48,6 +48,7 @@ const SourcingCanvasContext = createContext({
   attachSlot: () => {},
   iframeRef: { current: null },
   frameReady: false,
+  live: false,
 })
 
 export function usePersistentSourcingCanvas() {
@@ -113,8 +114,8 @@ export function PersistentSourcingCanvasProvider({ children }) {
   }, [live])
 
   const value = useMemo(
-    () => ({ attachSlot, iframeRef, frameReady }),
-    [attachSlot, frameReady],
+    () => ({ attachSlot, iframeRef, frameReady, live }),
+    [attachSlot, frameReady, live],
   )
 
   return (

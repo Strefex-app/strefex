@@ -8,16 +8,9 @@ import AppLayout from '../components/AppLayout'
 import BuyerRfqCreateForm from '../components/buyer/BuyerRfqCreateForm'
 import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
-import { useIndustryStore } from '../store/industryStore'
 import useSourcingPlantStore from '../store/sourcingPlantStore'
-import useRfqStore from '../store/rfqStore'
-import {
-  buildPlatformSourcingPayload,
-  serializeSourcingRfqList,
-} from '../utils/intelligentSourcingData'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 import { usePersistentSourcingCanvas } from '../components/PersistentSourcingCanvas'
-import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
 import {
   createAndSendNetworkRfq,
   sourcingRfqOpenContext,
@@ -72,11 +65,8 @@ export default function IntelligentSourcingPage() {
   const accounts = useAccountRegistry((s) => s.accounts)
   const ensureAllAccountsSourcingFields = useAccountRegistry((s) => s.ensureAllAccountsSourcingFields)
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
-  const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const plant = useSourcingPlantStore((s) => s.plant)
   const setPlant = useSourcingPlantStore((s) => s.setPlant)
-  const rfqs = useRfqStore((s) => s.rfqs)
-  const getSafeRfqs = useRfqStore((s) => s.getSafeRfqs)
   const setTenant = useAuthStore((s) => s.setTenant)
   const showMarketplaceCatalog = useMarketplaceCatalogVisibilityEffective()
     || isSeededSupplierDirectoryEnabled()
@@ -85,76 +75,23 @@ export default function IntelligentSourcingPage() {
     ensureAllAccountsSourcingFields()
   }, [ensureAllAccountsSourcingFields])
 
-  const myAccount = useMemo(() => {
-    const email = String(user?.email || '').toLowerCase()
-    if (!email) return null
-    return accounts.find((a) => String(a.email || '').toLowerCase() === email) || null
-  }, [accounts, user?.email])
-
   const registrySellers = useMemo(
     () => mergeNetworkManufacturersWithAccounts(accounts),
     [accounts],
   )
-
-  const buyerRfqs = useMemo(() => {
-    try {
-      return serializeSourcingRfqList(getSafeRfqs?.() || rfqs || [])
-    } catch {
-      return serializeSourcingRfqList(rfqs || [])
-    }
-  }, [getSafeRfqs, rfqs])
-
-  const platformPayload = useMemo(
-    () => ({
-      ...buildPlatformSourcingPayload({
-        registrySellers,
-        tenant,
-        user,
-        account: myAccount,
-        buyerIndustries: selectedIndustries || myAccount?.industries || [],
-        includeTaxonomy: false,
-      }),
-      rfqs: buyerRfqs,
-    }),
-    [registrySellers, tenant, user, myAccount, selectedIndustries, buyerRfqs],
-  )
-
-  const payloadKey = useMemo(() => JSON.stringify(platformPayload), [platformPayload])
 
   const [showRfqModal, setShowRfqModal] = useState(false)
   const [rfqContext, setRfqContext] = useState(null)
   const [lastCreatedRfq, setLastCreatedRfq] = useState(null)
   const [sendError, setSendError] = useState('')
   const slotRef = useRef(null)
-  const taxonomySentRef = useRef(false)
-  const { attachSlot, iframeRef, frameReady } = usePersistentSourcingCanvas()
+  const { attachSlot, frameReady } = usePersistentSourcingCanvas()
   const status = frameReady ? 'ready' : 'loading'
 
   useLayoutEffect(() => {
     attachSlot(slotRef.current)
     return () => attachSlot(null)
   }, [attachSlot])
-
-  const pushPlatformToFrame = useCallback(() => {
-    const win = iframeRef.current?.contentWindow
-    if (!win) return
-    try {
-      const payload = JSON.parse(payloadKey)
-      if (!taxonomySentRef.current) {
-        payload.taxonomy = buildSourcingTaxonomyOverlay()
-        taxonomySentRef.current = true
-      }
-      win.postMessage(
-        { source: 'strefex-platform', action: 'apply-platform', payload },
-        '*',
-      )
-    } catch { /* not ready */ }
-  }, [iframeRef, payloadKey])
-
-  useEffect(() => {
-    if (status !== 'ready') return
-    pushPlatformToFrame()
-  }, [status, pushPlatformToFrame])
 
   const openPlatformRfqForm = useCallback((payload = {}) => {
     if (payload?.buyer) setPlant(payload.buyer)
@@ -173,8 +110,6 @@ export default function IntelligentSourcingPage() {
     if (!data || data.source !== 'strefex-intelligent-sourcing') return
     const { action, payload } = data
     if (action === 'ready') {
-      taxonomySentRef.current = false
-      pushPlatformToFrame()
       return
     }
     if (action === 'select-plant' && payload?.buyer) {
@@ -217,11 +152,9 @@ export default function IntelligentSourcingPage() {
     navigate,
     openPlatformRfqForm,
     plant?.id,
-    pushPlatformToFrame,
     setPlant,
     setTenant,
     tenant,
-    iframeRef,
     updateAccount,
     user?.email,
   ])

@@ -34,7 +34,7 @@
       'button[aria-label="Menu"]{display:none!important}',
       'main>header{box-sizing:border-box!important;min-height:56px!important;height:auto!important;max-height:none!important;padding:10px 16px!important;align-items:center!important;flex-wrap:wrap!important;gap:8px 12px!important}',
       '@media (min-width:901px){main>header{height:77px!important;min-height:77px!important;max-height:77px!important;padding:0 24px!important;flex-wrap:nowrap!important}}',
-      'html,body{max-width:100%;overflow-x:clip}',
+      'html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip}',
       'html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}',
       '@media (max-width:640px){',
       'main>header{padding:8px 12px!important}',
@@ -1583,6 +1583,25 @@ window.__resources["https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"] = 
 window.__resources["/intelligent-sourcing/vendor/react.production.min.js"] = "/intelligent-sourcing/vendor/react.production.min.js";
 window.__resources["/intelligent-sourcing/vendor/react-dom.production.min.js"] = "/intelligent-sourcing/vendor/react-dom.production.min.js";
 window.__resources["/intelligent-sourcing/vendor/babel.min.js"] = "/intelligent-sourcing/vendor/babel.min.js";
+window.__STREFEX_SHELL_WIDTH__ = 0;
+window.strefexShellWidth = function () {
+  var forced = Number(window.__STREFEX_SHELL_WIDTH__ || 0);
+  if (forced > 20) return forced;
+  var cw = document.documentElement && document.documentElement.clientWidth;
+  var vis = window.visualViewport && window.visualViewport.width;
+  var iw = window.innerWidth;
+  var nums = [cw, vis, iw].filter(function (n) { return typeof n === "number" && isFinite(n) && n > 0; });
+  return nums.length ? Math.min.apply(null, nums) : 1440;
+};
+window.strefexMarkNarrow = function () {
+  try {
+    var w = window.strefexShellWidth();
+    document.documentElement.setAttribute("data-stx-narrow", w < 720 ? "1" : "0");
+    return w;
+  } catch (e) {
+    return window.innerWidth;
+  }
+};
 window.__STREFEX_SOURCING_BRIDGE__ = {
   emit: function (action, payload) {
     try {
@@ -1592,16 +1611,45 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     } catch (e) {}
   },
   applyPlatform: function (plat) {
-    if (!plat || !window.SOURCING_DATA) return;
+    if (!plat) return;
+    if (!window.SOURCING_DATA) {
+      window.__STREFEX_PENDING_PLATFORM__ = (window.__STREFEX_PENDING_PLATFORM__ || []).concat([plat]);
+      return;
+    }
     var d = window.SOURCING_DATA;
     window.__STREFEX_ALLOW_DEMO_SEED__ = false;
     window.__STREFEX_SOURCING_DEMO_SEED__ = null;
+    function listed(s) {
+      return s && (s.source === "registered" || s.platformId);
+    }
+    function bump() {
+      try {
+        if (window.strefexMarkNarrow) window.strefexMarkNarrow();
+        window.dispatchEvent(new CustomEvent("strefex-sourcing-data"));
+        if (window.__STREFEX_SOURCING_APP__ && typeof window.__STREFEX_SOURCING_APP__.setState === "function") {
+          window.__STREFEX_SOURCING_APP__.setState({ dataRev: Date.now(), vw: window.strefexShellWidth ? window.strefexShellWidth() : window.innerWidth });
+        }
+        var count = (d.SUPPLIERS || []).filter(listed).length;
+        if (window.__STREFEX_SOURCING_BRIDGE__ && window.__STREFEX_SOURCING_BRIDGE__.emit) {
+          window.__STREFEX_SOURCING_BRIDGE__.emit("platform-applied", { count: count });
+        }
+      } catch (e) { /* */ }
+    }
     /* Registry only — never restore canvas demo sellers.
-     * Skip empty arrays so a race before network hydrate cannot wipe listed sellers. */
-    if (Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
-      d.SUPPLIERS = plat.suppliers.filter(function (s) {
-        return s && (s.source === "registered" || s.platformId);
+     * Skip empty replace so a race before network hydrate cannot wipe listed sellers. */
+    if (plat.appendSuppliers && Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
+      var have = {};
+      (d.SUPPLIERS || []).forEach(function (s) {
+        have[String((s && (s.platformId || s.name)) || "")] = true;
       });
+      plat.suppliers.filter(listed).forEach(function (s) {
+        var k = String((s && (s.platformId || s.name)) || "");
+        if (!k || have[k]) return;
+        have[k] = true;
+        d.SUPPLIERS = (d.SUPPLIERS || []).concat([s]);
+      });
+    } else if (Array.isArray(plat.suppliers) && plat.suppliers.length > 0) {
+      d.SUPPLIERS = plat.suppliers.filter(listed);
     }
     if (Array.isArray(plat.buyers) && plat.buyers.length > 0) {
       d.BUYERS = plat.buyers.slice();
@@ -1619,7 +1667,6 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     if (plat.userInitials) {
       d.userInitials = String(plat.userInitials).slice(0, 2).toUpperCase();
     }
-    /* Profile taxonomy overlay — browse cards use the same ids suppliers signed up with. */
     if (plat.taxonomy && typeof plat.taxonomy === "object") {
       if (plat.taxonomy.categories && typeof plat.taxonomy.categories === "object") {
         d.CATEGORIES = Object.assign({}, d.CATEGORIES || {});
@@ -1634,17 +1681,21 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
         });
       }
     }
-    try {
-      window.dispatchEvent(new CustomEvent("strefex-sourcing-data"));
-      if (window.__STREFEX_SOURCING_APP__ && typeof window.__STREFEX_SOURCING_APP__.setState === "function") {
-        window.__STREFEX_SOURCING_APP__.setState({ dataRev: Date.now() });
-      }
-    } catch (e) { /* */ }
+    bump();
   }
 };
 </script>
 <script src="assets/99eca733-7ff7-4470-87d5-d54710858547.js"></script>
-<script src="/intelligent-sourcing/platform-merge.js"></script>
+<script>
+(function () {
+  var q = window.__STREFEX_PENDING_PLATFORM__ || [];
+  window.__STREFEX_PENDING_PLATFORM__ = [];
+  q.forEach(function (plat) {
+    try { window.__STREFEX_SOURCING_BRIDGE__.applyPlatform(plat); } catch (e) { /* */ }
+  });
+})();
+</script>
+<script src="/intelligent-sourcing/platform-merge.js?v=20260912c"></script>
 <script src="/intelligent-sourcing/embed-theme.js"></script>
 
 <script src="assets/b4a3a7a3-a1c5-46c3-94a8-faf8b89538ac.js?v=20260910g"></script>
@@ -1745,18 +1796,18 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     }
   }
 
+  html[data-stx-narrow="1"] [data-stx-supplier-table] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    margin: 0 -4px;
+  }
+  html[data-stx-narrow="1"] [data-stx-supplier-cards][data-stx-filled="1"],
+  html[data-stx-narrow="1"] [data-stx-supplier-cards]:not(:empty) {
+    display: flex !important;
+  }
+  html:not([data-stx-narrow="1"]) [data-stx-supplier-cards] { display: none !important; }
   @media (max-width: 640px) {
-    /* Phone: JS syncSupplierCards fills [data-stx-supplier-cards]; keep table as data source */
-    [data-stx-supplier-table] {
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch;
-      max-width: 100%;
-      margin: 0 -4px;
-    }
-    [data-stx-supplier-cards][data-stx-filled="1"],
-    [data-stx-supplier-cards]:not(:empty) {
-      display: flex !important;
-    }
     .stx-page-head h1 {
       font-size: clamp(20px, 6vw, 24px) !important;
     }
@@ -1790,9 +1841,6 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       margin-left: 0 !important;
       flex-wrap: wrap !important;
     }
-  }
-  @media (min-width: 641px) {
-    [data-stx-supplier-cards] { display: none !important; }
   }
 </style>
 </helmet>
@@ -3141,12 +3189,15 @@ class Component extends DCLogic {
     sel: [], selScope: {}, focusName: "",
     rfqSent: false, rfqIndsSel: ["Automotive"], rfqMode: "sea",
     showLanes: false, panel: null, toast: null, navOpen: false,
-    vw: typeof window !== "undefined" ? window.innerWidth : 1440,
+    vw: typeof window !== "undefined" ? (window.strefexShellWidth ? window.strefexShellWidth() : window.innerWidth) : 1440,
     plants: null, exportFmt: "pdf", dataRev: 0
   };
 
   componentDidMount() {
-    this._rs = () => this.setState({ vw: window.innerWidth });
+    this._rs = () => {
+      const vw = window.strefexMarkNarrow ? window.strefexMarkNarrow() : (window.strefexShellWidth ? window.strefexShellWidth() : window.innerWidth);
+      this.setState({ vw });
+    };
     this._onPlat = () => this.setState({ dataRev: Date.now() });
     window.addEventListener("resize", this._rs);
     window.addEventListener("strefex-sourcing-data", this._onPlat);
@@ -3156,12 +3207,25 @@ class Component extends DCLogic {
     };
     document.addEventListener("pin-select", this._onPinSelect);
     window.__STREFEX_SOURCING_APP__ = this;
+    try { if (window.strefexMarkNarrow) window.strefexMarkNarrow(); } catch (e) {}
+    try {
+      if (typeof window.__STREFEX_FLUSH_PLATFORM_SOURCING__ === "function") {
+        window.__STREFEX_FLUSH_PLATFORM_SOURCING__();
+      }
+    } catch (e) {}
+    try {
+      (window.__STREFEX_SOURCING_BRIDGE__ || {}).emit && window.__STREFEX_SOURCING_BRIDGE__.emit("app-ready", {});
+    } catch (e) {}
     try { this.emitPlantSelection(this.state.buyerId); } catch (e) {}
+    this._kick = setTimeout(() => this.setState({ dataRev: Date.now() }), 400);
+    this._kick2 = setTimeout(() => this.setState({ dataRev: Date.now() }), 2000);
   }
   componentWillUnmount() {
     window.removeEventListener("resize", this._rs);
     window.removeEventListener("strefex-sourcing-data", this._onPlat);
     document.removeEventListener("pin-select", this._onPinSelect);
+    clearTimeout(this._kick);
+    clearTimeout(this._kick2);
     if (window.__STREFEX_SOURCING_APP__ === this) window.__STREFEX_SOURCING_APP__ = null;
   }
 
@@ -3174,7 +3238,7 @@ class Component extends DCLogic {
       const host = document.querySelector("[data-stx-supplier-cards]");
       const table = document.querySelector("[data-stx-supplier-table]");
       if (!host) return;
-      const phone = (typeof window !== "undefined" ? window.innerWidth : 1440) < 640;
+      const phone = (window.strefexShellWidth ? window.strefexShellWidth() : window.innerWidth) < 720;
       const rows = this._lastSupplierRows || [];
       /* Always keep the bound supplier table as the fallback data source.
        * Phone cards are an enhancement — never leave both empty (CSS !important hide). */
@@ -4411,7 +4475,7 @@ transitFor(sup) {
 
     /* ── side panels: category brief · should-cost · export brief ── */
     const pk = s.panel || "";
-    const narrow = s.vw < 1024, phone = s.vw < 640;
+    const narrow = s.vw < 1024, phone = s.vw < 720;
     const summaryTitleValue = (sub ? sub.name : cat ? cat.name : "Category") + " — " + industryName;
     const briefCatRaw = pk.indexOf("brief:") === 0 ? this.cats().filter(c => c.id === pk.slice(6))[0] : null;
     const briefCat = briefCatRaw

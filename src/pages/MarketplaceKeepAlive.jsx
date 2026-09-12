@@ -5,6 +5,7 @@ import IntelligentSourcingPage from './IntelligentSourcingPage'
 import BuyerWorkspace from './BuyerWorkspace'
 import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import { useAccountRegistry } from '../store/accountRegistry'
+import { useSourcingFramePlatformSync } from '../hooks/useSourcingFramePlatformSync'
 import './MarketplaceKeepAlive.css'
 
 const TRACK_TABS = new Set(['track'])
@@ -24,6 +25,7 @@ export default function MarketplaceKeepAlive() {
 
   const [keepHome, setKeepHome] = useState(isHome)
   const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
+  useSourcingFramePlatformSync()
 
   useEffect(() => {
     if (isHome) setKeepHome(true)
@@ -31,11 +33,36 @@ export default function MarketplaceKeepAlive() {
 
   useEffect(() => {
     let cancelled = false
-    fetchSourcingNetworkAccounts({ limit: 800 }).then((rows) => {
-      if (cancelled || !rows.length) return
-      mergeNetworkAccounts(rows)
-    })
-    return () => { cancelled = true }
+    let timer = 0
+    let attempt = 0
+    const delays = [0, 1500, 4000, 12000]
+
+    const run = () => {
+      fetchSourcingNetworkAccounts({ limit: 800, force: attempt > 0 })
+        .then((rows) => {
+          if (cancelled) return
+          if (rows.length) {
+            mergeNetworkAccounts(rows)
+            return
+          }
+          if (attempt < delays.length - 1) {
+            attempt += 1
+            timer = window.setTimeout(run, delays[attempt])
+          }
+        })
+        .catch(() => {
+          if (cancelled) return
+          if (attempt < delays.length - 1) {
+            attempt += 1
+            timer = window.setTimeout(run, delays[attempt])
+          }
+        })
+    }
+    run()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [mergeNetworkAccounts])
 
   return (
