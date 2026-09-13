@@ -82,6 +82,9 @@ export function ensureSourcingFieldPlaceholders(account) {
   if (!('address' in next) || next.address == null) { next.address = ''; changed = true }
   if (!Array.isArray(next.industries)) { next.industries = []; changed = true }
   if (!next.categories || typeof next.categories !== 'object') { next.categories = {}; changed = true }
+  if (!next.productCategories || typeof next.productCategories !== 'object') { next.productCategories = {}; changed = true }
+  if (!next.equipmentSubcategories || typeof next.equipmentSubcategories !== 'object') { next.equipmentSubcategories = {}; changed = true }
+  if (!next.productSubcategories || typeof next.productSubcategories !== 'object') { next.productSubcategories = {}; changed = true }
   if (!Array.isArray(next.serviceCategories)) { next.serviceCategories = []; changed = true }
   if (!Array.isArray(next.accountTypes) || next.accountTypes.length === 0) {
     const primary = String(next.accountType || next.account_type || 'seller')

@@ -836,7 +836,7 @@
 /* ── Forms ────────────────────────────────────── */
 .prof-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -844,6 +844,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .prof-form-group.full {

@@ -23,6 +23,7 @@ import {
 } from '../services/featureGrantsService'
 import { mergeRegistrationPreference, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { createAdminSellerAccount } from '../utils/adminCreateSellerAccount'
+import { countAccountTaxonomy, preferFilledTaxonomyMap } from '../utils/companyTaxonomyPayload'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -322,13 +323,6 @@ function hasCategoryMap(map) {
   return Boolean(map && typeof map === 'object' && Object.keys(map).length)
 }
 
-function countCategorySelections(categories, productCategories, serviceCategories = []) {
-  const eq = Object.values(categories || {}).flat().filter(Boolean).length
-  const prod = Object.values(productCategories || {}).flat().filter(Boolean).length
-  const svc = Array.isArray(serviceCategories) ? serviceCategories.filter(Boolean).length : 0
-  return eq + prod + svc
-}
-
 /** Prefer non-empty registry fields after SuperAdmin edits (localStorage) over stale directory rows. */
 function overlayRegistryOntoStub(stub, reg) {
   if (!reg) return stub
@@ -353,8 +347,16 @@ function overlayRegistryOntoStub(stub, reg) {
       : stub.accountTypes,
     plan: reg.plan || stub.plan,
     industries: regIndustries.length ? regIndustries : stub.industries,
-    categories: regCategories || stub.categories,
-    productCategories: regProduct || stub.productCategories,
+    categories: preferFilledTaxonomyMap(regCategories, stub.categories),
+    productCategories: preferFilledTaxonomyMap(regProduct, stub.productCategories),
+    equipmentSubcategories: preferFilledTaxonomyMap(
+      reg.equipmentSubcategories || reg.equipment_subcategories,
+      stub.equipmentSubcategories,
+    ),
+    productSubcategories: preferFilledTaxonomyMap(
+      reg.productSubcategories || reg.product_subcategories,
+      stub.productSubcategories,
+    ),
     serviceCategories: (regService && regService.length) ? regService : stub.serviceCategories,
     visibilityTier: regVisibility || stub.visibilityTier,
     users: Math.max(Number(stub.users || 0), Number(reg.users || 0), teamUsers),
@@ -758,6 +760,8 @@ export default function SuperAdminDashboard() {
               : [],
         categories: a.categories || {},
         productCategories: a.productCategories || a.product_categories || {},
+        equipmentSubcategories: a.equipmentSubcategories || a.equipment_subcategories || {},
+        productSubcategories: a.productSubcategories || a.product_subcategories || {},
         serviceCategories: a.serviceCategories || a.service_categories || [],
         visibilityTier: a.visibilityTier || a.visibility_tier || null,
         users: Number(a.users || 0),
@@ -790,6 +794,14 @@ export default function SuperAdminDashboard() {
       if (!hasCategoryMap(mergedRow.productCategories) && hasCategoryMap(row.productCategories)) {
         mergedRow.productCategories = row.productCategories
       }
+      mergedRow.equipmentSubcategories = preferFilledTaxonomyMap(
+        mergedRow.equipmentSubcategories,
+        row.equipmentSubcategories,
+      )
+      mergedRow.productSubcategories = preferFilledTaxonomyMap(
+        mergedRow.productSubcategories,
+        row.productSubcategories,
+      )
       if (!mergedRow.visibilityTier && row.visibilityTier) {
         mergedRow.visibilityTier = row.visibilityTier
       }
@@ -1534,7 +1546,7 @@ export default function SuperAdminDashboard() {
               <th>Plan</th>
               <th>Status</th>
               <th>Industries</th>
-              <th>Equipment</th>
+              <th>Categories</th>
               <th>Users</th>
               <th>Projects</th>
               <th>Registered</th>
@@ -1586,7 +1598,10 @@ export default function SuperAdminDashboard() {
                   </td>
                   <td>
                     <span className="sad-equip-count">
-                      {countCategorySelections(a.categories, a.productCategories, a.serviceCategories)} cat.
+                      {(() => {
+                        const tax = countAccountTaxonomy(a)
+                        return `${tax.categories} cat. · ${tax.subcategories} sub.`
+                      })()}
                     </span>
                   </td>
                   <td className="sad-cell-num">{a.users}</td>
@@ -1671,6 +1686,53 @@ export default function SuperAdminDashboard() {
                   const catDef = (EQUIPMENT_CATEGORIES_BY_INDUSTRY[ind] || []).find((c) => c.id === cat)
                   return <span key={cat} className="sad-cat-chip">{catDef?.name || cat}</span>
                 })}
+              </div>
+            ))}
+            {!Object.keys(selectedAccount.categories || {}).length ? (
+              <p className="sad-detail-email">None selected</p>
+            ) : null}
+          </div>
+          <div className="sad-detail-section">
+            <h4>Product &amp; Component Categories</h4>
+            {Object.entries(selectedAccount.productCategories || {}).map(([ind, cats]) => (
+              <div key={ind} className="sad-detail-cats">
+                <span className="sad-cat-industry">{INDUSTRIES.find((i) => i.id === ind)?.label || ind}:</span>
+                {(Array.isArray(cats) ? cats : []).map((cat) => (
+                  <span key={cat} className="sad-cat-chip">{cat}</span>
+                ))}
+              </div>
+            ))}
+            {!Object.keys(selectedAccount.productCategories || {}).length ? (
+              <p className="sad-detail-email">None selected</p>
+            ) : null}
+          </div>
+          <div className="sad-detail-section">
+            <h4>Subcategories</h4>
+            <p className="sad-detail-email" style={{ marginBottom: 8 }}>
+              {countAccountTaxonomy(selectedAccount).subcategories} selected
+            </p>
+            {Object.entries({
+              ...(selectedAccount.equipmentSubcategories || {}),
+            }).map(([ind, byParent]) => (
+              <div key={`eq-${ind}`} className="sad-detail-cats">
+                <span className="sad-cat-industry">{INDUSTRIES.find((i) => i.id === ind)?.label || ind} · equipment:</span>
+                {Object.entries(byParent || {}).flatMap(([parent, ids]) => (
+                  (Array.isArray(ids) ? ids : []).map((id) => (
+                    <span key={`${parent}-${id}`} className="sad-cat-chip">{parent}: {id}</span>
+                  ))
+                ))}
+              </div>
+            ))}
+            {Object.entries({
+              ...(selectedAccount.productSubcategories || {}),
+            }).map(([ind, byParent]) => (
+              <div key={`pr-${ind}`} className="sad-detail-cats">
+                <span className="sad-cat-industry">{INDUSTRIES.find((i) => i.id === ind)?.label || ind} · product:</span>
+                {Object.entries(byParent && !Array.isArray(byParent) ? byParent : {}).flatMap(([parent, ids]) => (
+                  (Array.isArray(ids) ? ids : []).map((id) => (
+                    <span key={`${parent}-${id}`} className="sad-cat-chip">{parent}: {id}</span>
+                  ))
+                ))}
               </div>
             ))}
           </div>

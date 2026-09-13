@@ -69,7 +69,7 @@ describe('intelligentSourcingData', () => {
     expect(sourcingSupplierMatchesDomainCategory(row, 'equipment', 'mold-makers', 'auto-mold-standard')).toBe(false)
   })
 
-  it('does not invent subcategories from parent-only checkmarks', () => {
+  it('does not invent subcategory ids from parent-only checkmarks', () => {
     const row = accountToSourcingSupplier({
       id: 'parent-only',
       company: 'Parent Only Co',
@@ -83,6 +83,22 @@ describe('intelligentSourcingData', () => {
     expect(row.equipmentCategoryIds).toContain('mold-makers')
     expect(row.productCategoryIds).toContain('plastic')
     expect(row.subcategoryIds).toEqual([])
+    expect(sourcingSupplierMatchesDomainCategory(row, 'equipment', 'mold-makers', 'auto-die-making')).toBe(true)
+  })
+
+  it('reads subcategory ids from nested or flat account maps', () => {
+    const nested = accountToSourcingSupplier({
+      id: 'flat-subs',
+      company: 'Flat Co',
+      country: 'Germany',
+      city: 'Cologne',
+      industries: ['automotive'],
+      accountType: 'seller',
+      productCategories: { automotive: ['plastic'] },
+      productSubcategories: { automotive: ['auto-injection'] },
+    })
+    expect(nested.subcategoryIds).toContain('auto-injection')
+    expect(sourcingSupplierMatchesDomainCategory(nested, 'product', 'plastic', 'auto-injection')).toBe(true)
   })
 
   it('publishes with country alone when industry is set', () => {

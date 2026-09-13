@@ -4,6 +4,7 @@ import {
   omitEmptyCompanyScalars,
 } from '../utils/keepExistingAccountFields'
 import { mergeSourcingNetworkIntoRegistry } from '../services/sourcingNetworkService'
+import { commitIndustryChecklist } from '../utils/companyTaxonomyPayload'
 
 describe('keepExistingAccountFields', () => {
   it('does not replace a filled company name with empty or placeholder remote', () => {
@@ -37,5 +38,24 @@ describe('keepExistingAccountFields', () => {
     expect(merged[0].country).toBe('Germany')
     expect(merged[0].city).toBe('Stuttgart')
     expect(merged[0].industries).toEqual(['automotive'])
+  })
+})
+
+describe('commitIndustryChecklist', () => {
+  it('keeps the first industry when a second industry path is saved', () => {
+    const first = commitIndustryChecklist({
+      industryId: 'automotive',
+      equipmentSubs: { 'mold-makers': ['auto-die-making'] },
+    })
+    const second = commitIndustryChecklist({
+      industryId: 'machinery',
+      equipmentSubs: { robots: ['industrial-robots'] },
+      categories: first.categories,
+      equipmentSubcategories: first.equipmentSubcategories,
+    })
+    expect(second.industries.sort()).toEqual(['automotive', 'machinery'])
+    expect(second.categories.automotive).toContain('mold-makers')
+    expect(second.categories.machinery).toContain('robots')
+    expect(second.equipmentSubcategories.automotive['mold-makers']).toContain('auto-die-making')
   })
 })

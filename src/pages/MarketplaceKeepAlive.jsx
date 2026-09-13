@@ -24,6 +24,7 @@ export default function MarketplaceKeepAlive() {
   const isTrack = pathname === '/sourcing' && TRACK_TABS.has(tab)
 
   const [keepHome, setKeepHome] = useState(isHome)
+  const [networkTick, setNetworkTick] = useState(0)
   const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
   useSourcingFramePlatformSync()
 
@@ -32,13 +33,19 @@ export default function MarketplaceKeepAlive() {
   }, [isHome])
 
   useEffect(() => {
+    const bump = () => setNetworkTick((n) => n + 1)
+    window.addEventListener('strefex-sourcing-network-invalidate', bump)
+    return () => window.removeEventListener('strefex-sourcing-network-invalidate', bump)
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
     let timer = 0
     let attempt = 0
     const delays = [0, 1500, 4000, 12000]
 
     const run = () => {
-      fetchSourcingNetworkAccounts({ limit: 800, force: attempt > 0 })
+      fetchSourcingNetworkAccounts({ limit: 800, force: networkTick > 0 || attempt > 0 })
         .then((rows) => {
           if (cancelled) return
           if (rows.length) {
@@ -63,7 +70,7 @@ export default function MarketplaceKeepAlive() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [mergeNetworkAccounts])
+  }, [mergeNetworkAccounts, networkTick])
 
   return (
     <>

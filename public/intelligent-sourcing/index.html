@@ -1630,7 +1630,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
           window.__STREFEX_SOURCING_APP__.setState({ dataRev: Date.now(), vw: window.strefexShellWidth ? window.strefexShellWidth() : window.innerWidth });
         }
         var count = (d.SUPPLIERS || []).filter(listed).length;
-        if (window.__STREFEX_SOURCING_BRIDGE__ && window.__STREFEX_SOURCING_BRIDGE__.emit) {
+        if ((plat.suppliers || plat.appendSuppliers) && window.__STREFEX_SOURCING_BRIDGE__ && window.__STREFEX_SOURCING_BRIDGE__.emit) {
           window.__STREFEX_SOURCING_BRIDGE__.emit("platform-applied", { count: count });
         }
       } catch (e) { /* */ }
@@ -1695,7 +1695,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   });
 })();
 </script>
-<script src="/intelligent-sourcing/platform-merge.js?v=20260912c"></script>
+<script src="/intelligent-sourcing/platform-merge.js?v=20260913a"></script>
 <script src="/intelligent-sourcing/embed-theme.js"></script>
 
 <script src="assets/b4a3a7a3-a1c5-46c3-94a8-faf8b89538ac.js?v=20260910g"></script>
@@ -3763,8 +3763,12 @@ transitFor(sup) {
         : (x.productCategoryIds || x.categoryIds || []);
       const subs = x.subcategoryIds || [];
       if ((!domainIds || !domainIds.length) && (!subs || !subs.length)) return false;
-      /* Subcategory views require an explicit mapped sub checkmark — parent alone is not enough. */
-      if (subId) return hasId(subs, subId);
+      /* Subcategory views: explicit checkmarks, or parent-only accounts (no subs stored). */
+      if (subId) {
+        if (hasId(subs, subId)) return true;
+        if ((!subs || !subs.length) && catId && hasId(domainIds, catId)) return true;
+        return false;
+      }
       if (!catId) return true;
       return hasId(domainIds, catId) || hasId(subs, catId);
     }

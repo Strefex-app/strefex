@@ -24,7 +24,7 @@ import {
   publishAccountsToNetworkDirectory,
   registerExistingAccountsOntoSourcingNetwork,
 } from '../utils/accountSourcingCompleteness'
-import { mergeSourcingNetworkIntoRegistry } from '../services/sourcingNetworkService'
+import { mergeSourcingNetworkIntoRegistry, resetSourcingNetworkFetchCache } from '../services/sourcingNetworkService'
 import {
   accountOffersAuditServices,
   isAuditServiceCategoryId,
@@ -342,6 +342,7 @@ export const useAccountRegistry = create((set, get) => ({
     mergeRegistryIndex(next)
     set({ accounts: next })
     publishAccountsToNetworkDirectory([next[idx >= 0 ? idx : next.length - 1]])
+    try { resetSourcingNetworkFetchCache() } catch { /* */ }
     return next[idx >= 0 ? idx : next.length - 1]
   },
 
@@ -381,6 +382,7 @@ export const useAccountRegistry = create((set, get) => ({
     mergeRegistryIndex(next)
     set({ accounts: next })
     publishAccountsToNetworkDirectory([next[idx]])
+    try { resetSourcingNetworkFetchCache() } catch { /* */ }
     return next[idx]
   },
 

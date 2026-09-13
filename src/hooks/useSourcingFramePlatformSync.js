@@ -8,6 +8,7 @@ import {
   buildPlatformSourcingPayload,
   serializeSourcingRfqList,
 } from '../utils/intelligentSourcingData'
+import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 
 function registryFingerprint(sellers) {
@@ -131,6 +132,9 @@ export function useSourcingFramePlatformSync() {
       }
       const phone = isPhoneShell()
       const chunkAt = phone || suppliers.length > 16 ? 12 : 48
+      try {
+        postApply({ taxonomy: buildSourcingTaxonomyOverlay() })
+      } catch { /* overlay is optional if stringify fails */ }
       if (suppliers.length > chunkAt) {
         postApply({ ...headBase, suppliers: suppliers.slice(0, chunkAt) })
         for (let i = chunkAt; i < suppliers.length; i += chunkAt) {

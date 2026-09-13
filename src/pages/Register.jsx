@@ -18,6 +18,7 @@ import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
+import { countAccountTaxonomy } from '../utils/companyTaxonomyPayload'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import {
@@ -95,6 +96,23 @@ function RegisterForm() {
   const needsCategoryRegistration =
     primaryAccountType === 'seller'
     || primaryAccountType === 'service_provider'
+  const productSanitizedPreview = sanitizeSubMap(selectedProductSubs)
+  const equipmentSanitizedPreview = sanitizeSubMap(selectedEquipmentSubs)
+  const taxonomyCounts = countAccountTaxonomy({
+    categories: equipmentSanitizedPreview.parents.length
+      ? { [primaryIndustry || 'general']: equipmentSanitizedPreview.parents }
+      : {},
+    productCategories: productSanitizedPreview.parents.length
+      ? { [primaryIndustry || 'general']: productSanitizedPreview.parents }
+      : {},
+    equipmentSubcategories: Object.keys(equipmentSanitizedPreview.subs).length
+      ? { [primaryIndustry || 'general']: equipmentSanitizedPreview.subs }
+      : {},
+    productSubcategories: Object.keys(productSanitizedPreview.subs).length
+      ? { [primaryIndustry || 'general']: productSanitizedPreview.subs }
+      : {},
+    serviceCategories: selectedServiceCategories,
+  })
   const inviteEmailLocked = Boolean(
     growthInvite?.inviteeEmail && growthInvite.status === 'pending',
   )
@@ -729,6 +747,14 @@ function RegisterForm() {
                 </div>
                 <div className="reg-domain-hint" style={{ marginTop: 6 }}>
                   Selected industry: <strong>{INDUSTRIES.find((x) => x.id === primaryIndustry)?.label || primaryIndustry || '—'}</strong>
+                  {(taxonomyCounts.categories > 0 || taxonomyCounts.subcategories > 0) ? (
+                    <>
+                      {' · '}
+                      <strong>{taxonomyCounts.categories}</strong> categor{taxonomyCounts.categories === 1 ? 'y' : 'ies'}
+                      {' · '}
+                      <strong>{taxonomyCounts.subcategories}</strong> subcategor{taxonomyCounts.subcategories === 1 ? 'y' : 'ies'}
+                    </>
+                  ) : null}
                 </div>
               </div>
 

@@ -134,24 +134,28 @@ function flattenCategoryIds(map) {
  * Flatten industry → parent → sub[] maps into Profile subcategory ids.
  * `*` / `__all__` expands to every Profile child under that parent (1:1 taxonomy).
  */
-function flattenSubcategoryIds(nested, { domain, industries } = {}) {
-  if (!nested || typeof nested !== 'object') return []
-  const out = []
-  Object.values(nested).forEach((byParent) => {
-    if (!byParent || typeof byParent !== 'object' || Array.isArray(byParent)) return
-    Object.entries(byParent).forEach(([parentId, list]) => {
-      if (!Array.isArray(list)) return
-      const wantsAll = list.includes('*') || list.includes('__all__')
-      if (wantsAll && domain && parentId) {
-        getProfileSubIdsForParent(domain, parentId, industries).forEach((id) => out.push(id))
-        return
-      }
-      list.forEach((id) => {
-        if (id && id !== '*' && id !== '__all__') out.push(String(id))
-      })
+function collectSubcategoryIds(value, { domain, industries } = {}, parentId = '') {
+  if (value == null) return []
+  if (Array.isArray(value)) {
+    const wantsAll = value.includes('*') || value.includes('__all__')
+    if (wantsAll && domain && parentId) {
+      return getProfileSubIdsForParent(domain, parentId, industries).map(String)
+    }
+    return value.filter((id) => id && id !== '*' && id !== '__all__').map(String)
+  }
+  if (typeof value === 'object') {
+    const out = []
+    Object.entries(value).forEach(([key, child]) => {
+      collectSubcategoryIds(child, { domain, industries }, key).forEach((id) => out.push(id))
     })
-  })
-  return [...new Set(out)]
+    return out
+  }
+  const id = String(value || '').trim()
+  return id && id !== '*' && id !== '__all__' ? [id] : []
+}
+
+function flattenSubcategoryIds(nested, opts = {}) {
+  return [...new Set(collectSubcategoryIds(nested, opts))]
 }
 
 /**

@@ -12,6 +12,162 @@ function asStringArray(value) {
   return [...new Set(value.map((v) => String(v || '').trim()).filter(Boolean))]
 }
 
+function isLeafId(value) {
+  const id = String(value || '').trim()
+  return Boolean(id) && id !== '*' && id !== '__all__'
+}
+
+/** Count string ids in industry → parent[] / industry → parent → sub[] maps. */
+export function countNestedLeafIds(value) {
+  if (value == null) return 0
+  if (Array.isArray(value)) return value.filter(isLeafId).length
+  if (typeof value === 'object') {
+    return Object.values(value).reduce((n, child) => n + countNestedLeafIds(child), 0)
+  }
+  return isLeafId(value) ? 1 : 0
+}
+
+export function taxonomyMapHasIds(map) {
+  return countNestedLeafIds(map) > 0
+}
+
+export function preferFilledTaxonomyMap(remote, local) {
+  if (taxonomyMapHasIds(remote)) return asObject(remote)
+  if (taxonomyMapHasIds(local)) return asObject(local)
+  return asObject(remote) && Object.keys(asObject(remote)).length
+    ? asObject(remote)
+    : asObject(local)
+}
+
+/** Parent categories + nested subcategory checkmarks on a registry / admin account. */
+export function countAccountTaxonomy(account = {}) {
+  const categories = countNestedLeafIds(account.categories)
+    + countNestedLeafIds(account.productCategories || account.product_categories)
+    + (Array.isArray(account.serviceCategories || account.service_categories)
+      ? (account.serviceCategories || account.service_categories).filter(Boolean).length
+      : 0)
+  const subcategories = countNestedLeafIds(
+    account.equipmentSubcategories || account.equipment_subcategories,
+  ) + countNestedLeafIds(
+    account.productSubcategories || account.product_subcategories,
+  )
+  return { categories, subcategories }
+}
+
+export function mergeIndustryParentList(existing, industryId, parents = []) {
+  const next = { ...asObject(existing) }
+  const id = String(industryId || '').trim()
+  if (!id) return next
+  const list = [...new Set((Array.isArray(parents) ? parents : []).map(String).filter(Boolean))]
+  if (!list.length) {
+    delete next[id]
+    return next
+  }
+  next[id] = list
+  return next
+}
+
+export function mergeIndustryNestedSubs(existing, industryId, subs = {}) {
+  const next = { ...asObject(existing) }
+  const id = String(industryId || '').trim()
+  if (!id) return next
+  const cleaned = {}
+  Object.entries(asObject(subs)).forEach(([parentId, list]) => {
+    const ids = (Array.isArray(list) ? list : []).map(String).filter((v) => v && v !== '*' && v !== '__all__')
+    if (ids.length) cleaned[parentId] = ids
+  })
+  if (!Object.keys(cleaned).length) {
+    delete next[id]
+    return next
+  }
+  next[id] = cleaned
+  return next
+}
+
+export function checklistFromIndustryMaps(industryId, parentMap, subMap) {
+  const id = String(industryId || '').trim()
+  const parents = Array.isArray(parentMap?.[id]) ? parentMap[id] : []
+  const subs = (subMap?.[id] && typeof subMap[id] === 'object' && !Array.isArray(subMap[id]))
+    ? subMap[id]
+    : {}
+  const map = {}
+  parents.forEach((parentId) => {
+    const key = String(parentId || '')
+    if (!key) return
+    map[key] = Array.isArray(subs[key]) && subs[key].length ? [...subs[key]] : ['*']
+  })
+  Object.entries(subs).forEach(([parentId, list]) => {
+    if (!map[parentId] && Array.isArray(list) && list.length) map[parentId] = [...list]
+  })
+  return map
+}
+
+export function industriesFromTaxonomyMaps(...maps) {
+  const ids = new Set()
+  maps.forEach((map) => {
+    Object.entries(asObject(map)).forEach(([ind, val]) => {
+      if (Array.isArray(val) && val.filter(Boolean).length) ids.add(String(ind))
+      else if (val && typeof val === 'object' && countNestedLeafIds(val) > 0) ids.add(String(ind))
+    })
+  })
+  return [...ids]
+}
+
+/** Merge the open industry checklist into stored maps without dropping other industries. */
+export function commitIndustryChecklist({
+  industryId,
+  productSubs = {},
+  equipmentSubs = {},
+  categories = {},
+  productCategories = {},
+  equipmentSubcategories = {},
+  productSubcategories = {},
+} = {}) {
+  const productSan = {
+    parents: Object.keys(productSubs || {}),
+    subs: {},
+  }
+  Object.entries(productSubs || {}).forEach(([parentId, list]) => {
+    const ids = (Array.isArray(list) ? list : []).filter((id) => id && id !== '*' && id !== '__all__')
+    if (ids.length) productSan.subs[parentId] = ids
+  })
+  const equipmentSan = {
+    parents: Object.keys(equipmentSubs || {}),
+    subs: {},
+  }
+  Object.entries(equipmentSubs || {}).forEach(([parentId, list]) => {
+    const ids = (Array.isArray(list) ? list : []).filter((id) => id && id !== '*' && id !== '__all__')
+    if (ids.length) equipmentSan.subs[parentId] = ids
+  })
+  const nextCategories = mergeIndustryParentList(categories, industryId, equipmentSan.parents)
+  const nextProductCategories = mergeIndustryParentList(productCategories, industryId, productSan.parents)
+  const nextEquipmentSubcategories = mergeIndustryNestedSubs(
+    equipmentSubcategories,
+    industryId,
+    equipmentSan.subs,
+  )
+  const nextProductSubcategories = mergeIndustryNestedSubs(
+    productSubcategories,
+    industryId,
+    productSan.subs,
+  )
+  const extraIndustry = String(industryId || '').trim()
+  const nextIndustries = industriesFromTaxonomyMaps(
+    nextCategories,
+    nextProductCategories,
+    nextEquipmentSubcategories,
+    nextProductSubcategories,
+  )
+  if (extraIndustry && !nextIndustries.includes(extraIndustry)) nextIndustries.push(extraIndustry)
+  return {
+    industries: nextIndustries,
+    categories: nextCategories,
+    productCategories: nextProductCategories,
+    equipmentSubcategories: nextEquipmentSubcategories,
+    productSubcategories: nextProductSubcategories,
+  }
+}
+
 /**
  * @param {object} input
  * @returns {{

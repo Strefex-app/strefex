@@ -23,11 +23,11 @@ import {
   isSellerLikeAccountType,
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
-import { buildCompanyTaxonomyWrite } from '../utils/companyTaxonomyPayload'
+import { buildCompanyTaxonomyWrite, checklistFromIndustryMaps, commitIndustryChecklist } from '../utils/companyTaxonomyPayload'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
-import CategorySubcategoryChecklist, { sanitizeSubMap } from '../components/CategorySubcategoryChecklist'
+import CategorySubcategoryChecklist from '../components/CategorySubcategoryChecklist'
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { useIndustryStore } from '../store/industryStore'
@@ -573,6 +573,10 @@ const Profile = () => {
     industryId: '',
     productSubs: {},
     equipmentSubs: {},
+    categories: {},
+    productCategories: {},
+    equipmentSubcategories: {},
+    productSubcategories: {},
     serviceCategories: [],
     sourcingMetrics: emptySourcingMetricsForm(),
   })
@@ -616,20 +620,6 @@ const Profile = () => {
     const prodSubsRaw = (md.product_subcategories && typeof md.product_subcategories === 'object')
       ? md.product_subcategories
       : (registryAcct?.productSubcategories || {})
-    const toSubMap = (parentsByIndustry, subsByIndustry) => {
-      const parents = Array.isArray(parentsByIndustry?.[industryId]) ? parentsByIndustry[industryId] : []
-      const subs = (subsByIndustry?.[industryId] && typeof subsByIndustry[industryId] === 'object')
-        ? subsByIndustry[industryId]
-        : {}
-      const map = {}
-      for (const parentId of parents) {
-        map[parentId] = Array.isArray(subs[parentId]) && subs[parentId].length ? [...subs[parentId]] : ['*']
-      }
-      for (const [parentId, list] of Object.entries(subs)) {
-        if (!map[parentId] && Array.isArray(list) && list.length) map[parentId] = [...list]
-      }
-      return map
-    }
     const serviceCategoriesRaw = Array.isArray(md.service_categories)
       ? md.service_categories
       : (Array.isArray(registryAcct?.serviceCategories) ? registryAcct.serviceCategories : [])
@@ -650,8 +640,12 @@ const Profile = () => {
       website: tenant?.website || '',
       companySummary: tenant?.metadata?.company_summary || '',
       industryId,
-      productSubs: toSubMap(prodCats, prodSubsRaw),
-      equipmentSubs: toSubMap(eqCats, eqSubsRaw),
+      categories: eqCats,
+      productCategories: prodCats,
+      equipmentSubcategories: eqSubsRaw,
+      productSubcategories: prodSubsRaw,
+      productSubs: checklistFromIndustryMaps(industryId, prodCats, prodSubsRaw),
+      equipmentSubs: checklistFromIndustryMaps(industryId, eqCats, eqSubsRaw),
       serviceCategories,
       sourcingMetrics: sourcingMetricsFormFromSource(
         { metadata: md, ...registryAcct },
@@ -1058,21 +1052,20 @@ const Profile = () => {
       const nextName = companyForm.companyName.trim()
       const nextSummary = companyForm.companySummary.trim()
       const nextIndustryId = String(companyForm.industryId || '').trim()
-      const nextIndustries = nextIndustryId ? [nextIndustryId] : []
-      const productSanitized = sanitizeSubMap(companyForm.productSubs)
-      const equipmentSanitized = sanitizeSubMap(companyForm.equipmentSubs)
-      const nextCategories = equipmentSanitized.parents.length
-        ? { [nextIndustryId]: [...equipmentSanitized.parents] }
-        : {}
-      const nextProductCategories = productSanitized.parents.length
-        ? { [nextIndustryId]: [...productSanitized.parents] }
-        : {}
-      const nextEquipmentSubcategories = Object.keys(equipmentSanitized.subs).length
-        ? { [nextIndustryId]: equipmentSanitized.subs }
-        : {}
-      const nextProductSubcategories = Object.keys(productSanitized.subs).length
-        ? { [nextIndustryId]: productSanitized.subs }
-        : {}
+      const committed = commitIndustryChecklist({
+        industryId: nextIndustryId,
+        productSubs: companyForm.productSubs,
+        equipmentSubs: companyForm.equipmentSubs,
+        categories: companyForm.categories,
+        productCategories: companyForm.productCategories,
+        equipmentSubcategories: companyForm.equipmentSubcategories,
+        productSubcategories: companyForm.productSubcategories,
+      })
+      const nextIndustries = committed.industries
+      const nextCategories = committed.categories
+      const nextProductCategories = committed.productCategories
+      const nextEquipmentSubcategories = committed.equipmentSubcategories
+      const nextProductSubcategories = committed.productSubcategories
       const nextServiceCategories = (() => {
         const raw = Array.isArray(companyForm.serviceCategories)
           ? [...companyForm.serviceCategories]
@@ -1666,12 +1659,24 @@ const Profile = () => {
                       disabled={savingCompany}
                       onChange={(e) => {
                         const industryId = e.target.value
-                        setCompanyForm((p) => ({
-                          ...p,
-                          industryId,
-                          productSubs: {},
-                          equipmentSubs: {},
-                        }))
+                        setCompanyForm((p) => {
+                          const committed = commitIndustryChecklist({
+                            industryId: p.industryId,
+                            productSubs: p.productSubs,
+                            equipmentSubs: p.equipmentSubs,
+                            categories: p.categories,
+                            productCategories: p.productCategories,
+                            equipmentSubcategories: p.equipmentSubcategories,
+                            productSubcategories: p.productSubcategories,
+                          })
+                          return {
+                            ...p,
+                            ...committed,
+                            industryId,
+                            productSubs: checklistFromIndustryMaps(industryId, committed.productCategories, committed.productSubcategories),
+                            equipmentSubs: checklistFromIndustryMaps(industryId, committed.categories, committed.equipmentSubcategories),
+                          }
+                        })
                       }}
                     >
                       <option value="">Select industry…</option>

@@ -369,7 +369,10 @@ export function sourcingSupplierMatchesDomainCategory(supplier, domain, category
   const subs = (supplier.subcategoryIds || []).map(String)
 
   if (subcatId) {
-    return subs.includes(String(subcatId))
+    if (subs.includes(String(subcatId))) return true
+    /* Parent-only registration (no sub checkmarks) matches every child, same as admin registry. */
+    if (!subs.length && categoryId && ids.includes(String(categoryId))) return true
+    return false
   }
 
   if (!categoryId) return true

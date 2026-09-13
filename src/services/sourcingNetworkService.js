@@ -2,7 +2,7 @@
  * Load seller / service-provider accounts for Intelligent Sourcing maps from Supabase.
  */
 import { isSupabaseConfigured, supabase } from '../config/supabase'
-import { sourcingNetworkRowToAccount } from '../utils/companyTaxonomyPayload'
+import { preferFilledTaxonomyMap, sourcingNetworkRowToAccount } from '../utils/companyTaxonomyPayload'
 import { publishAccountsToNetworkDirectory } from '../utils/accountSourcingCompleteness'
 import { mergeAccountsPreferFilled } from '../utils/keepExistingAccountFields'
 
@@ -14,6 +14,11 @@ let cache = { rows: null, at: 0, limit: 0 }
 export function resetSourcingNetworkFetchCache() {
   inflight = null
   cache = { rows: null, at: 0, limit: 0 }
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('strefex-sourcing-network-invalidate'))
+    }
+  } catch { /* */ }
 }
 
 async function rpcListSourcingNetworkAccounts(limit) {
@@ -88,16 +93,10 @@ export function mergeSourcingNetworkIntoRegistry(localAccounts = [], networkAcco
     byKey.set(k, {
       ...filled,
       industries: (remote.industries?.length ? remote.industries : local.industries) || filled.industries || [],
-      categories: Object.keys(remote.categories || {}).length ? remote.categories : (local.categories || {}),
-      productCategories: Object.keys(remote.productCategories || {}).length
-        ? remote.productCategories
-        : (local.productCategories || {}),
-      equipmentSubcategories: Object.keys(remote.equipmentSubcategories || {}).length
-        ? remote.equipmentSubcategories
-        : (local.equipmentSubcategories || {}),
-      productSubcategories: Object.keys(remote.productSubcategories || {}).length
-        ? remote.productSubcategories
-        : (local.productSubcategories || {}),
+      categories: preferFilledTaxonomyMap(remote.categories, local.categories),
+      productCategories: preferFilledTaxonomyMap(remote.productCategories, local.productCategories),
+      equipmentSubcategories: preferFilledTaxonomyMap(remote.equipmentSubcategories, local.equipmentSubcategories),
+      productSubcategories: preferFilledTaxonomyMap(remote.productSubcategories, local.productSubcategories),
       serviceCategories: (remote.serviceCategories?.length
         ? remote.serviceCategories
         : local.serviceCategories) || [],
