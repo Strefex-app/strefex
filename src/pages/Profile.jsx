@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
@@ -43,6 +43,7 @@ import {
   normalizeImageForOcr,
   rotateBlobQuarterTurnsCw,
 } from '../utils/ocrImageNormalize'
+import ProfilePasswordCard from '../components/profile/ProfilePasswordCard'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
 import {
   emptySourcingMetricsForm,
@@ -433,6 +434,7 @@ const COMPANY_PROFILE_FILE_ACCEPT =
 
 const Profile = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
   const setUser = useAuthStore((s) => s.setUser)
@@ -465,6 +467,12 @@ const Profile = () => {
   /** Suppliers (seller) & service providers: attach PDFs / decks / media to company profile (admin only; Supabase). */
   const canAttachCompanyProfile =
     isAdmin && (accountType === 'seller' || accountType === 'service_provider')
+
+  useEffect(() => {
+    if (location.hash !== '#password') return
+    const node = document.getElementById('profile-password')
+    node?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash])
 
   /* ── Documents state — tenant-scoped persistence ──────────── */
   const [documents, setDocuments] = useState(() => {
@@ -1373,6 +1381,8 @@ const Profile = () => {
               </div>
           </div>
         </div>
+
+        <ProfilePasswordCard />
 
         {/* ── Company & Plan Information Widget ──────────────── */}
         <div className="prof-card prof-company-card">

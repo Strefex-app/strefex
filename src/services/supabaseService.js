@@ -161,7 +161,7 @@ export const supabaseAuth = {
   /** Reset password. */
   async resetPassword(email) {
     if (!isSupabaseConfigured) return null
-    const redirectTo = `${window.location.origin}/login?reset=true`
+    const redirectTo = `${window.location.origin}/reset-password`
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) throw error
     return data

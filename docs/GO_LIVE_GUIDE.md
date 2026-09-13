@@ -101,7 +101,9 @@ supabase db push
    - **Site URL:** `https://your-domain.com` (your future Vercel URL)
    - **Redirect URLs:** add:
      - `https://your-domain.com/**`
+     - `https://your-domain.com/reset-password`
      - `http://localhost:5173/**` (for local testing)
+     - `http://localhost:5173/reset-password`
 3. **Authentication** → **Email templates**:
    - Open “Confirm signup” — check the link points to your domain.
    - Customize the email text if you want (company name, support email).

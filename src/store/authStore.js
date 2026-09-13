@@ -6,6 +6,7 @@ import {
   scheduleRehydrateTenantStores,
   stopWorkspaceCloudSyncOnLogout,
 } from './rehydrateTenantStores'
+import { clearPasswordRecovery, detectRecoveryFromLocation, isPasswordRecoveryPending } from '../utils/authPasswordRecovery'
 
 /* ── helpers ─────────────────────────────────────────────── */
 const STORAGE_KEY = 'strefex-auth'
@@ -71,6 +72,12 @@ export const useAuthStore = create((set, get) => ({
   /** `live` = Supabase/backend session; `demo` = isolated presentation sandbox. */
   sessionMode: stored?.sessionMode ?? 'live',
   tenantReady: true,
+  /** True while a Supabase recovery session must set a new password. Not persisted. */
+  passwordRecoveryPending: detectRecoveryFromLocation() || isPasswordRecoveryPending(),
+
+  setPasswordRecoveryPending: (passwordRecoveryPending) => set({
+    passwordRecoveryPending: Boolean(passwordRecoveryPending),
+  }),
 
   /**
    * Login — stores the full session, then rehydrates all tenant-scoped stores
@@ -154,6 +161,7 @@ export const useAuthStore = create((set, get) => ({
       .then((m) => m.revokeDemoAccessSession())
       .catch(() => {})
     clear()
+    clearPasswordRecovery()
     set({
       isAuthenticated: false,
       role: 'user',
@@ -163,6 +171,7 @@ export const useAuthStore = create((set, get) => ({
       tenant: null,
       sessionMode: 'live',
       tenantReady: true,
+      passwordRecoveryPending: false,
     })
     // Rehydrate all stores — now tenantId becomes 'guest', so the stores
     // will load empty/default data instead of the previous user's data.

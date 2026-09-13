@@ -122,6 +122,51 @@
   grid-column: 1 / -1;
 }
 
+.prof-password-card {
+  margin-bottom: 20px;
+}
+
+.prof-password-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  max-width: 420px;
+}
+
+.prof-password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--text-small);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+}
+
+.prof-password-field input {
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: var(--text-body);
+  font-weight: var(--font-regular);
+  background: var(--bg-input);
+  color: var(--color-primary);
+}
+
+.prof-password-msg {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug, 1.4);
+}
+
+.prof-password-msg-error { color: #c0392b; }
+.prof-password-msg-ok { color: #1e7e34; }
+
+.prof-password-form .prof-btn-primary {
+  justify-self: start;
+  margin-top: 4px;
+}
+
 .prof-info-label {
   font-size: 12px;
   font-weight: 600;

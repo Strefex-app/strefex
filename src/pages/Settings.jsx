@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n/useTranslation'
@@ -26,6 +27,7 @@ export default function Settings() {
     setExhibitionReminders,
   } = useSettingsStore()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [pushBusy, setPushBusy] = useState(false)
   const pushPermission = getNotificationPermission()
   const pushSupported = isPushSupported()
@@ -118,7 +120,11 @@ export default function Settings() {
             <div className="settings-card">
               <h2 className="settings-card-title">{t('settings.account')}</h2>
 
-              <div className="settings-item clickable">
+              <button
+                type="button"
+                className="settings-item clickable"
+                onClick={() => navigate('/profile#password')}
+              >
                 <div className="settings-item-info">
                   <div className="settings-item-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -128,7 +134,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <span className="settings-item-arrow">→</span>
-              </div>
+              </button>
 
               <div className="settings-item clickable">
                 <div className="settings-item-info">

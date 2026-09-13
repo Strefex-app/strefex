@@ -10,6 +10,7 @@ import AnalyticsProvider from './components/AnalyticsProvider'
 import UpgradePrompt from './components/UpgradePrompt'
 import PWAUpdateBanner from './components/PWAUpdateBanner'
 import PwaNotificationPrompt from './components/PwaNotificationPrompt'
+import PasswordRecoveryGate from './components/PasswordRecoveryGate'
 import AppLayout from './components/AppLayout'
 import { PersistentSourcingCanvasProvider } from './components/PersistentSourcingCanvas'
 import authService from './services/authService'
@@ -39,6 +40,7 @@ import {
   MarketingIntroManufacturers,
   MarketingIntroHowItWorks,
   VerifyEmail,
+  ResetPassword,
   SubscriptionPlans,
   TeamManagement,
   PlatformCalendar,
@@ -283,6 +285,7 @@ function PlanGate({ feature, planName, children, requiredRole }) {
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const tenantReady = useAuthStore((state) => state.tenantReady)
+  const passwordRecoveryPending = useAuthStore((state) => state.passwordRecoveryPending)
   const startRequestRefresh = useServiceRequestStore((s) => s.startRefreshSequence)
   const stopRequestRefresh = useServiceRequestStore((s) => s.stopRefreshSequence)
   const theme = useSettingsStore((s) => s.theme)
@@ -310,17 +313,15 @@ function App() {
       setSessionChecked(true)
     }
     const timer = window.setTimeout(finish, 12000)
-    authService.initSession().finally(() => {
-      window.clearTimeout(timer)
-      finish()
-    })
-
-    // Listen for server-side session changes (sign-out from other tab, token revoked)
     const unsub = authService.onAuthStateChange((user) => {
       if (!sessionReady) return
       if (!user && useAuthStore.getState().isAuthenticated) {
         useAuthStore.getState().logout()
       }
+    })
+    authService.initSession().finally(() => {
+      window.clearTimeout(timer)
+      finish()
     })
     return () => {
       window.clearTimeout(timer)
@@ -354,7 +355,7 @@ function App() {
 
   // While verifying the session, show a minimal loading screen
   // to prevent flash of login page or unauthorized protected content
-  if (!sessionChecked || (isAuthenticated && !tenantReady)) {
+  if (!sessionChecked || (isAuthenticated && !tenantReady && !passwordRecoveryPending)) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -377,6 +378,7 @@ function App() {
     <ErrorBoundary>
       <PWAUpdateBanner />
       <Router>
+        <PasswordRecoveryGate />
         {showPushPrompt && <PwaNotificationPrompt />}
         <WorkspaceSyncOnNavigate />
         <AnalyticsProvider>
@@ -384,8 +386,12 @@ function App() {
         <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* ── Public ────────────────────────────────────── */}
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Login />} />
-          <Route path="/register" element={isAuthenticated ? <Navigate to="/main-menu" /> : <Register />} />
+          <Route
+            path="/login"
+            element={isAuthenticated && !passwordRecoveryPending ? <Navigate to="/main-menu" /> : <Login />}
+          />
+          <Route path="/register" element={isAuthenticated && !passwordRecoveryPending ? <Navigate to="/main-menu" /> : <Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Public marketing site (www.strefex.pro) — always the introduction */}
           <Route path="/" element={<MarketingShell />}>

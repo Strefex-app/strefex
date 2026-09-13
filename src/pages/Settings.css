@@ -92,6 +92,18 @@
   border-bottom: none;
 }
 
+button.settings-item.clickable {
+  display: flex;
+  width: calc(100% + 24px);
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: none;
+}
+
 .settings-item.clickable:hover {
   background: var(--bg-surface);
 }

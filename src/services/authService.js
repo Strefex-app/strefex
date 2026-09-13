@@ -38,6 +38,12 @@ import { rememberOfficialRegistrationCode } from '../utils/platformRegistrationC
 import { sessionExpiresAtMs } from '../utils/sessionExpiry'
 import { hydrateFeatureGrantsForSession } from './featureGrantsService'
 import { setServerFeatureGrants } from '../utils/featureGrants'
+import { validateNewPassword } from '../utils/passwordPolicy'
+import {
+  clearPasswordRecovery,
+  detectRecoveryFromLocation,
+  markPasswordRecovery,
+} from '../utils/authPasswordRecovery'
 
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
@@ -1156,6 +1162,51 @@ const authService = {
     throw new Error('Password reset is only available with Supabase auth configuration.')
   },
 
+  async changePassword({ currentPassword, newPassword, confirmPassword } = {}) {
+    const policyError = validateNewPassword(newPassword, confirmPassword)
+    if (policyError) throw new Error(policyError)
+    if (!currentPassword) {
+      throw new Error('Enter your current password.')
+    }
+    if (currentPassword === newPassword) {
+      throw new Error('Choose a new password that is different from the current one.')
+    }
+    if (!isSupabaseConfigured) {
+      throw new Error('Password change is only available with Supabase auth.')
+    }
+    const session = await supabaseAuth.getSession()
+    const email = normalizeEmail(session?.user?.email)
+    if (!email) {
+      throw new Error('You must be signed in to change your password.')
+    }
+    try {
+      await supabaseAuth.signIn(email, currentPassword)
+    } catch {
+      const err = new Error('Current password is incorrect.')
+      err.code = 'invalid_current_password'
+      throw err
+    }
+    await supabaseAuth.updateUser({ password: newPassword })
+    return { updated: true }
+  },
+
+  async completePasswordRecovery({ newPassword, confirmPassword } = {}) {
+    const policyError = validateNewPassword(newPassword, confirmPassword)
+    if (policyError) throw new Error(policyError)
+    if (!isSupabaseConfigured) {
+      throw new Error('Password reset is only available with Supabase auth.')
+    }
+    const session = await supabaseAuth.getSession()
+    if (!session?.user) {
+      throw new Error('This reset link is invalid or has expired. Request a new one from Login.')
+    }
+    await supabaseAuth.updateUser({ password: newPassword })
+    clearPasswordRecovery()
+    useAuthStore.getState().setPasswordRecoveryPending?.(false)
+    await authService.refreshProfile(session).catch(() => {})
+    return { updated: true }
+  },
+
   async resendConfirmation(email) {
     const normalizedEmail = normalizeEmail(email)
     if (!normalizedEmail) {
@@ -1184,6 +1235,10 @@ const authService = {
   onAuthStateChange(callback) {
     if (isSupabaseConfigured) {
       const { data } = supabaseAuth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          markPasswordRecovery()
+          useAuthStore.getState().setPasswordRecoveryPending?.(true)
+        }
         callback(session?.user || null)
         if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
           const expiresAt = sessionExpiresAtMs(session)
@@ -1214,6 +1269,10 @@ const authService = {
    * stale localStorage state from granting access.
    */
   async initSession() {
+    if (detectRecoveryFromLocation()) {
+      markPasswordRecovery()
+      useAuthStore.getState().setPasswordRecoveryPending?.(true)
+    }
     if (AUTH_USE_COOKIES) {
       const state = useAuthStore.getState()
       if (!state.isAuthenticated || !state.user) {

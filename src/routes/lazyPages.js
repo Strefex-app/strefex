@@ -17,6 +17,7 @@ export const MarketingIntroHowItWorks = lazy(() =>
   import('../pages/marketing/MarketingIntroPages').then((m) => ({ default: m.IntroHowItWorks })),
 )
 export const VerifyEmail = lazy(() => import('../pages/VerifyEmail'))
+export const ResetPassword = lazy(() => import('../pages/ResetPassword'))
 export const SubscriptionPlans = lazy(() => import('../pages/SubscriptionPlans'))
 export const TeamManagement = lazy(() => import('../pages/TeamManagement'))
 export const Home = lazy(() => import('../pages/Home'))

@@ -89,7 +89,7 @@ const Login = () => {
       if (result?.confirmationResent) {
         setInfo('Your account is not confirmed yet. A new confirmation email was sent.')
       } else {
-        setInfo('Password reset email sent. Please check your inbox.')
+        setInfo('Password reset email sent. Open the link to choose a new password, then sign in.')
       }
     } catch (err) {
       setError(getReadableErrorMessage(err, 'Could not send password reset email. Please try again.'))
