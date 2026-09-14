@@ -2047,12 +2047,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Select an industry</h1>
               <p style="font-size:14px; color:var(--text-muted); margin:0">Each industry carries its own qualification standard, lead-time profile and risk mix.</p>
             </div>
-            <div class="stx-page-head__tools" style="display:flex; align-items:center; gap:10px; flex:none; flex-wrap:wrap; justify-content:flex-end">
-              <div style="position:relative">
-                <input value="{{ indQuery }}" sc-camel-on-input="{{ onIndQuery }}" sc-camel-on-change="{{ onIndQuery }}" placeholder="Search industry…" aria-label="Search industry" style="width:220px; font-family:var(--font-sans); font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:9px 12px 9px 34px">
-                <span style="position:absolute; left:10px; top:9px; color:var(--steel-600)"><x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="search" size="16" hint-size="16px,16px"></x-import></span>
-              </div>
-              <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden; flex:none">
+            <div class="stx-page-head__tools" style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden; flex:none">
               <sc-for list="{{ indFilters }}" as="f" hint-placeholder-count="3">
                 <button sc-camel-on-click="{{ f.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; border:none; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</button>
               </sc-for>
@@ -2064,9 +2059,6 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             <div style="font-size:13.5px; line-height:1.55; color:#155F76">You are entitled to <strong>Automotive</strong> and <strong>Machinery &amp; Industrial</strong>. Other industries are browsable read-only — request entitlement in-page, no second account needed. <span sc-camel-on-click="{{ onRequestAccess }}" style="color:#1F7B98; text-decoration:underline; cursor:pointer">Request access</span></div>
           </div>
 
-          <sc-if value="{{ noIndHits }}">
-            <p style="font-size:14px; color:var(--text-muted); margin:0 0 16px">No industries match “{{ indQuery }}”.</p>
-          </sc-if>
           <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:14px">
             <sc-for list="{{ industries }}" as="i" hint-placeholder-count="10">
               <div sc-camel-on-click="{{ i.onPick }}" style="background:var(--surface-card); border:1px solid {{ i.border }}; border-left:3px solid {{ i.rule }}; border-radius:6px; box-shadow:var(--shadow-sm); padding:17px 19px; cursor:pointer; transition:box-shadow 160ms cubic-bezier(.2,0,.1,1)" style-hover="box-shadow:0 6px 18px rgba(6,24,41,.10)">
@@ -2210,11 +2202,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ categoryName }} — deep dive</h1>
               <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:700px; text-wrap:pretty">Pick the exact process or machine class you are sourcing. Each one carries its own supplier set, capacity headroom and executive summary — a category-level average would hide all three.</p>
             </div>
-            <div class="stx-page-head__tools" style="display:flex; align-items:flex-end; gap:14px; flex:none; flex-wrap:wrap; justify-content:flex-end">
-              <div style="position:relative">
-                <input value="{{ subQuery }}" sc-camel-on-input="{{ onSubQuery }}" sc-camel-on-change="{{ onSubQuery }}" placeholder="Search equipment or process…" aria-label="Search subcategory" style="width:250px; font-family:var(--font-sans); font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:9px 12px 9px 34px">
-                <span style="position:absolute; left:10px; top:9px; color:var(--steel-600)"><x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="search" size="16" hint-size="16px,16px"></x-import></span>
-              </div>
+            <div class="stx-page-head__tools" style="display:flex; gap:14px; flex:none">
               <sc-for list="{{ subStats }}" as="k" hint-placeholder-count="3">
                 <div style="border:1px solid var(--border-hairline); border-left:3px solid {{ k.tone }}; border-radius:4px; background:var(--white); padding:11px 16px">
                   <div style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:var(--navy-800)">{{ k.n }}</div>
@@ -2224,9 +2212,6 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
             </div>
           </div>
 
-          <sc-if value="{{ noSubHits }}">
-            <p style="font-size:14px; color:var(--text-muted); margin:0 0 16px">No equipment or processes match “{{ subQuery }}”.</p>
-          </sc-if>
           <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(420px,100%),1fr)); gap:16px">
             <sc-for list="{{ subcats }}" as="b" hint-placeholder-count="4">
               <div sc-camel-on-click="{{ b.onPick }}" style="background:var(--surface-card); border:1px solid var(--border-hairline); border-top:3px solid {{ b.rule }}; border-radius:6px; box-shadow:var(--shadow-sm); padding:19px 21px 18px; cursor:pointer; transition:box-shadow 160ms cubic-bezier(.2,0,.1,1)" style-hover="box-shadow:0 6px 18px rgba(6,24,41,.10)">
@@ -3208,7 +3193,7 @@ class Component extends DCLogic {
   state = {
     step: "home", domain: null, industry: null, category: null, subcat: null, sub: null,
     indFilter: "All", catSort: "suppliers", sortKey: "fit", sortDir: -1,
-    indQuery: "", catQuery: "", subQuery: "",
+    catQuery: "",
     metric: "risk", focus: "all", buyerId: "muc", empty: false,
     sel: [], selScope: {}, focusName: "",
     rfqSent: false, rfqIndsSel: ["Automotive"], rfqMode: "sea",
@@ -3376,14 +3361,7 @@ class Component extends DCLogic {
     }));
   }
 
-  go(step, patch) {
-    const extra = Object.assign({}, patch || {});
-    if (step === "category") extra.catQuery = extra.catQuery != null ? extra.catQuery : "";
-    if (step === "subcat") extra.subQuery = extra.subQuery != null ? extra.subQuery : "";
-    if (step === "industry") extra.indQuery = extra.indQuery != null ? extra.indQuery : this.state.indQuery;
-    this.setState(Object.assign({ step }, extra));
-    window.scrollTo(0, 0);
-  }
+  go(step, patch) { this.setState(Object.assign({ step }, patch || {})); window.scrollTo(0, 0); }
 
   download(name, mime, text) {
     const url = URL.createObjectURL(new Blob([text], { type: mime }));
@@ -3928,7 +3906,6 @@ transitFor(sup) {
       s.indFilter, k => this.setState({ indFilter: k })
     );
     const industries = inds.filter(i => s.indFilter === "All" || (s.indFilter === "Entitled" ? i.registered : /IATF|AS9100|13485|ASME|API/.test(i.standard)))
-      .filter(i => haystackMatch(s.indQuery, [i.id, i.name, i.standard]))
       .map(i => {
         const pool = registeredAccounts.filter(x => matchesIndustry(x, i.id, i.name) && matchesDomainRole(x, s.domain || "product"));
         const agg = aggregatePool(pool);
@@ -4018,7 +3995,7 @@ transitFor(sup) {
         hasMetrics: agg.hasMetrics
       });
     });
-    const subcats = liveSubs.filter(x => haystackMatch(s.subQuery, [x.id, x.name, x.parent].concat(x.spec || []))).map(x => ({
+    const subcats = liveSubs.map(x => ({
       name: x.name, parent: x.parent, icon: x.icon, spec: x.spec,
       suppliers: x.suppliers, lead: x.lead, headroom: x.headroom, fit: x.fit,
       audited: x.audited, countries: x.countries || "—", moq: x.moq ? (x.moq.toLocaleString("en-US") + " pcs") : "—",
@@ -4757,16 +4734,11 @@ transitFor(sup) {
       homeKpis, domains, rfqList, rfqListEmpty, rfqListCount, alerts,
       sideAccounts: acc.length,
       sideProfile: avgOf(acc, "profile"), sideStale: stale,
-      indFilters, industries, indQuery: s.indQuery || "",
-      noIndHits: String(s.indQuery || "").trim() !== "" && industries.length === 0,
-      onIndQuery: e => this.setState({ indQuery: e && e.target ? e.target.value : "" }),
+      indFilters, industries,
       catSorts, categories, adjacent, catQuery: s.catQuery || "",
       hasCats: categories.length > 0, noCats: liveCats.length === 0,
       noCatHits: String(s.catQuery || "").trim() !== "" && categories.length === 0 && liveCats.length > 0,
       onCatQuery: e => this.setState({ catQuery: e && e.target ? e.target.value : "" }),
-      subQuery: s.subQuery || "",
-      noSubHits: String(s.subQuery || "").trim() !== "" && subcats.length === 0 && liveSubs.length > 0,
-      onSubQuery: e => this.setState({ subQuery: e && e.target ? e.target.value : "" }),
       catHeading: domainName + " categories",
       catSub: "Sorted by " + (s.catSort === "suppliers" ? "supplier depth" : s.catSort === "lead" ? "average lead time" : s.catSort === "price" ? "12-month price movement" : "risk") + ". Every card ends in an executive summary.",
 
