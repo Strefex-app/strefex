@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "Schedule",
+  "usingComponents": {
+    "session-card": "/components/session-card/session-card",
+    "schedule-week": "/components/schedule-week/schedule-week"
+  }
+}

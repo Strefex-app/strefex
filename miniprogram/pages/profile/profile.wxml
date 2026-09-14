@@ -1,0 +1,32 @@
+<view class="container">
+  <view class="profile-header card" wx:if="{{loggedIn && userInfo}}">
+    <view class="profile-avatar">{{userInfo.nickname ? userInfo.nickname[0] : 'P'}}</view>
+    <view class="profile-info">
+      <text class="profile-name">{{userInfo.nickname || 'Player'}}</text>
+      <text class="text-small text-muted">Football training member</text>
+    </view>
+  </view>
+
+  <view class="profile-header card profile-header--guest" wx:else>
+    <text class="profile-guest-title">Sign in with WeChat</text>
+    <text class="text-small text-muted">Book sessions and manage your training schedule</text>
+    <button class="btn-primary profile-login-btn" bindtap="onLogin">WeChat login</button>
+  </view>
+
+  <view class="card menu-list">
+    <view class="menu-item" bindtap="onBrowse">
+      <text>Browse all sessions</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <navigator class="menu-item" url="/pages/bookings/bookings" open-type="switchTab">
+      <text>My bookings</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator class="menu-item" url="/pages/schedule/schedule" open-type="switchTab">
+      <text>Weekly schedule</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+  </view>
+
+  <button wx:if="{{loggedIn}}" class="btn-secondary logout-btn" bindtap="onLogout">Sign out</button>
+</view>

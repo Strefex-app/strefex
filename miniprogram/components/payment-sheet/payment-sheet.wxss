@@ -1,0 +1,116 @@
+.payment-sheet-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.payment-sheet {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 24rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.payment-sheet__handle {
+  width: 64rpx;
+  height: 8rpx;
+  background: #E0E0E0;
+  border-radius: 4rpx;
+  margin: 0 auto 24rpx;
+}
+
+.payment-sheet__title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #0B3D2E;
+  text-align: center;
+}
+
+.payment-sheet__amount {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #0B3D2E;
+  text-align: center;
+  margin: 16rpx 0 32rpx;
+}
+
+.payment-sheet__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 24rpx;
+  border: 2rpx solid #E8EDE9;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.payment-sheet__option--active {
+  border-color: #1A6B4F;
+  background: #F4FAF7;
+}
+
+.payment-sheet__option-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.payment-sheet__icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.payment-sheet__icon--wechat {
+  background: #07C160;
+}
+
+.payment-sheet__icon--alipay {
+  background: #1677FF;
+}
+
+.payment-sheet__option-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1A2E28;
+}
+
+.payment-sheet__option-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #6B7C75;
+  margin-top: 4rpx;
+}
+
+.payment-sheet__radio {
+  width: 36rpx;
+  height: 36rpx;
+  border: 2rpx solid #BDBDBD;
+  border-radius: 50%;
+}
+
+.payment-sheet__radio--on {
+  border-color: #1A6B4F;
+  background: radial-gradient(circle, #1A6B4F 40%, transparent 42%);
+}
+
+.payment-sheet__pay {
+  width: 100%;
+  margin-top: 24rpx;
+}

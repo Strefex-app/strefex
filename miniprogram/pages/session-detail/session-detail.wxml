@@ -1,0 +1,56 @@
+<view class="container" wx:if="{{!loading && session}}">
+  <view class="detail-hero">
+    <text class="tag tag-green">{{session.category}}</text>
+    <text class="detail-hero__title">{{session.title}}</text>
+    <text class="detail-hero__level">{{session.level}} · {{session.duration_minutes}} min</text>
+  </view>
+
+  <view class="card">
+    <view class="detail-row">
+      <text class="detail-row__label">Coach</text>
+      <text class="detail-row__value">{{session.coach_name}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-row__label">Venue</text>
+      <text class="detail-row__value">{{session.venue_name}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-row__label">Address</text>
+      <text class="detail-row__value">{{session.venue_address}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-row__label">Date & time</text>
+      <text class="detail-row__value">{{session.date}} {{session.start_time}} – {{session.end_time}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-row__label">Spots</text>
+      <text class="detail-row__value">{{session.spots_left}} of {{session.capacity}} available</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <text class="detail-section-title">About this session</text>
+    <text class="detail-description">{{session.description}}</text>
+  </view>
+
+  <view class="card" wx:if="{{session.equipment}}">
+    <text class="detail-section-title">What to bring</text>
+    <text class="detail-description">{{session.equipment}}</text>
+  </view>
+
+  <view class="detail-footer">
+    <view>
+      <text class="text-small text-muted">Price per player</text>
+      <text class="price price-large">¥{{session.price_yuan}}</text>
+    </view>
+    <button
+      class="btn-primary"
+      disabled="{{session.spots_left === 0}}"
+      bindtap="onBook"
+    >
+      {{session.spots_left === 0 ? 'Fully booked' : 'Book now'}}
+    </button>
+  </view>
+</view>
+
+<view wx:if="{{loading}}" class="empty-state">Loading...</view>

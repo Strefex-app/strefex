@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "Payment",
+  "usingComponents": {
+    "payment-sheet": "/components/payment-sheet/payment-sheet"
+  }
+}

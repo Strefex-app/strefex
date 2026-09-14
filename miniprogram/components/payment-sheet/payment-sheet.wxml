@@ -1,0 +1,41 @@
+<view class="payment-sheet-mask" wx:if="{{visible}}" bindtap="onClose">
+  <view class="payment-sheet" catchtap="">
+    <view class="payment-sheet__handle"></view>
+    <text class="payment-sheet__title">Choose payment method</text>
+    <text class="payment-sheet__amount">¥{{amountYuan}}</text>
+
+    <view
+      class="payment-sheet__option {{selected === 'wechat' ? 'payment-sheet__option--active' : ''}}"
+      data-method="wechat"
+      bindtap="onSelect"
+    >
+      <view class="payment-sheet__option-left">
+        <view class="payment-sheet__icon payment-sheet__icon--wechat">微</view>
+        <view>
+          <text class="payment-sheet__option-title">WeChat Pay</text>
+          <text class="payment-sheet__option-desc">Recommended in WeChat</text>
+        </view>
+      </view>
+      <view class="payment-sheet__radio {{selected === 'wechat' ? 'payment-sheet__radio--on' : ''}}"></view>
+    </view>
+
+    <view
+      class="payment-sheet__option {{selected === 'alipay' ? 'payment-sheet__option--active' : ''}}"
+      data-method="alipay"
+      bindtap="onSelect"
+    >
+      <view class="payment-sheet__option-left">
+        <view class="payment-sheet__icon payment-sheet__icon--alipay">支</view>
+        <view>
+          <text class="payment-sheet__option-title">Alipay</text>
+          <text class="payment-sheet__option-desc">Pay with Alipay account</text>
+        </view>
+      </view>
+      <view class="payment-sheet__radio {{selected === 'alipay' ? 'payment-sheet__radio--on' : ''}}"></view>
+    </view>
+
+    <button class="btn-primary payment-sheet__pay" bindtap="onPay">
+      Pay ¥{{amountYuan}}
+    </button>
+  </view>
+</view>
