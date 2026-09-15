@@ -5,19 +5,22 @@
 
 export const SOURCING_METRICS_METADATA_KEY = 'sourcing_metrics'
 
-/** Numeric fields (empty string in forms → null on save). */
+/**
+ * All metric keys stay in storage / Intelligent Sourcing compare.
+ * `inQuestionnaire` = what purchasing needs from a supplier profile (not platform scores).
+ */
 export const SOURCING_METRIC_NUMBER_FIELDS = [
   { key: 'fitLevel', label: 'Supplier fit (0–100)', hint: 'Platform capability fit vs buyer gate', min: 0, max: 100, step: 1 },
   { key: 'riskLevel', label: 'Risk index', hint: 'Lower is better', min: 0, max: 100, step: 1 },
-  { key: 'capacityLevel', label: 'Capacity used (%)', hint: 'Self-declared utilisation', min: 0, max: 100, step: 1 },
-  { key: 'onTimePct', label: 'On-time delivery (%)', hint: 'From your receipts / history', min: 0, max: 100, step: 1 },
-  { key: 'qualityPpm', label: 'Quality (ppm)', hint: 'Defect parts per million', min: 0, max: 100000, step: 1 },
-  { key: 'leadTimeDays', label: 'Production / engagement lead (days)', hint: 'Quoted lead time', min: 0, max: 730, step: 1 },
+  { key: 'leadTimeDays', label: 'Lead time (days)', hint: 'Typical production / delivery lead time quoted to purchasing', min: 0, max: 730, step: 1, inQuestionnaire: true },
+  { key: 'quoteTurnDays', label: 'Quote turnaround (days)', hint: 'Days to answer an RFQ', min: 0, max: 120, step: 1, inQuestionnaire: true },
+  { key: 'capacityLevel', label: 'Capacity utilised (%)', hint: 'Current plant load — remaining capacity for new orders', min: 0, max: 100, step: 1, inQuestionnaire: true },
+  { key: 'onTimePct', label: 'On-time delivery (%)', hint: 'OTD from customer receipts / history', min: 0, max: 100, step: 1, inQuestionnaire: true },
+  { key: 'qualityPpm', label: 'Quality (ppm)', hint: 'Defect parts per million', min: 0, max: 100000, step: 1, inQuestionnaire: true },
+  { key: 'employees', label: 'Employees', hint: 'Plant / company headcount', min: 0, max: 500000, step: 1, inQuestionnaire: true },
   { key: 'priceIndex', label: 'Price index (100 = market avg)', hint: 'Declared price competitiveness', min: 50, max: 200, step: 1 },
   { key: 'annualSpend', label: 'Annual spend with you ($M)', hint: 'Buyer context, not a score', min: 0, max: 10000, step: 0.1 },
-  { key: 'quoteTurnDays', label: 'Quote turnaround (days)', hint: 'Median response to RFQ', min: 0, max: 120, step: 1 },
   { key: 'respRate', label: 'RFQ response rate (%)', hint: 'Share of RFQs answered', min: 0, max: 100, step: 1 },
-  { key: 'employees', label: 'Employees', hint: 'Plant / company headcount', min: 0, max: 500000, step: 1 },
   { key: 'machines', label: 'Machines', hint: 'Primary production equipment count', min: 0, max: 100000, step: 1 },
   { key: 'shifts', label: 'Shifts', hint: 'Typical shifts per day', min: 0, max: 4, step: 1 },
   { key: 'certExpiryDays', label: 'Nearest cert expiry (days)', hint: 'Days until next certificate expires', min: 0, max: 3650, step: 1 },
@@ -25,13 +28,16 @@ export const SOURCING_METRIC_NUMBER_FIELDS = [
 ]
 
 export const SOURCING_METRIC_TEXT_FIELDS = [
+  { key: 'certificationsText', label: 'Certificates', hint: 'Comma-separated, e.g. IATF 16949, ISO 9001', placeholder: 'IATF 16949, ISO 9001', inQuestionnaire: true },
   { key: 'financialGrade', label: 'Financial grade', hint: 'e.g. A, B+, C', placeholder: 'A' },
   { key: 'tariffRegime', label: 'Trade / tariff exposure', hint: 'e.g. None, Section 301', placeholder: 'None' },
   { key: 'tier2', label: 'Tier-2 visibility', hint: 'Full / Partial / Unknown', placeholder: 'Unknown' },
   { key: 'auditStatus', label: 'Audit status label', hint: 'Passed / Due / Overdue', placeholder: '—' },
   { key: 'languages', label: 'Working languages', hint: 'Comma-separated, e.g. EN, DE, ZH', placeholder: 'EN, DE' },
-  { key: 'certificationsText', label: 'Certificates', hint: 'Comma-separated, e.g. IATF 16949, ISO 9001', placeholder: 'ISO 9001' },
 ]
+
+export const SOURCING_METRIC_QUESTIONNAIRE_NUMBER_FIELDS = SOURCING_METRIC_NUMBER_FIELDS.filter((f) => f.inQuestionnaire)
+export const SOURCING_METRIC_QUESTIONNAIRE_TEXT_FIELDS = SOURCING_METRIC_TEXT_FIELDS.filter((f) => f.inQuestionnaire)
 
 const NUMBER_KEYS = SOURCING_METRIC_NUMBER_FIELDS.map((f) => f.key)
 const TEXT_KEYS = SOURCING_METRIC_TEXT_FIELDS.map((f) => f.key)

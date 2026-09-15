@@ -6,6 +6,8 @@ import {
   sourcingMetricsRegistryPatch,
   flattenSourcingMetricsFromAccount,
   mergeSourcingMetricsIntoMetadata,
+  SOURCING_METRIC_QUESTIONNAIRE_NUMBER_FIELDS,
+  SOURCING_METRIC_QUESTIONNAIRE_TEXT_FIELDS,
 } from '../utils/sourcingMetrics'
 
 describe('sourcingMetrics', () => {
@@ -57,6 +59,20 @@ describe('sourcingMetrics', () => {
     expect(patch.fitLevel).toBe(80)
     expect(patch.tariff).toBe('None')
     expect(patch.auditIn).toBe(-3)
+  })
+
+  it('limits the questionnaire to purchasing supplier facts', () => {
+    expect(SOURCING_METRIC_QUESTIONNAIRE_NUMBER_FIELDS.map((f) => f.key)).toEqual([
+      'leadTimeDays',
+      'quoteTurnDays',
+      'capacityLevel',
+      'onTimePct',
+      'qualityPpm',
+      'employees',
+    ])
+    expect(SOURCING_METRIC_QUESTIONNAIRE_TEXT_FIELDS.map((f) => f.key)).toEqual([
+      'certificationsText',
+    ])
   })
 
   it('merges metadata blob', () => {

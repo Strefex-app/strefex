@@ -27,6 +27,7 @@ import {
   transferSellerAccountRights,
 } from '../utils/adminCreateSellerAccount'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
+import './SuperAdminAccountDetailPage.css'
 import {
   emptySourcingMetricsForm,
   mergeSourcingMetricsIntoMetadata,
@@ -60,6 +61,15 @@ const SERVICE_PROVIDER_EXPERTISE_OPTIONS = [
   ...AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
   ...AUDIT_SERVICE_ITEMS,
 ]
+
+function SaadField({ label, className = '', children }) {
+  return (
+    <label className={['saad-field', className].filter(Boolean).join(' ')}>
+      <span className="saad-field-label">{label}</span>
+      {children}
+    </label>
+  )
+}
 
 function readIndustryFromSource(source) {
   const md = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {}
@@ -1148,52 +1158,57 @@ export default function SuperAdminAccountDetailPage() {
                     ? 'This manufacturer is stored in the local account registry (no cloud company UUID yet). Edits save locally and feed Intelligent Sourcing.'
                     : 'Superadmin can correct buyer and user company data for sourcing geo accuracy. Changes sync to the platform company record and the local account registry.'}
                 </p>
-                <div className="saad-form-grid">
-                  <label className="saad-field">
-                    Company name
-                    <input value={form.name} onChange={(e) => setField('name', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Company email
-                    <input value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Phone
-                    <input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Website
-                    <input value={form.website} onChange={(e) => setField('website', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Country
-                    <input value={form.country} onChange={(e) => setField('country', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    City
-                    <input value={form.city} onChange={(e) => setField('city', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field saad-field-span">
-                    Address / plant address
-                    <input value={form.address} onChange={(e) => setField('address', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Plan
-                    <select value={form.plan} onChange={(e) => setField('plan', e.target.value)} disabled={savingProfile}>
-                      <option value="start">Start</option>
-                      <option value="basic">Basic</option>
-                      <option value="premium">Premium</option>
-                      <option value="enterprise">Enterprise</option>
-                    </select>
-                  </label>
-                  <label className="saad-field">
-                    Contact full name
-                    <input value={form.contactName} onChange={(e) => setField('contactName', e.target.value)} disabled={savingProfile} />
-                  </label>
-                  <label className="saad-field">
-                    Contact phone
-                    <input value={form.contactPhone} onChange={(e) => setField('contactPhone', e.target.value)} disabled={savingProfile} />
-                  </label>
+                <div className="saad-form-block">
+                  <p className="saad-form-legend">Company</p>
+                  <div className="saad-form-grid">
+                    <SaadField label="Company name">
+                      <input value={form.name} onChange={(e) => setField('name', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Company email">
+                      <input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Phone">
+                      <input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Website">
+                      <input value={form.website} onChange={(e) => setField('website', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Plan">
+                      <select value={form.plan} onChange={(e) => setField('plan', e.target.value)} disabled={savingProfile}>
+                        <option value="start">Start</option>
+                        <option value="basic">Basic</option>
+                        <option value="premium">Premium</option>
+                        <option value="enterprise">Enterprise</option>
+                      </select>
+                    </SaadField>
+                  </div>
+                </div>
+
+                <div className="saad-form-block">
+                  <p className="saad-form-legend">Location</p>
+                  <div className="saad-form-grid">
+                    <SaadField label="Country">
+                      <input value={form.country} onChange={(e) => setField('country', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="City">
+                      <input value={form.city} onChange={(e) => setField('city', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Address / plant address" className="saad-field-span">
+                      <input value={form.address} onChange={(e) => setField('address', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                  </div>
+                </div>
+
+                <div className="saad-form-block">
+                  <p className="saad-form-legend">Contact</p>
+                  <div className="saad-form-grid">
+                    <SaadField label="Contact full name">
+                      <input value={form.contactName} onChange={(e) => setField('contactName', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                    <SaadField label="Contact phone">
+                      <input value={form.contactPhone} onChange={(e) => setField('contactPhone', e.target.value)} disabled={savingProfile} />
+                    </SaadField>
+                  </div>
                 </div>
 
                 <div className="saad-section">
@@ -1312,8 +1327,7 @@ export default function SuperAdminAccountDetailPage() {
                     )
                   })()}
                   <div className="saad-form-grid saad-form-grid-tight">
-                    <label className="saad-field">
-                      Industry to edit
+                    <SaadField label="Industry to edit">
                       <select
                         value={form.industryId || ''}
                         disabled={savingProfile}
@@ -1324,7 +1338,7 @@ export default function SuperAdminAccountDetailPage() {
                           <option key={ind.id} value={ind.id}>{ind.label}</option>
                         ))}
                       </select>
-                    </label>
+                    </SaadField>
                     {form.industryId ? (
                       <div className="saad-field saad-field-actions">
                         <span className="saad-field-spacer" />
@@ -1372,7 +1386,7 @@ export default function SuperAdminAccountDetailPage() {
 
                 {((Array.isArray(form.account_types) ? form.account_types : []).includes('service_provider')
                   || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
-                  <>
+                  <div className="saad-section">
                     <h3 className="saad-h3">Service expertise</h3>
                     <p className="saad-muted">
                       Same items as the service provider Profile and the Service map. Blank fields on this form are left unchanged when you save.
@@ -1402,16 +1416,16 @@ export default function SuperAdminAccountDetailPage() {
                         </ToggleCheckButton>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {((Array.isArray(form.account_types) ? form.account_types : []).includes('seller')
                   || (Array.isArray(form.account_types) ? form.account_types : []).includes('service_provider')
                   || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
-                  <>
-                    <h3 className="saad-h3">Sourcing metrics</h3>
+                  <div className="saad-section">
+                    <h3 className="saad-h3">Sourcing facts</h3>
                     <p className="saad-muted">
-                      Fill Intelligent Sourcing / Compare fields for this company. Blank stays as “—” in compare.
+                      Purchasing-facing facts for supplier shortlisting. Platform scores (fit, risk, price) are not asked here. Blank stays as “—” in Compare.
                     </p>
                     <SourcingMetricsFields
                       values={form.sourcingMetrics || emptySourcingMetricsForm()}
@@ -1420,55 +1434,67 @@ export default function SuperAdminAccountDetailPage() {
                       title=""
                       hint=""
                       inputClassName=""
-                      labelClassName=""
+                      labelClassName="saad-field-label"
                       groupClassName="saad-field"
                       gridClassName="saad-form-grid"
                     />
-                  </>
+                  </div>
                 )}
 
-                <h3 className="saad-h3">Receiving plants</h3>
-                <p className="saad-muted">Used by Intelligent Sourcing map and transit estimates.</p>
-                <div className="saad-plants">
-                  {plants.map((p) => (
-                    <div key={p.id} className="saad-plant-row">
-                      <input
-                        aria-label="Plant name"
-                        value={p.name}
-                        onChange={(e) => updatePlantField(p.id, 'name', e.target.value)}
-                        disabled={savingProfile}
-                      />
-                      <input
-                        aria-label="Country code"
-                        value={p.cc}
-                        onChange={(e) => updatePlantField(p.id, 'cc', e.target.value.toUpperCase().slice(0, 2))}
-                        disabled={savingProfile}
-                      />
-                      <input
-                        aria-label="Latitude"
-                        value={p.lat}
-                        onChange={(e) => updatePlantField(p.id, 'lat', e.target.value)}
-                        disabled={savingProfile}
-                      />
-                      <input
-                        aria-label="Longitude"
-                        value={p.lon}
-                        onChange={(e) => updatePlantField(p.id, 'lon', e.target.value)}
-                        disabled={savingProfile}
-                      />
-                      <button type="button" className="saad-link" onClick={() => removePlant(p.id)} disabled={savingProfile}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="saad-plant-actions">
-                  <button type="button" className="saad-back" onClick={addPlant} disabled={savingProfile}>
-                    Add plant
-                  </button>
-                  <button type="button" className="saad-primary" disabled={savingProfile} onClick={() => void saveAccountProfile()}>
-                    {savingProfile ? 'Saving…' : 'Save account profile'}
-                  </button>
+                <div className="saad-section">
+                  <h3 className="saad-h3">Receiving plants</h3>
+                  <p className="saad-muted">Used by Intelligent Sourcing map and transit estimates.</p>
+                  <div className="saad-plants">
+                    {plants.map((p) => (
+                      <div key={p.id} className="saad-plant-row">
+                        <SaadField label="Plant name">
+                          <input
+                            value={p.name}
+                            onChange={(e) => updatePlantField(p.id, 'name', e.target.value)}
+                            disabled={savingProfile}
+                            placeholder="Plant or site name"
+                          />
+                        </SaadField>
+                        <SaadField label="Country">
+                          <input
+                            value={p.cc}
+                            onChange={(e) => updatePlantField(p.id, 'cc', e.target.value.toUpperCase().slice(0, 2))}
+                            disabled={savingProfile}
+                            placeholder="CC"
+                          />
+                        </SaadField>
+                        <SaadField label="Latitude">
+                          <input
+                            value={p.lat}
+                            onChange={(e) => updatePlantField(p.id, 'lat', e.target.value)}
+                            disabled={savingProfile}
+                            placeholder="0.0000"
+                          />
+                        </SaadField>
+                        <SaadField label="Longitude">
+                          <input
+                            value={p.lon}
+                            onChange={(e) => updatePlantField(p.id, 'lon', e.target.value)}
+                            disabled={savingProfile}
+                            placeholder="0.0000"
+                          />
+                        </SaadField>
+                        <div className="saad-plant-remove">
+                          <button type="button" className="saad-link" onClick={() => removePlant(p.id)} disabled={savingProfile}>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="saad-plant-actions">
+                    <button type="button" className="saad-back" onClick={addPlant} disabled={savingProfile}>
+                      Add plant
+                    </button>
+                    <button type="button" className="saad-primary" disabled={savingProfile} onClick={() => void saveAccountProfile()}>
+                      {savingProfile ? 'Saving…' : 'Save account profile'}
+                    </button>
+                  </div>
                 </div>
               </section>
 
@@ -1483,8 +1509,7 @@ export default function SuperAdminAccountDetailPage() {
                   )}
                 </p>
                 <div className="saad-form-grid">
-                  <label className="saad-field">
-                    Real seller email
+                  <SaadField label="Real seller email">
                     <input
                       type="email"
                       value={transferEmail}
@@ -1492,16 +1517,15 @@ export default function SuperAdminAccountDetailPage() {
                       disabled={transferring}
                       placeholder="owner@supplier.com"
                     />
-                  </label>
-                  <label className="saad-field">
-                    Seller contact name
+                  </SaadField>
+                  <SaadField label="Seller contact name">
                     <input
                       value={transferName}
                       onChange={(e) => setTransferName(e.target.value)}
                       disabled={transferring}
                       placeholder={form.contactName || 'Optional'}
                     />
-                  </label>
+                  </SaadField>
                 </div>
                 {isSupabaseConfigured && (
                   <label className="saad-check-row">
@@ -1594,25 +1618,25 @@ export default function SuperAdminAccountDetailPage() {
                   When status is <strong>Passed</strong>, the company receives the verified label
                   {isLocal ? ' in the local registry' : ' and visibility tier is set to verified (after save)'}.
                 </p>
-                <label className="saad-field">
-                  Audit status
-                  <select value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)} disabled={saving}>
-                    <option value="none">None</option>
-                    <option value="pending">Pending</option>
-                    <option value="passed">Passed</option>
-                    <option value="failed">Failed</option>
-                  </select>
-                </label>
-                <label className="saad-field">
-                  Notes
-                  <textarea
-                    rows={4}
-                    value={auditNotes}
-                    onChange={(e) => setAuditNotes(e.target.value)}
-                    disabled={saving}
-                    placeholder="Auditor firm, report reference, valid-until, etc."
-                  />
-                </label>
+                <div className="saad-form-grid">
+                  <SaadField label="Audit status">
+                    <select value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)} disabled={saving}>
+                      <option value="none">None</option>
+                      <option value="pending">Pending</option>
+                      <option value="passed">Passed</option>
+                      <option value="failed">Failed</option>
+                    </select>
+                  </SaadField>
+                  <SaadField label="Notes" className="saad-field-span">
+                    <textarea
+                      rows={4}
+                      value={auditNotes}
+                      onChange={(e) => setAuditNotes(e.target.value)}
+                      disabled={saving}
+                      placeholder="Auditor firm, report reference, valid-until, etc."
+                    />
+                  </SaadField>
+                </div>
                 <button type="button" className="saad-primary" disabled={saving} onClick={() => void saveAudit()}>
                   {saving ? 'Saving…' : isLocal ? 'Save audit (local)' : 'Save audit & recompute visibility'}
                 </button>

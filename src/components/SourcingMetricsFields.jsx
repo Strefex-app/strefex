@@ -1,11 +1,11 @@
 import {
-  SOURCING_METRIC_NUMBER_FIELDS,
-  SOURCING_METRIC_TEXT_FIELDS,
+  SOURCING_METRIC_QUESTIONNAIRE_NUMBER_FIELDS,
+  SOURCING_METRIC_QUESTIONNAIRE_TEXT_FIELDS,
 } from '../utils/sourcingMetrics'
 
 /**
- * Shared inputs for seller Profile + superadmin account detail.
- * `values` / `onChange` use the flat sourcing-metrics form shape.
+ * Purchasing-facing supplier facts for Profile + superadmin.
+ * Platform scores (fit, risk, price index) stay in storage and Compare, not this form.
  */
 export default function SourcingMetricsFields({
   values = {},
@@ -16,8 +16,8 @@ export default function SourcingMetricsFields({
   labelClassName = 'prof-form-label',
   groupClassName = 'prof-form-group',
   gridClassName = 'prof-form-grid',
-  title = 'Sourcing metrics',
-  hint = 'Used in Intelligent Sourcing lists and Compare. Leave blank when unknown — compare shows “—”.',
+  title = 'Sourcing facts',
+  hint = 'What purchasing needs to shortlist a supplier. Leave blank if unknown — Compare shows “—”.',
 }) {
   const set = (key, value) => {
     if (typeof onChange === 'function') onChange({ ...(values || {}), [key]: value })
@@ -25,10 +25,10 @@ export default function SourcingMetricsFields({
 
   return (
     <div className={className}>
-      {title ? <h3 className="prof-modal-title" style={{ fontSize: 'var(--text-section)', margin: '12px 0 4px' }}>{title}</h3> : null}
+      {title ? <h3 className="prof-modal-title stx-text-section" style={{ margin: '12px 0 4px' }}>{title}</h3> : null}
       {hint ? <p className="prof-profile-attachments-hint" style={{ marginBottom: 12 }}>{hint}</p> : null}
       <div className={gridClassName}>
-        {SOURCING_METRIC_NUMBER_FIELDS.map((f) => (
+        {SOURCING_METRIC_QUESTIONNAIRE_NUMBER_FIELDS.map((f) => (
           <div key={f.key} className={groupClassName}>
             <label className={labelClassName} htmlFor={`stx-metric-${f.key}`}>{f.label}</label>
             <input
@@ -47,8 +47,8 @@ export default function SourcingMetricsFields({
             />
           </div>
         ))}
-        {SOURCING_METRIC_TEXT_FIELDS.map((f) => (
-          <div key={f.key} className={`${groupClassName}${f.key === 'certificationsText' || f.key === 'languages' ? ' full' : ''}`}>
+        {SOURCING_METRIC_QUESTIONNAIRE_TEXT_FIELDS.map((f) => (
+          <div key={f.key} className={`${groupClassName} full`}>
             <label className={labelClassName} htmlFor={`stx-metric-${f.key}`}>{f.label}</label>
             <input
               id={`stx-metric-${f.key}`}
