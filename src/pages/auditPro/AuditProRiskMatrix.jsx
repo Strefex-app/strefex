@@ -35,23 +35,23 @@ export default function AuditProRiskMatrix() {
     })
     .sort((a, b) => b.score - a.score)
 
-  const rc = (s2) => (s2 >= 16 ? '#EF4444' : s2 >= 9 ? '#F59E0B' : s2 >= 4 ? '#3B82F6' : '#10B981')
+  const rc = (s2) => (s2 >= 16 ? 'var(--danger)' : s2 >= 9 ? 'var(--badge-warning-text)' : s2 >= 4 ? 'var(--accent)' : 'var(--badge-success-text)')
   const rl = (s2) => (s2 >= 16 ? 'CRITICAL' : s2 >= 9 ? 'HIGH' : s2 >= 4 ? 'MEDIUM' : 'LOW')
 
   return (
     <div>
       <Card title="Supplier Risk Matrix — Auto-Calculated from Audit History" icon="◧" style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, color: 'var(--ap-muted)', marginBottom: 12 }} className="stx-text-wrap">
+        <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 12 }} className="stx-text-wrap">
           Risk Score = Likelihood × Impact. Drivers: Major NCs (×3), Minor NCs (×1), Open Findings (×1.5).
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {[
-            { l: 'LOW (1-3)', c: '#10B981' },
-            { l: 'MEDIUM (4-8)', c: '#3B82F6' },
-            { l: 'HIGH (9-15)', c: '#F59E0B' },
-            { l: 'CRITICAL (16-25)', c: '#EF4444' },
+            { l: 'LOW (1-3)', c: 'var(--badge-success-text)' },
+            { l: 'MEDIUM (4-8)', c: 'var(--accent)' },
+            { l: 'HIGH (9-15)', c: 'var(--badge-warning-text)' },
+            { l: 'CRITICAL (16-25)', c: 'var(--danger)' },
           ].map((r) => (
-            <div key={r.l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6B7280' }}>
+            <div key={r.l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-caption)', color: 'var(--color-muted)' }}>
               <div style={{ width: 11, height: 11, background: r.c, borderRadius: 2 }} />
               {r.l}
             </div>
@@ -63,7 +63,7 @@ export default function AuditProRiskMatrix() {
           <thead>
             <tr style={{ background: 'var(--ap-panel-3)' }}>
               {['Supplier', 'Industry', 'Risk Level', 'Score', 'L', 'I', 'Major NCs', 'Minor NCs', 'Open', 'Last Audit', 'Days Since'].map((h) => (
-                <th key={h} style={{ padding: '9px 11px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
+                <th key={h} style={{ padding: '9px 11px', textAlign: 'left', fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', fontWeight: 'var(--font-semibold)', letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
                   {h}
                 </th>
               ))}
@@ -71,44 +71,44 @@ export default function AuditProRiskMatrix() {
           </thead>
           <tbody>
             {data.map((s) => (
-              <tr key={s.id} className="ap-hovrow" style={{ borderBottom: '1px solid #0F1A2E' }}>
-                <td style={{ padding: '9px 11px', fontSize: 12, color: 'var(--ap-text)', fontWeight: 500 }} className="stx-text-wrap">
+              <tr key={s.id} className="ap-hovrow" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', color: 'var(--ap-text)', fontWeight: 'var(--font-medium)' }} className="stx-text-wrap">
                   {s.name}
                 </td>
                 <td style={{ padding: '9px 11px' }}>
-                  <Tag color="#3B82F6" small>
+                  <Tag color="var(--accent)" small>
                     {s.industry || '—'}
                   </Tag>
                 </td>
                 <td style={{ padding: '9px 11px' }}>
                   <span
                     style={{
-                      background: `${rc(s.score)}20`,
+                      background: `color-mix(in srgb, ${rc(s.score)} 18%, transparent)`,
                       color: rc(s.score),
-                      border: `1px solid ${rc(s.score)}45`,
+                      border: `1px solid color-mix(in srgb, ${rc(s.score)} 42%, transparent)`,
                       borderRadius: 6,
                       padding: '2px 8px',
-                      fontSize: 10,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--font-semibold)',
                     }}
                   >
                     {rl(s.score)}
                   </span>
                 </td>
-                <td style={{ padding: '9px 11px', fontSize: 14, fontWeight: 700, color: rc(s.score) }}>{s.score}</td>
-                <td style={{ padding: '9px 11px', fontSize: 11, color: '#94A3B8', textAlign: 'center' }}>{s.L}/5</td>
-                <td style={{ padding: '9px 11px', fontSize: 11, color: '#94A3B8', textAlign: 'center' }}>{s.I}/5</td>
-                <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: s.maj > 0 ? '#F87171' : '#374151', textAlign: 'center' }}>{s.maj}</td>
-                <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: s.min > 0 ? '#FCD34D' : '#374151', textAlign: 'center' }}>{s.min}</td>
-                <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: s.open > 0 ? '#F87171' : '#374151', textAlign: 'center' }}>{s.open}</td>
-                <td style={{ padding: '9px 11px', fontSize: 11, color: '#4B5563' }}>{s.lastDate || 'Never'}</td>
-                <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 600, color: s.days > 365 ? '#F87171' : s.days > 180 ? '#FCD34D' : '#34D399' }}>{s.days === 9999 ? '—' : `${s.days}d`}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-body)', fontWeight: 'var(--font-semibold)', color: rc(s.score) }}>{s.score}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-caption)', color: 'var(--color-muted)', textAlign: 'center' }}>{s.L}/5</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-caption)', color: 'var(--color-muted)', textAlign: 'center' }}>{s.I}/5</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: s.maj > 0 ? 'var(--danger-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{s.maj}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: s.min > 0 ? 'var(--badge-warning-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{s.min}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: s.open > 0 ? 'var(--danger-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{s.open}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-caption)', color: 'var(--color-secondary)' }}>{s.lastDate || 'Never'}</td>
+                <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: s.days > 365 ? 'var(--danger-text)' : s.days > 180 ? 'var(--badge-warning-text)' : 'var(--badge-success-text)' }}>{s.days === 9999 ? '—' : `${s.days}d`}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {!data.length && (
-          <div style={{ padding: 20, textAlign: 'center', color: '#374151', fontSize: 11 }}>Register suppliers and complete audits to generate risk data.</div>
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--color-secondary)', fontSize: 'var(--text-caption)' }}>Register suppliers and complete audits to generate risk data.</div>
         )}
       </div>
     </div>

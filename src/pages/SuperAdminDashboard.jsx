@@ -14,6 +14,15 @@ import { canAssignSuperadmin, isSuperadminEmail } from '../services/superadminAu
 import authService from '../services/authService'
 import { isSupabaseConfigured, profilesService } from '../services/supabaseService'
 import { VISIBILITY_TIER_LABELS } from '../constants/companyProfileDirectory'
+import { saveCompanyExternalAudit } from '../services/companyExternalAuditService'
+import {
+  EXTERNAL_AUDIT_STATUSES,
+  EXTERNAL_AUDIT_STATUS_LABELS,
+  auditStatusLabel,
+  formatAuditDateLabel,
+  sellerNeedsAuditDate,
+  toAuditDateInput,
+} from '../utils/companyExternalAudit'
 import { loadFeatureGrants, saveFeatureGrants } from '../utils/featureGrants'
 import {
   deleteFeatureGrant,
@@ -361,6 +370,15 @@ function overlayRegistryOntoStub(stub, reg) {
     visibilityTier: regVisibility || stub.visibilityTier,
     users: Math.max(Number(stub.users || 0), Number(reg.users || 0), teamUsers),
     companyId: stub.companyId || reg.companyId || reg.company_id || null,
+    externalAuditStatus: reg.externalAuditStatus || stub.externalAuditStatus || 'none',
+    externalAuditNotes: reg.externalAuditNotes || stub.externalAuditNotes || '',
+    externalAuditPlannedAt: reg.externalAuditPlannedAt || stub.externalAuditPlannedAt || null,
+    externalAuditDeadlineAt: reg.externalAuditDeadlineAt || stub.externalAuditDeadlineAt || null,
+    externalAuditPassedAt: reg.externalAuditPassedAt || stub.externalAuditPassedAt || null,
+    externalAuditAssignedAuditorEmail: reg.externalAuditAssignedAuditorEmail || stub.externalAuditAssignedAuditorEmail || '',
+    externalAuditAssignedAuditorName: reg.externalAuditAssignedAuditorName || stub.externalAuditAssignedAuditorName || '',
+    strefexVerified: reg.strefexVerified === true || stub.strefexVerified === true,
+    onsiteAuditCompleted: reg.onsiteAuditCompleted === true || stub.onsiteAuditCompleted === true,
     _registryOverlay: true,
   }
 }
@@ -447,6 +465,15 @@ function profileRowToAccountStub(p) {
     address: co?.address || coMd.address || '',
     auditorDocuments: md.auditor_documents || '',
     auditorVerificationStatus: md.auditor_verification_status || null,
+    externalAuditStatus: co?.external_audit_status || 'none',
+    externalAuditNotes: co?.external_audit_notes || '',
+    externalAuditPlannedAt: co?.external_audit_planned_at || null,
+    externalAuditDeadlineAt: co?.external_audit_deadline_at || null,
+    externalAuditPassedAt: co?.external_audit_passed_at || null,
+    externalAuditAssignedAuditorEmail: co?.external_audit_assigned_auditor_email || '',
+    externalAuditAssignedAuditorName: co?.external_audit_assigned_auditor_name || '',
+    strefexVerified: co?.strefex_verified === true,
+    onsiteAuditCompleted: co?.onsite_audit_completed === true,
     _source: 'supabase',
   }
 }
@@ -490,6 +517,17 @@ export default function SuperAdminDashboard() {
   const [filterPlan, setFilterPlan] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [selectedAccount, setSelectedAccount] = useState(null)
+  const [auditDraft, setAuditDraft] = useState({
+    status: 'none',
+    plannedAt: '',
+    deadlineAt: '',
+    auditorEmail: '',
+    notes: '',
+    strefexVerified: false,
+    onsiteAudited: false,
+  })
+  const [auditSaving, setAuditSaving] = useState(false)
+  const [auditSaveMsg, setAuditSaveMsg] = useState('')
   const [securityEvents, setSecurityEvents] = useState(loadSecurityEvents)
   const [secFilter, setSecFilter] = useState('all')         // all | critical | high | medium | low
   const [secTypeFilter, setSecTypeFilter] = useState('all') // all | brute_force | sql_injection | etc.
@@ -525,6 +563,85 @@ export default function SuperAdminDashboard() {
     address: '',
     industryId: 'automotive',
   })
+
+  const auditorOptions = useMemo(() => {
+    const out = []
+    const seen = new Set()
+    const push = (email, name) => {
+      const e = String(email || '').trim().toLowerCase()
+      if (!e || seen.has(e)) return
+      seen.add(e)
+      out.push({ email: e, name: name || e })
+    }
+    for (const a of registryAccounts || []) {
+      const types = Array.isArray(a.accountTypes) ? a.accountTypes : [a.accountType]
+      const isAud = types.some((t) => String(t || '').toLowerCase() === 'auditor')
+        || String(a.accountType || '').toLowerCase() === 'auditor'
+      if (isAud) push(a.email, a.company || a.name || a.contactName)
+    }
+    for (const p of supabaseProfileRows || []) {
+      const role = String(p.role || '').toLowerCase()
+      const coRaw = p.companies
+      const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
+      const at = String(co?.account_type || '').toLowerCase()
+      if (role.includes('auditor') || at === 'auditor') {
+        push(p.email, p.full_name || co?.name)
+      }
+    }
+    return out
+  }, [registryAccounts, supabaseProfileRows])
+
+  useEffect(() => {
+    if (!selectedAccount) return
+    setAuditDraft({
+      status: selectedAccount.externalAuditStatus || 'none',
+      plannedAt: toAuditDateInput(selectedAccount.externalAuditPlannedAt),
+      deadlineAt: toAuditDateInput(selectedAccount.externalAuditDeadlineAt),
+      auditorEmail: String(selectedAccount.externalAuditAssignedAuditorEmail || '').toLowerCase(),
+      notes: selectedAccount.externalAuditNotes || '',
+      strefexVerified: selectedAccount.strefexVerified === true,
+      onsiteAudited: selectedAccount.onsiteAuditCompleted === true,
+    })
+    setAuditSaveMsg('')
+  }, [selectedAccount])
+
+  const saveSelectedAccountAudit = async () => {
+    if (!selectedAccount) return
+    setAuditSaving(true)
+    setAuditSaveMsg('')
+    try {
+      const chosen = auditorOptions.find((a) => a.email === auditDraft.auditorEmail)
+      await saveCompanyExternalAudit({
+        companyId: selectedAccount.companyId || selectedAccount.company_id,
+        sellerEmail: selectedAccount.email,
+        sellerName: selectedAccount.company || selectedAccount.name,
+        status: auditDraft.status,
+        notes: auditDraft.notes,
+        plannedAt: auditDraft.plannedAt,
+        deadlineAt: auditDraft.deadlineAt,
+        auditorEmail: auditDraft.auditorEmail,
+        auditorName: chosen?.name || selectedAccount.externalAuditAssignedAuditorName || '',
+        strefexVerified: auditDraft.strefexVerified,
+        completeOnsite: auditDraft.onsiteAudited,
+      })
+      setSelectedAccount((prev) => prev ? {
+        ...prev,
+        externalAuditStatus: auditDraft.status,
+        externalAuditNotes: auditDraft.notes,
+        externalAuditPlannedAt: auditDraft.plannedAt,
+        externalAuditDeadlineAt: auditDraft.deadlineAt,
+        externalAuditAssignedAuditorEmail: auditDraft.auditorEmail,
+        externalAuditAssignedAuditorName: chosen?.name || '',
+        strefexVerified: auditDraft.strefexVerified,
+        onsiteAuditCompleted: auditDraft.onsiteAudited,
+      } : prev)
+      setAuditSaveMsg('Saved. Seller and assigned auditor were notified.')
+    } catch (e) {
+      setAuditSaveMsg(e?.message || 'Could not save audit schedule.')
+    } finally {
+      setAuditSaving(false)
+    }
+  }
 
   const openAddSellerModal = () => {
     setAddSellerError('')
@@ -1543,6 +1660,7 @@ export default function SuperAdminDashboard() {
               <th>Contact</th>
               <th>Type</th>
               <th>Visibility</th>
+              <th>Audit</th>
               <th>Plan</th>
               <th>Status</th>
               <th>Industries</th>
@@ -1578,6 +1696,16 @@ export default function SuperAdminDashboard() {
                     <span className="sad-tier-pill" title={a.visibilityTier || ''}>
                       {(a.visibilityTier && VISIBILITY_TIER_LABELS[a.visibilityTier]) || '—'}
                     </span>
+                  </td>
+                  <td>
+                    <span className={`sad-audit-pill sad-audit-${a.externalAuditStatus || 'none'}`}>
+                      {auditStatusLabel(a.externalAuditStatus)}
+                    </span>
+                    {a.strefexVerified ? <div className="sad-contact-email">Verified</div> : null}
+                    {a.onsiteAuditCompleted ? <div className="sad-contact-email">On-site audited</div> : null}
+                    {toAuditDateInput(a.externalAuditPlannedAt) ? (
+                      <div className="sad-contact-email">{formatAuditDateLabel(a.externalAuditPlannedAt)}</div>
+                    ) : null}
                   </td>
                   <td>
                     <span className="sad-plan-badge" style={{ background: planColor(a.plan) + '1a', color: planColor(a.plan) }}>
@@ -1668,6 +1796,100 @@ export default function SuperAdminDashboard() {
             <div className="sad-detail-item"><span className="sad-detail-label">Valid Until</span><span className="sad-detail-value">{selectedAccount.plan === 'start' ? 'Free (no expiry)' : fmtDate(selectedAccount.validUntil)}</span></div>
             <div className="sad-detail-item"><span className="sad-detail-label">Last Active</span><span className="sad-detail-value">{fmtDate(selectedAccount.lastActive)}</span></div>
           </div>
+          {(selectedAccount.accountType === 'seller' || selectedAccount.accountType === 'service_provider') && (
+            <div className="sad-detail-section">
+              <h4>Trust badges &amp; audit</h4>
+              <p className="sad-detail-email" style={{ marginBottom: 10 }}>
+                Verified is granted only by STREFEX. On-site audited is granted after the visit. Deadline is locked for auditors. Sellers see the visit date, not the auditor.
+              </p>
+              <div className="sad-audit-form">
+                <label>
+                  Verified badge
+                  <select
+                    value={auditDraft.strefexVerified ? 'yes' : 'no'}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, strefexVerified: e.target.value === 'yes' }))}
+                    disabled={auditSaving}
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Verified</option>
+                  </select>
+                </label>
+                <label>
+                  On-site audited
+                  <select
+                    value={auditDraft.onsiteAudited ? 'yes' : 'no'}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, onsiteAudited: e.target.value === 'yes', status: e.target.value === 'yes' ? 'passed' : d.status }))}
+                    disabled={auditSaving}
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </label>
+                <label>
+                  Status
+                  <select
+                    value={auditDraft.status}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, status: e.target.value }))}
+                    disabled={auditSaving}
+                  >
+                    {EXTERNAL_AUDIT_STATUSES.map((id) => (
+                      <option key={id} value={id}>{EXTERNAL_AUDIT_STATUS_LABELS[id]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Deadline
+                  <input
+                    type="date"
+                    value={auditDraft.deadlineAt}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, deadlineAt: e.target.value }))}
+                    disabled={auditSaving}
+                  />
+                </label>
+                <label>
+                  Planned visit
+                  <input
+                    type="date"
+                    value={auditDraft.plannedAt}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, plannedAt: e.target.value }))}
+                    disabled={auditSaving}
+                    required={sellerNeedsAuditDate(auditDraft.status)}
+                    max={auditDraft.deadlineAt || undefined}
+                  />
+                </label>
+                <label>
+                  Assigned auditor (hidden from seller)
+                  <select
+                    value={auditDraft.auditorEmail}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, auditorEmail: e.target.value }))}
+                    disabled={auditSaving}
+                  >
+                    <option value="">— Select auditor —</option>
+                    {auditorOptions.map((a) => (
+                      <option key={a.email} value={a.email}>{a.name} ({a.email})</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="sad-audit-notes">
+                  Notes
+                  <input
+                    value={auditDraft.notes}
+                    onChange={(e) => setAuditDraft((d) => ({ ...d, notes: e.target.value }))}
+                    disabled={auditSaving}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="sad-btn-primary"
+                  disabled={auditSaving}
+                  onClick={() => void saveSelectedAccountAudit()}
+                >
+                  {auditSaving ? 'Saving…' : 'Save audit & notify'}
+                </button>
+              </div>
+              {auditSaveMsg ? <p className="sad-detail-email" style={{ marginTop: 8 }}>{auditSaveMsg}</p> : null}
+            </div>
+          )}
           <div className="sad-detail-section">
             <h4>Industries</h4>
             <div className="sad-detail-tags">

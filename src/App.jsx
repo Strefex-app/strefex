@@ -63,11 +63,15 @@ import {
   ManagementClusterPage,
   AuditProgramGate,
   AuditProLayout,
+  AuditProDirectory,
   AuditProDashboard,
   AuditProNewAudit,
   AuditProAuditPlans,
   AuditProCalendar,
+  AuditProFindingsReport,
+  AuditProSellerRecord,
   AuditProAuditorRegistry,
+  AuditProStandards,
   AuditProSupplierRegistry,
   AuditProRiskMatrix,
   AuditProLogs,
@@ -460,14 +464,17 @@ function App() {
           <Route path="/management/people/forum" element={<P><Forum /></P>} />
           <Route path="/management/contracts-compliance/auditors" element={<P><AuditProgramGate /></P>}>
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="overview" element={<Navigate to="../dashboard" replace />} />
+            <Route path="overview" element={<Navigate to=".." replace />} />
             <Route element={<AuditProLayout />}>
+              <Route index element={<AuditProDirectory />} />
               <Route path="dashboard" element={<AuditProDashboard />} />
               <Route path="new-audit" element={<AuditProNewAudit />} />
               <Route path="plans" element={<AuditProAuditPlans />} />
               <Route path="calendar" element={<AuditProCalendar />} />
+              <Route path="findings/:auditId" element={<AuditProFindingsReport />} />
+              <Route path="record/:supplierId" element={<AuditProSellerRecord />} />
               <Route path="auditors" element={<AuditProAuditorRegistry />} />
+              <Route path="standards" element={<AuditProStandards />} />
               <Route path="suppliers" element={<AuditProSupplierRegistry />} />
               <Route path="risk-matrix" element={<AuditProRiskMatrix />} />
               <Route path="logs" element={<AuditProLogs />} />

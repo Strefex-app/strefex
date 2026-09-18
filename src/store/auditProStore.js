@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createTenantStorage, getTenantId } from '../utils/tenantStorage'
 import { auditProUid } from '../utils/auditProUid'
+import { stripAuditProDemoWorkspace } from '../data/auditProDemoKit'
 
 /** Wired after `useAuditProStore` is created — persist calls this when localStorage hydration finishes. */
 const auditProAfterPersistRehydrate = { flush: () => {} }
@@ -170,12 +171,6 @@ async function deleteAuditRemote(auditId) {
   }
 }
 
-function mergeDirectoryFromServer(serverList, localList) {
-  const ids = new Set((serverList || []).map((x) => x?.id).filter(Boolean))
-  const extras = (localList || []).filter((x) => x?.id && !ids.has(x.id))
-  return [...(serverList || []), ...extras]
-}
-
 const useAuditProStore = create(
   persist(
     (set, get) => ({
@@ -188,8 +183,11 @@ const useAuditProStore = create(
 
       /** Empty shell — questionnaires & plans come from user data / Supabase. */
       ensureSeed: () => {
-        if (get().seeded) return
         const t = getTenantId()
+        if (get().seeded) {
+          get().purgeDemoKitRecords()
+          return
+        }
         set({
           seeded: true,
           audits: [],
@@ -203,6 +201,10 @@ const useAuditProStore = create(
 
       skipSeed: () => set({ seeded: true }),
 
+      purgeDemoKitRecords: () => {
+        set(stripAuditProDemoWorkspace(get()))
+      },
+
       /** Canonical server merge when authenticated with company UUID + Supabase. */
       hydrateFromSupabase: async () => {
         try {
@@ -212,28 +214,62 @@ const useAuditProStore = create(
             getActorCompanyId,
             fetchAuditProgramForCompany,
             fetchAuditDirectoryForCompany,
+            fetchCompanyProfilesAsAuditAuditors,
+            fetchAccountDirectoryRowsAsAuditSuppliers,
           } = await import('../services/auditManagementDb')
+          const { assembleAuditWorkspaceFromServer } = await import('../utils/auditProgramHydrate')
+          const { listCompanyExternalAudits } = await import('../services/companyExternalAuditService')
           const cid = await getActorCompanyId()
           if (!cid) return
-          const [{ audits: serverAudits, auditLogs, reminders }, dir] = await Promise.all([
+          const [{ audits: serverAudits, auditLogs, reminders }, dir, platformAuditors, accountSuppliers] = await Promise.all([
             fetchAuditProgramForCompany(cid),
             fetchAuditDirectoryForCompany(cid),
+            fetchCompanyProfilesAsAuditAuditors(cid),
+            fetchAccountDirectoryRowsAsAuditSuppliers(cid),
           ])
+          let cloudSellers = []
+          try {
+            cloudSellers = await listCompanyExternalAudits()
+          } catch {
+            cloudSellers = []
+          }
           const localAudits = get().audits || []
           const localMap = new Map(localAudits.map((a) => [a.id, a]))
           const mergedAudits = serverAudits.map((s) => mergeAuditOnHydrate(localMap.get(s.id), s))
           const serverIds = new Set(serverAudits.map((a) => a.id))
           const localOnly = localAudits.filter((a) => !serverIds.has(a.id))
-          const auditors = mergeDirectoryFromServer(dir.auditors, get().auditors || [])
-          const suppliers = mergeDirectoryFromServer(dir.suppliers, get().suppliers || [])
+          const prevAuditors = get().auditors || []
+          const prevSuppliers = get().suppliers || []
+          const { auditors, suppliers } = assembleAuditWorkspaceFromServer({
+            directoryAuditors: dir.auditors,
+            directorySuppliers: dir.suppliers,
+            platformAuditors,
+            accountSuppliers,
+            companyAuditRows: cloudSellers,
+            localAuditors: prevAuditors,
+            localSuppliers: prevSuppliers,
+          })
           set({
-            audits: [...mergedAudits, ...localOnly],
-            auditLogs,
-            reminders,
-            auditors,
-            suppliers,
+            ...stripAuditProDemoWorkspace({
+              audits: [...mergedAudits, ...localOnly],
+              auditLogs,
+              reminders,
+              auditors,
+              suppliers,
+            }),
             seeded: true,
           })
+          const panelChanged = auditors.length !== prevAuditors.length
+            || auditors.some((row) => {
+              const email = String(row.email || '').trim().toLowerCase()
+              const prev = prevAuditors.find((p) => p.id === row.id || String(p.email || '').trim().toLowerCase() === email)
+              return !prev || prev.auditorCode !== row.auditorCode
+            })
+          const sellerLinked = suppliers.some((row) => {
+            const prev = prevSuppliers.find((p) => p.id === row.id)
+            return Boolean(row.platformCompanyId) && prev?.platformCompanyId !== row.platformCompanyId
+          })
+          if (panelChanged || sellerLinked) void persistDirectoryToRemote(get)
         } catch {
           /* network / RLS */
         }
@@ -331,10 +367,27 @@ const useAuditProStore = create(
         })),
 
       replaceAudit: (audit) => {
+        const role = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('strefex-auth') || '{}')?.role
+          } catch {
+            return null
+          }
+        })()
         set((s) => ({
-          audits: s.audits.map((a) => (a.id === audit.id ? audit : a)),
+          audits: s.audits.map((a) => {
+            if (a.id !== audit.id) return a
+            if (role === 'auditor_external') {
+              return {
+                ...audit,
+                deadlineDate: a.deadlineDate,
+              }
+            }
+            return audit
+          }),
         }))
-        void persistAuditToRemote(audit)
+        const next = get().audits.find((a) => a.id === audit.id) || audit
+        void persistAuditToRemote(next)
       },
 
       addAuditLog: (auditId, action, user, detail) => {
@@ -366,7 +419,7 @@ const useAuditProStore = create(
        * @returns completed audit or null
        */
       completeAudit: (auditId, auditorName) => {
-        const { audits, suppliers, reminders } = get()
+        const { audits, suppliers, reminders, auditors: roster } = get()
         const audit = audits.find((a) => a.id === auditId)
         if (!audit) return null
         const openMajors = (audit.findings || []).filter((f) => f.type === 'Major NC' && f.status === 'Open').length
@@ -441,6 +494,24 @@ const useAuditProStore = create(
         void persistAuditToRemote(completed)
         void persistAuditToRemote(nextAudit)
         void persistRemindersRemote(mergedReminders)
+
+        if (!hasMajors && sup?.email) {
+          const lead = (roster || []).find((a) => a.id === audit.auditorId)
+          void import('../services/companyExternalAuditService').then(({ saveCompanyExternalAudit }) => {
+            void saveCompanyExternalAudit({
+              companyId: sup.platformCompanyId || null,
+              sellerEmail: sup.email,
+              sellerName: sup.name,
+              status: 'passed',
+              plannedAt: audit.plannedDate,
+              deadlineAt: audit.deadlineDate,
+              auditorEmail: lead?.email || '',
+              auditorName: lead?.name || auditorName,
+              completeOnsite: true,
+              notify: true,
+            }).catch(() => {})
+          })
+        }
 
         get().addAuditLog(
           auditId,

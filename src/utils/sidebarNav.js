@@ -8,6 +8,7 @@ export function sidebarNavItemVisible(item, {
   showSourcingNav = true,
   showInboxNav = true,
   showManagementNav = true,
+  showAuditorsNav = true,
   hasRole,
   hasFeature,
   previewTimeLeft,
@@ -18,6 +19,7 @@ export function sidebarNavItemVisible(item, {
   if (item.sourcingNav && !showSourcingNav) return false
   if (item.inboxNav && !showInboxNav) return false
   if (item.managementNav && !showManagementNav) return false
+  if (item.auditorNav && !showAuditorsNav) return false
   if (item.minRole && !hasRole(item.minRole)) return false
   if (item.requiredPlan && !hasFeature(item.requiredPlan)) return false
   if (item.hideInPreview && previewTimeLeft !== null) return false

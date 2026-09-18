@@ -38,19 +38,8 @@ export function Card({ title, icon, children, className = '', style = {} }) {
 
 export function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <label
-        style={{
-          display: 'block',
-          fontSize: 'var(--text-caption)',
-          color: 'var(--color-muted)',
-          marginBottom: 5,
-          letterSpacing: '0.06em',
-          fontWeight: 'var(--font-medium)',
-        }}
-      >
-        {label}
-      </label>
+    <div className="ap-field">
+      <label>{label}</label>
       {children}
     </div>
   )
@@ -97,18 +86,18 @@ export function Select({ value, onChange, options, disabled = false }) {
 export function Btn({ onClick, children, color, variant = 'primary', type = 'button' }) {
   const className =
     color != null
-      ? 'ap-btn ap-btn-primary ap-btn-override'
+      ? 'app-page-btn-primary ap-btn ap-btn-primary ap-btn-override'
       : variant === 'secondary'
-        ? 'ap-btn ap-btn-secondary'
+        ? 'app-page-btn-outline ap-btn ap-btn-secondary'
         : variant === 'success'
-          ? 'ap-btn ap-btn-success'
-          : 'ap-btn ap-btn-primary'
+          ? 'app-page-btn-primary ap-btn ap-btn-success'
+          : 'app-page-btn-primary ap-btn ap-btn-primary'
   return (
     <button
       type={type}
       onClick={onClick}
       className={className}
-      style={color ? { background: color, color: '#fff', borderColor: 'transparent' } : undefined}
+      style={color ? { background: color, color: 'var(--btn-primary-text)', borderColor: 'transparent' } : undefined}
     >
       {children}
     </button>
@@ -120,8 +109,7 @@ export function Grid2({ children }) {
 }
 
 export function Tag({ color, children, small }) {
-  const pad = small ? '2px 6px' : '3px 8px'
-  const fs = small ? 9 : 10
+  const pad = small ? '2px 7px' : '4px 8px'
   const isCssColor =
     typeof color === 'string' && (color.includes('var(') || /^rgb[a]?\(/i.test(color.trim()))
   const style = isCssColor
@@ -129,27 +117,27 @@ export function Tag({ color, children, small }) {
         background: `color-mix(in srgb, ${color} 18%, transparent)`,
         color,
         border: `1px solid color-mix(in srgb, ${color} 42%, transparent)`,
-        borderRadius: 5,
+        borderRadius: 8,
         padding: pad,
-        fontSize: fs,
-        fontWeight: 600,
+        fontSize: 'var(--text-caption)',
+        fontWeight: 'var(--font-semibold)',
         whiteSpace: 'nowrap',
       }
     : {
         background: `${color}20`,
         color,
         border: `1px solid ${color}40`,
-        borderRadius: 5,
+        borderRadius: 8,
         padding: pad,
-        fontSize: fs,
-        fontWeight: 600,
+        fontSize: 'var(--text-caption)',
+        fontWeight: 'var(--font-semibold)',
         whiteSpace: 'nowrap',
       }
   return <span style={style}>{children}</span>
 }
 
 export function StatusBadge({ status }) {
-  return <Tag color={STATUS_COLORS[status] || '#64748B'}>{status}</Tag>
+  return <Tag color={STATUS_COLORS[status] || 'var(--color-muted)'}>{status}</Tag>
 }
 
 export function InfoRow({ label, value }) {

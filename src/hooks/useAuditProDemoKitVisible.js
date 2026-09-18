@@ -1,9 +1,4 @@
-import { useAuthStore } from '../store/authStore'
-import { useAuditProDemoKitStore } from '../store/auditProDemoKitStore'
-
-/** True only for superadmin with Demo Kit toggled on — everyone else always sees the production view (demo hidden). */
+/** Demo Kit is retired — sample rows stay hidden for every role. */
 export function useAuditProDemoKitVisible() {
-  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
-  const demoKitVisible = useAuditProDemoKitStore((s) => s.demoKitVisible)
-  return Boolean(isSuperAdmin && demoKitVisible)
+  return false
 }

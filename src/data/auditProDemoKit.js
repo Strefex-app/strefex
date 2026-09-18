@@ -1,6 +1,6 @@
 /**
- * STREFEX-seeded Audit Pro sample rows used in product demos / screenshots.
- * Hidden from normal UI unless a superadmin turns on Demo Kit (see Audit Pro layout).
+ * STREFEX-seeded Audit Pro sample rows from older product demos.
+ * Always stripped from the workspace — not shown in the UI.
  */
 
 export const AUDIT_PRO_DEMO_SOURCE = 'strefex_demo_kit'
@@ -84,6 +84,21 @@ export function filterAuditProAuditorsForVisibility(auditors, showDemoKit) {
 export function filterAuditProAuditsForVisibility(audits, auditors, suppliers, showDemoKit) {
   if (showDemoKit) return audits || []
   return (audits || []).filter((a) => !auditTouchesDemoParticipants(a, auditors, suppliers))
+}
+
+/** Drop seeded demo-kit rows from persisted Audit Pro state. */
+export function stripAuditProDemoWorkspace({ audits, auditors, suppliers, reminders, auditLogs } = {}) {
+  const nextAuditors = filterAuditProAuditorsForVisibility(auditors, false)
+  const nextSuppliers = filterAuditProSuppliersForVisibility(suppliers, false)
+  const nextAudits = filterAuditProAuditsForVisibility(audits, auditors, suppliers, false)
+  const keepIds = new Set(nextAudits.map((a) => a.id))
+  return {
+    audits: nextAudits,
+    auditors: nextAuditors,
+    suppliers: nextSuppliers,
+    reminders: (reminders || []).filter((r) => !r.auditId || keepIds.has(r.auditId)),
+    auditLogs: (auditLogs || []).filter((l) => !l.auditId || keepIds.has(l.auditId)),
+  }
 }
 
 /** Open reminder rows tied to demo-backed audits — hide counts/list when Demo Kit is off */

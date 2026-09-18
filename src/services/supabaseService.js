@@ -731,6 +731,7 @@ async function searchSuppliersWithoutRpc(params = {}) {
 
   /** Linked tenant company (seller / service provider) profile visibility — same semantics as search_suppliers RPC. */
   const tierByVendorId = new Map()
+  const onsiteByVendorId = new Map()
   if (vids.length) {
     const { data: vendRows, error: ev } = await supabase.from('vendors').select('id, company_id').in('id', vids)
     if (ev) throw ev
@@ -739,7 +740,7 @@ async function searchSuppliersWithoutRpc(params = {}) {
     if (cids.length) {
       const { data: compRows, error: ec } = await supabase
         .from('companies')
-        .select('id, visibility_tier, account_type')
+        .select('id, visibility_tier, account_type, strefex_verified, onsite_audit_completed')
         .in('id', cids)
       if (ec) throw ec
       comps = compRows || []
@@ -749,6 +750,7 @@ async function searchSuppliersWithoutRpc(params = {}) {
       const c = compById.get(v.company_id)
       if (c && (c.account_type === 'seller' || c.account_type === 'service_provider')) {
         tierByVendorId.set(v.id, String(c.visibility_tier || 'incomplete'))
+        onsiteByVendorId.set(v.id, Boolean(c.onsite_audit_completed))
       }
     })
   }
@@ -791,6 +793,7 @@ async function searchSuppliersWithoutRpc(params = {}) {
       relevance,
       tenant_visibility_tier: tenantTier,
       tenant_visibility_rank: tenantRank,
+      onsite_audit_completed: s.vendor_id ? Boolean(onsiteByVendorId.get(s.vendor_id)) : false,
     }
   })
 
@@ -936,14 +939,15 @@ export const companyProfileAttachmentsService = {
    * @param {string} [profileSlot] — e.g. company_presentation | production_photo | production_video | other
    * @returns {{ id: string, path: string, name: string, mime_type: string, size_bytes: number, uploaded_at: string, profile_slot: string }}
    */
-  async upload(companyId, file, profileSlot = 'other') {
+  async upload(companyId, file, profileSlot = 'other', options = {}) {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
     if (!companyId || !file) throw new Error('Missing company or file')
     if (file.size > COMPANY_PROFILE_MAX_BYTES) {
       throw new Error(`File too large (max ${Math.round(COMPANY_PROFILE_MAX_BYTES / (1024 * 1024))} MB)`)
     }
     const safe = sanitizeCompanyProfileFileName(file.name)
-    const path = `${companyId}/${COMPANY_PROFILE_ATTACHMENTS_FOLDER}/${Date.now()}_${safe}`
+    const folder = String(options.folder || COMPANY_PROFILE_ATTACHMENTS_FOLDER).replace(/^\/+|\/+$/g, '')
+    const path = `${companyId}/${folder}/${Date.now()}_${safe}`
     const { data, error } = await supabase.storage
       .from('documents')
       .upload(path, file, {

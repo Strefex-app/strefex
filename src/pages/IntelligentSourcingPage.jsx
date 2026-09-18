@@ -21,6 +21,8 @@ import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
+import { companyPackSummary } from '../utils/companyProfilePack'
+import { CompanyPackReviewModal } from '../components/CompanyPackCarousel'
 import './IntelligentSourcing.css'
 
 function categoryOptionsForIndustry(industryId, extraCategoryId = '', rfqType = 'product') {
@@ -80,7 +82,18 @@ export default function IntelligentSourcingPage() {
     [accounts],
   )
 
+  const [reviewPack, setReviewPack] = useState(null)
   const [showRfqModal, setShowRfqModal] = useState(false)
+
+  const catalogueAccounts = useMemo(
+    () => registrySellers
+      .map((account) => ({
+        account,
+        pack: companyPackSummary(account.profileAttachments || account.profile_attachments),
+      }))
+      .filter((row) => row.pack.hasCatalogue),
+    [registrySellers],
+  )
   const [rfqContext, setRfqContext] = useState(null)
   const [lastCreatedRfq, setLastCreatedRfq] = useState(null)
   const [sendError, setSendError] = useState('')
@@ -230,7 +243,37 @@ export default function IntelligentSourcingPage() {
               </div>
             )}
             <div ref={slotRef} className="intelligent-sourcing-frame" />
+            {catalogueAccounts.length > 0 && (
+              <div className="intelligent-sourcing-catalogues">
+                <p>
+                  Supplier catalogues — review pictures in the platform. Files cannot be downloaded.
+                </p>
+                <div className="intelligent-sourcing-catalogue-row">
+                  {catalogueAccounts.map(({ account, pack }) => (
+                    <button
+                      key={account.email || account.id}
+                      type="button"
+                      className="intelligent-sourcing-catalogue-chip"
+                      onClick={() => setReviewPack({
+                        title: account.company || account.name || 'Supplier',
+                        frames: pack.catalogue,
+                      })}
+                    >
+                      {account.company || account.name || 'Supplier'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
+        )}
+
+        {reviewPack && (
+          <CompanyPackReviewModal
+            title={reviewPack.title}
+            frames={reviewPack.frames}
+            onClose={() => setReviewPack(null)}
+          />
         )}
 
         {lastCreatedRfq && (

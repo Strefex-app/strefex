@@ -43,4 +43,10 @@ describe('sidebarNavItemVisible', () => {
   it('shows utility items without role flags', () => {
     expect(sidebarNavItemVisible(calendar, allow)).toBe(true)
   })
+
+  it('gates Auditors via auditorNav', () => {
+    const auditors = { id: 'auditors', auditorNav: true }
+    expect(sidebarNavItemVisible(auditors, allow)).toBe(true)
+    expect(sidebarNavItemVisible(auditors, { ...allow, showAuditorsNav: false })).toBe(false)
+  })
 })

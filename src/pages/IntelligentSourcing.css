@@ -168,9 +168,39 @@ html[data-theme="dark"] .intelligent-sourcing-rfq-overlay {
   .intelligent-sourcing-rfq-overlay {
     padding: 8px;
   }
+}
 
-  .intelligent-sourcing-rfq-panel {
-    padding: 12px 12px 20px;
-    border-radius: 6px;
-  }
+.intelligent-sourcing-catalogues {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--border-color, rgba(128,128,128,0.2));
+  background: var(--bg-primary, #f6f7f8);
+}
+.intelligent-sourcing-catalogues p {
+  margin: 0 0 8px;
+  color: var(--color-secondary);
+  font-size: var(--text-caption, 12px);
+}
+.intelligent-sourcing-catalogue-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+}
+.intelligent-sourcing-catalogue-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #ccc);
+  background: var(--bg-card, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--text-small, 13px);
+  font-family: inherit;
+}
+html[data-theme="dark"] .intelligent-sourcing-catalogues {
+  background: var(--bg-primary, #0d0e10);
 }

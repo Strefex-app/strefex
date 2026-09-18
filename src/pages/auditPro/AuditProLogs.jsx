@@ -27,12 +27,12 @@ export default function AuditProLogs() {
     })
   }, [filtered, demoKitShown, auditsAll, auditors, suppliers])
   const ac = {
-    'Audit Created': '#3B82F6',
-    'Audit Started': '#F59E0B',
-    'Audit Completed': '#10B981',
-    'Finding Added': '#EF4444',
-    'Finding Updated': '#F59E0B',
-    'Status Changed': '#8B5CF6',
+    'Audit Created': 'var(--accent)',
+    'Audit Started': 'var(--badge-warning-text)',
+    'Audit Completed': 'var(--badge-success-text)',
+    'Finding Added': 'var(--danger)',
+    'Finding Updated': 'var(--badge-warning-text)',
+    'Status Changed': 'var(--color-secondary)',
   }
 
   return (
@@ -45,7 +45,7 @@ export default function AuditProLogs() {
           <thead>
             <tr style={{ background: 'var(--ap-panel-3)' }}>
               {['Timestamp', 'Standard', 'Action', 'User', 'Detail'].map((h) => (
-                <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
+                <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', fontWeight: 'var(--font-semibold)', letterSpacing: '.05em', borderBottom: '1px solid var(--ap-border)' }}>
                   {h}
                 </th>
               ))}
@@ -55,20 +55,20 @@ export default function AuditProLogs() {
             {filteredLogs.map((l) => {
               const aud = auditsAll.find((a) => a.id === l.auditId)
               return (
-                <tr key={l.id} style={{ borderBottom: '1px solid #0A1015' }}>
-                  <td style={{ padding: '9px 12px', fontSize: 10, color: '#374151', fontFamily: 'IBM Plex Mono, ui-monospace, monospace' }}>
+                <tr key={l.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '9px 12px', fontSize: 'var(--text-caption)', color: 'var(--color-secondary)', fontFamily: 'var(--font-sans)' }}>
                     {new Date(l.timestamp).toLocaleString()}
                   </td>
-                  <td style={{ padding: '9px 12px', fontSize: 11, color: '#94A3B8' }} className="stx-text-wrap">
+                  <td style={{ padding: '9px 12px', fontSize: 'var(--text-caption)', color: 'var(--color-muted)' }} className="stx-text-wrap">
                     {aud?.standard || '—'}
                     <br />
-                    <span style={{ fontSize: 9, color: '#374151' }}>{aud?.title?.slice(0, 28) || l.auditId}</span>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-secondary)' }}>{aud?.title?.slice(0, 28) || l.auditId}</span>
                   </td>
                   <td style={{ padding: '9px 12px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: ac[l.action] || '#94A3B8', background: `${ac[l.action] || '#374151'}18`, padding: '2px 7px', borderRadius: 5 }}>{l.action}</span>
+                    <span style={{ fontSize: 'var(--text-caption)', fontWeight: 'var(--font-semibold)', color: ac[l.action] || 'var(--color-muted)', background: `color-mix(in srgb, ${ac[l.action] || 'var(--color-secondary)'} 16%, transparent)`, padding: '2px 7px', borderRadius: 5 }}>{l.action}</span>
                   </td>
-                  <td style={{ padding: '9px 12px', fontSize: 11, color: '#94A3B8' }}>{l.user}</td>
-                  <td style={{ padding: '9px 12px', fontSize: 11, color: '#4B5563' }} className="stx-text-wrap">
+                  <td style={{ padding: '9px 12px', fontSize: 'var(--text-caption)', color: 'var(--color-muted)' }}>{l.user}</td>
+                  <td style={{ padding: '9px 12px', fontSize: 'var(--text-caption)', color: 'var(--color-secondary)' }} className="stx-text-wrap">
                     {l.detail}
                   </td>
                 </tr>
@@ -77,7 +77,7 @@ export default function AuditProLogs() {
           </tbody>
         </table>
         {!filteredLogs.length && (
-          <div style={{ padding: 20, textAlign: 'center', color: '#374151', fontSize: 11 }}>No logs.</div>
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--color-secondary)', fontSize: 'var(--text-caption)' }}>No logs.</div>
         )}
       </div>
     </div>

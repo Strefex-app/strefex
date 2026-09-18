@@ -154,6 +154,9 @@ function manufacturerDirectoryRow(account) {
     serviceCategories: Array.isArray(ensured.serviceCategories) ? ensured.serviceCategories : [],
     coordinates: hasUsableCoordinates(ensured.coordinates) ? ensured.coordinates : null,
     certifications: Array.isArray(ensured.certifications) ? ensured.certifications : [],
+    profileAttachments: Array.isArray(ensured.profileAttachments)
+      ? ensured.profileAttachments
+      : (Array.isArray(ensured.profile_attachments) ? ensured.profile_attachments : []),
     fitLevel: ensured.fitLevel,
     riskLevel: ensured.riskLevel,
     capacityLevel: ensured.capacityLevel,

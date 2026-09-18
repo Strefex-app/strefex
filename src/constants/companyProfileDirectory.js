@@ -10,6 +10,8 @@ export const PROFILE_ATTACHMENT_SLOT = {
   PRODUCT_PORTFOLIO_DOC: 'product_portfolio_doc',
   PRODUCTION_PHOTO: 'production_photo',
   PRODUCTION_VIDEO: 'production_video',
+  /** Generated JPEG frames for in-platform review — not the source PDF. */
+  PACK_CATALOGUE: 'pack_catalogue',
   OTHER: 'other',
 }
 
@@ -19,6 +21,7 @@ export const PROFILE_ATTACHMENT_SLOT_LABELS = {
   [PROFILE_ATTACHMENT_SLOT.PRODUCT_PORTFOLIO_DOC]: 'Product portfolio (PDF or PowerPoint, optional)',
   [PROFILE_ATTACHMENT_SLOT.PRODUCTION_PHOTO]: 'Production / facility photo',
   [PROFILE_ATTACHMENT_SLOT.PRODUCTION_VIDEO]: 'Real production video',
+  [PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE]: 'Catalogue preview (platform review only)',
   [PROFILE_ATTACHMENT_SLOT.OTHER]: 'Other document',
 }
 

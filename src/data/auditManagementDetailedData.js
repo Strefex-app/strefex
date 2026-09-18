@@ -214,7 +214,13 @@ export const AUDIT_STANDARDS = {
   "Household Products":{"Manufacturing / Quality":["ISO 9001:2015","ISO 14001:2015","Consumer Product Safety"],"Financial":FIN_ISO,"Cybersecurity / IT":CYBER_DEFAULT},
 };
 export const FINDING_TYPES = ["Major NC","Minor NC","Observation","Opportunity for Improvement","Positive Finding"];
-export const STATUS_COLORS = {Planned:"#3B82F6","In Progress":"#F59E0B",Completed:"#10B981",Cancelled:"#EF4444",Draft:"#8B5CF6"};
+export const STATUS_COLORS = {
+  Planned: 'var(--accent)',
+  'In Progress': 'var(--badge-warning-text)',
+  Completed: 'var(--badge-success-text)',
+  Cancelled: 'var(--danger)',
+  Draft: 'var(--color-secondary)',
+}
 
 /** @param {string} [language] UI language from settings (en, zh, es, fr, de, ru, pt); supplier checklist is localized. */
 export function getQuestionnaire(standard, auditType, language = 'en') {
@@ -230,4 +236,44 @@ export function getQuestionnaireVerdictPreset(standard) {
   if (standard === 'IATF 16949:2016' || standard === 'ISO 9001:2015') return VERDICT_PRESET_SUPPLIER_RU_SCORE
   return VERDICT_PRESET_ISO_CONFORMANCE
 }
+
+/** Field scoring references shown with every STREFEX questionnaire. */
+export const AUDIT_SCORING_ANCHORS = [
+  {
+    id: 'conform',
+    label: 'Conform',
+    score: 10,
+    tone: 'ok',
+    detail: 'Requirement met, evidenced by record and observation, consistent across the shifts sampled.',
+  },
+  {
+    id: 'observation',
+    label: 'Observation',
+    score: 8,
+    tone: 'warn',
+    detail: 'Requirement met but the practice is fragile, undocumented or depends on one person.',
+  },
+  {
+    id: 'minor',
+    label: 'Minor NC',
+    score: 5,
+    tone: 'warn',
+    detail: 'Single lapse in an otherwise working system; product conformity not affected.',
+  },
+  {
+    id: 'major',
+    label: 'Major NC',
+    score: 0,
+    tone: 'danger',
+    detail: 'Requirement absent, systematically not applied, or product conformity is at risk.',
+  },
+  {
+    id: 'na',
+    label: 'Not applicable',
+    score: null,
+    tone: 'muted',
+    detail: 'Requirement does not apply to the scope actually performed on site — justification recorded.',
+  },
+]
+
 export function getTotalQuestions(q) { return (q||[]).reduce((s,sec)=>s+(sec.questions?.length||0),0); }

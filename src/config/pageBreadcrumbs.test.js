@@ -58,4 +58,14 @@ describe('pageBreadcrumbs', () => {
   it('returns null for auth pages', () => {
     expect(resolvePageBreadcrumb('/login')).toBeNull()
   })
+
+  it('resolves Auditors directory as its own root', () => {
+    const r = resolvePageBreadcrumb('/management/auditors')
+    expect(r.root).toEqual(PAGE_ROOTS.auditors)
+    expect(r.trail).toEqual([{ label: 'Assignment pool' }])
+    const cal = resolvePageBreadcrumb('/management/contracts-compliance/auditors/calendar')
+    expect(cal.trail).toEqual([{ label: 'Calendar' }])
+    const db = resolvePageBreadcrumb('/management/auditors/auditors')
+    expect(db.trail).toEqual([{ label: 'Auditor database' }])
+  })
 })

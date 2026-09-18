@@ -13,6 +13,7 @@ const translations = {
   'nav.inbox': { en: 'Inbox', zh: '收件箱', es: 'Bandeja', fr: 'Boîte de réception', de: 'Posteingang', ru: 'Входящие', pt: 'Caixa de entrada' },
   'nav.calendar': { en: 'Calendar', zh: '日历', es: 'Calendario', fr: 'Calendrier', de: 'Kalender', ru: 'Календарь', pt: 'Calendário' },
   'nav.management': { en: 'Management', zh: '管理', es: 'Gestión', fr: 'Gestion', de: 'Management', ru: 'Управление', pt: 'Gestão' },
+  'nav.auditors': { en: 'Auditors', zh: '审核员', es: 'Auditores', fr: 'Auditeurs', de: 'Auditoren', ru: 'Аудиторы', pt: 'Auditores' },
   'nav.serviceRequests': { en: 'Service Requests', zh: '服务请求', es: 'Solicitudes de Servicio', fr: 'Demandes de Service', de: 'Serviceanfragen', ru: 'Запросы на услуги', pt: 'Solicitações de serviço' },
   'nav.costManagement': { en: 'Cost Management', zh: '成本管理', es: 'Gestión de Costos', fr: 'Gestion des Coûts', de: 'Kostenmanagement', ru: 'Управление затратами', pt: 'Gestão de custos' },
   'nav.enterpriseManagement': { en: 'Multi-Site Management', zh: '企业管理', es: 'Gestión Empresarial', fr: 'Gestion d\'Entreprise', de: 'Unternehmensführung', ru: 'Управление предприятием', pt: 'Gestão empresarial' },

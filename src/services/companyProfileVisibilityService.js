@@ -92,7 +92,7 @@ export function evaluateCompanyProfileDirectory(company) {
   const extraComplete = Object.values(extra).every(Boolean)
 
   let visibilityTier = VISIBILITY_TIER.INCOMPLETE
-  if (company?.external_audit_status === 'passed') {
+  if (company?.strefex_verified === true || company?.strefexVerified === true) {
     visibilityTier = VISIBILITY_TIER.VERIFIED
   } else if (mandatoryComplete && extraComplete) {
     visibilityTier = VISIBILITY_TIER.PREMIUM

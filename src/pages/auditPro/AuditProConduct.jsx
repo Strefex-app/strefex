@@ -35,31 +35,31 @@ const SUPPLIER_VERDICT_OPTIONS = [
 ]
 
 const vColor = {
-  Conforms: '#10B981',
-  'Minor NC': '#F59E0B',
-  'Major NC': '#EF4444',
-  'N/A': '#6B7280',
-  Observation: '#3B82F6',
-  NA: '#6B7280',
-  '1': '#EF4444',
-  '2': '#F59E0B',
-  '3': '#10B981',
+  Conforms: 'var(--badge-success-text)',
+  'Minor NC': 'var(--badge-warning-text)',
+  'Major NC': 'var(--danger)',
+  'N/A': 'var(--color-muted)',
+  Observation: 'var(--accent)',
+  NA: 'var(--color-muted)',
+  '1': 'var(--danger)',
+  '2': 'var(--badge-warning-text)',
+  '3': 'var(--badge-success-text)',
 }
 
 function supplierScoreBtnBg(sel, v) {
-  if (sel !== v) return '#1A2535'
-  if (v === 'NA') return '#1F2937'
-  if (v === '1') return '#7F1D1D'
-  if (v === '2') return '#78350F'
-  return '#065F46'
+  if (sel !== v) return 'var(--bg-surface)'
+  if (v === 'NA') return 'var(--color-muted)'
+  if (v === '1') return 'var(--danger)'
+  if (v === '2') return 'var(--badge-warning-text)'
+  return 'var(--badge-success-text)'
 }
 
 function supplierScoreBtnFg(sel, v) {
-  if (sel !== v) return '#4B5563'
-  if (v === 'NA') return '#9CA3AF'
-  if (v === '1') return '#FCA5A5'
-  if (v === '2') return '#FCD34D'
-  return '#6EE7B7'
+  if (sel !== v) return 'var(--color-secondary)'
+  if (v === 'NA') return 'var(--color-muted)'
+  if (v === '1') return 'var(--danger-text)'
+  if (v === '2') return 'var(--badge-warning-text)'
+  return 'var(--badge-success-text)'
 }
 
 const CONDUCT_TABS = new Set(['info', 'questionnaire', 'findings', 'report'])
@@ -567,7 +567,7 @@ export default function AuditProConduct() {
                   goConductSearch({ tab: 'questionnaire', qn: 'list' })
                   notifyWorkspaceKeyDirty('audit_pro', true)
                 }}
-                color="#D97706"
+                color="var(--badge-warning-text)"
               >
                 ▶ Start
               </Btn>
@@ -649,63 +649,63 @@ export default function AuditProConduct() {
             <InfoRow label="Standard" value={conduct.standard} />
             <InfoRow label="Planned Date" value={conduct.plannedDate} />
             <InfoRow label="Completed" value={conduct.completedDate || 'Pending'} />
-            {conduct.nextAuditDate ? <InfoRow label="Next Audit" value={<span style={{ color: '#34D399', fontWeight: 600 }}>{conduct.nextAuditDate}</span>} /> : null}
+            {conduct.nextAuditDate ? <InfoRow label="Next Audit" value={<span style={{ color: 'var(--badge-success-text)', fontWeight: 'var(--font-semibold)' }}>{conduct.nextAuditDate}</span>} /> : null}
             <InfoRow label="Status" value={<StatusBadge status={conduct.status} />} />
             <InfoRow label="Duration" value={`${conduct.auditDays || 1} day(s)`} />
             <InfoRow label="Language" value={conduct.language || 'English'} />
           </Card>
           <Card title="Parties" icon="◉">
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 700, letterSpacing: '.06em' }}>LEAD AUDITOR</div>
+              <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 'var(--font-semibold)', letterSpacing: '.06em' }}>LEAD AUDITOR</div>
               {auditor ? (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{auditor.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
+                  <div style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)' }}>{auditor.name}</div>
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)' }} className="stx-text-wrap">
                     {auditor.role} · {auditor.email}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
                     {(auditor.certifications || []).map((c) => (
-                      <Tag key={c} color="#1E40AF" small>
+                      <Tag key={c} color="var(--accent)" small>
                         {c}
                       </Tag>
                     ))}
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#374151' }}>Not assigned</div>
+                <div style={{ color: 'var(--color-secondary)' }}>Not assigned</div>
               )}
             </div>
             <div style={{ borderTop: '1px solid var(--ap-border)', paddingTop: 14, marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 700, letterSpacing: '.06em' }}>SUPPORTING AUDITOR</div>
+              <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 'var(--font-semibold)', letterSpacing: '.06em' }}>SUPPORTING AUDITOR</div>
               {secondaryAuditor ? (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{secondaryAuditor.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
+                  <div style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)' }}>{secondaryAuditor.name}</div>
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)' }} className="stx-text-wrap">
                     {secondaryAuditor.role} · {secondaryAuditor.email}
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#374151', fontSize: 12 }}>Not assigned</div>
+                <div style={{ color: 'var(--color-secondary)', fontSize: 'var(--text-small)' }}>Not assigned</div>
               )}
             </div>
             <div style={{ borderTop: '1px solid var(--ap-border)', paddingTop: 14 }}>
-              <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 700, letterSpacing: '.06em' }}>SUPPLIER / AUDITEE</div>
+              <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 5, fontWeight: 'var(--font-semibold)', letterSpacing: '.06em' }}>SUPPLIER / AUDITEE</div>
               {supplier ? (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ap-text)' }}>{supplier.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ap-muted)' }} className="stx-text-wrap">
+                  <div style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--ap-text)' }}>{supplier.name}</div>
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)' }} className="stx-text-wrap">
                     {supplier.country}
                     {supplier.city ? <> · {supplier.city}</> : null}
                     {supplier.contact ? <> · {supplier.contact}</> : null}
                     {supplier.email ? <> · {supplier.email}</> : null}
                   </div>
                   {supplier.address ? (
-                    <div style={{ fontSize: 11, color: '#374151', marginTop: 3 }} className="stx-text-wrap">
+                    <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-secondary)', marginTop: 3 }} className="stx-text-wrap">
                       {supplier.address}
                     </div>
                   ) : null}
                   {supplier.notes ? (
-                    <div style={{ fontSize: 11, color: '#475569', marginTop: 6 }} className="stx-text-wrap">
+                    <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-secondary)', marginTop: 6 }} className="stx-text-wrap">
                       {supplier.notes}
                     </div>
                   ) : null}
@@ -734,12 +734,12 @@ export default function AuditProConduct() {
                   </button>
                 </>
               ) : (
-                <div style={{ color: '#374151' }}>Not assigned</div>
+                <div style={{ color: 'var(--color-secondary)' }}>Not assigned</div>
               )}
             </div>
           </Card>
           <Card title="Scope" icon="⬡" style={{ gridColumn: '1 / -1' }}>
-            <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }} className="stx-text-wrap">
+            <div style={{ fontSize: 'var(--text-small)', color: 'var(--color-muted)', lineHeight: 1.7 }} className="stx-text-wrap">
               {conduct.scope || 'No scope defined.'}
             </div>
           </Card>
@@ -1023,7 +1023,7 @@ export default function AuditProConduct() {
                     >
                       ▼
                     </span>
-                    <span style={{ fontSize: 13, fontWeight: 'var(--font-semibold)', color: '#60A5FA' }}>{sec.section}</span>
+                    <span style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--accent)' }}>{sec.section}</span>
                     <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginTop: 4, paddingLeft: 26 }}>
                       Clause {sec.clause} · {nSec} question{nSec === 1 ? '' : 's'}
                     </div>
@@ -1078,26 +1078,26 @@ export default function AuditProConduct() {
                           key={qi}
                           style={{
                             marginBottom: 12,
-                            background: '#070D1C',
+                            background: 'var(--bg-card)',
                             borderRadius: 9,
-                            border: `1px solid ${resp.verdict ? `${vColor[resp.verdict] || '#aaa'}45` : 'var(--ap-border)'}`,
+                            border: `1px solid ${resp.verdict ? `color-mix(in srgb, ${vColor[resp.verdict] || 'var(--color-muted)'} 42%, transparent)` : 'var(--ap-border)'}`,
                             overflow: 'hidden',
                           }}
                         >
                           <div style={{ padding: '11px 13px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 12, color: '#CBD5E1', lineHeight: 1.55, marginBottom: 5 }} className="stx-text-wrap">
-                                  <span style={{ color: '#374151', marginRight: 7, fontSize: 10 }}>
+                                <div style={{ fontSize: 'var(--text-small)', color: 'var(--color-secondary)', lineHeight: 1.55, marginBottom: 5 }} className="stx-text-wrap">
+                                  <span style={{ color: 'var(--color-secondary)', marginRight: 7, fontSize: 'var(--text-caption)' }}>
                                     {q.checklistNo ?? `${qi + 1}.`}
                                   </span>
                                   {q.text}
                                 </div>
                                 <div
                                   style={{
-                                    fontSize: 10,
-                                    color: '#1E40AF',
-                                    background: '#1E3A5F25',
+                                    fontSize: 'var(--text-caption)',
+                                    color: 'var(--accent)',
+                                    background: 'var(--accent-light)',
                                     padding: '2px 8px',
                                     borderRadius: 5,
                                     display: 'inline-block',
@@ -1109,7 +1109,7 @@ export default function AuditProConduct() {
                               <button
                                 type="button"
                                 onClick={() => setExpanded((e) => ({ ...e, [key]: !e[key] }))}
-                                style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 13, padding: '0 3px', flexShrink: 0 }}
+                                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', fontSize: 'var(--text-small)', padding: '0 3px', flexShrink: 0 }}
                               >
                                 {isExp ? '▲' : '▼'}
                               </button>
@@ -1124,13 +1124,13 @@ export default function AuditProConduct() {
                                   border: '1px solid var(--ap-border)',
                                 }}
                               >
-                                <div style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', marginBottom: 5, letterSpacing: '.05em' }}>
+                                <div style={{ fontSize: 'var(--text-caption)', fontWeight: 'var(--font-semibold)', color: 'var(--color-muted)', marginBottom: 5, letterSpacing: '.05em' }}>
                                   AUDIT GUIDANCE & EXAMPLES
                                 </div>
-                                <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.6, marginBottom: 10 }} className="stx-text-wrap">
+                                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)', lineHeight: 1.6, marginBottom: 10 }} className="stx-text-wrap">
                                   {q.examples}
                                 </div>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', marginBottom: 6, letterSpacing: '.05em' }}>
+                                <div style={{ fontSize: 'var(--text-caption)', fontWeight: 'var(--font-semibold)', color: 'var(--color-muted)', marginBottom: 6, letterSpacing: '.05em' }}>
                                   DOCUMENTS TO REQUEST
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -1138,12 +1138,12 @@ export default function AuditProConduct() {
                                     <span
                                       key={di}
                                       style={{
-                                        background: '#1E3A5F25',
-                                        border: '1px solid #1E40AF35',
-                                        color: '#93C5FD',
+                                        background: 'var(--accent-light)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--accent)',
                                         borderRadius: 5,
                                         padding: '2px 7px',
-                                        fontSize: 10,
+                                        fontSize: 'var(--text-caption)',
                                       }}
                                     >
                                       📄 {d}
@@ -1165,11 +1165,11 @@ export default function AuditProConduct() {
                                         borderRadius: 6,
                                         cursor: 'pointer',
                                         fontSize: 'var(--text-small, 11px)',
-                                        fontWeight: 500,
+                                        fontWeight: 'var(--font-medium)',
                                         background: supplierScoreBtnBg(resp.verdict, o.value),
                                         color: supplierScoreBtnFg(resp.verdict, o.value),
                                         border:
-                                          resp.verdict === o.value ? `1px solid ${vColor[o.value] || '#374151'}` : '1px solid #1A2535',
+                                          resp.verdict === o.value ? `1px solid ${vColor[o.value] || 'var(--color-secondary)'}` : '1px solid var(--bg-surface)',
                                       }}
                                     >
                                       {o.short}
@@ -1185,33 +1185,33 @@ export default function AuditProConduct() {
                                         borderRadius: 6,
                                         cursor: 'pointer',
                                         fontSize: 'var(--text-small, 11px)',
-                                        fontWeight: 500,
+                                        fontWeight: 'var(--font-medium)',
                                         background:
                                           resp.verdict === opt
                                             ? opt === 'Conforms'
-                                              ? '#065F46'
+                                              ? 'var(--badge-success-text)'
                                               : opt === 'Major NC'
-                                                ? '#7F1D1D'
+                                                ? 'var(--danger)'
                                                 : opt === 'Minor NC'
-                                                  ? '#78350F'
+                                                  ? 'var(--badge-warning-text)'
                                                   : opt === 'N/A'
-                                                    ? '#1F2937'
-                                                    : '#1E3A5F'
-                                            : '#1A2535',
+                                                    ? 'var(--color-muted)'
+                                                    : 'var(--accent)'
+                                            : 'var(--bg-surface)',
                                         color:
                                           resp.verdict === opt
                                             ? opt === 'Conforms'
-                                              ? '#6EE7B7'
+                                              ? 'var(--badge-success-text)'
                                               : opt === 'Major NC'
-                                                ? '#FCA5A5'
+                                                ? 'var(--danger-text)'
                                                 : opt === 'Minor NC'
-                                                  ? '#FCD34D'
+                                                  ? 'var(--badge-warning-text)'
                                                   : opt === 'N/A'
-                                                    ? '#9CA3AF'
-                                                    : '#93C5FD'
-                                            : '#4B5563',
+                                                    ? 'var(--color-muted)'
+                                                    : 'var(--accent)'
+                                            : 'var(--color-secondary)',
                                         border:
-                                          resp.verdict === opt ? `1px solid ${vColor[opt] || '#374151'}` : '1px solid #1A2535',
+                                          resp.verdict === opt ? `1px solid ${vColor[opt] || 'var(--color-secondary)'}` : '1px solid var(--bg-surface)',
                                       }}
                                     >
                                       {opt}
@@ -1241,7 +1241,7 @@ export default function AuditProConduct() {
       {resolvedTab === 'findings' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: '#6B7280' }}>
+            <div style={{ fontSize: 'var(--text-small)', color: 'var(--color-muted)' }}>
               {(conduct.findings || []).length} finding(s) · {(conduct.findings || []).filter((f) => f.status === 'Open').length} open
             </div>
             <Btn onClick={() => setShowFF((v) => !v)}>
@@ -1289,11 +1289,11 @@ export default function AuditProConduct() {
           )}
           {(conduct.findings || []).map((f) => {
             const fc = {
-              'Major NC': '#EF4444',
-              'Minor NC': '#F59E0B',
-              Observation: '#3B82F6',
-              'Opportunity for Improvement': '#A78BFA',
-              'Positive Finding': '#10B981',
+              'Major NC': 'var(--danger)',
+              'Minor NC': 'var(--badge-warning-text)',
+              Observation: 'var(--accent)',
+              'Opportunity for Improvement': 'var(--accent)',
+              'Positive Finding': 'var(--badge-success-text)',
             }
             const isOD = f.dueDate && f.status === 'Open' && new Date(f.dueDate) < new Date(new Date().toISOString().slice(0, 10) + 'T23:59:59')
             return (
@@ -1302,8 +1302,8 @@ export default function AuditProConduct() {
                 id={`ap-finding-${f.id}`}
                 className={findingFocus === f.id ? 'ap-finding--target' : undefined}
                 style={{
-                  background: `${fc[f.type] || '#374151'}15`,
-                  border: `1px solid ${fc[f.type] || '#374151'}60`,
+                  background: `color-mix(in srgb, ${fc[f.type] || 'var(--color-secondary)'} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${fc[f.type] || 'var(--color-secondary)'} 42%, transparent)`,
                   borderRadius: 9,
                   padding: 14,
                   marginBottom: 11,
@@ -1312,26 +1312,26 @@ export default function AuditProConduct() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 7, flexWrap: 'wrap' }}>
-                      <Tag color={fc[f.type] || '#94A3B8'}>{f.type}</Tag>
+                      <Tag color={fc[f.type] || 'var(--color-muted)'}>{f.type}</Tag>
                       {f.fromResponseKey ? (
-                        <Tag color="#475569" small>
+                        <Tag color="var(--color-secondary)" small>
                           Questionnaire
                         </Tag>
                       ) : null}
                       {f.section ? (
-                        <Tag color="#475569" small>
+                        <Tag color="var(--color-secondary)" small>
                           {f.section}
                         </Tag>
                       ) : null}
                       {f.reference ? (
-                        <Tag color="#374151" small>
+                        <Tag color="var(--color-secondary)" small>
                           {f.reference}
                         </Tag>
                       ) : null}
-                      <Tag color={f.status === 'Closed' ? '#10B981' : '#EF4444'}>{f.status}</Tag>
-                      {isOD ? <Tag color="#EF4444">OVERDUE</Tag> : null}
+                      <Tag color={f.status === 'Closed' ? 'var(--badge-success-text)' : 'var(--danger)'}>{f.status}</Tag>
+                      {isOD ? <Tag color="var(--danger)">OVERDUE</Tag> : null}
                     </div>
-                    <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.55, marginBottom: 5 }} className="stx-text-wrap">
+                    <div style={{ fontSize: 'var(--text-small)', color: 'var(--color-secondary)', lineHeight: 1.55, marginBottom: 5 }} className="stx-text-wrap">
                       {f.description}
                     </div>
                     {Array.isArray(f.activityLog) && f.activityLog.length > 0 ? (
@@ -1349,10 +1349,10 @@ export default function AuditProConduct() {
                           {f.activityLog.map((log, idx) => (
                             <li
                               key={`${String(log.at)}-${idx}`}
-                              style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}
+                              style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)', marginBottom: 4 }}
                               className="stx-text-wrap"
                             >
-                              <span style={{ color: '#64748B' }}>
+                              <span style={{ color: 'var(--color-muted)' }}>
                                 {log.at ? new Date(log.at).toLocaleString() : '—'}
                               </span>
                               {' · '}
@@ -1401,7 +1401,7 @@ export default function AuditProConduct() {
                           ),
                         })
                       }}
-                      style={{ background: '#1A2535', border: 'none', borderRadius: 6, color: '#94A3B8', cursor: 'pointer', padding: '4px 9px', fontSize: 11 }}
+                      style={{ background: 'var(--bg-surface)', border: 'none', borderRadius: 6, color: 'var(--color-muted)', cursor: 'pointer', padding: '4px 9px', fontSize: 'var(--text-caption)' }}
                     >
                       {f.status === 'Open' ? 'Close' : 'Reopen'}
                     </button>
@@ -1414,7 +1414,7 @@ export default function AuditProConduct() {
                         }
                         save({ ...conduct, findings: (conduct.findings || []).filter((x) => x.id !== f.id) })
                       }}
-                      style={{ background: '#7F1D1D20', border: 'none', borderRadius: 6, color: '#F87171', cursor: 'pointer', padding: '4px 8px', fontSize: 11 }}
+                      style={{ background: 'var(--danger-light)', border: 'none', borderRadius: 6, color: 'var(--danger-text)', cursor: 'pointer', padding: '4px 8px', fontSize: 'var(--text-caption)' }}
                     >
                       ✕
                     </button>
@@ -1424,7 +1424,7 @@ export default function AuditProConduct() {
             )
           })}
           {!conduct.findings?.length && (
-            <div style={{ color: 'var(--ap-muted)', fontSize: 12, padding: '16px 0', textAlign: 'center' }}>No findings yet.</div>
+            <div style={{ color: 'var(--ap-muted)', fontSize: 'var(--text-small)', padding: '16px 0', textAlign: 'center' }}>No findings yet.</div>
           )}
         </div>
       )}

@@ -317,6 +317,7 @@
 }
 
 .bw-supplier-card__vis--verified { color: #0f5132; }
+.bw-supplier-card__vis--onsite { color: #1e3a5f; }
 .bw-supplier-card__vis--premium { color: #664d03; }
 .bw-supplier-card__vis--default { color: #1e40af; }
 

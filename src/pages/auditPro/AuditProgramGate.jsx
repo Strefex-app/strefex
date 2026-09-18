@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 
 /**
- * Guards all `/management/auditors/*` routes (dashboard, conduct, print, overview).
+ * Guards all `/management/auditors/*` routes (directory, dashboard, conduct, print).
  */
 export default function AuditProgramGate() {
   const canUse = useAuditProProgramAccess()

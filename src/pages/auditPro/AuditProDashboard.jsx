@@ -23,15 +23,15 @@ function conductFindingsUrl(auditId, findingId) {
 
 const INDUSTRY_CHART_COLORS = {
   Automotive: 'var(--accent)',
-  Machinery: '#6366f1',
-  Electronics: '#8b5cf6',
+  Machinery: 'var(--accent)',
+  Electronics: 'var(--color-secondary)',
   Medical: 'var(--danger)',
-  'Raw Materials': '#0d9488',
+  'Raw Materials': 'var(--badge-success-text)',
   'Oil & Gas': 'var(--rfqi-amber)',
-  Nuclear: '#7c3aed',
-  'Green Energy': '#22c55e',
-  'Household Products': '#db2777',
-  Aerospace: '#64748b',
+  Nuclear: 'var(--accent)',
+  'Green Energy': 'var(--badge-success-text)',
+  'Household Products': 'var(--danger-text)',
+  Aerospace: 'var(--color-muted)',
 }
 
 export default function AuditProDashboard() {
@@ -473,11 +473,11 @@ export default function AuditProDashboard() {
                 }}
               >
                 <div style={{ minWidth: 0 }} className="stx-text-wrap">
-                  <div style={{ fontSize: 12, color: 'var(--color-primary)', fontWeight: 500 }}>
+                  <div style={{ fontSize: 'var(--text-small)', color: 'var(--color-primary)', fontWeight: 'var(--font-medium)' }}>
                     {a.title.slice(0, 48)}
                     {a.title.length > 48 ? '…' : ''}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 1 }} className="stx-text-wrap">
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)', marginTop: 1 }} className="stx-text-wrap">
                     {a.standard} · {aud?.name || 'TBD'} · {sup?.name || 'TBD'}
                   </div>
                 </div>
@@ -485,7 +485,7 @@ export default function AuditProDashboard() {
                   <StatusBadge status={a.status} />
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--text-caption)',
                       fontWeight: 'var(--font-semibold)',
                       color:
                         days <= 0
@@ -535,9 +535,9 @@ export default function AuditProDashboard() {
                 >
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--text-caption)',
                       color: isOD ? 'var(--danger-text)' : 'var(--color-primary)',
-                      fontWeight: 500,
+                      fontWeight: 'var(--font-medium)',
                       marginBottom: 3,
                       lineHeight: 1.35,
                     }}
@@ -552,7 +552,7 @@ export default function AuditProDashboard() {
                     ) : null}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: isOD ? 'var(--danger-text)' : 'var(--color-muted)' }}>
+                    <span style={{ fontSize: 'var(--text-caption)', color: isOD ? 'var(--danger-text)' : 'var(--color-muted)' }}>
                       {r.dueDate}
                       {isOD ? ` (${Math.abs(days)}d late)` : days === 0 ? ' (today)' : ''}
                     </span>
@@ -563,7 +563,7 @@ export default function AuditProDashboard() {
                         e.stopPropagation()
                         dismissReminder(r.id)
                       }}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', fontSize: 12 }}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', fontSize: 'var(--text-small)' }}
                     >
                       ✕
                     </button>
@@ -571,7 +571,7 @@ export default function AuditProDashboard() {
                 </div>
               )
             })}
-            {!openRems.length && <div style={{ color: 'var(--color-muted)', fontSize: 11 }}>All clear!</div>}
+            {!openRems.length && <div style={{ color: 'var(--color-muted)', fontSize: 'var(--text-caption)' }}>All clear!</div>}
             {openRems.length > 6 ? (
               <Btn variant="secondary" onClick={() => onKpiClick('kpi_reminders')} style={{ marginTop: 6 }}>
                 View all reminders
@@ -611,7 +611,7 @@ export default function AuditProDashboard() {
                   className="am-dash-mini-stat"
                   onClick={() => setDrill(f.drill)}
                 >
-                  <div style={{ fontSize: 18, fontWeight: 'var(--font-semibold)', color: f.vc }}>{vv}</div>
+                  <div style={{ fontSize: 'var(--text-section)', fontWeight: 'var(--font-semibold)', color: f.vc }}>{vv}</div>
                   <div className="stx-text-caption ap-text-muted" style={{ marginTop: 2 }}>{f.l}</div>
                 </button>
               )
@@ -664,7 +664,7 @@ export default function AuditProDashboard() {
           {INDUSTRIES.map((ind) => {
             const cnt = audits.filter((a) => a.industry === ind).length
             const pct = audits.length ? Math.round((cnt / audits.length) * 100) : 0
-            const barColor = INDUSTRY_CHART_COLORS[ind] || '#64748b'
+            const barColor = INDUSTRY_CHART_COLORS[ind] || 'var(--color-muted)'
             return (
               <button
                 key={ind}

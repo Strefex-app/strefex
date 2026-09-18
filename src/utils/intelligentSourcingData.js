@@ -23,6 +23,7 @@ import {
   getProfileSubIdsForParent,
 } from './unifiedSourcingTaxonomy'
 import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
+import { companyPackSummary } from './companyProfilePack'
 
 /** Design-canvas industry id → platform slug */
 export const SOURCING_INDUSTRY_TO_PLATFORM = SOURCING_INDUSTRY_TO_PLATFORM_MAP
@@ -277,6 +278,7 @@ export function accountToSourcingSupplier(account) {
     incomplete: !!incomplete,
     accountType: account.accountType || accountTypes[0] || 'seller',
     accountTypes,
+    companyPack: companyPackSummary(account.profileAttachments || account.profile_attachments),
   }
 }
 

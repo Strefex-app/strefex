@@ -997,14 +997,14 @@ export const useServiceRequestStore = create((set, get) => ({
   },
 
   /** Append a platform-scoped notification visible to the target user (e.g. feature grants). */
-  pushGlobalPlatformNotification: ({ targetEmail, title, message, type = 'platform' }) => {
+  pushGlobalPlatformNotification: ({ targetEmail, title, message, type = 'platform', companyId = null }) => {
     const normalizedTarget = normalizeEmail(targetEmail)
     if (!normalizedTarget) return
     const row = {
       id: `GNOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       type,
       requestId: null,
-      requestCompanyId: null,
+      requestCompanyId: companyId || null,
       requestCompanyDomain: '',
       title: String(title || 'STREFEX'),
       message: String(message || ''),

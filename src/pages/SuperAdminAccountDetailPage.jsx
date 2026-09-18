@@ -7,6 +7,7 @@ import {
   buildCompanyVisibilityUpdate,
 } from '../services/companyProfileVisibilityService'
 import {
+  PROFILE_ATTACHMENT_SLOT,
   PROFILE_ATTACHMENT_SLOT_LABELS,
   VISIBILITY_TIER_LABELS,
 } from '../constants/companyProfileDirectory'
@@ -16,6 +17,13 @@ import CategorySubcategoryChecklist from '../components/CategorySubcategoryCheck
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
 import { ACCOUNT_TYPES } from '../services/stripeService'
+import { saveCompanyExternalAudit } from '../services/companyExternalAuditService'
+import {
+  EXTERNAL_AUDIT_STATUSES,
+  EXTERNAL_AUDIT_STATUS_LABELS,
+  readExternalAuditFromCompany,
+  sellerNeedsAuditDate,
+} from '../utils/companyExternalAudit'
 import {
   normalizeReceivingPlants,
   readReceivingPlantsFromAccount,
@@ -27,6 +35,17 @@ import {
   transferSellerAccountRights,
 } from '../utils/adminCreateSellerAccount'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
+import CompanyProfilePackFields from '../components/CompanyProfilePackFields'
+import { syncCatalogueForSlot } from '../utils/companyPackCatalogue'
+import CompanyPackCarousel from '../components/CompanyPackCarousel'
+import {
+  companyPackRegistryPayload,
+  isPackDocumentFile,
+  normalizeProfileAttachments,
+  pickLatestForSlot,
+  replacePackSlot,
+  COMPANY_PACK_SLOT_IDS,
+} from '../utils/companyProfilePack'
 import './SuperAdminAccountDetailPage.css'
 import {
   emptySourcingMetricsForm,
@@ -215,7 +234,13 @@ function companyFromRegistryAccount(acct) {
     external_audit_status: acct.externalAuditStatus || 'none',
     external_audit_notes: acct.externalAuditNotes || '',
     external_audit_passed_at: acct.externalAuditPassedAt || null,
-    profile_attachments: Array.isArray(acct.profileAttachments) ? acct.profileAttachments : [],
+    external_audit_planned_at: acct.externalAuditPlannedAt || null,
+    external_audit_deadline_at: acct.externalAuditDeadlineAt || null,
+    external_audit_assigned_auditor_email: acct.externalAuditAssignedAuditorEmail || '',
+    external_audit_assigned_auditor_name: acct.externalAuditAssignedAuditorName || '',
+    strefex_verified: acct.strefexVerified === true,
+    onsite_audit_completed: acct.onsiteAuditCompleted === true,
+    profile_attachments: normalizeProfileAttachments(acct.profileAttachments || acct.profile_attachments),
     industries,
     categories,
     productCategories: acct.productCategories && typeof acct.productCategories === 'object' ? acct.productCategories : {},
@@ -264,9 +289,15 @@ function companyFromAccountStub(stub) {
     plan: stub.plan || 'start',
     registration_code: stub.registrationCode || '',
     visibility_tier: stub.visibilityTier || stub.visibility_tier || 'basic',
-    external_audit_status: stub.externalAuditStatus || 'none',
-    external_audit_notes: stub.externalAuditNotes || '',
-    external_audit_passed_at: stub.externalAuditPassedAt || null,
+    external_audit_status: stub.externalAuditStatus || stub.external_audit_status || 'none',
+    external_audit_notes: stub.externalAuditNotes || stub.external_audit_notes || '',
+    external_audit_passed_at: stub.externalAuditPassedAt || stub.external_audit_passed_at || null,
+    external_audit_planned_at: stub.externalAuditPlannedAt || stub.external_audit_planned_at || null,
+    external_audit_deadline_at: stub.externalAuditDeadlineAt || stub.external_audit_deadline_at || null,
+    external_audit_assigned_auditor_email: stub.externalAuditAssignedAuditorEmail || stub.external_audit_assigned_auditor_email || '',
+    external_audit_assigned_auditor_name: stub.externalAuditAssignedAuditorName || stub.external_audit_assigned_auditor_name || '',
+    strefex_verified: stub.strefexVerified === true || stub.strefex_verified === true,
+    onsite_audit_completed: stub.onsiteAuditCompleted === true || stub.onsite_audit_completed === true,
     profile_attachments: [],
     industries,
     categories,
@@ -308,6 +339,7 @@ export default function SuperAdminAccountDetailPage() {
   const navigate = useNavigate()
   const updateAccount = useAccountRegistry((s) => s.updateAccount)
   const registerAccount = useAccountRegistry((s) => s.registerAccount)
+  const registryAccounts = useAccountRegistry((s) => s.accounts)
   const [company, setCompany] = useState(null)
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -315,6 +347,12 @@ export default function SuperAdminAccountDetailPage() {
   const [savedMsg, setSavedMsg] = useState('')
   const [auditStatus, setAuditStatus] = useState('none')
   const [auditNotes, setAuditNotes] = useState('')
+  const [auditPlannedAt, setAuditPlannedAt] = useState('')
+  const [auditDeadlineAt, setAuditDeadlineAt] = useState('')
+  const [auditAuditorEmail, setAuditAuditorEmail] = useState('')
+  const [auditAuditorName, setAuditAuditorName] = useState('')
+  const [strefexVerified, setStrefexVerified] = useState(false)
+  const [onsiteAudited, setOnsiteAudited] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [openPath, setOpenPath] = useState('')
@@ -327,6 +365,8 @@ export default function SuperAdminAccountDetailPage() {
   const [forceLocalEdit, setForceLocalEdit] = useState(false)
   const [transferEmail, setTransferEmail] = useState('')
   const [transferName, setTransferName] = useState('')
+  const [packPending, setPackPending] = useState({})
+  const [packRemovePaths, setPackRemovePaths] = useState([])
   const [transferInvite, setTransferInvite] = useState(true)
   const [transferring, setTransferring] = useState(false)
 
@@ -411,19 +451,32 @@ export default function SuperAdminAccountDetailPage() {
     setPlants(saved.length ? saved : normalizeReceivingPlants([]))
   }, [])
 
+  const applyAuditFields = useCallback((source) => {
+    const audit = readExternalAuditFromCompany(source)
+    setAuditStatus(audit.status || 'none')
+    setAuditNotes(audit.notes || '')
+    setAuditPlannedAt(audit.plannedAt || '')
+    setAuditDeadlineAt(audit.deadlineAt || '')
+    setAuditAuditorEmail(audit.auditorEmail || '')
+    setAuditAuditorName(audit.auditorName || '')
+    setStrefexVerified(audit.strefexVerified === true)
+    setOnsiteAudited(audit.onsiteAudited === true)
+  }, [])
+
   const applyLocalShaped = useCallback((shaped, plist = []) => {
     setCompany(shaped)
     setRegistryKey(shaped._registryKey || shaped.email || localLookupKey)
     setProfiles(plist)
-    setAuditStatus(shaped.external_audit_status || 'none')
-    setAuditNotes(shaped.external_audit_notes || '')
+    applyAuditFields(shaped)
     syncFormFromCompany(shaped, plist)
-  }, [localLookupKey, syncFormFromCompany])
+  }, [applyAuditFields, localLookupKey, syncFormFromCompany])
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     setSavedMsg('')
+    setPackPending({})
+    setPackRemovePaths([])
     setResolvedCloudId('')
     setForceLocalEdit(false)
 
@@ -465,8 +518,7 @@ export default function SuperAdminAccountDetailPage() {
             setCompany(c)
             setRegistryKey((c?.email || accountStub?.email || '').trim().toLowerCase())
             setProfiles(plist)
-            setAuditStatus(c?.external_audit_status || 'none')
-            setAuditNotes(c?.external_audit_notes || '')
+            applyAuditFields(c)
             syncFormFromCompany(c, plist)
             setLoading(false)
             return
@@ -495,8 +547,7 @@ export default function SuperAdminAccountDetailPage() {
                 setCompany(c)
                 setRegistryKey((c?.email || row?.email || '').trim().toLowerCase())
                 setProfiles(plist.length ? plist : [row])
-                setAuditStatus(c?.external_audit_status || 'none')
-                setAuditNotes(c?.external_audit_notes || '')
+                applyAuditFields(c)
                 syncFormFromCompany(c, plist.length ? plist : [row])
                 setLoading(false)
                 return
@@ -547,8 +598,7 @@ export default function SuperAdminAccountDetailPage() {
       setCompany(c)
       setRegistryKey((c?.email || '').trim().toLowerCase())
       setProfiles(plist)
-      setAuditStatus(c?.external_audit_status || 'none')
-      setAuditNotes(c?.external_audit_notes || '')
+      applyAuditFields(c)
       syncFormFromCompany(c, plist)
     } catch (e) {
       // Company row missing / RLS: still allow edit from the list stub
@@ -558,6 +608,7 @@ export default function SuperAdminAccountDetailPage() {
     }
   }, [
     accountStub,
+    applyAuditFields,
     applyLocalShaped,
     localLookupKey,
     routeCompanyId,
@@ -656,7 +707,7 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const openAttachment = async (path) => {
-    if (!path || !isSupabaseConfigured || isLocal) return
+    if (!path || !isSupabaseConfigured) return
     setOpenPath(path)
     try {
       const url = await companyProfileAttachmentsService.getSignedUrl(path, 3600)
@@ -666,6 +717,101 @@ export default function SuperAdminAccountDetailPage() {
     } finally {
       setOpenPath('')
     }
+  }
+
+  const storedPackFiles = normalizeProfileAttachments(company?.profile_attachments)
+
+  const pickPackFile = (slot, file) => {
+    if (!file) return
+    if (!isPackDocumentFile(file)) {
+      setError('Company pack files must be PDF or PowerPoint.')
+      return
+    }
+    if (file.size > companyProfileAttachmentsService.maxBytes) {
+      setError(`File too large (max ${Math.round(companyProfileAttachmentsService.maxBytes / (1024 * 1024))} MB).`)
+      return
+    }
+    setError('')
+    const current = pickLatestForSlot(storedPackFiles, slot)
+    setPackPending((prev) => ({ ...prev, [slot]: file }))
+    if (current?.path) {
+      setPackRemovePaths((prev) => (prev.includes(current.path) ? prev : [...prev, current.path]))
+    }
+  }
+
+  const clearPendingPack = (slot) => {
+    const current = pickLatestForSlot(storedPackFiles, slot)
+    setPackPending((prev) => {
+      const next = { ...prev }
+      delete next[slot]
+      return next
+    })
+    if (current?.path) {
+      setPackRemovePaths((prev) => prev.filter((p) => p !== current.path))
+    }
+  }
+
+  const removeStoredPack = (file) => {
+    if (!file?.path) return
+    const slot = file.profile_slot
+    const extra = storedPackFiles
+      .filter((a) => a.profile_slot === PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE && a.pack_source_slot === slot)
+      .map((a) => a.path)
+    setPackRemovePaths((prev) => [...new Set([...prev, file.path, ...extra])])
+    setCompany((prev) => prev ? {
+      ...prev,
+      profile_attachments: (prev.profile_attachments || []).filter(
+        (a) => a.path !== file.path && !(a.profile_slot === PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE && a.pack_source_slot === slot),
+      ),
+    } : prev)
+  }
+
+  const flushCompanyPack = async (baseList) => {
+    const uploadId = String(companyId || company?.id || '')
+    const canStore = isSupabaseConfigured && UUID_RE.test(uploadId)
+    if (Object.keys(packPending).length && !canStore) {
+      throw new Error('Company pack uploads need a linked cloud company UUID.')
+    }
+    let next = normalizeProfileAttachments(baseList).filter((a) => !packRemovePaths.includes(a.path))
+    if (canStore) {
+      const removedSlots = new Set()
+      normalizeProfileAttachments(baseList).forEach((row) => {
+        if (packRemovePaths.includes(row.path) && COMPANY_PACK_SLOT_IDS.includes(row.profile_slot)) {
+          removedSlots.add(row.profile_slot)
+        }
+      })
+      for (const slot of COMPANY_PACK_SLOT_IDS) {
+        const file = packPending[slot]
+        if (!file) continue
+        const meta = await companyProfileAttachmentsService.upload(uploadId, file, slot)
+        next = replacePackSlot(next, slot, meta)
+        next = await syncCatalogueForSlot({
+          companyId: uploadId,
+          slot,
+          sourceFile: file,
+          attachments: next,
+          upload: (cid, f, s, opts) => companyProfileAttachmentsService.upload(cid, f, s, opts),
+          remove: (p) => companyProfileAttachmentsService.remove(p),
+        })
+        removedSlots.delete(slot)
+      }
+      for (const slot of removedSlots) {
+        next = await syncCatalogueForSlot({
+          companyId: uploadId,
+          slot,
+          sourceFile: null,
+          attachments: next,
+          upload: (cid, f, s, opts) => companyProfileAttachmentsService.upload(cid, f, s, opts),
+          remove: (p) => companyProfileAttachmentsService.remove(p),
+        })
+      }
+      for (const path of packRemovePaths) {
+        try {
+          await companyProfileAttachmentsService.remove(path)
+        } catch { /* already gone */ }
+      }
+    }
+    return companyPackRegistryPayload(next)
   }
 
   const saveAccountProfile = async () => {
@@ -727,6 +873,7 @@ export default function SuperAdminAccountDetailPage() {
         return ordered
       })()
       const primaryAccountType = nextAccountTypes[0]
+      const nextPack = await flushCompanyPack(company.profile_attachments)
 
       if (isLocal || (company._local && !companyId)) {
         if (!lookup && !emailKey) throw new Error('Missing local account key.')
@@ -754,6 +901,7 @@ export default function SuperAdminAccountDetailPage() {
           companyId: company.id || existingLocal.companyId || undefined,
           ...sourcingRegistryPatch,
           visibilityTier: company.visibility_tier || company.visibilityTier || existingLocal.visibilityTier || undefined,
+          profileAttachments: nextPack,
         })
         let updatedLocal = lookup ? updateAccount(lookup, patch) : null
         if (!updatedLocal && emailKey) {
@@ -769,6 +917,12 @@ export default function SuperAdminAccountDetailPage() {
           })
         }
         if (!updatedLocal) throw new Error('Could not update local account registry.')
+        const localCompanyId = String(updatedLocal.companyId || updatedLocal.company_id || company.id || '')
+        if (isSupabaseConfigured && UUID_RE.test(localCompanyId)) {
+          try {
+            await companiesService.update(localCompanyId, { profile_attachments: nextPack })
+          } catch { /* may lack company row */ }
+        }
         await saveReceivingPlantsToAccount({
           plants,
           email: emailKey || lookup,
@@ -814,8 +968,10 @@ export default function SuperAdminAccountDetailPage() {
             /* profile privileged update may be restricted */
           }
         }
-        setCompany(companyFromRegistryAccount({ ...updatedLocal, ...sourcingRegistryPatch }))
+        setCompany(companyFromRegistryAccount({ ...updatedLocal, profileAttachments: nextPack, ...sourcingRegistryPatch }))
         setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
+        setPackPending({})
+        setPackRemovePaths([])
         setSavedMsg('Account profile saved to local registry.')
         return
       }
@@ -850,10 +1006,11 @@ export default function SuperAdminAccountDetailPage() {
         ...company,
         ...companyPayload,
         industries: nextIndustries,
-        profile_attachments: company.profile_attachments,
+        profile_attachments: nextPack,
       }
       const vis = buildCompanyVisibilityUpdate(merged)
       companyPayload.visibility_tier = vis.visibility_tier
+      companyPayload.profile_attachments = nextPack
       companyPayload.metadata = mergeSourcingMetricsIntoMetadata(
         { ...(companyPayload.metadata || {}), ...vis.metadata },
         nextSourcingMetrics,
@@ -950,6 +1107,7 @@ export default function SuperAdminAccountDetailPage() {
           visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
           plan: form.plan || company.plan || existingLocal.plan || 'start',
           ...sourcingRegistryPatch,
+          profileAttachments: nextPack,
         })
         if (!existing) {
           registerAccount({
@@ -971,6 +1129,7 @@ export default function SuperAdminAccountDetailPage() {
             serviceCategories: nextServiceCategories,
             visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
             ...sourcingRegistryPatch,
+            profileAttachments: nextPack,
           })
         }
       }
@@ -986,6 +1145,8 @@ export default function SuperAdminAccountDetailPage() {
       }
 
       setSavedMsg(`Account profile saved.${profileSyncWarning}`)
+      setPackPending({})
+      setPackRemovePaths([])
       await load()
     } catch (e) {
       setError(e?.message || 'Failed to save account profile.')
@@ -1041,63 +1202,76 @@ export default function SuperAdminAccountDetailPage() {
     }
   }
 
+  const auditorOptions = useMemo(() => {
+    const out = []
+    const seen = new Set()
+    for (const a of registryAccounts || []) {
+      const types = Array.isArray(a.accountTypes) ? a.accountTypes : [a.accountType]
+      const isAud = types.some((t) => String(t || '').toLowerCase() === 'auditor')
+        || String(a.accountType || '').toLowerCase() === 'auditor'
+      if (!isAud) continue
+      const email = String(a.email || '').trim().toLowerCase()
+      if (!email || seen.has(email)) continue
+      seen.add(email)
+      out.push({ email, name: a.company || a.name || a.contactName || email })
+    }
+    return out
+  }, [registryAccounts])
+
   const saveAudit = async () => {
     if (!company) return
     setSaving(true)
     setError('')
     try {
-      if (isLocal || (company._local && !companyId)) {
-        const lookup = registryKey || company._registryKey || company.email
-        if (!lookup) throw new Error('Missing local account key.')
-        const patch = {
-          externalAuditStatus: auditStatus,
-          externalAuditNotes: auditNotes.trim() || '',
-          externalAuditPassedAt: auditStatus === 'passed'
-            ? (company.external_audit_passed_at || new Date().toISOString())
-            : null,
-          visibilityTier: auditStatus === 'passed' ? 'verified' : undefined,
-        }
-        let updatedLocal = updateAccount(lookup, patch)
-        if (!updatedLocal) {
-          updatedLocal = registerAccount({
-            id: company._profileId || lookup,
-            email: lookup,
-            company: company.name || form.name || 'Business Account',
-            accountType: company.account_type || 'seller',
-            ...patch,
-          })
-        }
-        if (!updatedLocal) throw new Error('Could not update local account registry.')
-        const shaped = companyFromRegistryAccount(updatedLocal)
-        setCompany(shaped)
-        setAuditStatus(shaped.external_audit_status || 'none')
-        setAuditNotes(shaped.external_audit_notes || '')
-        setSavedMsg('Audit status saved to local registry.')
-        return
-      }
-
-      if (!isCloud) return
-      const next = {
+      const chosen = auditorOptions.find((a) => a.email === auditAuditorEmail)
+      const auditorName = chosen?.name || auditAuditorName
+      const sellerEmail = (form.email || company.email || registryKey || '').trim().toLowerCase()
+      const sellerName = form.name || company.name || 'Seller'
+      const visNext = {
         ...company,
         external_audit_status: auditStatus,
         external_audit_notes: auditNotes.trim() || null,
+        external_audit_planned_at: auditPlannedAt || null,
+        external_audit_assigned_auditor_email: auditAuditorEmail || null,
+        external_audit_assigned_auditor_name: auditorName || null,
       }
       if (auditStatus === 'passed') {
-        next.external_audit_passed_at = company.external_audit_passed_at || new Date().toISOString()
+        visNext.external_audit_passed_at = company.external_audit_passed_at || new Date().toISOString()
       } else {
-        next.external_audit_passed_at = null
+        visNext.external_audit_passed_at = null
       }
-      const vis = buildCompanyVisibilityUpdate(next)
-      const updated = await companiesService.update(companyId, {
-        external_audit_status: auditStatus,
-        external_audit_notes: auditNotes.trim() || null,
-        external_audit_passed_at: next.external_audit_passed_at,
-        visibility_tier: vis.visibility_tier,
-        metadata: vis.metadata,
+      const vis = buildCompanyVisibilityUpdate(visNext)
+      const updated = await saveCompanyExternalAudit({
+        companyId: isCloud ? companyId : null,
+        sellerEmail,
+        sellerName,
+        status: auditStatus,
+        notes: auditNotes,
+        plannedAt: auditPlannedAt,
+        deadlineAt: auditDeadlineAt,
+        auditorEmail: auditAuditorEmail,
+        auditorName,
+        strefexVerified,
+        completeOnsite: onsiteAudited || auditStatus === 'passed',
+        visibilityExtra: isCloud
+          ? { visibility_tier: vis.visibility_tier, metadata: vis.metadata }
+          : {},
       })
-      setCompany(updated)
-      setAuditStatus(updated?.external_audit_status || 'none')
-      setAuditNotes(updated?.external_audit_notes || '')
+      if (updated) {
+        setCompany({ ...company, ...updated })
+        applyAuditFields(updated)
+      } else {
+        const lookup = registryKey || company._registryKey || company.email
+        const shaped = companyFromRegistryAccount(
+          useAccountRegistry.getState().accounts.find((a) => (
+            String(a.email || '').toLowerCase() === String(lookup || '').toLowerCase()
+            || a.id === lookup
+          )),
+        )
+        if (shaped) setCompany(shaped)
+        applyAuditFields(visNext)
+      }
+      setSavedMsg('Audit schedule saved. Seller and assigned auditor were notified.')
     } catch (e) {
       setError(e?.message || 'Save failed.')
     } finally {
@@ -1105,7 +1279,10 @@ export default function SuperAdminAccountDetailPage() {
     }
   }
 
-  const attachments = Array.isArray(company?.profile_attachments) ? company.profile_attachments : []
+  const attachments = storedPackFiles
+  const otherProfileFiles = attachments.filter(
+    (a) => !COMPANY_PACK_SLOT_IDS.includes(a.profile_slot) && a.profile_slot !== PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE,
+  )
 
   return (
     <AppLayout>
@@ -1442,6 +1619,29 @@ export default function SuperAdminAccountDetailPage() {
                 )}
 
                 <div className="saad-section">
+                  <h3 className="saad-h3">Company pack</h3>
+                  <CompanyProfilePackFields
+                    files={storedPackFiles.filter((a) => !packRemovePaths.includes(a.path))}
+                    pendingBySlot={packPending}
+                    disabled={savingProfile}
+                    canUpload={isSupabaseConfigured && UUID_RE.test(String(companyId || company?.id || ''))}
+                    onPickFile={pickPackFile}
+                    onClearPending={clearPendingPack}
+                    onRemoveStored={removeStoredPack}
+                    hint="Upload PDF packs as backup. After save, purchasing reviews pictures in a carousel — they cannot download the files."
+                  />
+                  <div className="saad-form-block">
+                    <p className="saad-form-legend">Catalogue preview</p>
+                    <CompanyPackCarousel
+                      attachments={storedPackFiles.filter((a) => !packRemovePaths.includes(a.path))}
+                    />
+                  </div>
+                  {!isSupabaseConfigured || !UUID_RE.test(String(companyId || company?.id || '')) ? (
+                    <p className="saad-muted">Uploads need a linked cloud company UUID.</p>
+                  ) : null}
+                </div>
+
+                <div className="saad-section">
                   <h3 className="saad-h3">Receiving plants</h3>
                   <p className="saad-muted">Used by Intelligent Sourcing map and transit estimates.</p>
                   <div className="saad-plants">
@@ -1571,11 +1771,11 @@ export default function SuperAdminAccountDetailPage() {
               </section>
 
               <section className="saad-card">
-                <h2>Attachments</h2>
-                {isLocal && <p className="saad-muted">Cloud attachments require a linked company UUID.</p>}
-                {!isLocal && attachments.length === 0 && <p className="saad-muted">No files.</p>}
+                <h2>Other profile files</h2>
+                <p className="saad-muted">Photos, videos, and files outside the company pack.</p>
+                {otherProfileFiles.length === 0 && <p className="saad-muted">No extra files.</p>}
                 <ul className="saad-files">
-                  {!isLocal && attachments.map((a) => (
+                  {otherProfileFiles.map((a) => (
                     <li key={a.id || a.path}>
                       <span className="saad-fname">{a.name || a.path}</span>
                       <span className="saad-fslot">{PROFILE_ATTACHMENT_SLOT_LABELS[a.profile_slot] || a.profile_slot || 'other'}</span>
@@ -1613,32 +1813,92 @@ export default function SuperAdminAccountDetailPage() {
               </section>
 
               <section className="saad-card saad-card-wide">
-                <h2>External audit (verified seller / provider)</h2>
+                <h2>Trust badges &amp; external audit</h2>
                 <p className="saad-muted">
-                  When status is <strong>Passed</strong>, the company receives the verified label
-                  {isLocal ? ' in the local registry' : ' and visibility tier is set to verified (after save)'}.
+                  New sellers have <strong>no badge</strong>. Only STREFEX platform managers / superadmin grant
+                  <strong> Verified</strong>. After an on-site visit is completed, add <strong>On-site audited</strong>.
+                  Set a <strong>deadline</strong> (auditors cannot change it). They may pick a visit date on or before
+                  that deadline. The seller is notified that STREFEX planned the audit — not who will attend.
                 </p>
                 <div className="saad-form-grid">
-                  <SaadField label="Audit status">
-                    <select value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)} disabled={saving}>
-                      <option value="none">None</option>
-                      <option value="pending">Pending</option>
-                      <option value="passed">Passed</option>
-                      <option value="failed">Failed</option>
+                  <SaadField label="STREFEX Verified badge">
+                    <select
+                      value={strefexVerified ? 'yes' : 'no'}
+                      onChange={(e) => setStrefexVerified(e.target.value === 'yes')}
+                      disabled={saving}
+                    >
+                      <option value="no">No badge</option>
+                      <option value="yes">Verified</option>
                     </select>
                   </SaadField>
-                  <SaadField label="Notes" className="saad-field-span">
+                  <SaadField label="On-site audited badge">
+                    <select
+                      value={onsiteAudited ? 'yes' : 'no'}
+                      onChange={(e) => {
+                        const on = e.target.value === 'yes'
+                        setOnsiteAudited(on)
+                        if (on) setAuditStatus('passed')
+                      }}
+                      disabled={saving}
+                    >
+                      <option value="no">Not yet</option>
+                      <option value="yes">On-site audited</option>
+                    </select>
+                  </SaadField>
+                  <SaadField label="Audit status">
+                    <select value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)} disabled={saving}>
+                      {EXTERNAL_AUDIT_STATUSES.map((id) => (
+                        <option key={id} value={id}>{EXTERNAL_AUDIT_STATUS_LABELS[id]}</option>
+                      ))}
+                    </select>
+                  </SaadField>
+                  <SaadField label="Deadline (STREFEX)">
+                    <input
+                      type="date"
+                      value={auditDeadlineAt}
+                      onChange={(e) => setAuditDeadlineAt(e.target.value)}
+                      disabled={saving}
+                    />
+                  </SaadField>
+                  <SaadField label="Planned visit date">
+                    <input
+                      type="date"
+                      value={auditPlannedAt}
+                      onChange={(e) => setAuditPlannedAt(e.target.value)}
+                      disabled={saving}
+                      required={sellerNeedsAuditDate(auditStatus)}
+                      max={auditDeadlineAt || undefined}
+                    />
+                  </SaadField>
+                  <SaadField label="Assigned auditor (hidden from seller)">
+                    <select
+                      value={auditAuditorEmail}
+                      onChange={(e) => {
+                        const email = e.target.value
+                        const chosen = auditorOptions.find((a) => a.email === email)
+                        setAuditAuditorEmail(email)
+                        setAuditAuditorName(chosen?.name || '')
+                      }}
+                      disabled={saving}
+                    >
+                      <option value="">— Select auditor —</option>
+                      {auditorOptions.map((a) => (
+                        <option key={a.email} value={a.email}>{a.name} ({a.email})</option>
+                      ))}
+                    </select>
+                  </SaadField>
+                  <SaadField label="Internal notes" className="saad-field-span">
                     <textarea
                       rows={4}
                       value={auditNotes}
                       onChange={(e) => setAuditNotes(e.target.value)}
                       disabled={saving}
-                      placeholder="Auditor firm, report reference, valid-until, etc."
+                      placeholder="Internal only — not shown to the seller."
                     />
                   </SaadField>
                 </div>
                 <button type="button" className="saad-primary" disabled={saving} onClick={() => void saveAudit()}>
-                  {saving ? 'Saving…' : isLocal ? 'Save audit (local)' : 'Save audit & recompute visibility'}
+                  {saving ? 'Saving…' : 'Save badges, deadline & notify'}
                 </button>
               </section>
             </div>

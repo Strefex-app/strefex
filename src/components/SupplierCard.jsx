@@ -9,9 +9,11 @@ export default function SupplierCard({
   onShortlist,
   onRequestEvidence,
   evidenceRequestPending = false,
+  onReviewPack,
   compareLabel = 'Compare',
   shortlistLabel = 'Shortlist',
   requestEvidenceLabel = 'Request evidence',
+  reviewPackLabel = 'Review catalogue',
   hideShortlist = false,
   masked = false,
   displayNameOverride,
@@ -49,9 +51,19 @@ export default function SupplierCard({
               <div className="bw-supplier-card__completeness">
                 Profile completeness: {completeness}%
               </div>
-              {visLabel && (
+              {visLabel && visTier === 'verified' && (
+                <div className={`bw-supplier-card__vis bw-supplier-card__vis--verified`}>
+                  Verified
+                </div>
+              )}
+              {visLabel && visTier !== 'verified' && (
                 <div className={`bw-supplier-card__vis bw-supplier-card__vis--${visTier || 'default'}`}>
                   {visLabel}
+                </div>
+              )}
+              {(supplier.onsite_audit_completed || supplier.onsiteAuditCompleted) && (
+                <div className="bw-supplier-card__vis bw-supplier-card__vis--onsite">
+                  On-site audited
                 </div>
               )}
             </>
@@ -69,6 +81,14 @@ export default function SupplierCard({
           />
         )}
       </div>
+      {!masked && supplier.companyPack && (supplier.companyPack.hasPresentation || supplier.companyPack.hasProfile || supplier.companyPack.hasPortfolio) && (
+        <div className="bw-supplier-card__meta stx-text-wrap">
+          Company pack
+          {supplier.companyPack.hasPresentation ? ' · Presentation' : ''}
+          {supplier.companyPack.hasProfile ? ' · Profile' : ''}
+          {supplier.companyPack.hasPortfolio ? ' · Portfolio' : ''}
+        </div>
+      )}
       {!masked && supplier.description && (
         <div className="bw-supplier-card__desc stx-text-wrap">{supplier.description}</div>
       )}
@@ -125,6 +145,11 @@ export default function SupplierCard({
             onClick={() => onRequestEvidence?.(supplier)}
           >
             {evidenceRequestPending ? 'Requested' : requestEvidenceLabel}
+          </button>
+        )}
+        {!masked && onReviewPack && supplier.companyPack?.hasCatalogue && (
+          <button type="button" className="app-page-btn-outline" onClick={() => onReviewPack(supplier)}>
+            {reviewPackLabel}
           </button>
         )}
         {!hideShortlist && (

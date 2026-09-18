@@ -48,11 +48,20 @@ describe('companyProfileVisibilityService', () => {
     expect(snap.visibilityTier).toBe(VISIBILITY_TIER.STANDARD)
   })
 
-  it('verified overrides when external audit passed', () => {
-    const u = buildCompanyVisibilityUpdate({
+  it('verified only when STREFEX platform verification is set, not on-site pass', () => {
+    const onsite = buildCompanyVisibilityUpdate({
       account_type: 'seller',
       name: 'ACME',
       external_audit_status: 'passed',
+      industries: [],
+      metadata: {},
+      profile_attachments: [],
+    })
+    expect(onsite.visibility_tier).toBe(VISIBILITY_TIER.INCOMPLETE)
+    const u = buildCompanyVisibilityUpdate({
+      account_type: 'seller',
+      name: 'ACME',
+      strefex_verified: true,
       industries: [],
       metadata: {},
       profile_attachments: [],

@@ -104,6 +104,13 @@ const NAV_ICONS = {
       <path d="M16 2v4M8 2v4M3 10h18" stroke={s} strokeWidth={sw} strokeLinecap={lc}/>
     </>
   ),
+  clipboard: (s) => (
+    <>
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke={s} strokeWidth={sw} strokeLinecap={lc} strokeLinejoin={lj}/>
+      <rect x="8" y="2" width="8" height="4" rx="1" stroke={s} strokeWidth={sw}/>
+      <path d="M8 12h8M8 16h5" stroke={s} strokeWidth={sw} strokeLinecap={lc}/>
+    </>
+  ),
   package: (s) => (
     <>
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke={s} strokeWidth={sw} strokeLinecap={lc} strokeLinejoin={lj}/>

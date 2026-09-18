@@ -34,6 +34,7 @@ export function rowToAudit(row) {
     secondaryAuditorId: row.secondary_auditor_ref || '',
     status: row.status,
     plannedDate: row.planned_date || '',
+    deadlineDate: row.deadline_date || '',
     completedDate: row.completed_date || null,
     nextAuditDate: row.next_audit_date || null,
     scope: row.scope || '',
@@ -62,8 +63,10 @@ export function auditToUpsertRow(audit, companyId) {
     standard: audit.standard,
     supplier_ref: audit.supplierId || null,
     auditor_ref: audit.auditorId || null,
+    secondary_auditor_ref: audit.secondaryAuditorId || null,
     status: audit.status,
     planned_date: audit.plannedDate || null,
+    deadline_date: audit.deadlineDate || null,
     completed_date: audit.completedDate || null,
     next_audit_date: audit.nextAuditDate || null,
     scope: audit.scope || null,
@@ -459,6 +462,10 @@ export async function fetchPlatformDirectoryProfilesForSuperadmin() {
             platformCompanyId: companyId ?? null,
             vendorMasterId: null,
             source: 'supabase_profiles',
+            externalAuditStatus: c?.external_audit_status || 'none',
+            externalAuditPlannedAt: c?.external_audit_planned_at || '',
+            externalAuditAssignedAuditorEmail: c?.external_audit_assigned_auditor_email || '',
+            externalAuditAssignedAuditorName: c?.external_audit_assigned_auditor_name || '',
           })
         }
       }

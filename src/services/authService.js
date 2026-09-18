@@ -321,9 +321,15 @@ function mapTenantFromProfileCompany(profile) {
     status: c.status,
     registration_code: c.registration_code,
     visibility_tier: c.visibility_tier,
+    strefex_verified: c.strefex_verified,
+    onsite_audit_completed: c.onsite_audit_completed,
     external_audit_status: c.external_audit_status,
     external_audit_passed_at: c.external_audit_passed_at,
     external_audit_notes: c.external_audit_notes,
+    external_audit_planned_at: c.external_audit_planned_at,
+    external_audit_deadline_at: c.external_audit_deadline_at,
+    external_audit_assigned_auditor_email: c.external_audit_assigned_auditor_email,
+    external_audit_assigned_auditor_name: c.external_audit_assigned_auditor_name,
   }
 }
 

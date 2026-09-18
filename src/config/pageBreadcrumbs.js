@@ -3,6 +3,7 @@ import {
   resolveLegacyManagementRedirect,
   resolveManagementBreadcrumb,
 } from '../utils/managementRoutes'
+import { AUDITORS_DIRECTORY_PATH, auditorsHubLeaf, isAuditorsHubPath } from '../utils/auditorsDirectory'
 
 /** Standard breadcrumb roots — user always jumps to a known hub, never browser back. */
 export const PAGE_ROOTS = {
@@ -13,6 +14,45 @@ export const PAGE_ROOTS = {
   home: { label: 'Home', to: '/main-menu' },
   hr: { label: 'HR Space', to: '/management/people/hr-space' },
   forge: { label: 'Forge', to: '/forge' },
+  auditors: { label: 'Auditors', to: AUDITORS_DIRECTORY_PATH },
+}
+
+function auditorsDirectoryTrail(pathname) {
+  const leaf = auditorsHubLeaf(pathname)
+  const labels = {
+    dashboard: 'Dashboard',
+    'new-audit': 'New audit',
+    plans: 'Audit plans',
+    calendar: 'Calendar',
+    findings: 'Audits & findings',
+    record: 'Company record',
+    auditors: 'Auditor database',
+    standards: 'Standards',
+    suppliers: 'Sellers',
+    'risk-matrix': 'Risk matrix',
+    logs: 'Logs',
+    reports: 'Reports',
+  }
+  if (!leaf) return [{ label: 'Assignment pool' }]
+  if (leaf.startsWith('conduct')) {
+    return [{ label: 'Assignment pool', to: AUDITORS_DIRECTORY_PATH }, { label: 'Conduct audit' }]
+  }
+  if (leaf.startsWith('print')) {
+    return [{ label: 'Supplier register', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }, { label: 'Print report' }]
+  }
+  if (leaf.startsWith('findings')) {
+    return [
+      { label: 'Audit schedule', to: `${AUDITORS_DIRECTORY_PATH}/calendar` },
+      { label: 'Findings report' },
+    ]
+  }
+  if (leaf.startsWith('record')) {
+    return [
+      { label: 'Supplier register', to: `${AUDITORS_DIRECTORY_PATH}/suppliers?view=records` },
+      { label: 'Company record' },
+    ]
+  }
+  return [{ label: labels[leaf] || titleFromSlug(leaf) }]
 }
 
 function titleFromSlug(slug = '') {
@@ -191,6 +231,14 @@ export function resolvePageBreadcrumb(pathname) {
   if (AUTH_ONLY.has(pathname)) return null
 
   const canonicalPath = resolveLegacyManagementRedirect(pathname) || pathname
+
+  if (isAuditorsHubPath(canonicalPath) || isAuditorsHubPath(pathname)) {
+    return {
+      root: PAGE_ROOTS.auditors,
+      trail: auditorsDirectoryTrail(canonicalPath),
+      layout: 'global',
+    }
+  }
 
   if (isOwnChromeLayout(canonicalPath)) {
     return { layout: 'custom' }

@@ -36,6 +36,8 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   height: var(--stx-chrome-top-h, 77px);
   min-height: var(--stx-chrome-top-h, 77px);
   max-height: var(--stx-chrome-top-h, 77px);
@@ -50,6 +52,8 @@
 
 .app-page-breadcrumb-bar .mgmt-breadcrumb {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-wrap: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

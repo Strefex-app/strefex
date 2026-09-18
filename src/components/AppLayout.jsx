@@ -13,6 +13,7 @@ import GlobalPageBreadcrumb from './shared/GlobalPageBreadcrumb'
 import DemoModeBanner from './DemoModeBanner'
 import SyncErrorBanner from './SyncErrorBanner'
 import { sidebarNavItemVisible } from '../utils/sidebarNav'
+import { AUDITORS_DIRECTORY_ALIAS, isAuditorsHubPath } from '../utils/auditorsDirectory'
 import {
   shouldShowHomeInNav,
   shouldShowSourcingInNav,
@@ -29,6 +30,7 @@ const SIDEBAR_NAV = [
   { id: 'home', tKey: 'nav.home', path: '/main-menu', icon: 'home', homeNav: true },
   { id: 'sourcing', tKey: 'nav.sourcing', path: '/sourcing', icon: 'search', sourcingNav: true },
   { id: 'management', tKey: 'nav.management', path: '/management', icon: 'management', managementNav: true },
+  { id: 'auditors', tKey: 'nav.auditors', path: AUDITORS_DIRECTORY_ALIAS, icon: 'clipboard', auditorNav: true },
   { id: 'calendar', tKey: 'nav.calendar', path: '/calendar', icon: 'calendar' },
   { id: 'profile', tKey: 'nav.profile', path: '/profile', icon: 'profile' },
   { id: 'messenger', tKey: 'nav.messenger', path: '/messenger', icon: 'messenger', requiredPlan: 'messenger' },
@@ -138,6 +140,11 @@ export default function AppLayout({ children }) {
   const showHomeNav = shouldShowHomeInNav(roleCtx)
   const showSourcingNav = shouldShowSourcingInNav(roleCtx)
   const showManagementNav = shouldShowManagementInNav(roleCtx)
+  const showAuditorsNav =
+    role === 'superadmin' ||
+    role === 'auditor_internal' ||
+    role === 'auditor_external' ||
+    hasFeature('auditProProgram')
 
   return (
     <div className="app-layout">
@@ -176,6 +183,7 @@ export default function AppLayout({ children }) {
               showHomeNav,
               showSourcingNav,
               showManagementNav,
+              showAuditorsNav,
               hasRole,
               hasFeature,
               previewTimeLeft,
@@ -193,7 +201,9 @@ export default function AppLayout({ children }) {
                   location.pathname.startsWith('/admin-dashboard') ||
                   location.pathname.startsWith('/developer')
                 )) ||
-                (item.id === 'management' && (
+                (item.id === 'auditors' && isAuditorsHubPath(location.pathname)) ||
+                (item.id === 'management' &&
+                  !isAuditorsHubPath(location.pathname) && (
                   location.pathname.startsWith('/management') ||
                   location.pathname.startsWith('/team') ||
                   location.pathname.startsWith('/project-management') ||

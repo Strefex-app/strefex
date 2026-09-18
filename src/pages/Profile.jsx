@@ -23,6 +23,12 @@ import {
   isSellerLikeAccountType,
 } from '../constants/companyProfileDirectory'
 import { evaluateCompanyProfileDirectory, buildCompanyVisibilityUpdate } from '../services/companyProfileVisibilityService'
+import {
+  auditStatusLabel,
+  companyTrustBadges,
+  formatAuditDateLabel,
+  sellerFacingAuditView,
+} from '../utils/companyExternalAudit'
 import { buildCompanyTaxonomyWrite, checklistFromIndustryMaps, commitIndustryChecklist } from '../utils/companyTaxonomyPayload'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
@@ -45,6 +51,9 @@ import {
 } from '../utils/ocrImageNormalize'
 import ProfilePasswordCard from '../components/profile/ProfilePasswordCard'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
+import CompanyPackCarousel from '../components/CompanyPackCarousel'
+import { COMPANY_PACK_SLOT_IDS } from '../utils/companyProfilePack'
+import { syncCatalogueForSlot } from '../utils/companyPackCatalogue'
 import {
   emptySourcingMetricsForm,
   mergeSourcingMetricsIntoMetadata,
@@ -1040,6 +1049,12 @@ const Profile = () => {
     })
   }, [tenant, accountType])
 
+  const sellerAudit = useMemo(() => {
+    if (!isSellerLikeAccountType(accountType)) return null
+    return sellerFacingAuditView(tenant)
+  }, [tenant, accountType])
+  const trustBadges = useMemo(() => companyTrustBadges(tenant), [tenant])
+
   const handleSaveCompanyInfo = async () => {
     setCompanyError('')
     if (!companyForm.fullName.trim()) {
@@ -1168,6 +1183,19 @@ const Profile = () => {
           if (meta?.path) uploadedPathsThisSave.push(meta.path)
         }
         nextProfileAttachments = [...profileAttachmentFiles, ...uploaded]
+        for (const row of pendingProfileAttachments) {
+          const file = row?.file || row
+          const slot = row?.profile_slot || PROFILE_ATTACHMENT_SLOT.OTHER
+          if (!COMPANY_PACK_SLOT_IDS.includes(slot)) continue
+          nextProfileAttachments = await syncCatalogueForSlot({
+            companyId: tenant.id,
+            slot,
+            sourceFile: file,
+            attachments: nextProfileAttachments,
+            upload: (cid, f, s, opts) => companyProfileAttachmentsService.upload(cid, f, s, opts),
+            remove: (p) => companyProfileAttachmentsService.remove(p),
+          })
+        }
       }
 
       const taxonomy = buildCompanyTaxonomyWrite({
@@ -1275,6 +1303,9 @@ const Profile = () => {
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
           ...sourcingRegistryPatch,
+          profileAttachments: nextProfileAttachments != null
+            ? nextProfileAttachments
+            : (tenant?.profile_attachments || []),
         })
       }
       persistLocalCategoryState()
@@ -1344,9 +1375,28 @@ const Profile = () => {
                     {VISIBILITY_TIER_LABELS[profileDirSnapshot.visibilityTier] || profileDirSnapshot.visibilityTier}
                   </p>
                   <p className="prof-dir-hint">
-                    Mandatory profile complete → standard visibility on the platform. Tagged production photos (2+)
-                    and a production video → premium RFQ visibility. Passing an external audit → verified seller or
-                    service provider label (set by platform admin).
+                    New accounts have no trust badge. STREFEX platform managers grant the Verified badge.
+                    Completing an on-site audit adds a separate On-site audited badge. Directory completeness still
+                    controls standard and premium RFQ visibility.
+                  </p>
+                </div>
+              )}
+              {trustBadges.length > 0 && (
+                <div className="prof-dir-box" role="status">
+                  <p className="prof-dir-title">
+                    <strong>Badges:</strong>{' '}
+                    {trustBadges.map((b) => b.label).join(' · ')}
+                  </p>
+                </div>
+              )}
+              {sellerAudit && sellerAudit.status !== 'none' && (
+                <div className="prof-dir-box" role="status">
+                  <p className="prof-dir-title">
+                    <strong>External audit:</strong> {auditStatusLabel(sellerAudit.status)}
+                    {sellerAudit.plannedAt ? ` · visit ${formatAuditDateLabel(sellerAudit.plannedAt)}` : ''}
+                  </p>
+                  <p className="prof-dir-hint">
+                    STREFEX plans the visit. The auditor’s identity is not shared. You receive an alert when a date is set.
                   </p>
                 </div>
               )}
@@ -1794,9 +1844,9 @@ const Profile = () => {
                   )}
                   {canAttachCompanyProfile && (
                     <div className="prof-form-group full prof-profile-attachments-block">
-                      <label className="prof-form-label">Profile attachments</label>
+                      <label className="prof-form-label">Company pack</label>
                       <p className="prof-profile-attachments-hint">
-                        Brochures, decks, certificates, short videos (PDF, images, PPT/PPTX, MP4/WebM/MOV). Max{' '}
+                        Presentation, company profile, and product portfolio (PDF or PowerPoint). Superadmin can also load these as backup on the account. Extra photos and videos stay below. Max{' '}
                         {Math.round(companyProfileAttachmentsService.maxBytes / (1024 * 1024))} MB per file.
                       </p>
                       {!isSupabaseConfigured && (
@@ -1817,9 +1867,10 @@ const Profile = () => {
                             accept={COMPANY_PROFILE_FILE_ACCEPT}
                             onChange={onCompanyProfileFilesPicked}
                           />
-                          {(profileAttachmentFiles.length > 0 || pendingProfileAttachments.length > 0) && (
+                      <CompanyPackCarousel attachments={profileAttachmentFiles} />
+                      {(profileAttachmentFiles.length > 0 || pendingProfileAttachments.length > 0) && (
                             <div className="prof-doc-files prof-profile-attachment-list">
-                              {profileAttachmentFiles.map((meta) => (
+                              {profileAttachmentFiles.filter((meta) => meta.profile_slot !== PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE).map((meta) => (
                                 <div key={meta.id || meta.path} className="prof-doc-file">
                                   <span className="prof-doc-file-name">{meta.name || meta.path}</span>
                                   <select
@@ -1835,7 +1886,9 @@ const Profile = () => {
                                       )
                                     }}
                                   >
-                                    {Object.values(PROFILE_ATTACHMENT_SLOT).map((slot) => (
+                                    {Object.values(PROFILE_ATTACHMENT_SLOT)
+                                      .filter((slot) => slot !== PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE)
+                                      .map((slot) => (
                                       <option key={slot} value={slot}>
                                         {PROFILE_ATTACHMENT_SLOT_LABELS[slot] || slot}
                                       </option>
@@ -1875,7 +1928,9 @@ const Profile = () => {
                                       disabled={savingCompany}
                                       onChange={(e) => setPendingAttachmentSlot(idx, e.target.value)}
                                     >
-                                      {Object.values(PROFILE_ATTACHMENT_SLOT).map((slot) => (
+                                      {Object.values(PROFILE_ATTACHMENT_SLOT)
+                                      .filter((slot) => slot !== PROFILE_ATTACHMENT_SLOT.PACK_CATALOGUE)
+                                      .map((slot) => (
                                         <option key={slot} value={slot}>
                                           {PROFILE_ATTACHMENT_SLOT_LABELS[slot] || slot}
                                         </option>

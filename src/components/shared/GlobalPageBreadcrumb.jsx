@@ -1,6 +1,8 @@
 import { useLocation } from 'react-router-dom'
 import PageBreadcrumb from '../management/PageBreadcrumb'
 import { resolvePageBreadcrumb } from '../../config/pageBreadcrumbs'
+import AuditorsHubNav from '../../pages/auditPro/AuditorsHubNav'
+import { isAuditorsHubPath } from '../../utils/auditorsDirectory'
 
 /**
  * Platform-wide address bar — Management / Module / Page (or Home / …).
@@ -15,6 +17,7 @@ export default function GlobalPageBreadcrumb() {
   return (
     <div className="app-page-breadcrumb-bar">
       <PageBreadcrumb root={resolved.root} trail={resolved.trail} />
+      {isAuditorsHubPath(pathname) ? <AuditorsHubNav /> : null}
     </div>
   )
 }

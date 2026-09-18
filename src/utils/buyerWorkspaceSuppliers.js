@@ -1,3 +1,5 @@
+import { companyPackSummary } from './companyProfilePack'
+
 const rawMergeCache = new Map()
 const mergedPoolCache = new Map()
 const poolBuildPromises = new Map()
@@ -71,6 +73,7 @@ function registrySellerToExecRow(account) {
     riskLevel: account.riskLevel ?? 50,
     fitLevel: account.fitLevel ?? 50,
     certifications: account.certifications || [],
+    companyPack: companyPackSummary(account.profileAttachments || account.profile_attachments),
     established: account.established ?? null,
     employees: account.employees ?? null,
   }
@@ -123,6 +126,7 @@ export function execSummaryRowToCardRow(s, industryId, categoryLabel = '') {
     profile_completeness: s.source === 'registered' ? 78 : 62,
     certifications: s.certifications || [],
     source: s.source || 'directory',
+    companyPack: s.companyPack || null,
     _canShortlist: uuid,
     _execSummary: true,
   }

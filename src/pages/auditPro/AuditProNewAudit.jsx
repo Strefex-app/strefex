@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import useAuditProStore from '../../store/auditProStore'
 import { auditProUid } from '../../utils/auditProUid'
@@ -21,16 +21,22 @@ import {
 } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
 import { useServiceRequestStore } from '../../store/serviceRequestStore'
+import { useAuthStore } from '../../store/authStore'
+import { plannedDateWithinDeadline } from '../../utils/companyExternalAudit'
 
 export default function AuditProNewAudit() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { language } = useTranslation()
   const audits = useAuditProStore((s) => s.audits)
   const auditors = useAuditProStore((s) => s.auditors)
   const suppliers = useAuditProStore((s) => s.suppliers)
   const setAudits = useAuditProStore((s) => s.setAudits)
+  const setSuppliers = useAuditProStore((s) => s.setSuppliers)
   const addAuditLog = useAuditProStore((s) => s.addAuditLog)
   const showToast = useAuditProStore((s) => s.showToast)
+  const authRole = useAuthStore((s) => s.role)
+  const authEmail = useAuthStore((s) => String(s.user?.email || '').toLowerCase())
 
   const showDemoKit = useAuditProDemoKitVisible()
   const auditorsForPicker = useMemo(
@@ -51,11 +57,27 @@ export default function AuditProNewAudit() {
     auditorId: '',
     secondaryAuditorId: '',
     plannedDate: '',
+    deadlineDate: '',
     scope: '',
     status: 'Planned',
     auditDays: '1',
     language: 'English',
   })
+
+  useEffect(() => {
+    const industry = searchParams.get('industry') || ''
+    const auditType = searchParams.get('auditType') || ''
+    const standard = searchParams.get('standard') || ''
+    const supplierId = searchParams.get('supplierId') || ''
+    if (!industry && !auditType && !standard && !supplierId) return
+    setForm((f) => ({
+      ...f,
+      ...(industry ? { industry } : {}),
+      ...(auditType ? { auditType } : {}),
+      ...(standard ? { standard } : {}),
+      ...(supplierId ? { supplierId } : {}),
+    }))
+  }, [searchParams])
 
   const availableStandards = form.industry && form.auditType ? AUDIT_STANDARDS[form.industry]?.[form.auditType] || [] : []
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -67,8 +89,15 @@ export default function AuditProNewAudit() {
       showToast('Fill all required fields.', 'error')
       return
     }
+    if (form.deadlineDate && !plannedDateWithinDeadline(form.plannedDate, form.deadlineDate)) {
+      showToast('Visit date must be on or before the STREFEX deadline.', 'error')
+      return
+    }
+    const selfAuditor = auditors.find((a) => String(a.email || '').toLowerCase() === authEmail)
+    const leadId = authRole === 'auditor_external' && selfAuditor ? selfAuditor.id : form.auditorId
     const audit = {
       ...form,
+      auditorId: leadId,
       secondaryAuditorId: form.secondaryAuditorId || '',
       id: auditProUid(),
       findings: [],
@@ -77,13 +106,45 @@ export default function AuditProNewAudit() {
     }
     setAudits([...audits, audit])
     void useAuditProStore.getState().upsertAuditRemote(audit)
-    const aud = auditors.find((a) => a.id === form.auditorId)
+    const aud = auditors.find((a) => a.id === leadId)
     const sec = auditors.find((a) => a.id === form.secondaryAuditorId)
     addAuditLog(audit.id, 'Audit Created', aud?.name || 'System', `Created for ${form.standard}. Questionnaire: ${totalQ} questions.`)
 
     const pushGlobal = useServiceRequestStore.getState().pushGlobalPlatformNotification
     const planNote = `Audit "${form.title}" · ${form.standard} · planned ${form.plannedDate || 'TBD'}. Management → Auditors → Audit Plans.`
-    if (aud?.email) {
+    const supplier = suppliers.find((s) => s.id === form.supplierId)
+    if (supplier?.email) {
+      void import('../../services/companyExternalAuditService').then(({ saveCompanyExternalAudit }) => {
+        void saveCompanyExternalAudit({
+          companyId: supplier?.platformCompanyId || null,
+          sellerEmail: supplier.email,
+          sellerName: supplier.name || form.title,
+          status: form.status === 'Draft' || !aud?.email ? 'pending' : 'planned',
+          notes: form.scope || form.title,
+          plannedAt: form.plannedDate,
+          deadlineAt: form.deadlineDate,
+          auditorEmail: aud?.email || '',
+          auditorName: aud?.name || '',
+          notify: true,
+        }).then((saved) => {
+          const linkedId = saved?.id || supplier.platformCompanyId
+          if (!linkedId && !aud?.email) return
+          setSuppliers((useAuditProStore.getState().suppliers || []).map((row) => (
+            row.id === supplier.id
+              ? {
+                ...row,
+                platformCompanyId: row.platformCompanyId || linkedId || null,
+                externalAuditStatus: form.status === 'Draft' || !aud?.email ? 'pending' : 'planned',
+                externalAuditPlannedAt: form.plannedDate,
+                externalAuditDeadlineAt: form.deadlineDate,
+                externalAuditAssignedAuditorEmail: aud?.email || row.externalAuditAssignedAuditorEmail,
+                externalAuditAssignedAuditorName: aud?.name || row.externalAuditAssignedAuditorName,
+              }
+              : row
+          )))
+        }).catch(() => {})
+      })
+    } else if (aud?.email) {
       pushGlobal({
         targetEmail: aud.email,
         title: 'You are the lead auditor on a new audit plan',
@@ -148,15 +209,24 @@ export default function AuditProNewAudit() {
               disabled={!availableStandards.length}
             />
           </Field>
-          <Field label="Planned Date *">
+          <Field label="Visit date *">
             <Input type="date" value={form.plannedDate} onChange={(v) => set('plannedDate', v)} />
           </Field>
         </Grid2>
         <Grid2>
+          <Field label="Deadline (STREFEX)">
+            <Input
+              type="date"
+              value={form.deadlineDate}
+              onChange={(v) => set('deadlineDate', v)}
+              disabled={authRole === 'auditor_external'}
+            />
+          </Field>
           <Field label="Lead auditor">
             <Select
               value={form.auditorId}
               onChange={(v) => set('auditorId', v)}
+              disabled={authRole === 'auditor_external'}
               options={[{ value: '', label: '— Select lead auditor —' }, ...auditorsForPicker.map((a) => ({ value: a.id, label: `${a.name} (${a.role})` }))]}
             />
           </Field>
@@ -233,7 +303,7 @@ export default function AuditProNewAudit() {
             Cancel
           </Btn>
           {form.standard && (
-            <span style={{ fontSize: 11, color: '#6B7280', marginLeft: 6 }} className="stx-text-wrap">
+            <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)', marginLeft: 6 }} className="stx-text-wrap">
               Questionnaire: {totalQ} questions · {questionnaire?.length || 0} sections
             </span>
           )}
@@ -242,7 +312,7 @@ export default function AuditProNewAudit() {
 
       {questionnaire && (
         <Card title={`Questionnaire Preview: ${form.standard}`} icon="⧉" style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 11, color: 'var(--ap-muted)', marginBottom: 12 }}>Showing all {totalQ} questions that will be used during this audit.</div>
+          <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 12 }}>Showing all {totalQ} questions that will be used during this audit.</div>
           {questionnaire.map((sec, si) => (
             <div
               key={si}
@@ -254,25 +324,25 @@ export default function AuditProNewAudit() {
                 border: '1px solid var(--ap-border)',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#60A5FA', marginBottom: 3 }}>{sec.section}</div>
-              <div style={{ fontSize: 10, color: 'var(--ap-muted)', marginBottom: 8 }}>
+              <div style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--accent)', marginBottom: 3 }}>{sec.section}</div>
+              <div style={{ fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', marginBottom: 8 }}>
                 Clause: {sec.clause} · {sec.questions?.length} question(s)
               </div>
               {sec.questions?.map((q, qi) => (
                 <div
                   key={qi}
                   style={{
-                    fontSize: 11,
-                    color: '#94a3b8',
+                    fontSize: 'var(--text-caption)',
+                    color: 'var(--color-muted)',
                     padding: '4px 0 4px 10px',
-                    borderLeft: '2px solid #1E3A5F',
+                    borderLeft: '2px solid var(--accent)',
                     marginBottom: 5,
                   }}
                 >
                   <div style={{ marginBottom: 2 }} className="stx-text-wrap">
                     {qi + 1}. {q.text}
                   </div>
-                  <div style={{ fontSize: 10, color: '#374151' }} className="stx-text-wrap">
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-secondary)' }} className="stx-text-wrap">
                     📋 {q.reference} · Docs: {(q.docs || []).slice(0, 2).join(', ')}
                     {(q.docs || []).length > 2 ? ` +${q.docs.length - 2} more` : ''}
                   </div>

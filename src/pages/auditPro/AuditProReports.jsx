@@ -29,17 +29,17 @@ export default function AuditProReports() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 13, marginBottom: 20 }}>
+      <div className="ap-pool-kpis" style={{ marginBottom: 20 }}>
         {[
-          { l: 'Completed', v: audits.filter((a) => a.status === 'Completed').length, c: '#10B981' },
-          { l: 'Total Findings', v: totalF, c: '#F59E0B' },
-          { l: 'Major NCs', v: maj, c: '#EF4444' },
-          { l: 'Minor NCs', v: min, c: '#F59E0B' },
+          { l: 'Completed', v: audits.filter((a) => a.status === 'Completed').length, tone: 'ok' },
+          { l: 'Total Findings', v: totalF, tone: 'warn' },
+          { l: 'Major NCs', v: maj, tone: 'danger' },
+          { l: 'Minor NCs', v: min, tone: 'warn' },
         ].map((s) => (
-          <div key={s.l} style={{ background: 'var(--ap-panel)', border: `1px solid ${s.c}25`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: s.c }}>{s.v}</div>
-            <div style={{ fontSize: 11, color: 'var(--ap-muted)', marginTop: 4 }}>{s.l}</div>
-          </div>
+          <article key={s.l} className={`ap-pool-kpi ap-pool-kpi--${s.tone}`}>
+            <div className="ap-pool-kpi-label">{s.l}</div>
+            <div className="ap-pool-kpi-value">{s.v}</div>
+          </article>
         ))}
       </div>
       <Card title="Open findings / follow-ups" icon="⚠" style={{ marginBottom: 16 }}>
@@ -87,15 +87,15 @@ export default function AuditProReports() {
           )
             .sort((a, b) => b[1] - a[1])
             .map(([std, cnt]) => (
-              <div key={std} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #111827', gap: 8 }}>
-                <span style={{ fontSize: 11, color: '#94a3b8' }} className="stx-text-wrap">
+              <div key={std} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)', gap: 8 }}>
+                <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)' }} className="stx-text-wrap">
                   {std}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-                  <div style={{ background: '#1A2535', borderRadius: 3, height: 5, width: 60 }}>
-                    <div style={{ background: '#3B82F6', width: `${(cnt / (audits.length || 1)) * 100}%`, height: '100%', borderRadius: 3 }} />
+                  <div style={{ background: 'var(--bg-surface)', borderRadius: 3, height: 5, width: 60 }}>
+                    <div style={{ background: 'var(--accent)', width: `${(cnt / (audits.length || 1)) * 100}%`, height: '100%', borderRadius: 3 }} />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#60A5FA', minWidth: 12 }}>{cnt}</span>
+                  <span style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: 'var(--accent)', minWidth: 12 }}>{cnt}</span>
                 </div>
               </div>
             ))}
@@ -103,11 +103,11 @@ export default function AuditProReports() {
         <Card title="Findings by Type" icon="⚠">
           {FINDING_TYPES.map((type) => {
             const cnt = audits.reduce((s2, a) => s2 + (a.findings?.filter((f) => f.type === type).length || 0), 0)
-            const colors = { 'Major NC': '#EF4444', 'Minor NC': '#F59E0B', Observation: '#60A5FA', 'Opportunity for Improvement': '#A78BFA', 'Positive Finding': '#34D399' }
+            const colors = { 'Major NC': 'var(--danger)', 'Minor NC': 'var(--badge-warning-text)', Observation: 'var(--accent)', 'Opportunity for Improvement': 'var(--accent)', 'Positive Finding': 'var(--badge-success-text)' }
             return (
-              <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #111827' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>{type}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: colors[type] }}>{cnt}</span>
+              <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-muted)' }}>{type}</span>
+                <span style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: colors[type] }}>{cnt}</span>
               </div>
             )
           })}
@@ -119,7 +119,7 @@ export default function AuditProReports() {
             <thead>
               <tr>
                 {['Supplier', 'Industry', 'Total', 'Done', 'Active', 'Major NCs', 'Minor NCs', 'Open'].map((h) => (
-                  <th key={h} style={{ padding: '9px 11px', textAlign: 'left', fontSize: 10, color: 'var(--ap-muted)', fontWeight: 700, borderBottom: '1px solid var(--ap-border)' }}>
+                  <th key={h} style={{ padding: '9px 11px', textAlign: 'left', fontSize: 'var(--text-caption)', color: 'var(--ap-muted)', fontWeight: 'var(--font-semibold)', borderBottom: '1px solid var(--ap-border)' }}>
                     {h}
                   </th>
                 ))}
@@ -134,21 +134,21 @@ export default function AuditProReports() {
                 const minN = sa.reduce((n, a) => n + (a.findings?.filter((f) => f.type === 'Minor NC').length || 0), 0)
                 const opN = sa.reduce((n, a) => n + (a.findings?.filter((f) => f.status === 'Open').length || 0), 0)
                 return (
-                  <tr key={s.id} style={{ borderBottom: '1px solid #0F1A2E' }}>
-                    <td style={{ padding: '9px 11px', fontSize: 12, color: 'var(--ap-text)', fontWeight: 500 }} className="stx-text-wrap">
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', color: 'var(--ap-text)', fontWeight: 'var(--font-medium)' }} className="stx-text-wrap">
                       {s.name}
                     </td>
                     <td style={{ padding: '9px 11px' }}>
-                      <Tag color="#3B82F6" small>
+                      <Tag color="var(--accent)" small>
                         {s.industry || '—'}
                       </Tag>
                     </td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, color: '#60A5FA', fontWeight: 600, textAlign: 'center' }}>{sa.length}</td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, color: '#34D399', textAlign: 'center' }}>{done}</td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, color: '#FCD34D', textAlign: 'center' }}>{active}</td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: majN > 0 ? '#F87171' : '#374151', textAlign: 'center' }}>{majN}</td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: minN > 0 ? '#FCD34D' : '#374151', textAlign: 'center' }}>{minN}</td>
-                    <td style={{ padding: '9px 11px', fontSize: 12, fontWeight: 700, color: opN > 0 ? '#F87171' : '#374151', textAlign: 'center' }}>{opN}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', color: 'var(--accent)', fontWeight: 'var(--font-semibold)', textAlign: 'center' }}>{sa.length}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', color: 'var(--badge-success-text)', textAlign: 'center' }}>{done}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', color: 'var(--badge-warning-text)', textAlign: 'center' }}>{active}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: majN > 0 ? 'var(--danger-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{majN}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: minN > 0 ? 'var(--badge-warning-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{minN}</td>
+                    <td style={{ padding: '9px 11px', fontSize: 'var(--text-small)', fontWeight: 'var(--font-semibold)', color: opN > 0 ? 'var(--danger-text)' : 'var(--color-secondary)', textAlign: 'center' }}>{opN}</td>
                   </tr>
                 )
               })}

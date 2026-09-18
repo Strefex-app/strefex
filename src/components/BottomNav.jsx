@@ -10,6 +10,7 @@ import {
   shouldShowSourcingInNav,
   shouldShowManagementInNav,
 } from '../utils/networkRoles'
+import { AUDITORS_DIRECTORY_ALIAS, isAuditorsHubPath } from '../utils/auditorsDirectory'
 import './BottomNav.css'
 
 const BottomNav = () => {
@@ -20,7 +21,13 @@ const BottomNav = () => {
   const role = useAuthStore((s) => s.role)
   const userEmail = user?.email
   const accountType = useSubscriptionStore((s) => s.accountType)
+  const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const isSuperAdmin = role === 'superadmin'
+  const showAuditors =
+    isSuperAdmin ||
+    role === 'auditor_internal' ||
+    role === 'auditor_external' ||
+    hasFeature('auditProProgram')
   const accountTypes = Array.isArray(user?.accountTypes) && user.accountTypes.length > 0
     ? user.accountTypes
     : [accountType].filter(Boolean)
@@ -44,6 +51,9 @@ const BottomNav = () => {
     if (showManagement) {
       core.push({ id: 'management', label: t('nav.management'), icon: 'management', path: '/management' })
     }
+    if (showAuditors) {
+      core.push({ id: 'auditors', label: t('nav.auditors'), icon: 'clipboard', path: AUDITORS_DIRECTORY_ALIAS })
+    }
     if (!core.length) {
       core.push({ id: 'home', label: t('nav.home'), icon: 'home', path: '/main-menu' })
     }
@@ -52,7 +62,7 @@ const BottomNav = () => {
       { id: 'notifications', label: 'Alerts', icon: 'notifications', path: '/notifications' },
     )
     return core
-  }, [showHome, showSourcing, showManagement, t])
+  }, [showHome, showSourcing, showManagement, showAuditors, t])
 
   return (
     <nav className="bottom-nav">
@@ -61,7 +71,8 @@ const BottomNav = () => {
           location.pathname === item.path
           || (item.id === 'home' && location.pathname === '/main-menu')
           || (item.id === 'sourcing' && location.pathname === '/sourcing')
-          || (item.id === 'management' && location.pathname.startsWith('/management'))
+          || (item.id === 'auditors' && isAuditorsHubPath(location.pathname))
+          || (item.id === 'management' && location.pathname.startsWith('/management') && !isAuditorsHubPath(location.pathname))
         return (
           <button
             key={item.id}
