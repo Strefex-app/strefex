@@ -95,6 +95,7 @@ export function assembleAuditWorkspaceFromServer({
   directorySuppliers = [],
   platformAuditors = [],
   accountSuppliers = [],
+  platformSuppliers = [],
   companyAuditRows = [],
   localAuditors = [],
   localSuppliers = [],
@@ -106,8 +107,11 @@ export function assembleAuditWorkspaceFromServer({
   const suppliers = applyCompanyAuditCloudToSuppliers(
     mergeSupplierLists(
       mergeSupplierLists(
-        keepUnsyncedLocalRows(directorySuppliers, localSuppliers),
-        accountSuppliers,
+        mergeSupplierLists(
+          keepUnsyncedLocalRows(directorySuppliers, localSuppliers),
+          accountSuppliers,
+        ),
+        platformSuppliers,
       ),
       sellersFromCompanyAuditRows(companyAuditRows),
     ),

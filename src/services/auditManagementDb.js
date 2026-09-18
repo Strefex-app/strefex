@@ -257,8 +257,110 @@ export async function replaceAuditDirectory(companyId, auditors, suppliers) {
 
 /**
  * Superadmin / RLS: full profile directory with companies — maps to Audit Pro registry rows.
- * @returns {Promise<{ auditors: object[], suppliers: object[] }>}
+ * Same registered-account list Superadmin uses on Accounts.
  */
+function companyFromProfileRow(row) {
+  const raw = row?.companies
+  return Array.isArray(raw) ? raw[0] : raw
+}
+
+export function registeredAccountTypesFromProfileRow(row) {
+  const co = companyFromProfileRow(row)
+  const md = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {}
+  const coMd = co?.metadata && typeof co.metadata === 'object' ? co.metadata : {}
+  const types = Array.isArray(md.account_types) && md.account_types.length
+    ? md.account_types.map((t) => String(t || '').toLowerCase()).filter(Boolean)
+    : Array.isArray(coMd.account_types) && coMd.account_types.length
+      ? coMd.account_types.map((t) => String(t || '').toLowerCase()).filter(Boolean)
+      : [md.account_type || coMd.account_type || co?.account_type]
+        .filter(Boolean)
+        .map((t) => String(t).toLowerCase())
+  const role = String(row?.role || '').toLowerCase()
+  if ((role === 'auditor_internal' || role === 'auditor_external') && !types.includes('auditor')) {
+    types.push('auditor')
+  }
+  return {
+    types,
+    accountType: types[0] || (role.includes('auditor') ? 'auditor' : ''),
+    company: co,
+    metadata: md,
+    companyMetadata: coMd,
+  }
+}
+
+export function auditDirectoryEntriesFromProfileRows(rows = []) {
+  const auditors = []
+  const suppliers = []
+  const seenAuditor = new Set()
+  const seenSupplier = new Set()
+  for (const row of rows || []) {
+    const co = companyFromProfileRow(row)
+    const email = String(row.email || co?.email || '').trim().toLowerCase()
+    if (!email) continue
+    const { types, company: c, metadata: md } = registeredAccountTypesFromProfileRow(row)
+    const isAuditor = types.includes('auditor') || String(row.role || '').toLowerCase().includes('auditor')
+    const isSeller = types.includes('seller') || types.includes('service_provider')
+
+    if (isAuditor) {
+      const key = `a:${email}`
+      if (!seenAuditor.has(key)) {
+        seenAuditor.add(key)
+        auditors.push({
+          id: `platform_profile_${row.id}`,
+          name: row.full_name || email.split('@')[0] || 'Auditor',
+          role: profileRoleToAuditorSeat(row.role),
+          email,
+          phone: row.phone || '',
+          certifications: [],
+          notes: c?.name ? `Platform auditor — ${c.name}` : 'Registered on platform',
+          registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
+          platformProfileId: row.id,
+          platformCompanyId: c?.id ?? null,
+          source: 'supabase_profiles',
+        })
+      }
+    }
+
+    if (isSeller) {
+      const companyId = c?.id
+      const sid =
+        typeof companyId === 'string' && isLikelyUuid(companyId)
+          ? `platform_company_${companyId}`
+          : `platform_profile_${row.id}`
+      if (seenSupplier.has(`s:${sid}`)) continue
+      seenSupplier.add(`s:${sid}`)
+      const ind = Array.isArray(c?.industries) && c.industries.length
+        ? c.industries
+        : Array.isArray(md.industries)
+          ? md.industries
+          : []
+      suppliers.push({
+        id: sid,
+        name: c?.name || md.company_name || email.split('@')[0] || 'Supplier',
+        country: c?.country || '',
+        city: c?.city || '',
+        industry: ind.length ? String(ind[0] ?? '') : '',
+        contact: row.full_name || '',
+        email,
+        address: c?.address || '',
+        notes: '',
+        registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
+        platformProfileId: row.id,
+        platformCompanyId: companyId ?? null,
+        vendorMasterId: null,
+        source: 'supabase_profiles',
+        supplySegment: types.includes('service_provider') ? 'service_provider' : 'seller',
+        externalAuditStatus: c?.external_audit_status || 'none',
+        externalAuditPlannedAt: c?.external_audit_planned_at || '',
+        externalAuditDeadlineAt: c?.external_audit_deadline_at || '',
+        externalAuditAssignedAuditorEmail: c?.external_audit_assigned_auditor_email || '',
+        externalAuditAssignedAuditorName: c?.external_audit_assigned_auditor_name || '',
+      })
+    }
+  }
+  return { auditors, suppliers }
+}
+
 function profileRoleToAuditorSeat(role) {
   const r = String(role || '').toLowerCase()
   if (r.includes('auditor')) return 'Auditor'
@@ -401,77 +503,35 @@ export async function fetchPlatformDirectoryProfilesForSuperadmin() {
   const out = { auditors: [], suppliers: [] }
   try {
     const { useAuthStore } = await import('../store/authStore')
-    if (!useAuthStore.getState().isSuperAdmin?.()) return out
+    const role = String(useAuthStore.getState().role || '')
+    if (role !== 'superadmin' && role !== 'auditor_external' && !useAuthStore.getState().isSuperAdmin?.()) {
+      return out
+    }
     const { profilesService } = await import('./supabaseService')
-    const seenAuditor = new Set()
-    const seenSupplier = new Set()
     let offset = 0
     const page = 400
     for (;;) {
       const { rows, hasMore } = await profilesService.listAllWithCompanies({ limit: page, offset })
-      for (const row of rows || []) {
-        const c = row.companies
-        const at = c?.account_type
-        const email = String(row.email || '').trim().toLowerCase()
-        if (!email) continue
-
-        if (at === 'auditor') {
-          const key = `a:${email}`
-          if (seenAuditor.has(key)) continue
-          seenAuditor.add(key)
-          out.auditors.push({
-            id: `platform_profile_${row.id}`,
-            name: row.full_name || email.split('@')[0] || 'Auditor',
-            role: 'Auditor',
-            email,
-            phone: row.phone || '',
-            certifications: [],
-            notes: c?.name ? `Platform auditor — ${c.name}` : 'Registered on platform',
-            registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
-            platformProfileId: row.id,
-            platformCompanyId: c?.id ?? null,
-            source: 'supabase_profiles',
-          })
-        }
-
-        if (at === 'seller' || at === 'service_provider') {
-          const companyId = c?.id
-          const sid =
-            typeof companyId === 'string' && isLikelyUuid(companyId)
-              ? `platform_company_${companyId}`
-              : `platform_profile_${row.id}`
-          const key = `s:${sid}`
-          if (seenSupplier.has(key)) continue
-          seenSupplier.add(key)
-          let industry = ''
-          const ind = c?.industries
-          if (Array.isArray(ind) && ind.length > 0) {
-            industry = String(ind[0] ?? '')
-          }
-          out.suppliers.push({
-            id: sid,
-            name: c?.name || email.split('@')[0] || 'Supplier',
-            country: c?.country || '',
-            industry,
-            contact: row.full_name || '',
-            email,
-            address: '',
-            notes: '',
-            registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
-            platformProfileId: row.id,
-            platformCompanyId: companyId ?? null,
-            vendorMasterId: null,
-            source: 'supabase_profiles',
-            externalAuditStatus: c?.external_audit_status || 'none',
-            externalAuditPlannedAt: c?.external_audit_planned_at || '',
-            externalAuditAssignedAuditorEmail: c?.external_audit_assigned_auditor_email || '',
-            externalAuditAssignedAuditorName: c?.external_audit_assigned_auditor_name || '',
-          })
-        }
-      }
+      const mapped = auditDirectoryEntriesFromProfileRows(rows)
+      out.auditors.push(...mapped.auditors)
+      out.suppliers.push(...mapped.suppliers)
       if (!hasMore || !rows?.length) break
       offset += page
     }
+    const seenA = new Set()
+    const seenS = new Set()
+    out.auditors = out.auditors.filter((row) => {
+      const key = String(row.email || row.id)
+      if (seenA.has(key)) return false
+      seenA.add(key)
+      return true
+    })
+    out.suppliers = out.suppliers.filter((row) => {
+      const key = String(row.platformCompanyId || row.id)
+      if (seenS.has(key)) return false
+      seenS.add(key)
+      return true
+    })
   } catch {
     /* offline / denied */
   }

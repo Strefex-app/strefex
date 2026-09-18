@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   auditToUpsertRow,
+  auditDirectoryEntriesFromProfileRows,
   directoryRowToEntry,
   reminderToRow,
   rowToAudit,
@@ -185,5 +186,47 @@ describe('audit program database connection', () => {
     const kept = keepUnsyncedLocalRows([], [{ id: 'local-seller', name: 'Draft plant' }])
     expect(kept).toHaveLength(1)
     expect(kept[0].id).toBe('local-seller')
+  })
+
+  it('maps Superadmin registered accounts (metadata types) onto the seller register', () => {
+    const { suppliers, auditors } = auditDirectoryEntriesFromProfileRows([
+      {
+        id: 'p-seller',
+        email: 'plant@hanoi.test',
+        full_name: 'Plant Admin',
+        role: 'admin',
+        created_at: '2026-01-10T00:00:00.000Z',
+        metadata: { account_types: ['seller'], company_name: 'Hanoi Electronics Assembly' },
+        companies: {
+          id: SELLER_COMPANY_ID,
+          name: 'Hanoi Electronics Assembly',
+          account_type: 'buyer',
+          country: 'Vietnam',
+          city: 'Hanoi',
+          external_audit_status: 'pending',
+        },
+      },
+      {
+        id: 'p-aud',
+        email: 'haas@audit.test',
+        full_name: 'M. Haas',
+        role: 'auditor_external',
+        created_at: '2026-02-01T00:00:00.000Z',
+        companies: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', name: 'Haas Audit', account_type: 'auditor' },
+      },
+    ])
+    expect(suppliers[0]).toMatchObject({
+      id: `platform_company_${SELLER_COMPANY_ID}`,
+      email: 'plant@hanoi.test',
+      name: 'Hanoi Electronics Assembly',
+      city: 'Hanoi',
+      platformCompanyId: SELLER_COMPANY_ID,
+    })
+    expect(auditors[0]).toMatchObject({ email: 'haas@audit.test', name: 'M. Haas' })
+
+    const { suppliers: merged } = assembleAuditWorkspaceFromServer({
+      platformSuppliers: suppliers,
+    })
+    expect(merged.some((s) => s.platformCompanyId === SELLER_COMPANY_ID)).toBe(true)
   })
 })

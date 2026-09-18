@@ -216,16 +216,24 @@ const useAuditProStore = create(
             fetchAuditDirectoryForCompany,
             fetchCompanyProfilesAsAuditAuditors,
             fetchAccountDirectoryRowsAsAuditSuppliers,
+            fetchPlatformDirectoryProfilesForSuperadmin,
           } = await import('../services/auditManagementDb')
           const { assembleAuditWorkspaceFromServer } = await import('../utils/auditProgramHydrate')
           const { listCompanyExternalAudits } = await import('../services/companyExternalAuditService')
           const cid = await getActorCompanyId()
           if (!cid) return
-          const [{ audits: serverAudits, auditLogs, reminders }, dir, platformAuditors, accountSuppliers] = await Promise.all([
+          const [
+            { audits: serverAudits, auditLogs, reminders },
+            dir,
+            platformAuditors,
+            accountSuppliers,
+            registeredAccounts,
+          ] = await Promise.all([
             fetchAuditProgramForCompany(cid),
             fetchAuditDirectoryForCompany(cid),
             fetchCompanyProfilesAsAuditAuditors(cid),
             fetchAccountDirectoryRowsAsAuditSuppliers(cid),
+            fetchPlatformDirectoryProfilesForSuperadmin(),
           ])
           let cloudSellers = []
           try {
@@ -243,8 +251,9 @@ const useAuditProStore = create(
           const { auditors, suppliers } = assembleAuditWorkspaceFromServer({
             directoryAuditors: dir.auditors,
             directorySuppliers: dir.suppliers,
-            platformAuditors,
+            platformAuditors: [...(platformAuditors || []), ...(registeredAccounts?.auditors || [])],
             accountSuppliers,
+            platformSuppliers: registeredAccounts?.suppliers || [],
             companyAuditRows: cloudSellers,
             localAuditors: prevAuditors,
             localSuppliers: prevSuppliers,
@@ -265,10 +274,11 @@ const useAuditProStore = create(
               const prev = prevAuditors.find((p) => p.id === row.id || String(p.email || '').trim().toLowerCase() === email)
               return !prev || prev.auditorCode !== row.auditorCode
             })
-          const sellerLinked = suppliers.some((row) => {
-            const prev = prevSuppliers.find((p) => p.id === row.id)
-            return Boolean(row.platformCompanyId) && prev?.platformCompanyId !== row.platformCompanyId
-          })
+          const sellerLinked = suppliers.length !== prevSuppliers.length
+            || suppliers.some((row) => {
+              const prev = prevSuppliers.find((p) => p.id === row.id)
+              return Boolean(row.platformCompanyId) && prev?.platformCompanyId !== row.platformCompanyId
+            })
           if (panelChanged || sellerLinked) void persistDirectoryToRemote(get)
         } catch {
           /* network / RLS */
