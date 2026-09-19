@@ -1,0 +1,44 @@
+<view class="container">
+  <view class="page-title">My bookings</view>
+  <view class="page-subtitle">Your football training reservations</view>
+
+  <view wx:if="{{loading}}" class="empty-state">Loading...</view>
+
+  <block wx:elif="{{bookings.length > 0}}">
+    <view class="card booking-card" wx:for="{{bookings}}" wx:key="id">
+      <view class="flex-between">
+        <text class="booking-card__title">{{item.session_title}}</text>
+        <text class="tag {{item.status_class}}">{{item.status_label}}</text>
+      </view>
+      <text class="text-small text-muted">{{item.session_date}} {{item.session_time}}</text>
+      <text class="text-small text-muted">{{item.venue_name}}</text>
+      <view class="flex-between booking-card__footer">
+        <text class="price">¥{{item.amount_yuan}}</text>
+        <view class="booking-card__actions">
+          <button
+            wx:if="{{item.status === 'pending_payment'}}"
+            class="btn-primary booking-card__btn"
+            size="mini"
+            data-id="{{item.id}}"
+            bindtap="onPay"
+          >Pay now</button>
+          <button
+            wx:if="{{item.status === 'pending_payment' || item.status === 'confirmed'}}"
+            class="btn-secondary booking-card__btn"
+            size="mini"
+            data-id="{{item.id}}"
+            bindtap="onCancel"
+          >Cancel</button>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="empty-state-icon">📋</text>
+    <text>No bookings yet</text>
+    <button class="btn-primary" style="margin-top: 32rpx" bindtap="onViewSchedule">
+      Browse schedule
+    </button>
+  </view>
+</view>

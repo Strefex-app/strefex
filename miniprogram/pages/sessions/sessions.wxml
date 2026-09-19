@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="page-title">All sessions</view>
+  <view class="page-subtitle">Filter by type and skill level</view>
+
+  <view class="filters card">
+    <view class="filter-row">
+      <text class="filter-label">Category</text>
+      <picker mode="selector" range="{{categories}}" range-key="label" bindchange="onCategoryChange">
+        <view class="filter-value">{{categoryLabel}} ▾</view>
+      </picker>
+    </view>
+    <view class="divider"></view>
+    <view class="filter-row">
+      <text class="filter-label">Level</text>
+      <picker mode="selector" range="{{levels}}" range-key="label" bindchange="onLevelChange">
+        <view class="filter-value">{{levelLabel}} ▾</view>
+      </picker>
+    </view>
+  </view>
+
+  <session-card wx:for="{{sessions}}" wx:key="id" session="{{item}}" />
+
+  <view wx:if="{{sessions.length === 0}}" class="empty-state">
+    <text class="empty-state-icon">🔍</text>
+    <text>No sessions match your filters</text>
+  </view>
+</view>

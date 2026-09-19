@@ -1,0 +1,43 @@
+<view class="container" wx:if="{{booking}}">
+  <view class="page-title">Payment</view>
+  <view class="page-subtitle">Complete your football training booking</view>
+
+  <view class="card payment-summary">
+    <text class="payment-summary__label">Amount due</text>
+    <text class="payment-summary__amount">¥{{booking.amount_yuan}}</text>
+    <view class="divider"></view>
+    <text class="text-small text-muted">{{booking.session_title}}</text>
+    <text class="text-small text-muted">{{booking.session_date}} · {{booking.venue_name}}</text>
+  </view>
+
+  <view class="card">
+    <text class="detail-section-title">Payment methods</text>
+    <view class="payment-method" bindtap="onOpenPayment">
+      <view class="payment-method__left">
+        <view class="payment-method__icons">
+          <view class="pm-icon pm-icon--wechat">微</view>
+          <view class="pm-icon pm-icon--alipay">支</view>
+        </view>
+        <view>
+          <text class="payment-method__title">WeChat Pay or Alipay</text>
+          <text class="payment-method__desc">Secure mobile payment</text>
+        </view>
+      </view>
+      <text class="payment-method__arrow">›</text>
+    </view>
+  </view>
+
+  <view class="payment-note">
+    <text class="text-small text-muted">
+      Your spot is reserved for 15 minutes. Payment confirms your booking.
+    </text>
+  </view>
+</view>
+
+<payment-sheet
+  visible="{{showPayment}}"
+  bookingId="{{booking.id}}"
+  amountYuan="{{booking.amount_yuan}}"
+  bind:close="onClosePayment"
+  bind:success="onPaymentSuccess"
+/>
