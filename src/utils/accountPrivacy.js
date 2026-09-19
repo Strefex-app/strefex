@@ -102,6 +102,13 @@ export function applyAccountPrivacyVeil(accounts = [], ctx = {}) {
   ))
 }
 
+import { pickLegalCompanyName } from './companyLegalName'
+
 export function publicLocationLabel(account) {
   return [account?.city, account?.country].filter(Boolean).join(' · ')
+}
+
+/** Company label for buyer-facing cards — never email, contact name, or a mask. */
+export function publicCompanyDisplayName(account, fallback = 'Registered supplier') {
+  return pickLegalCompanyName(account, fallback)
 }

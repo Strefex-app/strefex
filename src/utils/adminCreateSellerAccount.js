@@ -5,6 +5,7 @@
 import { isSupabaseConfigured, companiesService } from '../services/supabaseService'
 import { buildCompanyTaxonomyWrite } from './companyTaxonomyPayload'
 import { publishAccountsToNetworkDirectory } from './accountSourcingCompleteness'
+import { companyLegalNameError } from './companyLegalName'
 
 export const ADMIN_CREATED_EMAIL_DOMAIN = 'admin-created.strefex.local'
 
@@ -46,7 +47,9 @@ export async function createAdminSellerAccount({
   registerAccount,
 } = {}) {
   const name = String(companyName || '').trim()
-  if (!name) throw new Error('Company name is required.')
+  if (!name) throw new Error('Company legal name is required.')
+  const namingErr = companyLegalNameError(name, { contactName, email })
+  if (namingErr) throw new Error(namingErr)
   if (typeof registerAccount !== 'function') {
     throw new Error('Account registry is not available.')
   }
@@ -108,8 +111,9 @@ export async function createAdminSellerAccount({
     id: localId,
     email: normalizedEmail,
     company: name,
+    companyName: name,
     companyId: company?.id || null,
-    name: String(contactName || '').trim() || undefined,
+    name,
     contactName: String(contactName || '').trim() || undefined,
     phone: String(phone || '').trim() || '',
     website: String(website || '').trim() || '',

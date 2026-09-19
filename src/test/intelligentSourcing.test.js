@@ -5,6 +5,7 @@ import {
   buildBuyerPlants,
   slimSourcingSupplier,
   buildPlatformSourcingPayload,
+  buildSourcingHomeWidgets,
 } from '../utils/intelligentSourcingData'
 import { sourcingSupplierMatchesDomainCategory } from '../utils/sourcingCategoryAliases'
 import {
@@ -255,11 +256,13 @@ describe('accountSourcingCompleteness', () => {
         country: 'Germany',
         city: 'Munich',
         industries: ['automotive'],
+        profileAttachments: [{ slot: 'catalogue', name: 'Jane-passport.pdf' }],
       },
     ])
     const dir = loadNetworkManufacturers()
     expect(dir.some((r) => r.id === 'm1' && r.company === 'Maker GmbH')).toBe(true)
     expect(dir.some((r) => r.email === 'plant@maker.de')).toBe(false)
+    expect(dir.every((r) => r.profileAttachments == null)).toBe(true)
     const merged = mergeNetworkManufacturersWithAccounts([])
     expect(merged.some((r) => r.company === 'Maker GmbH')).toBe(true)
   })
@@ -286,5 +289,65 @@ describe('accountSourcingCompleteness', () => {
     expect(withTax.taxonomyVersion).toBeTruthy()
     expect(withoutTax.taxonomy).toBeUndefined()
     expect(withoutTax.taxonomyVersion).toBe(withTax.taxonomyVersion)
+    expect(withTax.homeWidgets.funnelTotal).toBe(0)
+    expect(withTax.homeWidgets.gapHeadline).toMatch(/live issue/i)
+  })
+
+  it('builds home widgets from registered accounts, not canvas seed counts', () => {
+    const listed = accountToSourcingSupplier({
+      id: 'a1',
+      company: 'Listed Forge',
+      accountType: 'seller',
+      status: 'active',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+    })
+    const incomplete = accountToSourcingSupplier({
+      id: 'a2',
+      company: 'Incomplete Plant',
+      accountType: 'seller',
+      status: 'active',
+    })
+    const widgets = buildSourcingHomeWidgets({
+      suppliers: [listed, incomplete],
+      rfqs: [],
+      buyers: [],
+    })
+    expect(widgets.funnelTotal).toBe(2)
+    expect(widgets.mapVisible).toBe(1)
+    expect(widgets.alertsCount).toBeGreaterThan(0)
+    expect(widgets.alerts.some((a) => /registered supplier/i.test(a.text))).toBe(true)
+    expect(widgets.gaps.some((g) => g.area === 'Registration path')).toBe(true)
+    expect(widgets.gaps.some((g) => g.area === 'RFQs')).toBe(true)
+    expect(widgets.gaps.some((g) => g.area === 'Logistics')).toBe(true)
+    expect(widgets.gapHeadline).not.toMatch(/16/)
+    expect(String(widgets.mapVisible)).not.toBe('412')
+  })
+
+  it('does not use seller email as the sourcing plant name or iframe field', () => {
+    const row = accountToSourcingSupplier({
+      id: 'a-email',
+      email: 'secret@maker.de',
+      contactName: 'Jane Doe',
+      accountType: 'seller',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+    })
+    expect(row.name).toBe('Registered supplier')
+    expect(row.name).not.toContain('@')
+    expect(accountToSourcingSupplier({
+      id: 'a-person',
+      company: 'Jane Doe',
+      contactName: 'Jane Doe',
+      accountType: 'seller',
+      country: 'Germany',
+      city: 'Munich',
+      industries: ['automotive'],
+    }).name).toBe('Registered supplier')
+    const slim = slimSourcingSupplier({ ...row, email: 'secret@maker.de', address: 'Street 1' })
+    expect(slim.email).toBeUndefined()
+    expect(slim.address).toBeUndefined()
   })
 })

@@ -184,6 +184,8 @@
   } catch (e) { /* */ }
 
   window.addEventListener('message', function (ev) {
+    var origin = ev && ev.origin;
+    if (origin && origin !== 'null' && origin !== window.location.origin) return;
     var d = ev && ev.data;
     if (!d || d.source !== 'strefex-platform') return;
     ensureEmbedShell();
@@ -205,7 +207,7 @@
 
   try {
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ source: 'strefex-intelligent-sourcing', action: 'ready' }, '*');
+      window.parent.postMessage({ source: 'strefex-intelligent-sourcing', action: 'ready' }, window.location.origin || '*');
     }
   } catch (e) { /* */ }
 

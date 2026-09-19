@@ -1606,7 +1606,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   emit: function (action, payload) {
     try {
       var msg = { source: "strefex-intelligent-sourcing", action: action, payload: payload || {} };
-      if (window.parent && window.parent !== window) window.parent.postMessage(msg, "*");
+      if (window.parent && window.parent !== window) window.parent.postMessage(msg, window.location.origin || "*");
       window.dispatchEvent(new CustomEvent("strefex-sourcing", { detail: msg }));
     } catch (e) {}
   },
@@ -1663,6 +1663,14 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
     }
     if (Array.isArray(plat.rfqs)) {
       d.RFQS = plat.rfqs;
+    }
+    if (plat.homeWidgets && typeof plat.homeWidgets === "object") {
+      d.HOME_WIDGETS = plat.homeWidgets;
+    }
+    if (Array.isArray(d.REG_STAGES)) {
+      d.REG_STAGES = d.REG_STAGES.map(function (g) {
+        return Object.assign({}, g, { count: null });
+      });
     }
     if (plat.userInitials) {
       d.userInitials = String(plat.userInitials).slice(0, 2).toUpperCase();
@@ -2007,7 +2015,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px">
                 <div style="display:flex; align-items:center; justify-content:space-between">
                   <div style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); border-left:3px solid var(--signal-warning); padding-left:9px">Intelligence alerts</div>
-                  <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint)">4 new</span>
+                  <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint)">{{ alertsBadge }}</span>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px">
                   <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="4">
@@ -2029,9 +2037,9 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
               </div>
 
               <div sc-camel-on-click="{{ onGaps }}" style="background:var(--navy-800); border-radius:6px; padding:18px 20px; cursor:pointer" style-hover="background:var(--navy-700)">
-                <div style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:#9DB1C8">Design review</div>
-                <div style="font-family:var(--font-serif); font-size:19px; color:#fff; margin-top:8px">16 gaps found in today's sourcing flow</div>
-                <div style="font-size:12.5px; color:#9DB1C8; margin-top:7px; line-height:1.5">Empty states, missing indicators, concentration blindness, logistics. Read the annotated list.</div>
+                <div style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:#9DB1C8">{{ gapsKicker }}</div>
+                <div style="font-family:var(--font-serif); font-size:19px; color:#fff; margin-top:8px">{{ gapsCardHeadline }}</div>
+                <div style="font-size:12.5px; color:#9DB1C8; margin-top:7px; line-height:1.5">{{ gapsCardSub }}</div>
               </div>
             </div>
           </div>
@@ -2874,9 +2882,9 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
         <div style="max-width:1400px">
           <div class="stx-page-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:22px">
             <div class="stx-page-head__title">
-              <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--signal-fault)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Design review</span></div>
-              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">Gaps in the current sourcing flow</h1>
-              <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:700px; text-wrap:pretty">Read against the five screens you shared. Severity is judged by how often the gap stops a buyer from making a sourcing decision on this page.</p>
+              <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--signal-fault)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">{{ gapsPageKicker }}</span></div>
+              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ gapsPageTitle }}</h1>
+              <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:700px; text-wrap:pretty">{{ gapsPageLead }}</p>
             </div>
             <div class="stx-page-head__tools" style="display:flex; gap:14px; flex:none">
               <sc-for list="{{ gapCounts }}" as="g" hint-placeholder-count="3">
@@ -3689,7 +3697,7 @@ transitFor(sup) {
 
     /* ── breadcrumbs ── */
     const cb = [{ label: "Management", step: "home" }, { label: "Sourcing", step: "home" }];
-    if (s.step === "gaps") cb.push({ label: "Design review", step: "gaps" });
+    if (s.step === "gaps") cb.push({ label: window.__STREFEX_ALLOW_DEMO_SEED__ === false ? "Network review" : "Design review", step: "gaps" });
     else if (s.step === "registration") cb.push({ label: "Registration path", step: "registration" });
     else if (s.step === "compare") cb.push({ label: "Compare suppliers", step: "compare" });
     else if (s.step === "rfq") cb.push({ label: "Create RFQ", step: "rfq" });
@@ -3899,6 +3907,17 @@ transitFor(sup) {
     if (!alerts.length && acc.length) {
       alerts.push({ tone: GREEN, text: acc.length + " registered supplier" + (acc.length === 1 ? "" : "s") + " on the platform — no open compliance alerts.", meta: "Live registry" });
     }
+    if (!alerts.length) {
+      const funnelNow = registry.filter(isRegisteredSeller).length;
+      alerts.push({
+        tone: CYAN,
+        text: funnelNow
+          ? funnelNow + " registered account" + (funnelNow === 1 ? "" : "s") + " — none are map-visible yet."
+          : "No registered suppliers on the platform yet.",
+        meta: "Live registry"
+      });
+    }
+    const alertsBadge = alerts.length === 1 ? "1 alert" : alerts.length + " alerts";
 
     /* ── step 2 ── */
     const indFilters = this.seg(
@@ -4571,13 +4590,58 @@ transitFor(sup) {
       { title: "Accept unverified for RFQ only", note: "Lets you quote a stage-3 supplier without publishing it to the map or category lists." }
     ];
 
-    const gaps = (dd.GAPS || []).map(g => ({
+    const useLiveNetwork = window.__STREFEX_ALLOW_DEMO_SEED__ === false;
+    const plantCount = (this.plantList() || []).length;
+    const liveIncomplete = Math.max(0, funnelAll.length - acc.length);
+    const byCcLive = {};
+    acc.forEach(function (s) {
+      const cc = String(s.cc || "XX");
+      byCcLive[cc] = (byCcLive[cc] || 0) + 1;
+    });
+    const topShareLive = acc.length ? Math.max.apply(null, Object.keys(byCcLive).map(function (k) { return byCcLive[k]; })) / acc.length : 0;
+    const liveGapSrc = [];
+    if (useLiveNetwork) {
+      if (!funnelAll.length) {
+        liveGapSrc.push({ area: "Coverage", sev: "high", gap: "No registered seller accounts are in this workspace network yet.", fix: "Invite manufacturers or wait for sellers to complete registration so they appear on the map and RFQ lists." });
+      }
+      if (liveIncomplete > 0) {
+        liveGapSrc.push({ area: "Registration path", sev: "high", gap: liveIncomplete + " of " + funnelAll.length + " registered accounts are not map-visible (missing country/city or industry).", fix: "Sellers complete Profile geography and industry. Stage 5+ is when a pin is published to buyers." });
+      }
+      if (expiring) {
+        liveGapSrc.push({ area: "Certificates", sev: "medium", gap: expiring + " map-visible supplier" + (expiring === 1 ? "" : "s") + " have a certificate or audit due within 90 days.", fix: "Ask those sellers to upload a current certificate, or filter RFQs to in-date plants." });
+      }
+      if (stale) {
+        liveGapSrc.push({ area: "Freshness", sev: "medium", gap: stale + " supplier profile" + (stale === 1 ? "" : "s") + " have not been updated in 120 days.", fix: "Nudge sellers to refresh Profile. Stale records stay on the map but should not be treated as current." });
+      }
+      if (!rfqList.length) {
+        liveGapSrc.push({ area: "RFQs", sev: "low", gap: "No network RFQs are on this home list yet.", fix: "Create a Network RFQ from Sourcing to track quotes against registered plants." });
+      }
+      if (!plantCount) {
+        liveGapSrc.push({ area: "Logistics", sev: "medium", gap: "No receiving plant is set, so transit and map lanes cannot be calculated.", fix: "Add country and city on your company Profile (or a receiving plant) so routes can be estimated." });
+      }
+      if (acc.length >= 4 && topShareLive >= 0.7) {
+        liveGapSrc.push({ area: "Concentration", sev: "high", gap: "About " + Math.round(topShareLive * 100) + "% of map-visible suppliers sit in one country — regional concentration is high.", fix: "Widen the RFQ or invite plants in other regions before awarding a single-source package." });
+      }
+    }
+    const hw = dd.HOME_WIDGETS || {};
+    const gapSource = useLiveNetwork
+      ? (liveGapSrc.length ? liveGapSrc : (hw.gaps || []))
+      : (dd.GAPS || []);
+    const gaps = gapSource.map(g => ({
       area: g.area, gap: g.gap, fix: g.fix,
-      sevLabel: g.sev === "high" ? "High" : g.sev === "medium" ? "Medium" : "Low",
-      dot: g.sev === "high" ? RED : g.sev === "medium" ? AMBER : "var(--steel-500)",
-      bg: g.sev === "high" ? "var(--signal-fault-bg)" : g.sev === "medium" ? "var(--signal-warning-bg)" : "var(--steel-200)",
-      fg: g.sev === "high" ? "#A8362E" : g.sev === "medium" ? "#9A6B12" : "var(--steel-700)"
+      sevLabel: g.sev === "high" || g.sevLabel === "High" ? "High" : g.sev === "medium" || g.sevLabel === "Medium" ? "Medium" : "Low",
+      dot: (g.sev === "high" || g.sevLabel === "High") ? RED : (g.sev === "medium" || g.sevLabel === "Medium") ? AMBER : "var(--steel-500)",
+      bg: (g.sev === "high" || g.sevLabel === "High") ? "var(--signal-fault-bg)" : (g.sev === "medium" || g.sevLabel === "Medium") ? "var(--signal-warning-bg)" : "var(--steel-200)",
+      fg: (g.sev === "high" || g.sevLabel === "High") ? "#A8362E" : (g.sev === "medium" || g.sevLabel === "Medium") ? "#9A6B12" : "var(--steel-700)"
     }));
+    const gapHeadline = useLiveNetwork
+      ? (hw.gapHeadline || (gaps.length ? gaps.length + " live issue" + (gaps.length === 1 ? "" : "s") + " in your sourcing network" : "No open network issues"))
+      : "16 gaps found in today's sourcing flow";
+    const gapSub = useLiveNetwork
+      ? (hw.gapSub || (funnelAll.length
+        ? "From registered accounts, RFQs and receiving plants on this workspace — not the design-canvas sample."
+        : "Live registry is empty. Invite sellers or complete profiles to populate this list."))
+      : "Empty states, missing indicators, concentration blindness, logistics. Read the annotated list.";
     const gapCounts = [
       { n: gaps.filter(g => g.sevLabel === "High").length, label: "High", tone: RED },
       { n: gaps.filter(g => g.sevLabel === "Medium").length, label: "Medium", tone: AMBER },
@@ -4600,7 +4664,16 @@ transitFor(sup) {
       isRegistration: s.step === "registration",
       onRegistration: () => this.go("registration"),
       regStages, regPending, regTotals, regActions,
-      regHeadline: ((stages[4] && stages[4].count) || 0) + " of " + ((stages[0] && stages[0].count != null) ? Number(stages[0].count).toLocaleString("en-US") : 0) + " accounts are map-visible",
+      regHeadline: acc.length + " of " + funnelAll.length.toLocaleString("en-US") + " accounts are map-visible",
+      alertsBadge,
+      gapsKicker: useLiveNetwork ? "Network review" : "Design review",
+      gapsCardHeadline: gapHeadline,
+      gapsCardSub: gapSub,
+      gapsPageKicker: useLiveNetwork ? "Network review" : "Design review",
+      gapsPageTitle: useLiveNetwork ? "Live issues in your sourcing network" : "Gaps in the current sourcing flow",
+      gapsPageLead: useLiveNetwork
+        ? "Counted from registered seller accounts, RFQs and receiving plants on this workspace."
+        : "Read against the five screens you shared. Severity is judged by how often the gap stops a buyer from making a sourcing decision on this page.",
       hiddenCount: hidden.length,
       cmpCols, cmpRows, cmpCount: picked.length,
       cmpCountLabel: picked.length === 1

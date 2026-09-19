@@ -7,6 +7,8 @@
 import { getApproximateLngLat } from './accountApproximateLocation'
 import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
 import { mergeAccountsPreferFilled } from './keepExistingAccountFields'
+import { publicCompanyDisplayName } from './accountPrivacy'
+import { applyCompanyNamingStandard } from './companyLegalName'
 
 export const SOURCING_VISIBILITY_FIELDS = [
   { key: 'country', label: 'Country', requiredFor: ['seller', 'service_provider', 'auditor', 'buyer'] },
@@ -60,7 +62,7 @@ export function ensureAccountMapCoordinates(account) {
     country: account.country,
     city: account.city,
     address: account.address,
-    seed: String(account.id || account.email || account.company || ''),
+    seed: String(account.id || account.company || ''),
   })
   if (!coords) return account
   return {
@@ -75,8 +77,9 @@ export function ensureAccountMapCoordinates(account) {
  */
 export function ensureSourcingFieldPlaceholders(account) {
   if (!account || typeof account !== 'object') return account
-  let next = { ...account }
-  let changed = false
+  const named = applyCompanyNamingStandard(account)
+  let next = named === account ? { ...account } : { ...named }
+  let changed = named !== account
   if (!('country' in next) || next.country == null) { next.country = ''; changed = true }
   if (!('city' in next) || next.city == null) { next.city = ''; changed = true }
   if (!('address' in next) || next.address == null) { next.address = ''; changed = true }
@@ -138,7 +141,7 @@ function manufacturerDirectoryRow(account) {
   return {
     id: ensured.id,
     email: '',
-    company: ensured.company || ensured.name || '',
+    company: publicCompanyDisplayName(ensured),
     contactName: '',
     accountType,
     accountTypes: Array.isArray(ensured.accountTypes) ? ensured.accountTypes : [accountType],
@@ -152,11 +155,8 @@ function manufacturerDirectoryRow(account) {
     equipmentSubcategories: ensured.equipmentSubcategories && typeof ensured.equipmentSubcategories === 'object' ? ensured.equipmentSubcategories : {},
     productSubcategories: ensured.productSubcategories && typeof ensured.productSubcategories === 'object' ? ensured.productSubcategories : {},
     serviceCategories: Array.isArray(ensured.serviceCategories) ? ensured.serviceCategories : [],
-    coordinates: hasUsableCoordinates(ensured.coordinates) ? ensured.coordinates : null,
     certifications: Array.isArray(ensured.certifications) ? ensured.certifications : [],
-    profileAttachments: Array.isArray(ensured.profileAttachments)
-      ? ensured.profileAttachments
-      : (Array.isArray(ensured.profile_attachments) ? ensured.profile_attachments : []),
+    coordinates: hasUsableCoordinates(ensured.coordinates) ? ensured.coordinates : null,
     fitLevel: ensured.fitLevel,
     riskLevel: ensured.riskLevel,
     capacityLevel: ensured.capacityLevel,
@@ -194,10 +194,17 @@ export function loadNetworkManufacturers() {
   try {
     const raw = localStorage.getItem(NETWORK_MANUFACTURERS_KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((row) => manufacturerDirectoryRow(row))
   } catch {
     return []
   }
+}
+
+export function clearNetworkManufacturers() {
+  try {
+    localStorage.removeItem(NETWORK_MANUFACTURERS_KEY)
+  } catch { /* */ }
 }
 
 function saveNetworkManufacturers(rows) {
@@ -236,32 +243,11 @@ export function publishAccountsToNetworkDirectory(accounts = []) {
 }
 
 /**
- * Harvest every local registry slice + publish sellers with geo onto the network directory.
- * Call after login / on Home & Intelligent Sourcing mount.
- * @returns {{ ensured: number, published: number, visible: number }}
+ * Publish the current session's map-visible sellers into the device directory.
+ * Does not scan other tenants' registry keys.
  */
-export function registerExistingAccountsOntoSourcingNetwork() {
-  const byEmail = new Map()
-  try {
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i)
-      if (!key || (!key.startsWith('strefex-account-registry') && key !== 'strefex-account-registry')) continue
-      const raw = localStorage.getItem(key)
-      if (!raw) continue
-      const arr = JSON.parse(raw)
-      if (!Array.isArray(arr)) continue
-      arr.forEach((a) => {
-        const em = String(a?.email || '').trim().toLowerCase()
-        if (!em) return
-        const prev = byEmail.get(em)
-        const t = new Date(a?.updatedAt || a?.registeredAt || 0).getTime()
-        const pt = prev ? new Date(prev?.updatedAt || prev?.registeredAt || 0).getTime() : -1
-        if (!prev || t >= pt) byEmail.set(em, a)
-      })
-    }
-  } catch { /* */ }
-
-  const harvested = [...byEmail.values()].map(ensureSourcingFieldPlaceholders)
+export function registerExistingAccountsOntoSourcingNetwork(accounts = []) {
+  const harvested = (Array.isArray(accounts) ? accounts : []).map(ensureSourcingFieldPlaceholders)
   let ensured = 0
   harvested.forEach((a) => {
     if (isSellerLike(a) && accountVisibleOnSourcingMap(a)) ensured += 1

@@ -29,15 +29,46 @@ describe('keepExistingAccountFields', () => {
     expect(payload.industries).toEqual(['automotive'])
   })
 
-  it('keeps local supplier name when network RPC row is empty', () => {
+  it('does not restore identified seller fields from local cache when the network RPC redacts them', () => {
     const merged = mergeSourcingNetworkIntoRegistry(
-      [{ id: '1', email: 'plant@maker.de', company: 'Maker GmbH', country: 'Germany', city: 'Stuttgart' }],
-      [{ id: '1', email: 'plant@maker.de', company: '', country: '', city: '', industries: ['automotive'] }],
+      [{
+        id: '1',
+        email: 'plant@maker.de',
+        company: 'Maker GmbH',
+        contactName: 'Anna Schmidt',
+        phone: '+49170',
+        address: 'Königstraße 1',
+        country: 'Germany',
+        city: 'Stuttgart',
+      }],
+      [{
+        id: '1',
+        email: '',
+        company: 'Maker GmbH',
+        contactName: '',
+        phone: '',
+        address: '',
+        country: 'Germany',
+        city: 'Stuttgart',
+      }],
     )
     expect(merged[0].company).toBe('Maker GmbH')
     expect(merged[0].country).toBe('Germany')
-    expect(merged[0].city).toBe('Stuttgart')
-    expect(merged[0].industries).toEqual(['automotive'])
+    expect(merged[0].email).toBe('')
+    expect(merged[0].address).toBe('')
+    expect(merged[0].contactName).toBe('')
+    expect(merged[0].phone).toBe('')
+  })
+
+  it('keeps identified fields on a partial admin patch that omitted those keys', () => {
+    const merged = mergeAccountsPreferFilled(
+      { company: 'Acme Tools', country: 'Germany' },
+      { email: 'a@x.com', phone: '+49', address: 'Street 1', contactName: 'Ada' },
+    )
+    expect(merged.email).toBe('a@x.com')
+    expect(merged.phone).toBe('+49')
+    expect(merged.address).toBe('Street 1')
+    expect(merged.contactName).toBe('Ada')
   })
 })
 

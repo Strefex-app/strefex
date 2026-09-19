@@ -10,7 +10,7 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_VERSION = '20260914c'
+export const SOURCING_FRAME_VERSION = '20260919p'
 
 function readSourcingTheme() {
   try {

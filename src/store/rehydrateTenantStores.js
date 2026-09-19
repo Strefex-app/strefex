@@ -152,6 +152,10 @@ export function scheduleRehydrateTenantStores(getAuthState) {
     }
 
     try {
+      if (!getAuthState()?.isAuthenticated) {
+        const completeness = await import('../utils/accountSourcingCompleteness')
+        completeness.clearNetworkManufacturers()
+      }
       const registryMod = await import('./accountRegistry')
       registryMod.useAccountRegistry.getState().rehydrateRegistryFromStorage?.()
       registryMod.useAccountRegistry.getState().ensureAllAccountsSourcingFields?.()

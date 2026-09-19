@@ -15,6 +15,7 @@ import CategorySubcategoryChecklist, {
 } from '../components/CategorySubcategoryChecklist'
 import AuthPageShell from '../components/AuthPageShell'
 import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
+import { companyLegalNameError } from '../utils/companyLegalName'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
@@ -231,7 +232,9 @@ function RegisterForm() {
 
   /* ── Step 1 validation ─────────────────────────────────── */
   const validateAccount = () => {
-    if (!fullName.trim() || fullName.trim().length < 2) return 'Full name must be at least 2 characters'
+    if (!fullName.trim() || fullName.trim().length < 2) return 'Contact full name must be at least 2 characters'
+    const companyErr = companyLegalNameError(company, { contactName: fullName, email })
+    if (companyErr) return companyErr
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address'
     if (!isBusinessEmail(email)) return 'Please use a business email domain (public email providers are not allowed).'
     if (!phone.trim() || phone.trim().length < 7) return 'Please enter a valid phone number (minimum 7 digits)'
@@ -334,7 +337,7 @@ function RegisterForm() {
         email: email.trim().toLowerCase(),
         password,
         phone: phone.trim(),
-        company: company.trim() || undefined,
+        company: company.trim(),
         selectedPlan,
         accountType: primaryAccountType,
         accountTypes,
@@ -382,9 +385,12 @@ function RegisterForm() {
 
       registerAccount({
         id: result?.user?.id || `pending-${Date.now()}`,
-        company: company.trim() || fullName.trim() || normalizedEmail.split('@')[0] || 'Business',
+        company: company.trim(),
+        companyName: company.trim(),
+        name: company.trim(),
         email: normalizedEmail,
         contactName: fullName.trim(),
+        fullName: fullName.trim(),
         accountType: primaryAccountType,
         accountTypes,
         plan: selectedPlan,
@@ -531,8 +537,30 @@ function RegisterForm() {
           {step === 1 && (
             <form onSubmit={handleNext} className="login-form" noValidate>
               <div className="form-group">
-                <label htmlFor="fullName">Full Name</label>
-                <input type="text" id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" required disabled={loading} />
+                <label htmlFor="company">Company legal name</label>
+                <input
+                  type="text"
+                  id="company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="e.g. Nordic Forge GmbH"
+                  required
+                  disabled={loading}
+                  autoComplete="organization"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="fullName">Contact full name</label>
+                <input
+                  type="text"
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  required
+                  disabled={loading}
+                  autoComplete="name"
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="reg-email">{t('login.email')}</label>
@@ -549,10 +577,6 @@ function RegisterForm() {
                   required
                   disabled={loading}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="company">Company (optional)</label>
-                <input type="text" id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your Company" disabled={loading} />
               </div>
               <div className="form-group">
                 <label htmlFor="reg-country">

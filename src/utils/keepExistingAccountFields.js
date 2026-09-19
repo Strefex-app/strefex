@@ -1,9 +1,34 @@
 /**
  * Preserve supplier/company fields when a newer payload leaves them blank
  * (admin edit, RPC lag, platform refresh).
+ *
+ * Identified personal data (email, phone, address, contact name) follows the
+ * incoming payload when that payload includes the key — so a redacted network
+ * RPC cannot be undone from stale localStorage (GDPR / PIPL / CCPA / 152-FZ).
  */
 
+import { IDENTIFIED_ACCOUNT_FIELDS } from './accountPrivacy'
+
 const PLACEHOLDER_NAMES = new Set(['', 'company', 'new plant', '—', '-'])
+
+function isIdentifiedEmpty(value) {
+  if (value == null) return true
+  const s = String(value).trim()
+  return !s || s.includes('•')
+}
+
+/** Incoming wins when it sent the key (including empty/redacted). Otherwise keep existing. */
+export function mergeIdentifiedText(incoming = {}, existing = {}, keys = []) {
+  const a = incoming && typeof incoming === 'object' ? incoming : {}
+  const b = existing && typeof existing === 'object' ? existing : {}
+  const sent = keys.filter((k) => Object.prototype.hasOwnProperty.call(a, k))
+  if (!sent.length) return firstFilledText(...keys.map((k) => b[k]))
+  for (const k of sent) {
+    if (isIdentifiedEmpty(a[k])) return ''
+    return String(a[k]).trim()
+  }
+  return ''
+}
 
 export function firstFilledText(...vals) {
   for (const v of vals) {
@@ -35,19 +60,35 @@ export function firstFilledObject(...vals) {
 export function mergeAccountsPreferFilled(incoming = {}, existing = {}) {
   const a = incoming && typeof incoming === 'object' ? incoming : {}
   const b = existing && typeof existing === 'object' ? existing : {}
-  const company = firstFilledText(a.company, a.name, b.company, b.name)
+  const company = firstFilledText(a.company, a.companyName, b.company, b.companyName)
+  const email = mergeIdentifiedText(a, b, ['email'])
+  const phone = mergeIdentifiedText(a, b, ['phone'])
+  const address = mergeIdentifiedText(a, b, ['address', 'street'])
+  const contactName = mergeIdentifiedText(a, b, ['contactName', 'contact_name', 'fullName', 'full_name'])
+  const identified = {}
+  IDENTIFIED_ACCOUNT_FIELDS.forEach((key) => {
+    if (key === 'email' || key === 'phone' || key === 'address' || key === 'street'
+      || key === 'contactName' || key === 'contact_name' || key === 'fullName' || key === 'full_name') {
+      return
+    }
+    identified[key] = mergeIdentifiedText(a, b, [key])
+  })
   return {
     ...b,
     ...a,
     company: company || b.company || a.company || '',
-    name: firstFilledText(a.name, b.name, company) || a.name || b.name || '',
-    email: firstFilledText(a.email, b.email),
-    phone: firstFilledText(a.phone, b.phone),
+    name: company || firstFilledText(a.company, a.companyName, b.company, b.companyName) || '',
+    email,
+    phone,
     website: firstFilledText(a.website, b.website),
     country: firstFilledText(a.country, b.country),
     city: firstFilledText(a.city, b.city),
-    address: firstFilledText(a.address, b.address),
-    contactName: firstFilledText(a.contactName, a.fullName, b.contactName, b.fullName),
+    address,
+    street: address ? (mergeIdentifiedText(a, b, ['street']) || '') : '',
+    contactName,
+    contact_name: contactName,
+    fullName: contactName,
+    ...identified,
     industries: firstFilledArray(a.industries, b.industries),
     categories: firstFilledObject(a.categories, b.categories),
     productCategories: firstFilledObject(a.productCategories, b.productCategories),

@@ -22,6 +22,7 @@ import {
   buildSourcingTaxonomyOverlay,
   getProfileSubIdsForParent,
 } from './unifiedSourcingTaxonomy'
+import { IDENTIFIED_ACCOUNT_FIELDS, publicCompanyDisplayName } from './accountPrivacy'
 import { flattenSourcingMetricsFromAccount } from './sourcingMetrics'
 import { companyPackSummary } from './companyProfilePack'
 
@@ -164,12 +165,12 @@ function flattenSubcategoryIds(nested, opts = {}) {
  */
 export function accountToSourcingSupplier(account) {
   account = flattenSourcingMetricsFromAccount(account) || account
-  const name = account.company || account.companyName || account.name || account.contactName || account.email || 'Supplier'
+  const name = publicCompanyDisplayName(account, 'Registered supplier')
   const [lon, lat] = getApproximateLngLatOrFallback({
     country: account.country,
     city: account.city,
     address: account.address,
-    seed: String(account.id || account.email || name),
+    seed: String(account.id || name),
   })
   const cc = countryCodeFromName(account.country)
   const certs = Array.isArray(account.certifications)
@@ -404,7 +405,156 @@ export function slimSourcingSupplier(row) {
     if (row[key] == null || row[key] === '') return
     out[key] = row[key]
   })
+  IDENTIFIED_ACCOUNT_FIELDS.forEach((key) => {
+    delete out[key]
+  })
+  delete out.profileAttachments
+  delete out.profile_attachments
   return out
+}
+
+/**
+ * Home-rail widgets: alerts, registration funnel, live network issues.
+ * Registered platform accounts only — never design-canvas REG_STAGES / GAPS counts.
+ */
+export function sourcingAccountListed(x) {
+  if (!x || !(x.source === 'registered' || x.platformId)) return false
+  if (x.published === true) return true
+  if (x.published === false) return false
+  if (typeof x.stage === 'number') return x.stage >= 5
+  return true
+}
+
+export function buildSourcingHomeWidgets({ suppliers = [], rfqs = [], buyers = [] } = {}) {
+  const registered = (Array.isArray(suppliers) ? suppliers : []).filter(
+    (s) => s && (s.source === 'registered' || s.platformId),
+  )
+  const listed = registered.filter(sourcingAccountListed)
+  const stale = listed.filter((x) => Number(x.updatedDays) > 120).length
+  const expiring = listed.filter(
+    (x) => Number(x.certExpiry) < 90 || Number(x.auditIn) < 90,
+  ).length
+  const alerts = []
+  if (expiring) {
+    alerts.push({
+      tone: 'amber',
+      text: `${expiring} registered supplier${expiring === 1 ? '' : 's'} have certificates or audits due within 90 days.`,
+      meta: 'Document-verified · live registry',
+    })
+  }
+  if (stale) {
+    alerts.push({
+      tone: 'cyan',
+      text: `${stale} supplier account${stale === 1 ? '' : 's'} not updated in 120 days.`,
+      meta: 'Supplier-declared · live registry',
+    })
+  }
+  if (!alerts.length && listed.length) {
+    alerts.push({
+      tone: 'green',
+      text: `${listed.length} registered supplier${listed.length === 1 ? '' : 's'} on the platform — no open compliance alerts.`,
+      meta: 'Live registry',
+    })
+  }
+  if (!alerts.length) {
+    alerts.push({
+      tone: 'cyan',
+      text: registered.length
+        ? `${registered.length} registered account${registered.length === 1 ? '' : 's'} — none are map-visible yet.`
+        : 'No registered suppliers on the platform yet.',
+      meta: 'Live registry',
+    })
+  }
+
+  const funnelTotal = registered.length
+  const mapVisible = listed.length
+  const incomplete = Math.max(0, funnelTotal - mapVisible)
+  const rfqCount = Array.isArray(rfqs) ? rfqs.length : 0
+  const plantCount = Array.isArray(buyers) ? buyers.length : 0
+
+  const byCc = {}
+  listed.forEach((s) => {
+    const cc = String(s.cc || 'XX')
+    byCc[cc] = (byCc[cc] || 0) + 1
+  })
+  const topShare = listed.length
+    ? Math.max(0, ...Object.values(byCc)) / listed.length
+    : 0
+
+  const gaps = []
+  if (!funnelTotal) {
+    gaps.push({
+      area: 'Coverage',
+      sev: 'high',
+      gap: 'No registered seller accounts are in this workspace network yet.',
+      fix: 'Invite manufacturers or wait for sellers to complete registration so they appear on the map and RFQ lists.',
+    })
+  }
+  if (incomplete > 0) {
+    gaps.push({
+      area: 'Registration path',
+      sev: 'high',
+      gap: `${incomplete} of ${funnelTotal} registered accounts are not map-visible (missing country/city or industry).`,
+      fix: 'Sellers complete Profile geography and industry. Stage 5+ is when a pin is published to buyers.',
+    })
+  }
+  if (expiring) {
+    gaps.push({
+      area: 'Certificates',
+      sev: 'medium',
+      gap: `${expiring} map-visible supplier${expiring === 1 ? '' : 's'} have a certificate or audit due within 90 days.`,
+      fix: 'Ask those sellers to upload a current certificate, or filter RFQs to in-date plants.',
+    })
+  }
+  if (stale) {
+    gaps.push({
+      area: 'Freshness',
+      sev: 'medium',
+      gap: `${stale} supplier profile${stale === 1 ? '' : 's'} have not been updated in 120 days.`,
+      fix: 'Nudge sellers to refresh Profile. Stale records stay on the map but should not be treated as current.',
+    })
+  }
+  if (!rfqCount) {
+    gaps.push({
+      area: 'RFQs',
+      sev: 'low',
+      gap: 'No network RFQs are on this home list yet.',
+      fix: 'Create a Network RFQ from Sourcing to track quotes against registered plants.',
+    })
+  }
+  if (!plantCount) {
+    gaps.push({
+      area: 'Logistics',
+      sev: 'medium',
+      gap: 'No receiving plant is set, so transit and map lanes cannot be calculated.',
+      fix: 'Add country and city on your company Profile (or a receiving plant) so routes can be estimated.',
+    })
+  }
+  if (listed.length >= 4 && topShare >= 0.7) {
+    gaps.push({
+      area: 'Concentration',
+      sev: 'high',
+      gap: `About ${Math.round(topShare * 100)}% of map-visible suppliers sit in one country — regional concentration is high.`,
+      fix: 'Widen the RFQ or invite plants in other regions before awarding a single-source package.',
+    })
+  }
+
+  const gapHeadline = gaps.length
+    ? `${gaps.length} live issue${gaps.length === 1 ? '' : 's'} in your sourcing network`
+    : 'No open network issues'
+  const gapSub = funnelTotal
+    ? 'From registered accounts, RFQs and receiving plants on this workspace — not the design-canvas sample.'
+    : 'Live registry is empty. Invite sellers or complete profiles to populate this list.'
+
+  return {
+    alerts,
+    alertsCount: alerts.length,
+    mapVisible,
+    funnelTotal,
+    gaps,
+    gapHeadline,
+    gapSub,
+  }
 }
 
 export function buildPlatformSourcingPayload({
@@ -414,6 +564,7 @@ export function buildPlatformSourcingPayload({
   account,
   buyerIndustries = [],
   includeTaxonomy = true,
+  rfqs = [],
 } = {}) {
   /* Intelligent Sourcing lists/indicators use registered accounts only — never static seed. */
   const suppliers = buildSourcingSuppliers({
@@ -434,6 +585,7 @@ export function buildPlatformSourcingPayload({
     taxonomyVersion: SOURCING_TAXONOMY_VERSION,
     userInitials: initialsFromUser(user, account),
     allowDemoSeed: false,
+    homeWidgets: buildSourcingHomeWidgets({ suppliers, rfqs, buyers }),
   }
   if (includeTaxonomy) payload.taxonomy = buildSourcingTaxonomyOverlay()
   return payload

@@ -35,6 +35,7 @@ import {
 import { useIndustryStore } from '../store/industryStore'
 import { tenantKey } from '../utils/tenantStorage'
 import { rememberOfficialRegistrationCode } from '../utils/platformRegistrationCode'
+import { companyLegalNameError, pickLegalCompanyName, slugifyCompanyLegalName } from '../utils/companyLegalName'
 import { sessionExpiresAtMs } from '../utils/sessionExpiry'
 import { hydrateFeatureGrantsForSession } from './featureGrantsService'
 import { setServerFeatureGrants } from '../utils/featureGrants'
@@ -451,24 +452,27 @@ async function syncProfileFromRegistrationMetadata(user, profile) {
 
   let companyId = profile?.company_id || null
   if (!companyId) {
-    const companyName = (md.company_name || fullName || user.email?.split('@')[0] || 'Company').trim()
-    const slugBase = companyName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-    try {
-      const created = await companiesService.create({
-        name: companyName,
-        slug: `${slugBase}-${Date.now().toString(36)}`,
-        email: user.email,
-        phone: phone || null,
-        account_type: primaryMetadataAccountType,
-        plan: md.tier || 'free',
-        status: 'active',
-      })
-      companyId = created?.id || null
-    } catch {
-      // Leave company_id as-is if company creation fails; profile still updates.
+    const companyName = pickLegalCompanyName({
+      company: md.company_name,
+      contactName: fullName,
+      email: user.email,
+    }, '')
+    if (companyName) {
+      const slugBase = slugifyCompanyLegalName(companyName)
+      try {
+        const created = await companiesService.create({
+          name: companyName,
+          slug: `${slugBase}-${Date.now().toString(36)}`,
+          email: user.email,
+          phone: phone || null,
+          account_type: primaryMetadataAccountType,
+          plan: md.tier || 'free',
+          status: 'active',
+        })
+        companyId = created?.id || null
+      } catch {
+        // Leave company_id as-is if company creation fails; profile still updates.
+      }
     }
   }
 
@@ -744,6 +748,9 @@ const authService = {
     if (isDomainIndustryTakenFromRegistry(normalizedEmail, normalizedPrimaryAccountType, normalizedPrimaryIndustry)) {
       throw new Error('This business domain is already registered for the selected account type and industry.')
     }
+    const legalCompany = String(company || '').trim()
+    const namingErr = companyLegalNameError(legalCompany, { contactName: fullName, email: normalizedEmail })
+    if (namingErr) throw new Error(namingErr)
     // ── Supabase path ──
     if (isSupabaseConfigured) {
       const normalizedTier = (selectedTier || selectedPlan || 'free').toLowerCase()
@@ -821,7 +828,7 @@ const authService = {
         fullName,
         phone,
         metadata: {
-          company_name: company || '',
+          company_name: legalCompany,
           account_type: primaryAccountType,
           account_types: normalizedAccountTypes,
           industry: primaryIndustry,
@@ -844,14 +851,11 @@ const authService = {
       // when they confirm.
       if (user) {
         let registrationFromCompany = null
-        const companySlug = (company || fullName || email.split('@')[0])
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '')
+        const companySlug = slugifyCompanyLegalName(legalCompany)
 
         try {
           const newCompany = await companiesService.create({
-            name: company || fullName || email.split('@')[0],
+            name: legalCompany,
             slug: `${companySlug}-${Date.now().toString(36)}`,
             email: normalizedEmail,
             phone: phone || null,
@@ -997,7 +1001,7 @@ const authService = {
         full_name: fullName,
         email: normalizedEmail,
         password,
-        company_name: company,
+        company_name: legalCompany,
         selected_plan: selectedPlan,
       })
       if (response?.email_verification_pending) {

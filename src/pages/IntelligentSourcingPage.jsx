@@ -21,6 +21,7 @@ import { isSeededSupplierDirectoryEnabled } from '../config/supplierDataMode'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { buyerWorkspaceUrl } from '../constants/rfqPaths'
 import { saveReceivingPlantsToAccount } from '../utils/receivingPlantsPersist'
+import { isTrustedIframeMessage } from '../utils/platformMessageTrust'
 import { companyPackSummary } from '../utils/companyProfilePack'
 import { CompanyPackReviewModal } from '../components/CompanyPackCarousel'
 import './IntelligentSourcing.css'
@@ -98,7 +99,7 @@ export default function IntelligentSourcingPage() {
   const [lastCreatedRfq, setLastCreatedRfq] = useState(null)
   const [sendError, setSendError] = useState('')
   const slotRef = useRef(null)
-  const { attachSlot, frameReady } = usePersistentSourcingCanvas()
+  const { attachSlot, frameReady, iframeRef } = usePersistentSourcingCanvas()
   const status = frameReady ? 'ready' : 'loading'
 
   useLayoutEffect(() => {
@@ -119,6 +120,7 @@ export default function IntelligentSourcingPage() {
   }, [plant, registrySellers, setPlant])
 
   const handleSourcingMessage = useCallback((event) => {
+    if (!isTrustedIframeMessage(event, iframeRef.current?.contentWindow)) return
     const data = event?.data
     if (!data || data.source !== 'strefex-intelligent-sourcing') return
     const { action, payload } = data
@@ -170,6 +172,7 @@ export default function IntelligentSourcingPage() {
     tenant,
     updateAccount,
     user?.email,
+    iframeRef,
   ])
 
   useEffect(() => {

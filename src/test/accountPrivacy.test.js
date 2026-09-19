@@ -4,6 +4,7 @@ import {
   maskEmail,
   maskPersonName,
   maskPhone,
+  publicCompanyDisplayName,
   shouldExposeIdentifiedAccount,
   veilAccountIdentifiedFields,
 } from '../utils/accountPrivacy'
@@ -49,5 +50,10 @@ describe('accountPrivacy', () => {
       grantedCompanyIds: ['co-1'],
     })).toBe(true)
     expect(veilAccountIdentifiedFields(seller).identifiedVeiled).toBe(true)
+  })
+
+  it('never uses email as a public company display name', () => {
+    expect(publicCompanyDisplayName({ email: 'a@b.com', contactName: 'Ada' })).toBe('Registered supplier')
+    expect(publicCompanyDisplayName({ company: 'Forge GmbH', email: 'a@b.com' })).toBe('Forge GmbH')
   })
 })

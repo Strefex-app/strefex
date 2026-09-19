@@ -171,6 +171,8 @@
   else document.addEventListener('DOMContentLoaded', observeMaps);
 
   window.addEventListener('message', function (ev) {
+    var origin = ev && ev.origin;
+    if (origin && origin !== 'null' && origin !== window.location.origin) return;
     var d = ev && ev.data;
     if (!d || d.source !== 'strefex-platform' || d.action !== 'set-theme') return;
     applyTheme(d.theme);

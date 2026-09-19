@@ -32,6 +32,7 @@ import {
 } from '../utils/companyExternalAudit'
 import { submitSellerPreAssessmentReturn } from '../services/companyExternalAuditService'
 import { buildCompanyTaxonomyWrite, checklistFromIndustryMaps, commitIndustryChecklist } from '../utils/companyTaxonomyPayload'
+import { companyLegalNameError } from '../utils/companyLegalName'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
@@ -1068,7 +1069,14 @@ const Profile = () => {
       return
     }
     if (!companyForm.companyName.trim()) {
-      setCompanyError('Company name is required')
+      setCompanyError('Company legal name is required')
+      return
+    }
+    const namingErr = companyLegalNameError(companyForm.companyName, {
+      contactName: companyForm.fullName,
+    })
+    if (namingErr) {
+      setCompanyError(namingErr)
       return
     }
 
@@ -1689,7 +1697,7 @@ const Profile = () => {
                 {companyError && <div className="login-error" role="alert">{companyError}</div>}
                 <div className="prof-form-grid">
                   <div className="prof-form-group">
-                    <label className="prof-form-label">Full Name</label>
+                    <label className="prof-form-label">Contact full name</label>
                     <input
                       className="prof-form-input"
                       value={companyForm.fullName}
@@ -1707,7 +1715,7 @@ const Profile = () => {
                     />
                   </div>
                   <div className="prof-form-group full">
-                    <label className="prof-form-label">Company Name</label>
+                    <label className="prof-form-label">Company legal name</label>
                     <input
                       className="prof-form-input"
                       value={companyForm.companyName}

@@ -3,6 +3,8 @@
  * land on first-class companies columns AND metadata (map + directory sync).
  */
 
+import { publicCompanyDisplayName } from './accountPrivacy'
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 }
@@ -258,7 +260,7 @@ export function sourcingNetworkRowToAccount(row) {
     id: row.id,
     companyId: row.id,
     email,
-    company: String(row.company || '').trim() || String(row.email || '').trim() || 'Company',
+    company: publicCompanyDisplayName({ company: row.company, name: row.company }, 'Company'),
     contactName: row.contact_name || '',
     accountType: String(row.account_type || types[0] || 'seller'),
     accountTypes: types,

@@ -8,6 +8,7 @@ import {
   buildPlatformSourcingPayload,
   serializeSourcingRfqList,
 } from '../utils/intelligentSourcingData'
+import { platformMessageTargetOrigin, isTrustedIframeMessage } from '../utils/platformMessageTrust'
 import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
 
@@ -72,6 +73,7 @@ export function useSourcingFramePlatformSync() {
         account: myAccount,
         buyerIndustries: selectedIndustries || myAccount?.industries || [],
         includeTaxonomy: false,
+        rfqs: buyerRfqs,
       }),
       rfqs: buyerRfqs,
     }),
@@ -101,7 +103,7 @@ export function useSourcingFramePlatformSync() {
     try {
       win.postMessage(
         { source: 'strefex-platform', action: 'set-viewport', width: shellW },
-        '*',
+        platformMessageTargetOrigin(),
       )
     } catch { /* */ }
   }, [iframeRef, live])
@@ -116,7 +118,7 @@ export function useSourcingFramePlatformSync() {
       const json = JSON.stringify(next)
       win.postMessage(
         { source: 'strefex-platform', action: 'apply-platform', payloadJson: json },
-        '*',
+        platformMessageTargetOrigin(),
       )
     }
 
@@ -165,6 +167,7 @@ export function useSourcingFramePlatformSync() {
 
   useEffect(() => {
     const onMsg = (event) => {
+      if (!isTrustedIframeMessage(event, iframeRef.current?.contentWindow)) return
       const data = event?.data
       if (!data || data.source !== 'strefex-intelligent-sourcing') return
       if (data.action === 'ready' || data.action === 'app-ready') {

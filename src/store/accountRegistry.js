@@ -322,7 +322,7 @@ export const useAccountRegistry = create((set, get) => ({
       saveRegistry(next)
     } catch { /* */ }
     publishAccountsToNetworkDirectory(next)
-    registerExistingAccountsOntoSourcingNetwork()
+    registerExistingAccountsOntoSourcingNetwork(next)
     return next.length
   },
 
@@ -366,7 +366,7 @@ export const useAccountRegistry = create((set, get) => ({
       set({ accounts: next })
     }
     publishAccountsToNetworkDirectory(next)
-    const harvested = registerExistingAccountsOntoSourcingNetwork()
+    const harvested = registerExistingAccountsOntoSourcingNetwork(next)
     return harvested.visible || next.length
   },
 
