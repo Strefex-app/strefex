@@ -25,6 +25,7 @@ import {
   TRANSPORT_MODES,
   labelOf,
 } from '../../utils/standardRfqSchema'
+import IdentifiedDataRequestButton from '../IdentifiedDataRequestButton'
 import './BuyerRfqCreateForm.css'
 
 const WIZARD_STEPS = [
@@ -103,8 +104,9 @@ function categoriesForDomain(industryId, domain) {
 function accountToInviteRow(account) {
   return {
     id: account.id || account.email,
-    name: account.company || account.name || account.email || 'Manufacturer',
-    email: account.email || '',
+    companyId: account.companyId || account.company_id || account.id,
+    name: account.company || account.companyName || account.name || 'Manufacturer',
+    email: '',
     city: account.city || '',
     country: account.country || account.cc || '',
     source: 'registered',
@@ -883,9 +885,22 @@ export default function BuyerRfqCreateForm({
                       <span className="stx-rfq-recipient__name stx-text-wrap">{row.name}</span>
                       <span className="stx-rfq-recipient__meta stx-text-wrap">
                         {[row.city, row.country].filter(Boolean).join(' · ')
-                          || row.email
                           || (row.source === 'registered' ? 'Registered account' : 'Network plant')}
                       </span>
+                      {row.source === 'registered' && (row.companyId || row.id) ? (
+                        <span
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          role="presentation"
+                          style={{ display: 'block', marginTop: 6 }}
+                        >
+                          <IdentifiedDataRequestButton
+                            compact
+                            targetCompanyId={row.companyId || row.id}
+                            targetCompanyName={row.name}
+                          />
+                        </span>
+                      ) : null}
                     </span>
                     <span className="stx-rfq-check__mark">{selected ? '✓' : '○'}</span>
                   </button>

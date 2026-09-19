@@ -14,17 +14,18 @@ import '../../pages/ManagementHub.css'
 import '../../styles/auditPro.css'
 
 const TITLES = {
-  '': 'Assignment pool',
+  '': 'Sellers',
+  pool: 'Seller pool',
   dashboard: 'Dashboard',
   'new-audit': 'Create New Audit Plan',
-  conduct: 'Conduct Audit',
+  conduct: 'On-site questionnaire',
   plans: 'Audit Plans',
-  calendar: 'Audit schedule',
+  calendar: 'Schedule visit',
   findings: 'Audits & findings',
   record: 'Company record',
   auditors: 'Auditor database',
   standards: 'Standards & questionnaires',
-  suppliers: 'Supplier Registry',
+  suppliers: 'Sellers',
   'risk-matrix': 'Risk Matrix',
   logs: 'Audit Activity Logs',
   reports: 'Analytics & Reports',
@@ -113,16 +114,18 @@ export default function AuditProLayout() {
           : leaf === 'suppliers' && view === 'records'
             ? 'Year-on-year audit ratings and element scorecards for each supplier.'
             : leaf === 'suppliers'
-              ? 'Approval state, lapse date, and the next visit on the calendar.'
+              ? 'Filter by New, Need action, Audit scheduled, or Audited. Click a seller, pick the standard and date — self-assessment is sent automatically.'
+              : leaf === 'pool'
+                ? 'Moved into Sellers.'
               : leaf === 'calendar' && view === 'findings'
                 ? 'Completed visits, results, and the corrective actions they raised.'
                 : leaf === 'calendar' && view === 'capa'
                   ? 'Corrective actions stay open until evidence is verified — late majors first.'
                   : leaf === 'calendar'
-                    ? 'Initial, surveillance and follow-up visits. Move the date; the rest is generated from registrations, expiry and open findings.'
+                    ? 'Drag a seller from To plan onto a day. The visit lasts as many days as the standard requires, and self-assessment is sent.'
                     : leaf === 'record'
                       ? 'Supplier audit history, scores and related standards.'
-                      : 'Unassigned visits this year. Assign only auditors qualified for the full scope.'
+                      : 'Plan the visit from Sellers or Calendar, then run the on-site questionnaire and upload the closing report.'
   const openRems = openRemindersForNav.length
   const overdue = openRemindersForNav.filter(
     (r) => new Date(r.dueDate) < new Date(new Date().toISOString().slice(0, 10)),

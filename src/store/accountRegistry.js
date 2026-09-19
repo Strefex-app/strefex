@@ -25,6 +25,8 @@ import {
   registerExistingAccountsOntoSourcingNetwork,
 } from '../utils/accountSourcingCompleteness'
 import { mergeSourcingNetworkIntoRegistry, resetSourcingNetworkFetchCache } from '../services/sourcingNetworkService'
+import { applyAccountPrivacyVeil, isPrivilegedPrivacyRole } from '../utils/accountPrivacy'
+import { useIdentifiedDataDisclosureStore } from './identifiedDataDisclosureStore'
 import {
   accountOffersAuditServices,
   isAuditServiceCategoryId,
@@ -686,9 +688,28 @@ export const useAccountRegistry = create((set, get) => ({
   /** Merge DB sourcing-network rows into the local registry (map + RFQ pools). */
   mergeNetworkAccounts: (networkAccounts = []) => {
     const merged = mergeSourcingNetworkIntoRegistry(get().accounts, networkAccounts)
-    saveRegistry(merged)
-    mergeRegistryIndex(merged)
-    set({ accounts: merged })
-    return merged.length
+    let next = merged
+    try {
+      let role = 'user'
+      let viewer = {}
+      try {
+        const parsed = JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+        role = parsed?.role || 'user'
+        viewer = {
+          companyId: parsed?.user?.companyId || parsed?.user?.company_id || parsed?.tenant?.id,
+          email: parsed?.user?.email,
+        }
+      } catch { /* */ }
+      if (!isPrivilegedPrivacyRole(role)) {
+        const grantedCompanyIds = useIdentifiedDataDisclosureStore
+          .getState()
+          .grantedCompanyIdsFor(String(viewer.companyId || ''))
+        next = applyAccountPrivacyVeil(merged, { role, viewer, grantedCompanyIds })
+      }
+    } catch { /* keep merged */ }
+    saveRegistry(next)
+    mergeRegistryIndex(next)
+    set({ accounts: next })
+    return next.length
   },
 }))

@@ -17,6 +17,11 @@ This folder contains cron-ready Supabase Edge Functions:
   - Upserts `seller_growth_invites`.
   - Sends email via **Resend** from `invites@strefex.pro` (configurable).
 
+- `invite-auth-user`
+  - Superadmin / company admin login invites (seller transfer, team).
+  - Uses Auth `generateLink` + **Resend** (does not rely on GoTrue SMTP).
+  - Required for confirmation mail when the admin is already signed in.
+
 ## Required env vars (cron jobs)
 
 - `SUPABASE_URL`
@@ -39,6 +44,7 @@ Deploy:
 ```bash
 supabase db push   # applies 039_seller_growth_invites.sql
 supabase functions deploy send-seller-invite
+supabase functions deploy invite-auth-user
 ```
 
 ## Suggested cron schedule

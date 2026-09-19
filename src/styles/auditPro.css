@@ -2192,6 +2192,71 @@ html[data-theme='dark'] .am-prog-btn--outline .am-prog-btn__icon-wrap {
   color: var(--color-secondary);
 }
 
+.ap-flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.ap-flow-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--text-caption);
+  color: var(--color-muted);
+}
+
+.ap-flow-step.is-on {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
+.ap-flow-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  font-size: var(--text-caption);
+}
+
+.ap-flow-step.is-on .ap-flow-n {
+  border-color: var(--color-primary);
+  background: var(--accent-light);
+}
+
+.ap-sched-drag {
+  cursor: grab;
+}
+
+.ap-sched-cell.is-day {
+  cursor: pointer;
+}
+
+.ap-sched-cell.is-pick {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.ap-sched-plan {
+  margin-bottom: 14px;
+}
+
+.ap-sched-pick-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: var(--text-small);
+  min-width: 0;
+}
+
 .ap-suphub-caption {
   margin: 8px 0 0;
   font-size: var(--text-caption);

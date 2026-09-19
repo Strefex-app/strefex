@@ -1,6 +1,7 @@
 import { mergeAuditorLists } from './auditorRegistry'
 import { applyCompanyAuditCloudToSuppliers, normalizeAuditEmail } from './companyExternalAudit'
 import { buildScheduleEvents } from './auditProgrammeViews'
+import { pickSellerCompanyName, sellerCompanyName } from './auditSellerLabel'
 
 const SELLER_ACCOUNT_TYPES = new Set(['seller', 'service_provider'])
 
@@ -43,6 +44,12 @@ export function mergeSupplierLists(existing, incoming) {
     list[idx] = {
       ...row,
       ...prev,
+      name: pickSellerCompanyName(prev, row),
+      contact: prev.contact || row.contact || '',
+      email: prev.email || row.email,
+      country: prev.country || row.country || '',
+      city: prev.city || row.city || '',
+      industry: prev.industry || row.industry || '',
       platformCompanyId: prev.platformCompanyId || row.platformCompanyId || null,
       platformProfileId: prev.platformProfileId || row.platformProfileId,
       accountDirectoryEntryId: prev.accountDirectoryEntryId || row.accountDirectoryEntryId,
@@ -70,7 +77,7 @@ export function sellersFromCompanyAuditRows(cloudRows = []) {
     })
     .map((row) => ({
       id: `platform_company_${row.id}`,
-      name: row.name || (row.email ? String(row.email).split('@')[0] : 'Seller'),
+      name: sellerCompanyName(row),
       email: normalizeAuditEmail(row.email),
       country: row.country || '',
       industry: row.industry || '',
@@ -83,6 +90,7 @@ export function sellersFromCompanyAuditRows(cloudRows = []) {
         row.external_audit_assigned_auditor_email || row.externalAuditAssignedAuditorEmail || '',
       externalAuditAssignedAuditorName:
         row.external_audit_assigned_auditor_name || row.externalAuditAssignedAuditorName || '',
+      externalAuditNotes: row.external_audit_notes || row.externalAuditNotes || '',
     }))
 }
 

@@ -62,7 +62,7 @@ describe('pageBreadcrumbs', () => {
   it('resolves Auditors directory as its own root', () => {
     const r = resolvePageBreadcrumb('/management/auditors')
     expect(r.root).toEqual(PAGE_ROOTS.auditors)
-    expect(r.trail).toEqual([{ label: 'Assignment pool' }])
+    expect(r.trail).toEqual([{ label: 'Sellers', to: `${PAGE_ROOTS.auditors.to}/suppliers` }])
     const cal = resolvePageBreadcrumb('/management/contracts-compliance/auditors/calendar')
     expect(cal.trail).toEqual([{ label: 'Calendar' }])
     const db = resolvePageBreadcrumb('/management/auditors/auditors')

@@ -9,6 +9,7 @@
  */
 import { supabase, isSupabaseConfigured } from '../config/supabase'
 import { resolveCrudListLimit } from '../utils/crudListLimit'
+import { authEmailRedirectTo, signupAwaitingConfirmation } from '../utils/authEmailRedirect'
 
 /**
  * Cross-tenant and tenant lists default to a finite window.
@@ -19,20 +20,18 @@ import { resolveCrudListLimit } from '../utils/crudListLimit'
    AUTH
    ================================================================ */
 export const supabaseAuth = {
-  _generateInvitePassword() {
-    const bytes = new Uint8Array(12)
-    window.crypto.getRandomValues(bytes)
-    const base = Array.from(bytes, (b) => (b % 36).toString(36)).join('')
-    return `Tmp!${base}9Z`
-  },
 
   /**
    * Sign up with email + password.
    * Creates a Supabase auth user; the DB trigger auto-creates the profile.
+   *
+   * Confirmation mail: do not pass emailRedirectTo. If that URL is not on
+   * Authentication → Redirect URLs, GoTrue creates the user and silently
+   * skips the email. Dashboard "Send confirmation" uses Site URL and works.
+   * After signup we call resend the same way as the dashboard.
    */
   async signUp({ email, password, fullName, phone, metadata = {} }) {
     if (!isSupabaseConfigured) return null
-    const redirectTo = `${window.location.origin}/login?confirmed=true`
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -42,68 +41,53 @@ export const supabaseAuth = {
           phone,
           ...metadata,
         },
-        emailRedirectTo: redirectTo,
       },
     })
     if (error) throw error
+    if (signupAwaitingConfirmation(data)) {
+      await this.resendSignupConfirmation(email).catch((err) => {
+        const msg = String(err?.message || '').toLowerCase()
+        if (msg.includes('rate') || msg.includes('already') || msg.includes('over_email')) return
+        if (import.meta.env.DEV) console.warn('[auth] confirmation email resend:', err?.message || err)
+      })
+    }
     return data
   },
 
   /**
-   * Invite a team user by creating an auth account and triggering
-   * Supabase email confirmation flow. Keeps inviter session intact.
+   * Invite a seller/team login via Edge Function (Resend + generateLink).
+   * Does not call signUp in the admin session — that often skips confirmation mail.
    */
   async inviteTeamUser({ email, fullName, role = 'user', companyId = null, accountType = 'seller' }) {
-    if (!isSupabaseConfigured) return null
+    if (!isSupabaseConfigured || !supabase) return null
 
-    const {
-      data: { session: inviterSession },
-    } = await supabase.auth.getSession()
-    const inviterId = inviterSession?.user?.id || null
-    const redirectTo = `${window.location.origin}/login?confirmed=true`
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: this._generateInvitePassword(),
-      options: {
-        data: {
-          full_name: (fullName || '').trim(),
-          account_type: accountType,
-          company_id: companyId,
-          invited: true,
-          invited_by: inviterId,
-          invited_role: role,
-        },
-        emailRedirectTo: redirectTo,
+    const { data, error } = await supabase.functions.invoke('invite-auth-user', {
+      body: {
+        email,
+        fullName: (fullName || '').trim(),
+        role,
+        companyId,
+        accountType,
       },
     })
 
-    // If user already exists, treat as non-fatal for team invite UX.
     if (error) {
-      const msg = String(error?.message || '').toLowerCase()
-      if (msg.includes('already registered') || msg.includes('already been registered')) {
-        return { alreadyExists: true, user: null }
+      const msg = String(error.message || data?.error || 'Invite email failed')
+      if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+        return { alreadyExists: true, user: null, delivered: false }
       }
-      throw error
+      throw new Error(data?.error || msg)
     }
-
-    // Important: preserve inviter session if signUp switched it.
-    if (
-      inviterSession?.access_token &&
-      inviterSession?.refresh_token &&
-      data?.session?.user?.id &&
-      data.session.user.id !== inviterSession.user?.id
-    ) {
-      await supabase.auth.setSession({
-        access_token: inviterSession.access_token,
-        refresh_token: inviterSession.refresh_token,
-      })
+    if (data && data.ok === false) {
+      throw new Error(data.error || 'Invite email was not delivered')
     }
 
     return {
       user: data?.user || null,
-      emailConfirmationPending: !data?.session,
-      alreadyExists: false,
+      emailConfirmationPending: Boolean(data?.emailConfirmationPending ?? data?.delivered),
+      alreadyExists: Boolean(data?.alreadyExists),
+      delivered: Boolean(data?.delivered),
+      channel: data?.channel || 'resend',
     }
   },
 
@@ -161,20 +145,18 @@ export const supabaseAuth = {
   /** Reset password. */
   async resetPassword(email) {
     if (!isSupabaseConfigured) return null
-    const redirectTo = `${window.location.origin}/reset-password`
+    const redirectTo = authEmailRedirectTo('/reset-password')
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) throw error
     return data
   },
 
-  /** Resend signup confirmation email. */
+  /** Resend signup confirmation email (same as Dashboard → Send confirmation). */
   async resendSignupConfirmation(email) {
     if (!isSupabaseConfigured) return null
-    const redirectTo = `${window.location.origin}/login?confirmed=true`
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: redirectTo },
     })
     if (error) throw error
     return data

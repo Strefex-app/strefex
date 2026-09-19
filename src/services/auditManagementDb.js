@@ -4,6 +4,7 @@
  */
 import { isSupabaseConfigured, supabase } from '../config/supabase'
 import { accountDirectoryEntriesService, profilesService } from './supabaseService'
+import { sellerCompanyName } from '../utils/auditSellerLabel'
 
 export function isLikelyUuid(id) {
   return (
@@ -297,7 +298,7 @@ export function auditDirectoryEntriesFromProfileRows(rows = []) {
     const co = companyFromProfileRow(row)
     const email = String(row.email || co?.email || '').trim().toLowerCase()
     if (!email) continue
-    const { types, company: c, metadata: md } = registeredAccountTypesFromProfileRow(row)
+    const { types, company: c, metadata: md, companyMetadata: coMd } = registeredAccountTypesFromProfileRow(row)
     const isAuditor = types.includes('auditor') || String(row.role || '').toLowerCase().includes('auditor')
     const isSeller = types.includes('seller') || types.includes('service_provider')
 
@@ -336,7 +337,14 @@ export function auditDirectoryEntriesFromProfileRows(rows = []) {
           : []
       suppliers.push({
         id: sid,
-        name: c?.name || md.company_name || email.split('@')[0] || 'Supplier',
+        name: sellerCompanyName({
+          name: c?.name,
+          company_name: md.company_name || coMd.company_name,
+          companyName: md.companyName || coMd.companyName,
+          company: c?.name,
+          email,
+          contact: row.full_name,
+        }),
         country: c?.country || '',
         city: c?.city || '',
         industry: ind.length ? String(ind[0] ?? '') : '',
@@ -422,7 +430,7 @@ export async function fetchAccountDirectoryRowsAsAuditSuppliers(companyId) {
         if (!name && !email) return null
         return {
           id: `account_directory_${e.id}`,
-          name: name || (email ? email.split('@')[0] : 'Contact'),
+          name: sellerCompanyName({ name, email, company_name: name, contact: e.contact_name }),
           country: String(e.country || '').trim(),
           industry: String(e.industry_label || e.industry_hub_id || '').trim(),
           contact: String(e.contact_name || '').trim(),
@@ -480,7 +488,7 @@ export function supplierUniverseRecordToAuditSupplier(record) {
   return {
     id: `supplier_db_${pid}`,
     supplierDbId: pid,
-    name: String(record.name || '').trim() || (email ? email.split('@')[0] : 'Supplier'),
+    name: sellerCompanyName(record),
     country: String(record.country || '').trim(),
     industry: primaryIndustry,
     contact: String(record.contactName || '').trim(),

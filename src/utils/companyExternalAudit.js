@@ -1,3 +1,5 @@
+import { pickSellerCompanyName } from './auditSellerLabel'
+
 export const EXTERNAL_AUDIT_STATUSES = [
   'none',
   'pending',
@@ -8,6 +10,17 @@ export const EXTERNAL_AUDIT_STATUSES = [
 ]
 
 export const AUDITOR_PLAN_STATUSES = ['pending', 'planned', 'confirmed']
+
+export const PRE_ASSESSMENT_ISSUED_MARK = '[pre-assessment issued]'
+export const PRE_ASSESSMENT_RETURN_MARK = '[pre-assessment returned]'
+
+export function notesHavePreAssessmentIssued(notes) {
+  return String(notes || '').includes(PRE_ASSESSMENT_ISSUED_MARK)
+}
+
+export function notesHavePreAssessmentReturn(notes) {
+  return String(notes || '').includes(PRE_ASSESSMENT_RETURN_MARK)
+}
 
 export const EXTERNAL_AUDIT_STATUS_LABELS = {
   none: 'None',
@@ -112,6 +125,9 @@ export function sellerFacingAuditView(company) {
     status: audit.status,
     plannedAt: audit.plannedAt,
     deadlineAt: audit.deadlineAt,
+    notes: audit.notes,
+    preAssessmentIssued: notesHavePreAssessmentIssued(audit.notes),
+    preAssessmentReturned: notesHavePreAssessmentReturn(audit.notes),
     strefexVerified: audit.strefexVerified,
     onsiteAudited: audit.onsiteAudited,
   }
@@ -227,6 +243,7 @@ export function applyCompanyAuditCloudToSuppliers(suppliers, cloudRows) {
     return {
       ...s,
       platformCompanyId: s.platformCompanyId || cloud.id || null,
+      name: pickSellerCompanyName(s, { name: cloud.name, email: s.email || cloud.email }),
       externalAuditStatus: cloud.external_audit_status || s.externalAuditStatus,
       externalAuditPlannedAt: cloud.external_audit_planned_at || s.externalAuditPlannedAt,
       externalAuditDeadlineAt: cloud.external_audit_deadline_at || s.externalAuditDeadlineAt,
@@ -234,6 +251,7 @@ export function applyCompanyAuditCloudToSuppliers(suppliers, cloudRows) {
         cloud.external_audit_assigned_auditor_email || s.externalAuditAssignedAuditorEmail,
       externalAuditAssignedAuditorName:
         cloud.external_audit_assigned_auditor_name || s.externalAuditAssignedAuditorName,
+      externalAuditNotes: cloud.external_audit_notes || cloud.externalAuditNotes || s.externalAuditNotes || '',
     }
   })
 }

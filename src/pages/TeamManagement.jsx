@@ -166,10 +166,10 @@ export default function TeamManagement() {
           companyId: businessAccount.id,
           accountType,
         })
-        if (inviteResult?.alreadyExists) {
+        if (inviteResult?.alreadyExists && !inviteResult?.delivered) {
           setSuccess(`Added ${email} to team. Account already exists, so no new confirmation email was sent.`)
         } else {
-          setSuccess(`Invitation sent to ${email}. They must confirm email before first login.`)
+          setSuccess(`Invitation emailed to ${email} from STREFEX. They must open the link before first login.`)
         }
       } else {
         // Fallback API invitation endpoint for non-Supabase deployments.

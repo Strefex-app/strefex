@@ -258,7 +258,8 @@ describe('accountSourcingCompleteness', () => {
       },
     ])
     const dir = loadNetworkManufacturers()
-    expect(dir.some((r) => r.email === 'plant@maker.de')).toBe(true)
+    expect(dir.some((r) => r.id === 'm1' && r.company === 'Maker GmbH')).toBe(true)
+    expect(dir.some((r) => r.email === 'plant@maker.de')).toBe(false)
     const merged = mergeNetworkManufacturersWithAccounts([])
     expect(merged.some((r) => r.company === 'Maker GmbH')).toBe(true)
   })

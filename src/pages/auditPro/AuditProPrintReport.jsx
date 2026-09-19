@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import useAuditProStore from '../../store/auditProStore'
 import { Btn, getQuestionnaire, getTotalQuestions } from './auditProUi'
+import { uploadClosingReport } from './auditJourneyActions'
 import AuditProOfficialReport from './auditProOfficialReport'
 import { AuditProCertificateDocument, AuditProClosingDocument, AuditProChecklistDocument } from './AuditProPrintDocuments'
 import { flattenQuestionnaireRows, questionnaireFormCode, questionnairePrintSheets } from '../../utils/auditStandardsCatalogue'
@@ -25,6 +26,7 @@ export default function AuditProPrintReport() {
   const isAuditor = useAuthStore((s) => s.isAuditor)
   const canUse = isSuperAdmin() || isAuditor()
   const doc = searchParams.get('doc') || 'checklist'
+  const [uploading, setUploading] = useState(false)
 
   const ensureSeed = useAuditProStore((s) => s.ensureSeed)
   const audits = useAuditProStore((s) => s.audits)
@@ -88,6 +90,26 @@ export default function AuditProPrintReport() {
     <div className="ap-root ap-scrollbar ap-print-page-root">
       <div className="ap-print-toolbar ap-pdf-exclude no-print">
         <Btn onClick={() => window.print()}>Print / save PDF</Btn>
+        {doc === 'closing' ? (
+          <label className="app-page-btn-primary ap-btn ap-btn-primary">
+            {uploading ? 'Uploading…' : 'Upload signed closing report'}
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              hidden
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (!file) return
+                setUploading(true)
+                void uploadClosingReport({ audit, supplier, auditor, file })
+                  .then(() => navigate('/management/auditors/suppliers'))
+                  .finally(() => setUploading(false))
+              }}
+            />
+          </label>
+        ) : null}
         <Btn onClick={() => navigate(`/management/auditors/suppliers?view=${doc === 'certificate' ? 'certs' : doc === 'closing' ? 'records' : 'register'}`)} variant="secondary">
           Close
         </Btn>

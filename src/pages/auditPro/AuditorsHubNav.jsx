@@ -3,9 +3,8 @@ import { AUDITORS_DIRECTORY_PATH, auditorsHubLeaf } from '../../utils/auditorsDi
 import { useAuditorsHubNav } from './auditorsHubNavContext'
 
 const NAV = [
-  { to: AUDITORS_DIRECTORY_PATH, label: 'Pool', end: true },
+  { to: `${AUDITORS_DIRECTORY_PATH}/suppliers`, label: 'Sellers' },
   { to: `${AUDITORS_DIRECTORY_PATH}/calendar`, label: 'Calendar', badgeReminders: true },
-  { to: `${AUDITORS_DIRECTORY_PATH}/suppliers`, label: 'Suppliers' },
   { to: `${AUDITORS_DIRECTORY_PATH}/auditors`, label: 'Auditors' },
   { to: `${AUDITORS_DIRECTORY_PATH}/standards`, label: 'Standards' },
 ]
@@ -28,10 +27,10 @@ export default function AuditorsHubNav() {
           <NavLink
             key={n.to}
             to={n.to}
-            end={n.end === true}
+            end={n.label === 'Sellers'}
             className={({ isActive }) => {
               const onGroup = (n.label === 'Calendar' && ['calendar', 'findings'].includes(leaf))
-                || (n.label === 'Suppliers' && (leaf === 'suppliers' || leaf === 'record'))
+                || (n.label === 'Sellers' && (leaf === 'suppliers' || leaf === 'record' || leaf === 'pool' || leaf === ''))
               return `app-page-btn-outline ap-nav-pill stx-click-feedback${isActive || onGroup ? ' ap-nav-pill-active' : ''}`
             }}
           >

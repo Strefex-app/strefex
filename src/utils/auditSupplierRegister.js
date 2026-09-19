@@ -1,5 +1,6 @@
 import { sellerSiteCode } from './auditorsAssignmentPool'
 import { formatAuditDateLabel, toAuditDateInput } from './companyExternalAudit'
+import { sellerCompanyName } from './auditSellerLabel'
 import {
   addDaysIso,
   auditKindLabel,
@@ -141,7 +142,8 @@ export function buildRegisterRows({ suppliers = [], audits = [], todayIso, langu
       id: supplier.id,
       supplier,
       code: sellerSiteCode(supplier),
-      name: supplier.name,
+      name: sellerCompanyName(supplier),
+      email: supplier.email || '',
       site: [supplier.country, supplier.city].filter(Boolean).join(' · '),
       industry: supplier.industry || '—',
       process: processLabel(supplier),
@@ -192,7 +194,7 @@ export function buildSelfAssessmentPipeline({ audits = [], suppliers = [], today
         id: audit.id,
         audit,
         supplier,
-        supplierName: supplier?.name || audit.title || 'Unnamed seller',
+        supplierName: supplier ? sellerCompanyName(supplier) : (audit.title || 'Unnamed seller'),
         code: sellerSiteCode(supplier || { id: audit.supplierId }),
         site: [supplier?.country, supplier?.city].filter(Boolean).join(' · '),
         reason,
@@ -252,7 +254,7 @@ export function buildSelfAssessmentTracker({ suppliers = [], audits = [], todayI
       supplier,
       audit,
       code: sellerSiteCode(supplier),
-      name: supplier.name,
+      name: sellerCompanyName(supplier),
       site: [supplier.country, supplier.city].filter(Boolean).join(' · '),
       issued: windows.issueBy || '',
       dueBack: windows.dueBack || '',
@@ -291,7 +293,7 @@ export function buildStrefexCertificates({ suppliers = [], audits = [], todayIso
         audit,
         supplier,
         certNo: certificateNumber(audit),
-        supplierName: supplier?.name || audit.title,
+        supplierName: supplier ? sellerCompanyName(supplier) : audit.title,
         scope: audit.scope || `${supplier?.industry || 'Supplier'} · ${supplier?.city || supplier?.country || 'site'}`,
         issued,
         validTo,
@@ -345,7 +347,7 @@ export function buildCompanyScorecards({ suppliers = [], audits = [], auditors =
       id: supplier.id,
       supplier,
       code: sellerSiteCode(supplier),
-      name: supplier.name,
+      name: sellerCompanyName(supplier),
       site: [supplier.country, supplier.city].filter(Boolean).join(' · '),
       latest,
       result,

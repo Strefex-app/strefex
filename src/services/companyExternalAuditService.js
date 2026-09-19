@@ -8,9 +8,11 @@ import {
   companyAuditPatch,
   isCompanyUuid,
   normalizeAuditEmail,
+  PRE_ASSESSMENT_RETURN_MARK,
   registryAuditPatch,
   validateAuditSchedule,
 } from '../utils/companyExternalAudit'
+import { sellerCompanyName } from '../utils/auditSellerLabel'
 
 async function resolveSellerCompanyId(companyId, sellerEmail) {
   if (isCompanyUuid(companyId)) return companyId
@@ -178,7 +180,12 @@ export async function listCompanyExternalAudits() {
   return (data || []).map((c) => ({
     id: c.id,
     email: normalizeAuditEmail(c.email),
-    name: c.name,
+    name: sellerCompanyName({
+      name: c.name,
+      company_name: c.metadata?.company_name,
+      companyName: c.metadata?.companyName,
+      email: c.email,
+    }),
     accountType: c.account_type,
     ...companyAuditPatch({
       status: c.external_audit_status,
@@ -192,4 +199,50 @@ export async function listCompanyExternalAudits() {
       completeOnsite: c.onsite_audit_completed,
     }),
   }))
+}
+
+export async function submitSellerPreAssessmentReturn({ notes, fileName } = {}) {
+  const tenant = useAuthStore.getState()?.tenant
+  const user = useAuthStore.getState()?.user
+  const body = [
+    PRE_ASSESSMENT_RETURN_MARK,
+    new Date().toISOString().slice(0, 10),
+    String(notes || '').trim(),
+    fileName ? `File: ${fileName}` : '',
+  ].filter(Boolean).join('\n')
+
+  let company = null
+  if (isSupabaseConfigured && supabase && isCompanyUuid(tenant?.id)) {
+    const { data, error } = await supabase.rpc('submit_seller_pre_assessment', { p_notes: body })
+    if (error) throw error
+    company = Array.isArray(data) ? data[0] : data
+  }
+
+  const email = normalizeAuditEmail(user?.email || tenant?.email)
+  persistRegistryByEmail(email, {
+    ...registryAuditPatch({
+      status: tenant?.external_audit_status || tenant?.externalAuditStatus || 'pending',
+      notes: body,
+      plannedAt: tenant?.external_audit_planned_at || tenant?.externalAuditPlannedAt,
+      deadlineAt: tenant?.external_audit_deadline_at || tenant?.externalAuditDeadlineAt,
+      auditorEmail: tenant?.external_audit_assigned_auditor_email || tenant?.externalAuditAssignedAuditorEmail,
+      auditorName: tenant?.external_audit_assigned_auditor_name || tenant?.externalAuditAssignedAuditorName,
+    }),
+    company: tenant?.name || user?.companyName,
+  })
+
+  const auditor = normalizeAuditEmail(
+    tenant?.external_audit_assigned_auditor_email || tenant?.externalAuditAssignedAuditorEmail,
+  )
+  if (auditor) {
+    useServiceRequestStore.getState().pushGlobalPlatformNotification?.({
+      targetEmail: auditor,
+      title: 'Pre-assessment returned',
+      message: `${tenant?.name || 'A seller'} returned the pre-assessment checklist.`,
+      type: 'audit_pre_assessment_return',
+      companyId: tenant?.id,
+    })
+  }
+
+  return company || { external_audit_notes: body }
 }

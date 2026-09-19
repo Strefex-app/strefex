@@ -173,13 +173,12 @@ describe('audit program database connection', () => {
       external_audit_planned_at: '2026-11-01',
       external_audit_assigned_auditor_email: 'haas@audit.test',
     }])
-    const merged = mergeSupplierLists([], incoming)
+    const merged = mergeSupplierLists([
+      { id: 's1', email: 'qa@nordic.test', name: 'qa@nordic.test' },
+    ], incoming)
     expect(merged).toHaveLength(1)
-    expect(merged[0]).toMatchObject({
-      id: `platform_company_${SELLER_COMPANY_ID}`,
-      platformCompanyId: SELLER_COMPANY_ID,
-      email: 'qa@nordic.test',
-    })
+    expect(merged[0].name).toBe('Nordic Steel')
+    expect(merged[0].email).toBe('qa@nordic.test')
   })
 
   it('does not drop a local unsynced seller when the server directory is empty', () => {
@@ -199,7 +198,7 @@ describe('audit program database connection', () => {
         metadata: { account_types: ['seller'], company_name: 'Hanoi Electronics Assembly' },
         companies: {
           id: SELLER_COMPANY_ID,
-          name: 'Hanoi Electronics Assembly',
+          name: 'plant@hanoi.test',
           account_type: 'buyer',
           country: 'Vietnam',
           city: 'Hanoi',

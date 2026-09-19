@@ -27,8 +27,10 @@ import {
   auditStatusLabel,
   companyTrustBadges,
   formatAuditDateLabel,
+  PRE_ASSESSMENT_RETURN_MARK,
   sellerFacingAuditView,
 } from '../utils/companyExternalAudit'
+import { submitSellerPreAssessmentReturn } from '../services/companyExternalAuditService'
 import { buildCompanyTaxonomyWrite, checklistFromIndustryMaps, commitIndustryChecklist } from '../utils/companyTaxonomyPayload'
 import PlatformRecognitionSection from '../components/PlatformRecognitionSection'
 import ProfilePlatformRegistries from '../components/profile/ProfilePlatformRegistries'
@@ -50,6 +52,7 @@ import {
   rotateBlobQuarterTurnsCw,
 } from '../utils/ocrImageNormalize'
 import ProfilePasswordCard from '../components/profile/ProfilePasswordCard'
+import IdentifiedDataInbox from '../components/IdentifiedDataInbox'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
 import CompanyPackCarousel from '../components/CompanyPackCarousel'
 import { COMPANY_PACK_SLOT_IDS } from '../utils/companyProfilePack'
@@ -578,6 +581,9 @@ const Profile = () => {
   const [showEditCompany, setShowEditCompany] = useState(false)
   const [savingCompany, setSavingCompany] = useState(false)
   const [companyError, setCompanyError] = useState('')
+  const [preReturnNotes, setPreReturnNotes] = useState('')
+  const [preReturnBusy, setPreReturnBusy] = useState(false)
+  const [preReturnMsg, setPreReturnMsg] = useState('')
   const [companyForm, setCompanyForm] = useState({
     fullName: '',
     phone: '',
@@ -1398,6 +1404,50 @@ const Profile = () => {
                   <p className="prof-dir-hint">
                     STREFEX plans the visit. The auditor’s identity is not shared. You receive an alert when a date is set.
                   </p>
+                  {sellerAudit.preAssessmentIssued && !sellerAudit.preAssessmentReturned && !sellerAudit.onsiteAudited ? (
+                    <form
+                      className="prof-pre-return"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        setPreReturnBusy(true)
+                        setPreReturnMsg('')
+                        const file = e.currentTarget.elements.namedItem('preFile')?.files?.[0]
+                        void submitSellerPreAssessmentReturn({ notes: preReturnNotes, fileName: file?.name })
+                          .then((row) => {
+                            setTenant({
+                              ...(tenant || {}),
+                              external_audit_notes: row?.external_audit_notes || `${PRE_ASSESSMENT_RETURN_MARK}\n${preReturnNotes}`,
+                            })
+                            setPreReturnMsg('Pre-assessment returned to STREFEX.')
+                          })
+                          .catch(() => {
+                            setTenant({
+                              ...(tenant || {}),
+                              external_audit_notes: `${PRE_ASSESSMENT_RETURN_MARK}\n${preReturnNotes}`,
+                            })
+                            setPreReturnMsg('Saved on this device. The auditor will see it after the next sync.')
+                          })
+                          .finally(() => setPreReturnBusy(false))
+                      }}
+                    >
+                      <label className="prof-dir-hint" htmlFor="pre-return-notes">Your answers / comments for the pre-assessment</label>
+                      <textarea
+                        id="pre-return-notes"
+                        className="prof-pre-return-notes"
+                        rows={4}
+                        value={preReturnNotes}
+                        onChange={(ev) => setPreReturnNotes(ev.target.value)}
+                      />
+                      <input name="preFile" type="file" accept="application/pdf,image/*" />
+                      <button type="submit" className="prof-action-btn" disabled={preReturnBusy} style={{ marginTop: 8 }}>
+                        {preReturnBusy ? 'Sending…' : 'Return pre-assessment'}
+                      </button>
+                      {preReturnMsg ? <p className="prof-dir-hint">{preReturnMsg}</p> : null}
+                    </form>
+                  ) : null}
+                  {sellerAudit.preAssessmentReturned ? (
+                    <p className="prof-dir-hint">Pre-assessment returned. The auditor can now schedule the visit.</p>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -1433,6 +1483,8 @@ const Profile = () => {
         </div>
 
         <ProfilePasswordCard />
+
+        <IdentifiedDataInbox />
 
         {/* ── Company & Plan Information Widget ──────────────── */}
         <div className="prof-card prof-company-card">

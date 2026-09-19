@@ -496,9 +496,9 @@ export default function AuditProConduct() {
   const handleComplete = () => {
     const done = completeAudit(conduct.id, auditor?.name || 'Auditor')
     if (done) {
-      showToast(`Audit complete! Next step scheduled.`)
+      showToast('Questionnaire complete. Upload the signed closing report to grant On-site audited.')
       notifyWorkspaceKeyDirty('audit_pro', true)
-      navigate('/management/auditors/plans')
+      navigate(`/management/auditors/print/${conduct.id}?doc=closing`)
     }
   }
 

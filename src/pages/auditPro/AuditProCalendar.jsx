@@ -11,6 +11,9 @@ import { useAuthStore } from '../../store/authStore'
 import { sellerCategoryLabel, AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
 import { utcTodayIso } from '../../utils/auditorsAssignmentPool'
 import { formatAuditDateLabel } from '../../utils/companyExternalAudit'
+import { sellerCompanyName } from '../../utils/auditSellerLabel'
+import { sellersWaitingToPlan } from '../../utils/auditJourney'
+import { planSellerAudit } from './auditJourneyActions'
 import { Btn } from './auditProUi'
 import {
   buildCapaRows,
@@ -77,7 +80,7 @@ function ProgrammeTabs({ view, capaCount, onChange }) {
   )
 }
 
-function CalendarBoard({ events, month, year, onPrev, onNext, onOpen }) {
+function CalendarBoard({ events, month, year, onPrev, onNext, onOpen, onPickDay, selectedIso, onDropSeller }) {
   const first = new Date(year, month, 1)
   const dim = new Date(year, month + 1, 0).getDate()
   const mondayPad = (first.getDay() + 6) % 7
@@ -109,15 +112,26 @@ function CalendarBoard({ events, month, year, onPrev, onNext, onOpen }) {
             : ''
           const dayEvents = day ? events.filter((e) => e.date === iso) : []
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+          const isPick = iso && iso === selectedIso
           return (
-            <div key={i} className={`ap-sched-cell${isToday ? ' is-today' : ''}`}>
+            <div
+              key={i}
+              className={`ap-sched-cell${isToday ? ' is-today' : ''}${isPick ? ' is-pick' : ''}${day ? ' is-day' : ''}`}
+              onClick={() => { if (iso) onPickDay?.(iso) }}
+              onDragOver={iso ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' } : undefined}
+              onDrop={iso ? (e) => {
+                e.preventDefault()
+                const sellerId = e.dataTransfer.getData('text/seller-id')
+                if (sellerId) onDropSeller?.(iso, sellerId)
+              } : undefined}
+            >
               {day ? <div className="ap-sched-daynum">{day}</div> : null}
               {dayEvents.slice(0, 3).map((ev) => (
                 <button
                   key={ev.id}
                   type="button"
                   className={`ap-sched-chip ap-sched-chip--${ev.type}`}
-                  onClick={() => onOpen(ev)}
+                  onClick={(e) => { e.stopPropagation(); onOpen(ev) }}
                 >
                   {ev.label}
                 </button>
@@ -302,6 +316,8 @@ export default function AuditProCalendar() {
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
   const [capaFilter, setCapaFilter] = useState('open')
+  const [pickIso, setPickIso] = useState('')
+  const [schedBusy, setSchedBusy] = useState(false)
 
   const industry = searchParams.get('industry') || ''
   const scopedAudits = useMemo(() => {
@@ -331,6 +347,15 @@ export default function AuditProCalendar() {
   )
   const capaCounts = capaKpis(capaAll)
 
+  const waitingToPlan = useMemo(
+    () => sellersWaitingToPlan(suppliers, audits),
+    [suppliers, audits],
+  )
+  const selfAuditor = useMemo(
+    () => (auditors || []).find((a) => String(a.email || '').toLowerCase() === authEmail) || auditors?.[0] || null,
+    [auditors, authEmail],
+  )
+
   const setView = (next) => {
     const nextParams = new URLSearchParams(searchParams)
     if (next === 'calendar') nextParams.delete('view')
@@ -352,6 +377,22 @@ export default function AuditProCalendar() {
       return
     }
     if (ev.auditId) navigate(`${AUDITORS_DIRECTORY_ALIAS}/conduct/${encodeURIComponent(ev.auditId)}`)
+  }
+
+  const pickDay = (iso) => {
+    setPickIso(iso)
+  }
+
+  const dropSellerOnDay = async (iso, sellerId) => {
+    const seller = (suppliers || []).find((s) => s.id === sellerId)
+    if (!seller || !iso || !selfAuditor) return
+    setSchedBusy(true)
+    try {
+      await planSellerAudit({ supplier: seller, date: iso, auditor: selfAuditor })
+      setPickIso(iso)
+    } finally {
+      setSchedBusy(false)
+    }
   }
 
   return (
@@ -391,9 +432,37 @@ export default function AuditProCalendar() {
                 else setMonth((m) => m + 1)
               }}
               onOpen={openEvent}
+              onPickDay={pickDay}
+              selectedIso={pickIso}
+              onDropSeller={dropSellerOnDay}
             />
             <aside className="ap-sched-side">
-              <div className="ap-capacity-kicker">Next 8 commitments</div>
+              <div className="ap-capacity-kicker">To plan · drag onto a day</div>
+              {waitingToPlan.length === 0 ? (
+                <p className="ap-dir-empty">Every seller has a visit date. New and Need action rows appear here.</p>
+              ) : waitingToPlan.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="ap-commit ap-sched-drag"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/seller-id', s.id)
+                    e.dataTransfer.effectAllowed = 'copy'
+                  }}
+                  onClick={() => {
+                    if (pickIso && selfAuditor) void dropSellerOnDay(pickIso, s.id)
+                  }}
+                >
+                  <div className="ap-pool-seller stx-text-wrap">{sellerCompanyName(s)}</div>
+                  <div className="ap-pool-sub stx-text-wrap">{s.email || s.industry || '—'}</div>
+                </button>
+              ))}
+              {pickIso ? (
+                <p className="ap-dir-empty">Selected day {formatAuditDateLabel(pickIso)}. Drop a seller here or click one in the list.</p>
+              ) : null}
+              {schedBusy ? <p className="ap-dir-empty">Planning…</p> : null}
+              <div className="ap-capacity-kicker">Upcoming audits</div>
               {upcoming.length === 0 ? (
                 <p className="ap-dir-empty">No upcoming visit dates.</p>
               ) : upcoming.map((ev) => (

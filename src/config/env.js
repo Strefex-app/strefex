@@ -10,6 +10,7 @@ const env = {
   /* ── Supabase ─────────────────────────────────────────── */
   SUPABASE_URL:      import.meta.env.VITE_SUPABASE_URL      || '',
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  APP_ORIGIN:        String(import.meta.env.VITE_APP_ORIGIN || '').trim(),
 
   /* ── Firebase ─────────────────────────────────────────── */
   FIREBASE_API_KEY:              import.meta.env.VITE_FIREBASE_API_KEY             || '',

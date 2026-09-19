@@ -72,9 +72,9 @@ export async function fetchSourcingNetworkAccounts({ limit = 500, force = false 
 export function mergeSourcingNetworkIntoRegistry(localAccounts = [], networkAccounts = []) {
   const byKey = new Map()
   const keyOf = (a) => {
-    const email = String(a?.email || '').toLowerCase()
-    if (email) return `e:${email}`
     if (a?.id) return `i:${a.id}`
+    const email = String(a?.email || '').toLowerCase()
+    if (email && email.includes('@') && !email.includes('•')) return `e:${email}`
     return ''
   }
   ;(Array.isArray(localAccounts) ? localAccounts : []).forEach((a) => {

@@ -512,12 +512,12 @@ const useAuditProStore = create(
               companyId: sup.platformCompanyId || null,
               sellerEmail: sup.email,
               sellerName: sup.name,
-              status: 'passed',
+              status: 'confirmed',
               plannedAt: audit.plannedDate,
               deadlineAt: audit.deadlineDate,
               auditorEmail: lead?.email || '',
               auditorName: lead?.name || auditorName,
-              completeOnsite: true,
+              completeOnsite: false,
               notify: true,
             }).catch(() => {})
           })

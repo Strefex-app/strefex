@@ -2,6 +2,7 @@ import { getQuestionnaire, getQuestionnaireVerdictPreset, VERDICT_PRESET_SUPPLIE
 import { AUDITORS_DIRECTORY_ALIAS } from './auditorsDirectory'
 import { sellerSiteCode } from './auditorsAssignmentPool'
 import { toAuditDateInput } from './companyExternalAudit'
+import { sellerCompanyName, auditDaysForStandard } from './auditSellerLabel'
 
 export const PROGRAMME_VIEWS = ['calendar', 'findings', 'capa']
 
@@ -138,7 +139,7 @@ export function buildScheduleEvents({ audits = [], suppliers = [], auditors = []
     const auditor = audById.get(audit.auditorId) || audById.get(audit.secondaryAuditorId)
     const auditorBit = auditor?.name ? ` · ${auditor.name}` : ''
     const kind = auditKindLabel(audit)
-    const name = supplier?.name || audit.title || 'Seller'
+    const name = supplier ? sellerCompanyName(supplier) : (audit.title || 'Seller')
     if (audit.status === 'Completed' && toAuditDateInput(audit.completedDate || audit.plannedDate)) {
       events.push({
         id: `done:${audit.id}`,
@@ -154,17 +155,21 @@ export function buildScheduleEvents({ audits = [], suppliers = [], auditors = []
     }
     const planned = toAuditDateInput(audit.plannedDate)
     if (planned && audit.status !== 'Completed' && audit.status !== 'Cancelled') {
-      events.push({
-        id: `plan:${audit.id}`,
-        date: planned,
-        type: 'planned',
-        label: name,
-        detail: `${kind} audit planned${auditorBit}${audit.scope ? ` · ${String(audit.scope).slice(0, 48)}` : ''}`,
-        auditId: audit.id,
-        supplierId: audit.supplierId,
-        auditorId: audit.auditorId || '',
-        statusLabel: 'PLANNED',
-      })
+      const span = Math.max(1, Number(audit.auditDays) || auditDaysForStandard(audit.standard))
+      for (let i = 0; i < span; i += 1) {
+        const day = addDaysIso(planned, i) || planned
+        events.push({
+          id: `plan:${audit.id}:${i}`,
+          date: day,
+          type: 'planned',
+          label: i === 0 ? `${name} · ${span}d` : name,
+          detail: `${audit.standard || kind} · ${span} day visit${auditorBit}`,
+          auditId: audit.id,
+          supplierId: audit.supplierId,
+          auditorId: audit.auditorId || '',
+          statusLabel: 'PLANNED',
+        })
+      }
       const answered = Object.values(audit.responses || {}).some((r) => r?.verdict)
       if (!answered) {
         const qDue = addDaysIso(planned, -21) || planned

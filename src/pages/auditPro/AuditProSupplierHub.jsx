@@ -1,8 +1,23 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 import { AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
-import { formatAuditDateLabel } from '../../utils/companyExternalAudit'
+import { formatAuditDateLabel, normalizeAuditEmail } from '../../utils/companyExternalAudit'
 import { utcTodayIso } from '../../utils/auditorsAssignmentPool'
+import { sellerCompanyName, auditDaysForStandard, defaultSellerStandard } from '../../utils/auditSellerLabel'
+import { STANDARD_MODULES } from '../../data/auditIndustryStandards'
+import {
+  JOURNEY_STEPS,
+  SELLER_BOARD,
+  journeyStage,
+  journeyStepIndex,
+  openAuditForSeller,
+  sellerBoardStatus,
+} from '../../utils/auditJourney'
+import {
+  planSellerAudit,
+  uploadClosingReport,
+} from './auditJourneyActions'
 import {
   buildCompanyScorecards,
   buildRegisterRows,
@@ -10,7 +25,6 @@ import {
   buildSelfAssessmentTracker,
   buildStrefexCertificates,
   filterPipeline,
-  filterRegisterByQueryAndStatus,
   pipelineCounts,
   trackerKpis,
 } from '../../utils/auditSupplierRegister'
@@ -31,16 +45,14 @@ function HubBtn({ children, filled, onClick, ...rest }) {
 function statusClass(key) {
   if (key === 'approved' || key === 'returned' || key === 'valid') return 'ap-result ap-result--approved'
   if (key === 'conditional' || key === 'expiring' || key === 'reaudit') return 'ap-result ap-result--conditional'
-  if (key === 'action' || key === 'overdue' || key === 'expired' || key === 'rejected') return 'ap-result ap-result--rejected'
-  if (key === 'scheduled' || key === 'issued' || key === 'planned') return 'ap-result ap-result--issued'
+  if (key === 'action' || key === 'overdue' || key === 'expired' || key === 'rejected' || key === 'new') return 'ap-result ap-result--rejected'
+  if (key === 'scheduled' || key === 'issued' || key === 'planned' || key === 'pre') return 'ap-result ap-result--issued'
   return 'ap-result ap-result--planned'
 }
 
 const REGISTER_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'approved', label: 'Approved' },
-  { id: 'conditional', label: 'Conditional' },
-  { id: 'action', label: 'Needs action' },
+  ...SELLER_BOARD,
 ]
 
 export default function AuditProSupplierHub({
@@ -62,15 +74,37 @@ export default function AuditProSupplierHub({
   const [regFilter, setRegFilter] = useState('all')
   const [pipeFilter, setPipeFilter] = useState('all')
   const [selectedAuditId, setSelectedAuditId] = useState('')
+  const [pickedId, setPickedId] = useState('')
+  const [visitDate, setVisitDate] = useState('')
+  const [standardPick, setStandardPick] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [flowMsg, setFlowMsg] = useState('')
+  const authEmail = useAuthStore((s) => String(s.user?.email || '').toLowerCase())
 
   const registerRows = useMemo(
     () => buildRegisterRows({ suppliers, audits, todayIso, language }),
     [suppliers, audits, todayIso, language],
   )
-  const shownRegister = useMemo(
-    () => filterRegisterByQueryAndStatus(registerRows, query, regFilter),
-    [registerRows, query, regFilter],
+  const boardRows = useMemo(
+    () => registerRows.map((row) => {
+      const audit = openAuditForSeller(audits, row.id)
+      return { ...row, audit, board: sellerBoardStatus(audit, row.supplier) }
+    }),
+    [registerRows, audits],
   )
+  const shownRegister = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return boardRows.filter((row) => {
+      if (regFilter !== 'all' && row.board.id !== regFilter) return false
+      if (!q) return true
+      return [row.name, row.email, row.code, row.site, row.industry].join(' ').toLowerCase().includes(q)
+    })
+  }, [boardRows, query, regFilter])
+  const boardCounts = useMemo(() => {
+    const c = { all: boardRows.length }
+    SELLER_BOARD.forEach((b) => { c[b.id] = boardRows.filter((r) => r.board.id === b.id).length })
+    return c
+  }, [boardRows])
   const pipeline = useMemo(
     () => buildSelfAssessmentPipeline({ audits, suppliers, todayIso, language }),
     [audits, suppliers, todayIso, language],
@@ -114,8 +148,46 @@ export default function AuditProSupplierHub({
   const printClosing = (auditId) => navigate(`${AUDITORS_DIRECTORY_ALIAS}/print/${encodeURIComponent(auditId)}?doc=closing`)
   const printCert = (auditId) => navigate(`${AUDITORS_DIRECTORY_ALIAS}/print/${encodeURIComponent(auditId)}?doc=certificate`)
 
+  const picked = (suppliers || []).find((s) => s.id === pickedId) || null
+  const pickedAudit = picked ? openAuditForSeller(audits, picked.id) : null
+  const pickedStage = journeyStage(pickedAudit, picked)
+  const pickedBoard = sellerBoardStatus(pickedAudit, picked)
+  const selfAuditor = (auditors || []).find((a) => normalizeAuditEmail(a.email) === authEmail) || null
+  const lead = (auditors || []).find((a) => a.id === pickedAudit?.auditorId) || selfAuditor
+  const standardOptions = STANDARD_MODULES.map((m) => m.name)
+  const activeStandard = standardPick || pickedAudit?.standard || defaultSellerStandard(picked || {})
+  const visitDays = auditDaysForStandard(activeStandard)
+
+  const run = async (fn, ok) => {
+    setBusy(true)
+    setFlowMsg('')
+    try {
+      await fn()
+      setFlowMsg(ok)
+    } catch (err) {
+      setFlowMsg(err?.message || 'Could not save that step.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="ap-suphub">
+      <ol className="ap-flow-steps" aria-label="Audit path">
+        {JOURNEY_STEPS.map((step) => (
+          <li
+            key={step.id}
+            className={`ap-flow-step${picked && journeyStepIndex(pickedStage.id) >= journeyStepIndex(step.id) ? ' is-on' : ''}`}
+          >
+            <span className="ap-flow-n">{step.n}</span>
+            {step.label}
+          </li>
+        ))}
+      </ol>
+      <p className="ap-suphub-panel-copy stx-text-wrap">
+        Click a New or Need action seller, pick the standard and visit date, then plan. Self-assessment goes out automatically. Drag unplanned sellers onto Calendar if you prefer.
+      </p>
+
       <div className="ap-suphub-tabs" role="tablist">
         {tabs.map((tab) => (
           <button
@@ -142,7 +214,7 @@ export default function AuditProSupplierHub({
               placeholder="Search supplier, country or code"
               aria-label="Search supplier register"
             />
-            <div className="ap-suphub-filters" role="group" aria-label="Approval filter">
+            <div className="ap-suphub-filters" role="group" aria-label="Seller status">
               {REGISTER_FILTERS.map((f) => (
                 <button
                   key={f.id}
@@ -150,7 +222,7 @@ export default function AuditProSupplierHub({
                   className={`ap-suphub-chip${regFilter === f.id ? ' is-on' : ''}`}
                   onClick={() => setRegFilter(f.id)}
                 >
-                  {f.label}
+                  {f.label}{boardCounts[f.id] != null ? ` · ${boardCounts[f.id]}` : ''}
                 </button>
               ))}
             </div>
@@ -160,48 +232,117 @@ export default function AuditProSupplierHub({
             <table className="ap-suphub-table">
               <thead>
                 <tr>
-                  <th>Code</th>
                   <th>Supplier</th>
-                  <th>Industry / process</th>
-                  <th>Registered</th>
+                  <th>Industry</th>
                   <th>Status</th>
-                  <th>Self-assessment</th>
-                  <th>Score</th>
-                  <th>Approval until</th>
-                  {superadminRole ? <th>Workspace</th> : null}
+                  <th>Visit</th>
+                  <th>Standard</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {shownRegister.length === 0 ? (
-                  <tr><td colSpan={superadminRole ? 10 : 9} className="ap-pool-empty">No suppliers match this filter.</td></tr>
+                  <tr><td colSpan={6} className="ap-pool-empty">No sellers in this status.</td></tr>
                 ) : shownRegister.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.code}</td>
+                  <tr
+                    key={row.id}
+                    className={pickedId === row.id ? 'is-selected' : ''}
+                    onClick={() => {
+                      setPickedId(row.id)
+                      setStandardPick(row.audit?.standard || defaultSellerStandard(row.supplier))
+                      setVisitDate(row.audit?.plannedDate || '')
+                    }}
+                  >
                     <td>
                       <div className="ap-pool-seller stx-text-wrap">{row.name}</div>
-                      <div className="ap-pool-sub">{row.site || '—'}</div>
+                      <div className="ap-pool-sub stx-text-wrap">{row.email || row.supplier?.email || '—'}</div>
+                      {row.site ? <div className="ap-pool-sub">{row.site}</div> : null}
                     </td>
-                    <td>
-                      <div className="stx-text-wrap">{row.industry}</div>
-                      <div className="ap-pool-sub stx-text-wrap">{row.process}</div>
-                    </td>
-                    <td>{formatAuditDateLabel(row.registeredAt) || '—'}</td>
-                    <td><span className={statusClass(row.status.key)}>{row.status.label}</span></td>
-                    <td className={row.selfAssessment?.key === 'overdue' ? 'ap-suphub-late' : ''}>{row.selfLabel}</td>
-                    <td>{row.score != null ? `${row.score}%` : '—'}</td>
-                    <td className={row.expiring ? 'ap-suphub-late' : ''}>{formatAuditDateLabel(row.approvalUntil) || '—'}</td>
-                    {superadminRole ? (
-                      <td className="ap-pool-sub">{row.supplier._readOnlyPeer ? 'Peer' : 'This workspace'}</td>
-                    ) : null}
+                    <td className="stx-text-wrap">{row.industry}</td>
+                    <td><span className={statusClass(row.board.id)}>{row.board.label}</span></td>
+                    <td>{formatAuditDateLabel(row.audit?.plannedDate) || '—'}</td>
+                    <td className="stx-text-wrap">{row.audit?.standard || '—'}</td>
                     <td className="ap-suphub-actions">
-                      <HubBtn onClick={() => openRecord(row.id)}>Record</HubBtn>
+                      <HubBtn onClick={(e) => { e.stopPropagation(); openRecord(row.id) }}>Record</HubBtn>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {picked ? (
+            <section className="ap-suphub-panel" style={{ marginTop: 14 }}>
+              <div className="ap-suphub-panel-kicker">{pickedBoard.label} · {sellerCompanyName(picked)}</div>
+              <p className="ap-suphub-panel-copy stx-text-wrap">{pickedStage.label}.</p>
+              <div className="ap-suphub-actions" style={{ flexWrap: 'wrap' }}>
+                {(pickedBoard.id === 'new' || pickedBoard.id === 'action' || pickedStage.action === 'plan') ? (
+                  <>
+                    <select
+                      className="ap-select"
+                      value={activeStandard}
+                      onChange={(e) => setStandardPick(e.target.value)}
+                      aria-label="Audit standard"
+                    >
+                      {standardOptions.map((name) => (
+                        <option key={name} value={name}>{name} · {auditDaysForStandard(name)}d</option>
+                      ))}
+                    </select>
+                    <input
+                      className="ap-input"
+                      type="date"
+                      value={visitDate}
+                      onChange={(e) => setVisitDate(e.target.value)}
+                      aria-label="Visit date"
+                    />
+                    <HubBtn
+                      filled
+                      disabled={busy || !visitDate || !lead}
+                      onClick={() => run(
+                        () => planSellerAudit({ supplier: picked, date: visitDate, auditor: lead, standard: activeStandard }),
+                        `Visit planned for ${visitDate} (${visitDays} day${visitDays === 1 ? '' : 's'}). Self-assessment sent. Check Calendar.`,
+                      )}
+                    >
+                      Plan visit · send self-assessment
+                    </HubBtn>
+                  </>
+                ) : null}
+                {pickedAudit?.id ? (
+                  <HubBtn
+                    filled={pickedStage.action === 'conduct'}
+                    onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/conduct/${encodeURIComponent(pickedAudit.id)}?tab=questionnaire&qn=list`)}
+                  >
+                    Open questionnaire
+                  </HubBtn>
+                ) : null}
+                {pickedBoard.id === 'scheduled' ? (
+                  <HubBtn onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/calendar`)}>Open calendar</HubBtn>
+                ) : null}
+                {pickedAudit ? (
+                  <label className={`ap-suphub-btn${pickedStage.action === 'upload' ? ' is-fill' : ''}`}>
+                    Upload closing report
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      hidden
+                      disabled={busy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        void run(
+                          () => uploadClosingReport({ audit: pickedAudit, supplier: picked, auditor: lead, file }),
+                          'Closing report stored. Seller marked Audited.',
+                        )
+                      }}
+                    />
+                  </label>
+                ) : null}
+              </div>
+              {flowMsg ? <p className="ap-suphub-caption stx-text-wrap">{flowMsg}</p> : null}
+            </section>
+          ) : (
+            <p className="ap-suphub-caption">Select a New or Need action seller to plan a visit. Self-assessment is sent when you set the date.</p>
+          )}
         </>
       ) : null}
 
@@ -255,7 +396,7 @@ export default function AuditProSupplierHub({
                       </td>
                       <td>
                         <div className="ap-pool-seller stx-text-wrap">{row.supplierName}</div>
-                        <div className="ap-pool-sub">{row.code} · {row.site || '—'}</div>
+                        <div className="ap-pool-sub">{row.supplier?.email || row.code}{row.site ? ` · ${row.site}` : ''}</div>
                       </td>
                       <td>
                         <span className={statusClass(row.overdue ? 'overdue' : row.reason.id)}>

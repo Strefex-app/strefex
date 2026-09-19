@@ -23,6 +23,7 @@ function auditorsDirectoryTrail(pathname) {
     dashboard: 'Dashboard',
     'new-audit': 'New audit',
     plans: 'Audit plans',
+    pool: 'Sellers',
     calendar: 'Calendar',
     findings: 'Audits & findings',
     record: 'Company record',
@@ -33,9 +34,9 @@ function auditorsDirectoryTrail(pathname) {
     logs: 'Logs',
     reports: 'Reports',
   }
-  if (!leaf) return [{ label: 'Assignment pool' }]
+  if (!leaf) return [{ label: 'Sellers', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }]
   if (leaf.startsWith('conduct')) {
-    return [{ label: 'Assignment pool', to: AUDITORS_DIRECTORY_PATH }, { label: 'Conduct audit' }]
+    return [{ label: 'Sellers', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }, { label: 'Conduct audit' }]
   }
   if (leaf.startsWith('print')) {
     return [{ label: 'Supplier register', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }, { label: 'Print report' }]

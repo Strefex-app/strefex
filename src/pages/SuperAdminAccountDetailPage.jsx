@@ -1189,10 +1189,10 @@ export default function SuperAdminAccountDetailPage() {
       if (result.company) setCompany(result.company)
       else setCompany((prev) => (prev ? { ...prev, email: result.email } : prev))
       const inviteNote = result.invite?.alreadyExists
-        ? ' Seller email already has a login — link them to this company if needed.'
-        : (result.invite?.emailConfirmationPending
-          ? ' Invite email sent — seller must confirm to take over login.'
-          : (transferInvite && isSupabaseConfigured ? ' Invite sent.' : ''))
+        ? ' Seller email already has a login — a sign-in link was sent if mail is configured.'
+        : (result.invite?.delivered || result.invite?.emailConfirmationPending
+          ? ' Confirmation email sent via Resend — seller must open the link to take over login.'
+          : (transferInvite && isSupabaseConfigured ? ' Invite requested.' : ''))
       setSavedMsg(`Seller rights transferred to ${result.email}.${inviteNote}`)
       setTransferEmail('')
     } catch (e) {

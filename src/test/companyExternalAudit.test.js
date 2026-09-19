@@ -4,6 +4,10 @@ import {
   auditStatusLabel,
   buildAuditScheduleMessages,
   companyTrustBadges,
+  notesHavePreAssessmentIssued,
+  notesHavePreAssessmentReturn,
+  PRE_ASSESSMENT_ISSUED_MARK,
+  PRE_ASSESSMENT_RETURN_MARK,
   plannedDateWithinDeadline,
   sellerNeedsAuditDate,
   toAuditDateInput,
@@ -54,6 +58,11 @@ describe('companyExternalAudit', () => {
     expect(companyTrustBadges({ onsite_audit_completed: true }).map((b) => b.label)).toContain('On-site audited')
     expect(auditStatusLabel('confirmed')).toBe('Confirmed')
     expect(toAuditDateInput('2026-10-02T12:00:00.000Z')).toBe('2026-10-02')
+  })
+
+  it('marks pre-assessment issued and returned in company notes', () => {
+    expect(notesHavePreAssessmentIssued(`${PRE_ASSESSMENT_ISSUED_MARK} x`)).toBe(true)
+    expect(notesHavePreAssessmentReturn(`${PRE_ASSESSMENT_RETURN_MARK} x`)).toBe(true)
   })
 
   it('links company audit rows onto seller directory records', () => {

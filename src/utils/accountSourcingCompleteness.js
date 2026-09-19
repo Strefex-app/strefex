@@ -137,15 +137,15 @@ function manufacturerDirectoryRow(account) {
   })()
   return {
     id: ensured.id,
-    email: ensured.email || '',
+    email: '',
     company: ensured.company || ensured.name || '',
-    contactName: ensured.contactName || '',
+    contactName: '',
     accountType,
     accountTypes: Array.isArray(ensured.accountTypes) ? ensured.accountTypes : [accountType],
     status: ensured.status || 'active',
     country: ensured.country || '',
     city: ensured.city || '',
-    address: ensured.address || '',
+    address: '',
     industries: Array.isArray(ensured.industries) ? ensured.industries : [],
     categories: ensured.categories && typeof ensured.categories === 'object' ? ensured.categories : {},
     productCategories: ensured.productCategories && typeof ensured.productCategories === 'object' ? ensured.productCategories : {},
@@ -215,7 +215,7 @@ export function publishAccountsToNetworkDirectory(accounts = []) {
   const existing = loadNetworkManufacturers()
   const byKey = new Map()
   existing.forEach((row) => {
-    const key = String(row.email || row.id || '').toLowerCase()
+    const key = String(row.id || row.email || '').toLowerCase()
     if (key) byKey.set(key, row)
   })
 
@@ -224,7 +224,7 @@ export function publishAccountsToNetworkDirectory(accounts = []) {
     if (!isSellerLike(account) || account.status === 'canceled') return
     if (!accountVisibleOnSourcingMap(account)) return
     const row = manufacturerDirectoryRow(account)
-    const key = String(row.email || row.id || '').toLowerCase()
+    const key = String(row.id || row.email || '').toLowerCase()
     if (!key) return
     byKey.set(key, row)
     published += 1

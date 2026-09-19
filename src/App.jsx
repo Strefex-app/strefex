@@ -63,7 +63,6 @@ import {
   ManagementClusterPage,
   AuditProgramGate,
   AuditProLayout,
-  AuditProDirectory,
   AuditProDashboard,
   AuditProNewAudit,
   AuditProAuditPlans,
@@ -466,7 +465,8 @@ function App() {
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
             <Route path="overview" element={<Navigate to=".." replace />} />
             <Route element={<AuditProLayout />}>
-              <Route index element={<AuditProDirectory />} />
+              <Route index element={<Navigate to="suppliers" replace />} />
+              <Route path="pool" element={<Navigate to="suppliers" replace />} />
               <Route path="dashboard" element={<AuditProDashboard />} />
               <Route path="new-audit" element={<AuditProNewAudit />} />
               <Route path="plans" element={<AuditProAuditPlans />} />

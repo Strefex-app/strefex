@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
 import { useAuthStore } from '../../store/authStore'
 import { useServiceRequestStore } from '../../store/serviceRequestStore'
@@ -20,11 +21,14 @@ import {
   utcTodayIso,
 } from '../../utils/auditorsAssignmentPool'
 import { formatAuditDateLabel, normalizeAuditEmail, applyCompanyAuditCloudToSuppliers } from '../../utils/companyExternalAudit'
+import { sellerCompanyName } from '../../utils/auditSellerLabel'
 import { listCompanyExternalAudits, saveCompanyExternalAudit } from '../../services/companyExternalAuditService'
 import { auditProUid } from '../../utils/auditProUid'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
+import { AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
 
 export default function AuditProDirectory() {
+  const navigate = useNavigate()
   const auditsAll = useAuditProStore((s) => s.audits)
   const auditorsAll = useAuditProStore((s) => s.auditors)
   const suppliersAll = useAuditProStore((s) => s.suppliers)
@@ -43,6 +47,8 @@ export default function AuditProDirectory() {
   const [region, setRegion] = useState('ALL')
   const [proposals, setProposals] = useState({})
   const [selectedId, setSelectedId] = useState('')
+  const [pickedIds, setPickedIds] = useState(() => new Set())
+  const [takeAsId, setTakeAsId] = useState('')
   const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
@@ -104,6 +110,11 @@ export default function AuditProDirectory() {
   )
 
   const canAssignOthers = authRole !== 'auditor_external'
+  const selfAuditor = useMemo(
+    () => auditors.find((a) => normalizeAuditEmail(a.email) === authEmail) || null,
+    [auditors, authEmail],
+  )
+  const takeAuditor = selfAuditor || auditors.find((a) => a.id === takeAsId) || null
 
   const persistAssignment = async (job, auditor) => {
     if (!job || !auditor) return false
@@ -112,7 +123,7 @@ export default function AuditProDirectory() {
     const deadline = job.deadlineDate || job.targetDate
     let auditId = job.auditId
     if (auditId) {
-      patchAudit(auditId, { auditorId: auditor.id, status: 'Planned' })
+      patchAudit(auditId, { auditorId: auditor.id, status: planned ? 'Planned' : 'Assigned' })
     } else {
       const audit = {
         id: auditProUid(),
@@ -125,7 +136,7 @@ export default function AuditProDirectory() {
         auditorId: auditor.id,
         plannedDate: planned,
         deadlineDate: deadline,
-        status: 'Planned',
+        status: planned ? 'Planned' : 'Assigned',
         auditDays: String(job.auditDays || 2),
         findings: [],
         responses: {},
@@ -136,14 +147,14 @@ export default function AuditProDirectory() {
       setAudits([...auditsAll, audit])
       void useAuditProStore.getState().upsertAuditRemote(audit)
     }
-    addAuditLog(auditId, 'Auditor assigned', auditor.name || 'System', `${auditor.name} assigned from the pool (${job.kindReason}).`)
+    addAuditLog(auditId, 'Seller taken from pool', auditor.name || 'System', `${auditor.name} picked ${supplier?.name || 'seller'} (${job.kindReason}).`)
     if (supplier?.email) {
       try {
         const saved = await saveCompanyExternalAudit({
           companyId: supplier.platformCompanyId || null,
           sellerEmail: supplier.email,
           sellerName: supplier.name,
-          status: 'planned',
+          status: planned ? 'planned' : 'pending',
           notes: job.kindReason,
           plannedAt: planned,
           deadlineAt: deadline,
@@ -158,7 +169,7 @@ export default function AuditProDirectory() {
               ? {
                 ...row,
                 platformCompanyId: row.platformCompanyId || linkedId || null,
-                externalAuditStatus: 'planned',
+                externalAuditStatus: planned ? 'planned' : 'pending',
                 externalAuditPlannedAt: planned,
                 externalAuditDeadlineAt: deadline,
                 externalAuditAssignedAuditorEmail: auditor.email || row.externalAuditAssignedAuditorEmail,
@@ -175,25 +186,44 @@ export default function AuditProDirectory() {
     return true
   }
 
-  const commitOne = async (job, auditor) => {
-    if (!canAssignOthers && normalizeAuditEmail(auditor.email) !== authEmail) {
-      showToast('You can only take jobs assigned to your own panel seat.', 'error')
+  const takeJobs = async (jobs, auditor = takeAuditor) => {
+    if (!auditor) {
+      showToast(canAssignOthers
+        ? 'Choose which auditor takes these sellers.'
+        : 'Your auditor profile is not on the panel yet.', 'error')
       return
     }
+    const rows = (jobs || []).filter(Boolean)
+    if (!rows.length) return
     setAssigning(true)
     try {
-      const ok = await persistAssignment(job, auditor)
-      if (ok) {
+      for (const job of rows) {
+        await persistAssignment(job, auditor)
         setProposals((p) => {
           const next = { ...p }
           delete next[job.id]
           return next
         })
-        showToast(`Assigned ${auditor.name} to ${job.supplier?.name || 'seller'}.`)
+        setPickedIds((prev) => {
+          const next = new Set(prev)
+          next.delete(job.id)
+          return next
+        })
       }
+      showToast(rows.length === 1
+        ? `${auditor.name} took ${rows[0].supplier?.name || 'the seller'}. Continue on Sellers.`
+        : `${auditor.name} took ${rows.length} sellers. Continue on Sellers.`)
     } finally {
       setAssigning(false)
     }
+  }
+
+  const commitOne = async (job, auditor) => {
+    if (!canAssignOthers && normalizeAuditEmail(auditor.email) !== authEmail) {
+      showToast('You can only take sellers onto your own panel seat.', 'error')
+      return
+    }
+    await takeJobs([job], auditor)
   }
 
   const releaseProposals = async () => {
@@ -207,7 +237,7 @@ export default function AuditProDirectory() {
         if (job && auditor) await persistAssignment(job, auditor)
       }
       setProposals({})
-      showToast('Released proposed assignments to the calendar.')
+      showToast('Released proposed assignments.')
     } finally {
       setAssigning(false)
     }
@@ -226,7 +256,7 @@ export default function AuditProDirectory() {
         <article className="ap-pool-kpi ap-pool-kpi--warn">
           <div className="ap-pool-kpi-label">Critical &amp; high risk</div>
           <div className="ap-pool-kpi-value">{kpis.critical}</div>
-          <div className="ap-pool-kpi-hint">Assign these first — shortest notice period</div>
+          <div className="ap-pool-kpi-hint">Take these first — shortest notice period</div>
         </article>
         <article className="ap-pool-kpi ap-pool-kpi--ok">
           <div className="ap-pool-kpi-label">Past target date</div>
@@ -245,8 +275,8 @@ export default function AuditProDirectory() {
           className="ap-input ap-pool-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search supplier, code, country or industry"
-          aria-label="Search assignment pool"
+          placeholder="Search seller, code, country or industry"
+          aria-label="Search seller pool"
         />
         <div className="ap-pool-regions" role="group" aria-label="Region filter">
           {['ALL', ...POOL_REGIONS].map((id) => (
@@ -260,24 +290,50 @@ export default function AuditProDirectory() {
             </button>
           ))}
         </div>
+        {canAssignOthers && !selfAuditor ? (
+          <select
+            className="ap-select"
+            value={takeAsId}
+            onChange={(e) => setTakeAsId(e.target.value)}
+            aria-label="Auditor who takes the selected sellers"
+          >
+            <option value="">Auditor who takes them</option>
+            {auditors.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        ) : null}
         <Btn
-          variant="secondary"
-          onClick={() => setProposals(matchWholePool(filtered, auditors, audits, proposals))}
+          disabled={assigning || pickedIds.size === 0}
+          onClick={() => void takeJobs(filtered.filter((j) => pickedIds.has(j.id)))}
         >
-          Match the whole pool
+          Take selected sellers
         </Btn>
-        <Btn variant="secondary" onClick={() => setProposals({})}>Clear proposals</Btn>
+        <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/suppliers`)}>
+          Open Sellers
+        </Btn>
+        {canAssignOthers ? (
+          <>
+            <Btn
+              variant="secondary"
+              onClick={() => setProposals(matchWholePool(filtered, auditors, audits, proposals))}
+            >
+              Suggest matches
+            </Btn>
+            <Btn variant="secondary" onClick={() => setProposals({})}>Clear</Btn>
+          </>
+        ) : null}
       </div>
 
-      <div className={`ap-pool-banner${proposalCount ? ' ap-pool-banner--ready' : ''}`}>
-        <span className="ap-pool-banner-tag">{proposalCount ? `${proposalCount} to release` : 'Nothing to release'}</span>
-        <span className="ap-pool-banner-copy stx-text-wrap">
-          {proposalCount
-            ? 'Review the proposals against panel capacity, then release them to notify sellers and auditors.'
-            : 'Nothing proposed yet. Assign by hand, or let the system match the whole pool and review what it proposes.'}
+      <div className={`ap-pool-banner${pickedIds.size || proposalCount ? ' ap-pool-banner--ready' : ''}`}>
+        <span className="ap-pool-banner-tag">
+          {pickedIds.size ? `${pickedIds.size} selected` : proposalCount ? `${proposalCount} suggested` : 'Pick sellers'}
         </span>
-        {proposalCount ? (
-          <Btn onClick={releaseProposals}>Release assignments</Btn>
+        <span className="ap-pool-banner-copy stx-text-wrap">
+          Tick sellers in the pool and take them. The seller does not choose an auditor. After you take a file, continue on Sellers for pre-assessment and the visit.
+        </span>
+        {proposalCount && canAssignOthers ? (
+          <Btn onClick={releaseProposals}>Release suggested matches</Btn>
         ) : null}
       </div>
 
@@ -285,21 +341,22 @@ export default function AuditProDirectory() {
         <table className="ap-pool-table">
           <thead>
             <tr>
+              <th className="ap-suphub-radio" />
               <th>Risk</th>
               <th>Supplier / site</th>
               <th>Audit</th>
               <th>Scope modules</th>
               <th>Target date</th>
               <th>Readiness</th>
-              <th>Assigned to</th>
+              <th>Taken by</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="ap-pool-empty">
-                  No unassigned seller audits in the pool. New joiners, yearly/reoccurred visits, and audit-by-request rows appear here when they are linked in the seller database.
+                <td colSpan={9} className="ap-pool-empty">
+                  No unassigned sellers in the pool. New joiners, yearly visits, and audit requests appear here when they are in the seller database.
                 </td>
               </tr>
             ) : (
@@ -314,15 +371,30 @@ export default function AuditProDirectory() {
                     className={`${riskClass}${selectedId === job.id ? ' is-selected' : ''}`}
                     onClick={() => setSelectedId(job.id)}
                   >
+                    <td className="ap-suphub-radio" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={pickedIds.has(job.id)}
+                        onChange={(e) => {
+                          setPickedIds((prev) => {
+                            const next = new Set(prev)
+                            if (e.target.checked) next.add(job.id)
+                            else next.delete(job.id)
+                            return next
+                          })
+                        }}
+                        aria-label={`Select ${seller.name || 'seller'}`}
+                      />
+                    </td>
                     <td>
                       <span className={`ap-pool-risk-tag ap-pool-risk-tag--${String(job.risk.level || 'low').toLowerCase()}`}>
                         {job.risk.level}
                       </span>
                     </td>
                     <td>
-                      <div className="ap-pool-seller stx-text-wrap">{seller.name || 'Unnamed seller'}</div>
+                      <div className="ap-pool-seller stx-text-wrap">{sellerCompanyName(seller)}</div>
                       <div className="ap-pool-sub stx-text-wrap">
-                        {sellerSiteCode(seller)}
+                        {seller.email || sellerSiteCode(seller)}
                         {seller.country ? ` · ${seller.country}` : ''}
                         {seller.city ? ` · ${seller.city}` : ''}
                       </div>
@@ -368,21 +440,10 @@ export default function AuditProDirectory() {
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedId(job.id)
-                          const { pick } = matchAuditorForJob(job, auditors, capacity)
-                          if (pick && canAssignOthers) {
-                            setProposals((p) => ({
-                              ...p,
-                              [job.id]: {
-                                auditorId: pick.auditor.id,
-                                auditorName: pick.auditor.name,
-                                auditorEmail: pick.auditor.email,
-                                auditDays: job.auditDays,
-                              },
-                            }))
-                          }
+                          void takeJobs([job])
                         }}
                       >
-                        Assign
+                        Take seller
                       </Btn>
                     </td>
                   </tr>
@@ -450,12 +511,12 @@ export default function AuditProDirectory() {
                           </div>
                           <span>{cap.utilisation}%</span>
                         </div>
-                        {selected && !row.blocked ? (
+                        {selected && !row.blocked && canAssignOthers ? (
                           <Btn
                             variant="secondary"
                             onClick={() => commitOne(selected, row.auditor)}
                           >
-                            Confirm
+                            This auditor takes seller
                           </Btn>
                         ) : null}
                       </td>
