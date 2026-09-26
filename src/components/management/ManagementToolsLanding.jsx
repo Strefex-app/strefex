@@ -24,12 +24,14 @@ import ManagementDashboardMetrics from './ManagementDashboardMetrics'
 import '../../styles/managementShell.css'
 
 function filterVisibleModules(modules, { isSuperAdmin, isAuditor, hasFeature, hasRole }) {
-  return modules.filter(
-    (mod) =>
+  return modules.filter((mod) => {
+    if (!isSuperAdmin && isAuditor() && (mod.clusterId === 'sourcing' || mod.hideFromAuditors)) return false
+    return (
       (!mod.auditorHubOnly || isSuperAdmin || isAuditor() || hasFeature('auditProProgram')) &&
       (!mod.superadminOnly || isSuperAdmin) &&
-      (!mod.minRole || isSuperAdmin || hasRole(mod.minRole)),
-  )
+      (!mod.minRole || isSuperAdmin || hasRole(mod.minRole))
+    )
+  })
 }
 
 export default function ManagementToolsLanding({

@@ -20,7 +20,9 @@ import {
   VERDICT_PRESET_SUPPLIER_RU_SCORE,
 } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
+import { formatDisplayLabel } from '../../utils/displayLabel'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
 import useAuditStore from '../../store/auditStore'
 import AuditProOfficialReport from './auditProOfficialReport'
 
@@ -190,15 +192,13 @@ export default function AuditProConduct() {
   const qnParam = searchParams.get('qn')
   const secParam = searchParams.get('sec')
   const findingFocus = searchParams.get('finding')
-  const auditors = useAuditProStore((s) => s.auditors)
-  const suppliers = useAuditProStore((s) => s.suppliers)
-  const audits = useAuditProStore((s) => s.audits)
   const replaceAudit = useAuditProStore((s) => s.replaceAudit)
   const setReminders = useAuditProStore((s) => s.setReminders)
   const addAuditLog = useAuditProStore((s) => s.addAuditLog)
   const completeAudit = useAuditProStore((s) => s.completeAudit)
   const showToast = useAuditProStore((s) => s.showToast)
   const { language } = useTranslation()
+  const { auditors, suppliers, audits } = useAuditorsHubScopedData()
 
   const [tab, setTab] = useState('info')
   const [local, setLocal] = useState(null)
@@ -336,7 +336,7 @@ export default function AuditProConduct() {
   }, [auditId])
 
   if (!auditId || !base) {
-    return <Navigate to="/management/auditors/plans" replace />
+    return <Navigate to="/management/auditors/calendar" replace />
   }
 
   /** Before useEffect clones into `local`, use store row so first paint doesn't redirect via !local */
@@ -548,7 +548,7 @@ export default function AuditProConduct() {
               {conduct.title}
             </div>
             <div style={{ display: 'flex', gap: 7, marginTop: 7, flexWrap: 'wrap' }}>
-              <Tag color="var(--accent)">{conduct.industry}</Tag>
+              <Tag color="var(--accent)">{formatDisplayLabel(conduct.industry)}</Tag>
               <Tag color="var(--rfqi-purple)">{conduct.auditType}</Tag>
               <Tag color="var(--rfqi-amber)">{conduct.standard}</Tag>
               <StatusBadge status={conduct.status} />
@@ -604,7 +604,7 @@ export default function AuditProConduct() {
           <Btn onClick={saveCheckpoint} variant="primary">
             Save checkpoint
           </Btn>
-          <Btn onClick={() => navigate(`/management/auditors/print/${conduct.id}`)} variant="secondary">
+          <Btn onClick={() => navigate(`/management/auditors/print/${conduct.id}?from=conduct`)} variant="secondary">
             Print report
           </Btn>
           <span className="stx-text-caption ap-text-muted stx-text-wrap" style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -612,10 +612,10 @@ export default function AuditProConduct() {
             From{' '}
             <button
               type="button"
-              onClick={() => navigate('/management/auditors/plans')}
+              onClick={() => navigate('/management/auditors/calendar')}
               style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontWeight: 'var(--font-medium)' }}
             >
-              Audit Plans
+              Calendar
             </button>
             , use <strong style={{ fontWeight: 'var(--font-medium)' }}>Continue audit</strong> anytime. Minor/Major NC on the questionnaire
             opens a CAPA reminder (due in {CAPA_DAYS_DEFAULT} days by default).
@@ -727,7 +727,7 @@ export default function AuditProConduct() {
                       textAlign: 'left',
                     }}
                     onClick={() =>
-                      navigate(`/management/auditors/suppliers?edit=${encodeURIComponent(supplier.id)}`)
+                      navigate(`/management/auditors/record/${encodeURIComponent(supplier.id)}`)
                     }
                   >
                     Update supplier details
@@ -1432,7 +1432,7 @@ export default function AuditProConduct() {
       {resolvedTab === 'report' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-            <Btn onClick={() => navigate(`/management/auditors/print/${conduct.id}`)}>
+            <Btn onClick={() => navigate(`/management/auditors/print/${conduct.id}?from=conduct`)}>
               🖨 Generate Printable Report
             </Btn>
           </div>

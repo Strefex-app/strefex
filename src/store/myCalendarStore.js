@@ -36,11 +36,11 @@ const KINDS = new Set(['event', 'reminder', 'meeting'])
  */
 export const useMyCalendarStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       /** @type {Array<{ id: string, date: string, kind: PersonalCalendarKind, title: string, detail?: string, timeLabel?: string, createdAt: string }>} */
       entries: [],
 
-      addEntry: ({ date, kind, title, detail, timeLabel }) => {
+      addEntry: ({ date, kind, title, detail, timeLabel, sourceId }) => {
         const d = normalizeDateStr(date) || ''
         if (!d) return null
         const id = `mycal-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -52,10 +52,22 @@ export const useMyCalendarStore = create(
           title: String(title || '').trim() || 'Untitled',
           detail: String(detail || '').trim(),
           timeLabel: String(timeLabel || '').trim(),
+          sourceId: String(sourceId || '').trim(),
           createdAt: new Date().toISOString(),
         }
         set((s) => ({ entries: [...s.entries, entry] }))
         return id
+      },
+
+      upsertEntry: ({ sourceId, date, kind, title, detail, timeLabel }) => {
+        const sid = String(sourceId || '').trim()
+        if (!sid) return null
+        const existing = get().entries.find((e) => e.sourceId === sid)
+        if (existing) {
+          get().updateEntry(existing.id, { date, kind, title, detail, timeLabel })
+          return existing.id
+        }
+        return get().addEntry({ date, kind, title, detail, timeLabel, sourceId: sid })
       },
 
       updateEntry: (id, patch) => {

@@ -62,6 +62,7 @@ const Login = () => {
       accountType,
       accountTypes,
       isSuperAdmin: auth.role === 'superadmin',
+      role: auth.role,
     }), { replace: true })
   }
 

@@ -7,6 +7,7 @@ import { auditProReminderTouchesDemoReminder } from '../../data/auditProDemoKit'
 import { hydrateAuditProFromManagementTables } from '../../services/workspaceCloudSync'
 import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 import { auditorsHubLeaf } from '../../utils/auditorsDirectory'
+import { useAuthStore } from '../../store/authStore'
 import { AuditorsHubNavContext } from './auditorsHubNavContext'
 import '../../styles/app-page.css'
 import '../../styles/managementShell.css'
@@ -14,21 +15,15 @@ import '../../pages/ManagementHub.css'
 import '../../styles/auditPro.css'
 
 const TITLES = {
-  '': 'Sellers',
-  pool: 'Seller pool',
-  dashboard: 'Dashboard',
-  'new-audit': 'Create New Audit Plan',
+  '': 'Calendar',
+  pool: 'Supplier pool',
   conduct: 'On-site questionnaire',
-  plans: 'Audit Plans',
-  calendar: 'Schedule visit',
-  findings: 'Audits & findings',
+  calendar: 'Calendar',
+  findings: 'Findings report',
   record: 'Company record',
-  auditors: 'Auditor database',
-  standards: 'Standards & questionnaires',
-  suppliers: 'Sellers',
-  'risk-matrix': 'Risk Matrix',
-  logs: 'Audit Activity Logs',
-  reports: 'Analytics & Reports',
+  auditors: 'Auditors & standards',
+  standards: 'Auditors & standards',
+  suppliers: 'Records',
   print: 'Print Report',
 }
 
@@ -47,6 +42,7 @@ export default function AuditProLayout() {
   const rehydrateRegistryFromStorage = useAccountRegistry((s) => s.rehydrateRegistryFromStorage)
   const ensureSeed = useAuditProStore((s) => s.ensureSeed)
   const hydrateFromSupabase = useAuditProStore((s) => s.hydrateFromSupabase)
+  const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
   const reminders = useAuditProStore((s) => s.reminders)
   const toast = useAuditProStore((s) => s.toast)
   const audits = useAuditProStore((s) => s.audits)
@@ -62,6 +58,9 @@ export default function AuditProLayout() {
     rehydrateRegistryFromStorage()
     ensureSeed()
     void hydrateFromSupabase()
+    const later = window.setTimeout(() => {
+      void useAuditProStore.getState().hydrateFromSupabase({ includePlatformDirectory: isSuperAdmin })
+    }, 1200)
 
     const onVis = () => {
       if (document.visibilityState === 'visible') {
@@ -75,57 +74,39 @@ export default function AuditProLayout() {
     }, 120_000)
 
     return () => {
+      window.clearTimeout(later)
       document.removeEventListener('visibilitychange', onVis)
       window.clearInterval(intervalId)
     }
-  }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase])
+  }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase, isSuperAdmin])
 
   if (!canUse) {
     return <Navigate to="/management" replace />
   }
 
   const leaf = auditorsHubLeaf(location.pathname)
-  const view = new URLSearchParams(location.search).get('view')
-  const title = leaf === 'calendar' && view === 'findings'
-    ? 'Audits & findings'
-    : leaf === 'calendar' && view === 'capa'
-      ? 'CAPA tracker'
-      : leaf === 'suppliers' && view === 'self'
-        ? 'Supplier self-assessment'
-        : leaf === 'suppliers' && view === 'certs'
-          ? 'Approval certificates'
-          : leaf === 'suppliers' && view === 'records'
-            ? 'Company records'
-            : leaf === 'suppliers'
-              ? 'Supplier register'
-              : leaf === 'standards'
-                ? 'Standards & questionnaires'
-              : leaf === 'auditors'
-                ? 'Auditor database'
-              : segmentTitle(leaf)
-  const subtitle = leaf === 'auditors'
-    ? 'An audit can only be assigned to an auditor qualified for every module in its scope. Provisional modules need a qualified lead; expired calibration or medical clearance blocks assignment.'
-    : leaf === 'standards'
-      ? 'Question sets mapped to clauses, with what to look at on site and attached evidence references.'
-      : leaf === 'suppliers' && view === 'self'
-        ? 'Questionnaires go out before the visit; answers marked for verification become on-site checks.'
-        : leaf === 'suppliers' && view === 'certs'
-          ? 'STREFEX approval certificates and third-party certificates held by each supplier.'
-          : leaf === 'suppliers' && view === 'records'
-            ? 'Year-on-year audit ratings and element scorecards for each supplier.'
-            : leaf === 'suppliers'
-              ? 'Filter by New, Need action, Audit scheduled, or Audited. Click a seller, pick the standard and date — self-assessment is sent automatically.'
-              : leaf === 'pool'
-                ? 'Moved into Sellers.'
-              : leaf === 'calendar' && view === 'findings'
-                ? 'Completed visits, results, and the corrective actions they raised.'
-                : leaf === 'calendar' && view === 'capa'
-                  ? 'Corrective actions stay open until evidence is verified — late majors first.'
-                  : leaf === 'calendar'
-                    ? 'Drag a seller from To plan onto a day. The visit lasts as many days as the standard requires, and self-assessment is sent.'
-                    : leaf === 'record'
-                      ? 'Supplier audit history, scores and related standards.'
-                      : 'Plan the visit from Sellers or Calendar, then run the on-site questionnaire and upload the closing report.'
+  const title = leaf === 'suppliers' || leaf === 'record'
+    ? (leaf === 'record' ? 'Company record' : 'Records')
+    : leaf === 'findings'
+      ? 'Findings report'
+      : leaf === 'standards' || leaf === 'auditors'
+        ? 'Auditors & standards'
+        : leaf === 'pool'
+          ? 'Supplier pool'
+          : leaf === 'calendar' || leaf === ''
+            ? 'Calendar'
+            : segmentTitle(leaf)
+  const subtitle = leaf === 'auditors' || leaf === 'standards'
+    ? 'Panel members and the questionnaires they use on site.'
+    : leaf === 'suppliers' || leaf === 'record'
+      ? 'Completed visits, reports, signatures and action plans. Status shows when a plan is still open.'
+      : leaf === 'findings'
+        ? 'Findings for this visit, the action plan and the signed closing report.'
+        : leaf === 'pool'
+          ? 'All sellers and assignment status. Assign an auditor here; only that auditor sees the company on Calendar.'
+          : leaf === 'calendar' || leaf === ''
+            ? 'Your assigned visits. Drag a company onto a day to plan the on-site date.'
+            : 'Pick a date on Calendar, run the questionnaire, then file the signed report under Records.'
   const openRems = openRemindersForNav.length
   const overdue = openRemindersForNav.filter(
     (r) => new Date(r.dueDate) < new Date(new Date().toISOString().slice(0, 10)),
@@ -141,6 +122,7 @@ export default function AuditProLayout() {
         <div className="audit-pro-app-shell">
           <header className="page-header audit-pro-app-head-row">
             <div className="audit-pro-app-head-copy">
+              <p className="audit-pro-ops-kicker">Supplier audit operations</p>
               <h1 className="page-title stx-text-wrap">{title}</h1>
               <p className="page-subtitle stx-text-wrap">{subtitle}</p>
             </div>

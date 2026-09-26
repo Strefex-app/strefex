@@ -1,4 +1,5 @@
 import { pickSellerCompanyName } from './auditSellerLabel'
+import { readPlatformNumber, withPlatformNumber } from './platformRegistrationCode'
 
 export const EXTERNAL_AUDIT_STATUSES = [
   'none',
@@ -240,7 +241,7 @@ export function applyCompanyAuditCloudToSuppliers(suppliers, cloudRows) {
     const cloud = byId.get(String(s.platformCompanyId || ''))
       || byEmail.get(normalizeAuditEmail(s.email))
     if (!cloud) return s
-    return {
+    return withPlatformNumber({
       ...s,
       platformCompanyId: s.platformCompanyId || cloud.id || null,
       name: pickSellerCompanyName(s, { name: cloud.name, email: s.email || cloud.email }),
@@ -252,6 +253,6 @@ export function applyCompanyAuditCloudToSuppliers(suppliers, cloudRows) {
       externalAuditAssignedAuditorName:
         cloud.external_audit_assigned_auditor_name || s.externalAuditAssignedAuditorName,
       externalAuditNotes: cloud.external_audit_notes || cloud.externalAuditNotes || s.externalAuditNotes || '',
-    }
+    }, { registration_code: readPlatformNumber(cloud) || readPlatformNumber(s) })
   })
 }

@@ -187,6 +187,8 @@ export async function listCompanyExternalAudits() {
       email: c.email,
     }),
     accountType: c.account_type,
+    registration_code: c.registration_code || '',
+    registrationCode: c.registration_code || '',
     ...companyAuditPatch({
       status: c.external_audit_status,
       notes: c.external_audit_notes,

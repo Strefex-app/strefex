@@ -6,6 +6,7 @@ import {
   industryStandardsCatalogue,
   questionnaireFormCode,
   questionnairePrintSheets,
+  completedAuditPrintSheets,
   standardMatchesFilter,
   standardsReferredByAuditor,
   uniqueAuditStandards,
@@ -42,6 +43,7 @@ describe('auditStandardsCatalogue', () => {
     expect(flattenQuestionnaireRows(iso.questionnaire)[0]).toMatchObject({
       clause: '4.1',
       element: 'Context & processes',
+      responseKey: '0-0',
     })
   })
 
@@ -65,6 +67,7 @@ describe('auditStandardsCatalogue', () => {
       element: 'Leadership',
       lookAt: 'Ask two operators.',
       docs: ['Quality policy'],
+      responseKey: '0-0',
     })
   })
 
@@ -92,7 +95,12 @@ describe('auditStandardsCatalogue', () => {
     const sheets = questionnairePrintSheets(Array.from({ length: 20 }, (_, i) => ({ id: i })))
     expect(sheets[0].kind).toBe('cover')
     expect(sheets[0].questions).toHaveLength(4)
-    expect(sheets.at(-1).kind).toBe('sign')
-    expect(sheets.slice(1, -1).every((s) => s.kind === 'cont')).toBe(true)
+    expect(sheets.at(-1).kind).toBe('cont')
+    expect(sheets.at(-1).closeWithSignatures).toBe(true)
+    expect(sheets.slice(1).every((s) => s.kind === 'cont')).toBe(true)
+    const completed = completedAuditPrintSheets(Array.from({ length: 5 }, (_, i) => ({ id: i })), [{ ref: 'F-01' }])
+    expect(completed.every((s) => s.kind !== 'sign' && s.kind !== 'findings')).toBe(true)
+    expect(completed.at(-1).closeWithSignatures).toBe(true)
+    expect(completed.at(-1).findings).toEqual([{ ref: 'F-01' }])
   })
 })

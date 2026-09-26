@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } fro
 import { useNavigate, useLocation } from 'react-router-dom'
 /* tesseract.js loaded dynamically only when OCR is triggered */
 import AppLayout from '../components/AppLayout'
+import AppListSelect from '../components/AppListSelect'
 import { useAuthStore } from '../store/authStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useSubscriptionStore, useTier, TIERS } from '../services/featureFlags'
@@ -1375,12 +1376,10 @@ const Profile = () => {
                     {tenant?.address || tenant?.metadata?.address || '—'}
                   </span>
                 </div>
-                {tenant?.registration_code && (
-                  <div className="prof-info-item full">
-                    <span className="prof-info-label">Platform registration #</span>
-                    <span className="prof-info-value prof-mono">{tenant.registration_code}</span>
+                <div className="prof-info-item full">
+                    <span className="prof-info-label">Platform number</span>
+                    <span className="prof-info-value prof-mono">{tenant?.registration_code || '—'}</span>
                   </div>
-                )}
               </div>
               {profileDirSnapshot && (
                 <div className="prof-dir-box" role="status">
@@ -1773,12 +1772,13 @@ const Profile = () => {
                   </div>
                   <div className="prof-form-group full">
                     <label className="prof-form-label">Industry</label>
-                    <select
-                      className="prof-form-input"
+                    <AppListSelect
                       value={companyForm.industryId || ''}
                       disabled={savingCompany}
-                      onChange={(e) => {
-                        const industryId = e.target.value
+                      ariaLabel="Industry"
+                      placeholder="Select industry…"
+                      options={[{ value: '', label: 'Select industry…' }, ...PLATFORM_INDUSTRY_OPTIONS.map((ind) => ({ value: ind.id, label: ind.label }))]}
+                      onChange={(industryId) => {
                         setCompanyForm((p) => {
                           const committed = commitIndustryChecklist({
                             industryId: p.industryId,
@@ -1798,12 +1798,7 @@ const Profile = () => {
                           }
                         })
                       }}
-                    >
-                      <option value="">Select industry…</option>
-                      {PLATFORM_INDUSTRY_OPTIONS.map((ind) => (
-                        <option key={ind.id} value={ind.id}>{ind.label}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                   {companyForm.industryId && (accountType === 'seller' || accountType === 'buyer' || accountType === 'service_provider') && (
                     <>
@@ -2216,21 +2211,22 @@ const Profile = () => {
                   </div>
                   <div className="prof-form-group">
                     <label className="prof-form-label">Industry</label>
-                    <select className="prof-form-input" value={contactForm.industry} onChange={(e) => setContactForm({ ...contactForm, industry: e.target.value })}>
-                      <option value="">Select industry...</option>
-                      {INDUSTRIES.map((ind) => (
-                        <option key={ind} value={ind}>{ind}</option>
-                      ))}
-                    </select>
+                    <AppListSelect
+                      value={contactForm.industry}
+                      ariaLabel="Industry"
+                      placeholder="Select industry..."
+                      options={[{ value: '', label: 'Select industry...' }, ...INDUSTRIES.map((ind) => ({ value: ind, label: ind }))]}
+                      onChange={(industry) => setContactForm({ ...contactForm, industry })}
+                    />
                   </div>
                   <div className="prof-form-group">
                     <label className="prof-form-label">Contact Type</label>
-                    <select className="prof-form-input" value={contactForm.type} onChange={(e) => setContactForm({ ...contactForm, type: e.target.value })}>
-                      <option value="Supplier">Supplier</option>
-                      <option value="Customer">Customer</option>
-                      <option value="Manufacturer">Manufacturer</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <AppListSelect
+                      value={contactForm.type}
+                      ariaLabel="Contact type"
+                      options={['Supplier', 'Customer', 'Manufacturer', 'Other']}
+                      onChange={(type) => setContactForm({ ...contactForm, type })}
+                    />
                   </div>
                   <div className="prof-form-group full">
                     <label className="prof-form-label">Notes</label>

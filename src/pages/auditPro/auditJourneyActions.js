@@ -7,6 +7,7 @@ import { getActorCompanyId } from '../../services/auditManagementDb'
 import { utcTodayIso } from '../../utils/auditorsAssignmentPool'
 import { addDaysIso } from '../../utils/auditProgrammeViews'
 import { auditDaysForStandard, defaultSellerStandard, openAuditForSeller } from '../../utils/auditJourney'
+import { syncPlannedVisitToProfileCalendar } from '../../utils/auditCalendarBridge'
 
 function defaultStandard(supplier) {
   return defaultSellerStandard(supplier)
@@ -112,6 +113,14 @@ export async function scheduleSellerVisit(supplier, date, auditor, extras = {}) 
     ...extras.patch,
   })
   useAuditProStore.getState().addAuditLog(audit.id, 'Visit scheduled', auditor?.name || 'System', `Visit planned for ${date} (${days} day${days === 1 ? '' : 's'}).`)
+  const liveVisit = useAuditProStore.getState().audits.find((a) => a.id === audit.id) || audit
+  syncPlannedVisitToProfileCalendar({
+    audit: liveVisit,
+    supplier,
+    standard,
+    date,
+    days,
+  })
   await persistSellerPlan(supplier, auditor, { status: 'planned', plannedAt: date })
   notifyWorkspaceKeyDirty('audit_pro', true)
   return audit.id

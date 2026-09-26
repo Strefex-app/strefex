@@ -13,6 +13,7 @@ import {
   keepUnsyncedLocalRows,
   mergeSupplierLists,
   sellersFromCompanyAuditRows,
+  vendorsAsAuditSuppliers,
 } from '../utils/auditProgramHydrate'
 
 const COMPANY_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -151,7 +152,7 @@ describe('audit program database connection', () => {
     const planned = calendar.events.find((e) => e.type === 'planned')
     expect(planned.supplierId).toBe('seller-hanoi')
     expect(planned.auditorId).toBe('auditor-lead')
-    expect(planned.label).toBe('Hanoi Electronics Assembly')
+    expect(planned.label).toBe('Hanoi Electronics Assembly · 2d')
     expect(planned.detail).toContain('M. Haas')
   })
 
@@ -202,6 +203,7 @@ describe('audit program database connection', () => {
           account_type: 'buyer',
           country: 'Vietnam',
           city: 'Hanoi',
+          registration_code: 'S000421',
           external_audit_status: 'pending',
         },
       },
@@ -220,6 +222,8 @@ describe('audit program database connection', () => {
       name: 'Hanoi Electronics Assembly',
       city: 'Hanoi',
       platformCompanyId: SELLER_COMPANY_ID,
+      supplierCode: 'S000421',
+      registrationCode: 'S000421',
     })
     expect(auditors[0]).toMatchObject({ email: 'haas@audit.test', name: 'M. Haas' })
 
@@ -227,5 +231,26 @@ describe('audit program database connection', () => {
       platformSuppliers: suppliers,
     })
     expect(merged.some((s) => s.platformCompanyId === SELLER_COMPANY_ID)).toBe(true)
+  })
+
+  it('merges Vendor Master companies into the supplier list', () => {
+    const rows = vendorsAsAuditSuppliers([{
+      id: 'vnd-1',
+      vendorNumber: 'VEND-1001',
+      status: 'active',
+      createdAt: '2026-01-02T00:00:00.000Z',
+      general: { companyName: 'Plant Co', country: 'DE', strefexPrimaryEmail: 'plant@co.test', industry: ['Automotive'] },
+      addresses: { main: { city: 'Stuttgart' } },
+      contacts: [{ name: 'A. Buyer', email: 'plant@co.test', isPrimary: true }],
+    }])
+    expect(rows[0]).toMatchObject({
+      id: 'vendor_vnd-1',
+      name: 'Plant Co',
+      email: 'plant@co.test',
+      vendorMasterId: 'vnd-1',
+      source: 'vendor_master',
+    })
+    const { suppliers } = assembleAuditWorkspaceFromServer({ vendorSuppliers: rows })
+    expect(suppliers.some((s) => s.vendorMasterId === 'vnd-1')).toBe(true)
   })
 })

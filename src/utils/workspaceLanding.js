@@ -7,12 +7,17 @@ import {
   hasManufacturerSide,
   normalizeAccountTypes,
 } from './networkRoles'
+import { auditorLandingPath, isAuditorWorkspaceRole } from './auditorWorkspaceAccess'
 
 export function resolveWorkspaceLandingPath({
   accountType,
   accountTypes,
   isSuperAdmin = false,
+  role,
 } = {}) {
+  if (isAuditorWorkspaceRole(role) && !isSuperAdmin) {
+    return auditorLandingPath()
+  }
   const types = normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin })
 
   if (isSuperAdmin || hasBuyerSide(types) || hasManufacturerSide(types)) {

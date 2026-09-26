@@ -16,6 +16,7 @@ import CategorySubcategoryChecklist, {
 import AuthPageShell from '../components/AuthPageShell'
 import { resolveWorkspaceLandingPath } from '../utils/workspaceLanding'
 import { companyLegalNameError } from '../utils/companyLegalName'
+import { isBusinessEmail, businessEmailError } from '../utils/businessEmail'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { getEquipmentCategoryTreeForIndustry } from '../data/equipmentByIndustryCategory'
 import { getProductCategoryTreeForIndustry } from '../data/productCategoriesByIndustry'
@@ -52,10 +53,6 @@ const SERVICE_EXPERTISE_OPTIONS = [
   ...AUDIT_SERVICE_ITEMS,
 ]
 const AUDITOR_EXPERTISE_OPTIONS_UI = AUDITOR_EXPERTISE_OPTIONS
-const PUBLIC_EMAIL_DOMAINS = new Set([
-  'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
-  'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'gmx.com', 'yandex.com', 'yandex.ru',
-])
 
 /* ── Inner form (needs Stripe context) ───────────────────── */
 function RegisterForm() {
@@ -131,6 +128,7 @@ function RegisterForm() {
       accountType,
       accountTypes: accountTypesFromUser,
       isSuperAdmin: auth.role === 'superadmin',
+      role: auth.role,
     }), { replace: true })
   }
 
@@ -222,21 +220,13 @@ function RegisterForm() {
     .map((type) => ACCOUNT_TYPES.find((t) => t.id === type)?.label || type)
     .join(', ')
 
-  const isBusinessEmail = (value) => {
-    const normalized = String(value || '').trim().toLowerCase()
-    const parts = normalized.split('@')
-    if (parts.length !== 2) return false
-    const domain = parts[1]
-    return Boolean(domain && domain.includes('.') && !PUBLIC_EMAIL_DOMAINS.has(domain))
-  }
-
   /* ── Step 1 validation ─────────────────────────────────── */
   const validateAccount = () => {
     if (!fullName.trim() || fullName.trim().length < 2) return 'Contact full name must be at least 2 characters'
     const companyErr = companyLegalNameError(company, { contactName: fullName, email })
     if (companyErr) return companyErr
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address'
-    if (!isBusinessEmail(email)) return 'Please use a business email domain (public email providers are not allowed).'
+    if (!isBusinessEmail(email)) return businessEmailError(email)
     if (!phone.trim() || phone.trim().length < 7) return 'Please enter a valid phone number (minimum 7 digits)'
     if (!/^[+\d\s\-()]+$/.test(phone.trim())) return 'Phone number can only contain digits, spaces, dashes, and parentheses'
     if (!password || password.length < 8) return 'Password must be at least 8 characters'

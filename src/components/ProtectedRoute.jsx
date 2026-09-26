@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { isSupabaseConfigured } from '../config/supabase'
 import { isSuperadminEmail } from '../services/superadminAuth'
 import { profilesService } from '../services/supabaseService'
+import { auditorSafeRedirect, auditorLandingPath, isAuditorWorkspaceRole } from '../utils/auditorWorkspaceAccess'
 
 const ROLE_HIERARCHY = {
   guest: 0,
@@ -73,19 +74,24 @@ export default function ProtectedRoute({ children, requiredRole }) {
 
   if (requiredRole) {
     if (requiredRole === 'superadmin' && !isSuperadminEmail(userEmail)) {
-      return <Navigate to="/main-menu" replace />
+      return <Navigate to={isAuditorWorkspaceRole(role) ? auditorLandingPath() : '/main-menu'} replace />
     }
     if (
       (role === 'auditor_internal' || role === 'auditor_external') &&
       (requiredRole === 'manager' || requiredRole === 'admin' || requiredRole === 'superadmin')
     ) {
-      return <Navigate to="/main-menu" replace />
+      return <Navigate to={auditorLandingPath()} replace />
     }
     const currentLevel = ROLE_HIERARCHY[role] ?? 0
     const requiredLevel = ROLE_HIERARCHY[requiredRole] ?? 999
     if (currentLevel < requiredLevel) {
-      return <Navigate to="/main-menu" replace />
+      return <Navigate to={isAuditorWorkspaceRole(role) ? auditorLandingPath() : '/main-menu'} replace />
     }
+  }
+
+  const blocked = auditorSafeRedirect(role, location.pathname)
+  if (blocked) {
+    return <Navigate to={blocked} replace />
   }
 
   return children

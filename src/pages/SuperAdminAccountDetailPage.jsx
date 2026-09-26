@@ -60,6 +60,7 @@ import {
   AUDITOR_EXPERTISE_OPTIONS,
   AUDIT_SERVICE_ITEMS,
 } from '../data/auditServices'
+import { normalizeIndustryIds, readAuditorVisibleIndustries } from '../utils/auditorIndustryScope'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -181,6 +182,7 @@ function emptyForm() {
     equipmentSubcategories: {},
     productSubcategories: {},
     serviceCategories: [],
+    auditorVisibleIndustries: [],
     sourcingMetrics: emptySourcingMetricsForm(),
   }
 }
@@ -369,6 +371,9 @@ export default function SuperAdminAccountDetailPage() {
   const [packRemovePaths, setPackRemovePaths] = useState([])
   const [transferInvite, setTransferInvite] = useState(true)
   const [transferring, setTransferring] = useState(false)
+  const [sendingLoginEmail, setSendingLoginEmail] = useState(false)
+  const [loginActionLink, setLoginActionLink] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const routeCompanyId = useMemo(() => {
     const raw = decodeParam(companyIdParam)
@@ -442,6 +447,12 @@ export default function SuperAdminAccountDetailPage() {
         if (fromProfile.length) return fromProfile
         return Array.isArray(reg?.serviceCategories) ? [...reg.serviceCategories] : []
       })(),
+      auditorVisibleIndustries: readAuditorVisibleIndustries({
+        ...c,
+        metadata: c?.metadata,
+        industries: c?.industries || reg?.industries,
+        auditorVisibleIndustries: reg?.auditorVisibleIndustries,
+      }),
       sourcingMetrics: sourcingMetricsFormFromSource(c, reg),
     })
     const saved = readReceivingPlantsFromAccount(
@@ -859,6 +870,9 @@ export default function SuperAdminAccountDetailPage() {
           : (Array.isArray(company.metadata?.service_categories) && company.metadata.service_categories.length
             ? [...company.metadata.service_categories]
             : (Array.isArray(existingLocal.serviceCategories) ? [...existingLocal.serviceCategories] : [])))
+      const nextAuditorVisible = nextAccountTypes.includes('auditor')
+        ? normalizeIndustryIds(form.auditorVisibleIndustries)
+        : []
       const nextSourcingMetrics = parseSourcingMetricsForm(form.sourcingMetrics)
       const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
       const nextAccountTypes = (() => {
@@ -897,6 +911,7 @@ export default function SuperAdminAccountDetailPage() {
           serviceCategories: nextServiceCategories,
         }, existingLocal)
         Object.assign(patch, {
+          auditorVisibleIndustries: nextAuditorVisible,
           receivingPlants: normalizeReceivingPlants(plants),
           companyId: company.id || existingLocal.companyId || undefined,
           ...sourcingRegistryPatch,
@@ -960,6 +975,7 @@ export default function SuperAdminAccountDetailPage() {
                   equipment_subcategories: nextEquipmentSubcategories,
                   product_subcategories: nextProductSubcategories,
                   service_categories: nextServiceCategories,
+                  auditor_visible_industries: nextAuditorVisible,
                   admin_taxonomy_unlocked: true,
                 }, nextSourcingMetrics),
               })
@@ -988,6 +1004,7 @@ export default function SuperAdminAccountDetailPage() {
         existingMetadata: mergeSourcingMetricsIntoMetadata({
           ...(company.metadata || {}),
           address: nextAddress || company.address || company.metadata?.address || null,
+          auditor_visible_industries: nextAuditorVisible,
           admin_taxonomy_unlocked: true,
         }, nextSourcingMetrics),
       })
@@ -1100,6 +1117,7 @@ export default function SuperAdminAccountDetailPage() {
           equipmentSubcategories: nextEquipmentSubcategories,
           productSubcategories: nextProductSubcategories,
           serviceCategories: nextServiceCategories,
+          auditorVisibleIndustries: nextAuditorVisible,
         }, existingLocal)
         const existing = updateAccount(emailKey, {
           ...registryPatch,
@@ -1127,6 +1145,7 @@ export default function SuperAdminAccountDetailPage() {
             equipmentSubcategories: nextEquipmentSubcategories,
             productSubcategories: nextProductSubcategories,
             serviceCategories: nextServiceCategories,
+            auditorVisibleIndustries: nextAuditorVisible,
             visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
             ...sourcingRegistryPatch,
             profileAttachments: nextPack,
@@ -1188,17 +1207,83 @@ export default function SuperAdminAccountDetailPage() {
       setRegistryKey(result.email)
       if (result.company) setCompany(result.company)
       else setCompany((prev) => (prev ? { ...prev, email: result.email } : prev))
-      const inviteNote = result.invite?.alreadyExists
+      const inviteNote = result.inviteError
+        ? ''
+        : result.invite?.alreadyExists && !result.invite?.delivered
         ? ' Seller email already has a login — a sign-in link was sent if mail is configured.'
         : (result.invite?.delivered || result.invite?.emailConfirmationPending
-          ? ' Confirmation email sent via Resend — seller must open the link to take over login.'
+          ? (result.invite?.channel === 'supabase_otp' || result.invite?.channel === 'supabase_resend'
+            ? ' Login email sent via Supabase Auth (invite function was unreachable).'
+            : ' Confirmation email sent — seller must open the link to take over login.')
           : (transferInvite && isSupabaseConfigured ? ' Invite requested.' : ''))
       setSavedMsg(`Seller rights transferred to ${result.email}.${inviteNote}`)
+      if (result.invite?.actionLink) {
+        setLoginActionLink(result.invite.actionLink)
+        setLinkCopied(false)
+      }
+      if (result.inviteError) {
+        setError(`Email did not send: ${result.inviteError}`)
+      } else if (result.invite?.error) {
+        setError(`Email did not send: ${result.invite.error}. Copy the confirmation link below and send it to the seller.`)
+      }
       setTransferEmail('')
     } catch (e) {
       setError(e?.message || 'Transfer failed.')
     } finally {
       setTransferring(false)
+    }
+  }
+
+  const sendSellerLoginEmail = async (rawEmail) => {
+    const email = String(rawEmail || form.email || company?.email || '').trim().toLowerCase()
+    if (!email || !email.includes('@')) {
+      setError('Set a real seller email before sending confirmation.')
+      return
+    }
+    if (isAdminCreatedPlaceholderEmail(email)) {
+      setError('Transfer rights to the seller email first, then send the login email.')
+      return
+    }
+    setSendingLoginEmail(true)
+    setError('')
+    setSavedMsg('')
+    try {
+      const invite = await supabaseAuth.inviteTeamUser({
+        email,
+        fullName: transferName || form.contactName,
+        role: 'admin',
+        companyId: companyId || null,
+        accountType: 'seller',
+      })
+      if (invite?.actionLink) {
+        setLoginActionLink(invite.actionLink)
+        setLinkCopied(false)
+      }
+      if (invite?.delivered || invite?.emailConfirmationPending) {
+        setSavedMsg(`Login / confirmation email requested for ${email}. If Resend shows Bounced, copy the link below and send it to the seller.`)
+      } else if (invite?.alreadyExists) {
+        setSavedMsg(`${email} already has a login. A sign-in link was requested.`)
+      } else {
+        setSavedMsg(`Invite requested for ${email}.`)
+      }
+      if (invite?.error) {
+        setError(`Email did not send: ${invite.error}. Copy the confirmation link below.`)
+      }
+    } catch (e) {
+      setError(e?.message || 'Could not send confirmation email.')
+    } finally {
+      setSendingLoginEmail(false)
+    }
+  }
+
+  const copyLoginActionLink = async () => {
+    const link = String(loginActionLink || '').trim()
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      setLinkCopied(true)
+    } catch {
+      setError('Could not copy. Select the link and copy it manually.')
     }
   }
 
@@ -1303,6 +1388,8 @@ export default function SuperAdminAccountDetailPage() {
               <div>
                 <h1 className="saad-title">{company.name || 'Company'}</h1>
                 <p className="saad-sub">
+                  <span className="saad-code-label">Platform number</span>
+                  {' '}
                   <span className="saad-code">{company.registration_code || '—'}</span>
                   {' · '}
                   <span>{VISIBILITY_TIER_LABELS[company.visibility_tier] || company.visibility_tier}</span>
@@ -1561,6 +1648,37 @@ export default function SuperAdminAccountDetailPage() {
                   </div>
                 )}
 
+                {((Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
+                  <div className="saad-section">
+                    <h3 className="saad-h3">Auditor industry access</h3>
+                    <p className="saad-muted">
+                      This auditor only sees companies Superadmin assigns to them, and only in the industries you tick. Leave all unchecked to hide Calendar work until you set industries and assign sellers on Supplier pool.
+                    </p>
+                    <div className="saad-category-checklist">
+                      {PLATFORM_INDUSTRY_OPTIONS.filter((opt) => opt.id !== 'general').map((opt) => (
+                        <ToggleCheckButton
+                          key={opt.id}
+                          checked={(form.auditorVisibleIndustries || []).includes(opt.id)}
+                          disabled={savingProfile}
+                          onChange={(checked) => {
+                            setForm((prev) => {
+                              const list = Array.isArray(prev.auditorVisibleIndustries) ? prev.auditorVisibleIndustries : []
+                              return {
+                                ...prev,
+                                auditorVisibleIndustries: checked
+                                  ? [...list, opt.id]
+                                  : list.filter((id) => id !== opt.id),
+                              }
+                            })
+                          }}
+                        >
+                          {opt.label}
+                        </ToggleCheckButton>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {((Array.isArray(form.account_types) ? form.account_types : []).includes('service_provider')
                   || (Array.isArray(form.account_types) ? form.account_types : []).includes('auditor')) && (
                   <div className="saad-section">
@@ -1747,7 +1865,32 @@ export default function SuperAdminAccountDetailPage() {
                   >
                     {transferring ? 'Transferring…' : 'Transfer rights'}
                   </button>
+                  {isSupabaseConfigured && (
+                    <button
+                      type="button"
+                      className="saad-back"
+                      disabled={sendingLoginEmail || transferring}
+                      onClick={() => void sendSellerLoginEmail(transferEmail.trim() || form.email)}
+                    >
+                      {sendingLoginEmail ? 'Sending email…' : 'Send confirmation email'}
+                    </button>
+                  )}
                 </div>
+                <p className="saad-muted saad-mail-hint stx-text-wrap">
+                  If Resend lists this as Bounced, do not keep retrying — the inbox rejected it. Copy the confirmation link and send it to the seller another way. Then in Resend open the email → Bounced → See details, and remove the address from Suppressions before trying again.
+                </p>
+                {loginActionLink ? (
+                  <div className="saad-login-link">
+                    <p className="saad-muted stx-text-wrap">{loginActionLink}</p>
+                    <button
+                      type="button"
+                      className="saad-back"
+                      onClick={() => void copyLoginActionLink()}
+                    >
+                      {linkCopied ? 'Link copied' : 'Copy confirmation link'}
+                    </button>
+                  </div>
+                ) : null}
               </section>
 
               <section className="saad-card">

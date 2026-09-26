@@ -14,42 +14,42 @@ export const PAGE_ROOTS = {
   home: { label: 'Home', to: '/main-menu' },
   hr: { label: 'HR Space', to: '/management/people/hr-space' },
   forge: { label: 'Forge', to: '/forge' },
-  auditors: { label: 'Auditors', to: AUDITORS_DIRECTORY_PATH },
+  auditors: { label: 'Audit operations', to: AUDITORS_DIRECTORY_PATH },
 }
 
 function auditorsDirectoryTrail(pathname) {
   const leaf = auditorsHubLeaf(pathname)
   const labels = {
-    dashboard: 'Dashboard',
-    'new-audit': 'New audit',
-    plans: 'Audit plans',
-    pool: 'Sellers',
+    dashboard: 'Calendar',
+    'new-audit': 'Calendar',
+    plans: 'Calendar',
+    pool: 'Supplier pool',
     calendar: 'Calendar',
-    findings: 'Audits & findings',
+    findings: 'Findings report',
     record: 'Company record',
-    auditors: 'Auditor database',
-    standards: 'Standards',
-    suppliers: 'Sellers',
-    'risk-matrix': 'Risk matrix',
-    logs: 'Logs',
-    reports: 'Reports',
+    auditors: 'Auditors & standards',
+    standards: 'Auditors & standards',
+    suppliers: 'Records',
+    'risk-matrix': 'Records',
+    logs: 'Records',
+    reports: 'Records',
   }
-  if (!leaf) return [{ label: 'Sellers', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }]
+  if (!leaf) return [{ label: 'Calendar', to: `${AUDITORS_DIRECTORY_PATH}/calendar` }]
   if (leaf.startsWith('conduct')) {
-    return [{ label: 'Sellers', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }, { label: 'Conduct audit' }]
+    return [{ label: 'Calendar', to: `${AUDITORS_DIRECTORY_PATH}/calendar` }, { label: 'Conduct audit' }]
   }
   if (leaf.startsWith('print')) {
-    return [{ label: 'Supplier register', to: `${AUDITORS_DIRECTORY_PATH}/suppliers` }, { label: 'Print report' }]
+    return [{ label: 'Records', to: `${AUDITORS_DIRECTORY_PATH}/suppliers?view=records` }, { label: 'Print report' }]
   }
   if (leaf.startsWith('findings')) {
     return [
-      { label: 'Audit schedule', to: `${AUDITORS_DIRECTORY_PATH}/calendar` },
+      { label: 'Records', to: `${AUDITORS_DIRECTORY_PATH}/suppliers?view=records` },
       { label: 'Findings report' },
     ]
   }
   if (leaf.startsWith('record')) {
     return [
-      { label: 'Supplier register', to: `${AUDITORS_DIRECTORY_PATH}/suppliers?view=records` },
+      { label: 'Records', to: `${AUDITORS_DIRECTORY_PATH}/suppliers?view=records` },
       { label: 'Company record' },
     ]
   }

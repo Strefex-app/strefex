@@ -1,6 +1,7 @@
 import { AUDIT_STANDARDS } from '../data/auditManagementDetailedData'
 import { isAuditServiceCategoryId } from '../data/auditServices'
 import { toAuditDateInput } from './companyExternalAudit'
+import { readPlatformNumber } from './platformRegistrationCode'
 
 export const POOL_REGIONS = ['EMEA', 'ASIA', 'AMERICAS']
 export const DEFAULT_ANNUAL_CAPACITY_DAYS = 60
@@ -52,6 +53,8 @@ function hashCode(value) {
 }
 
 export function sellerSiteCode(supplier) {
+  const official = readPlatformNumber(supplier)
+  if (official) return official
   if (supplier?.supplierCode) return String(supplier.supplierCode)
   const n = 1000 + (hashCode(supplier?.id || supplier?.email || supplier?.name) % 9000)
   return `SUP-${n}`
@@ -215,6 +218,8 @@ export function buildAssignmentPool({
   audits = [],
   requests = [],
   todayIso = utcTodayIso(),
+  includeAssigned = false,
+  includeAllSuppliers = false,
 } = {}) {
   const items = []
   const seen = new Set()
@@ -229,7 +234,7 @@ export function buildAssignmentPool({
   for (const audit of audits || []) {
     if (!openStatuses(audit.status)) continue
     const assigned = Boolean(audit.auditorId)
-    if (assigned) continue
+    if (assigned && !includeAssigned) continue
     const supplier = (suppliers || []).find((s) => s.id === audit.supplierId) || null
     const last = lastCompletedAudit(supplier, audits)
     const risk = sellerRiskFromHistory(supplier || { id: audit.supplierId }, audits)
@@ -265,6 +270,8 @@ export function buildAssignmentPool({
         todayIso,
       }),
       source: 'audit',
+      auditorId: audit.auditorId || '',
+      assignedEmail: supplier?.externalAuditAssignedAuditorEmail || '',
     })
   }
 
@@ -312,7 +319,56 @@ export function buildAssignmentPool({
         todayIso,
       }),
       source: 'seller',
+      auditorId: '',
+      assignedEmail: String(supplier.externalAuditAssignedAuditorEmail || ''),
     })
+  }
+
+  if (includeAllSuppliers) {
+    for (const supplier of suppliers || []) {
+      if (items.some((row) => row.supplierId === supplier.id)) continue
+      const open = (audits || []).find((a) => a.supplierId === supplier.id && openStatuses(a.status))
+      const last = lastCompletedAudit(supplier, audits)
+      const risk = sellerRiskFromHistory(supplier, audits)
+      const kind = inferAuditKind({
+        lastCompleted: last,
+        openFindings: risk.open,
+        fromRequest: false,
+        registeredAt: supplier.registeredAt || supplier.createdAt,
+        todayIso,
+      }) || 'planned'
+      const meta = AUDIT_KIND_META[kind] || AUDIT_KIND_META.planned
+      const target = toAuditDateInput(open?.deadlineDate)
+        || toAuditDateInput(open?.plannedDate)
+        || toAuditDateInput(supplier.externalAuditDeadlineAt)
+        || addDaysIso(todayIso, 45)
+      push({
+        id: `seller:${supplier.id}:status`,
+        auditId: open?.id || '',
+        supplierId: supplier.id,
+        supplier,
+        kind,
+        kindLabel: open?.status || meta.label,
+        kindReason: (open?.auditorId || supplier.externalAuditAssignedAuditorEmail) ? 'Assigned' : meta.reason,
+        risk,
+        modules: scopeModulesForSeller(supplier, open),
+        targetDate: target,
+        deadlineDate: toAuditDateInput(open?.deadlineDate) || '',
+        plannedDate: toAuditDateInput(open?.plannedDate) || '',
+        auditDays: Number(open?.auditDays) || auditDaysForKind(kind),
+        region: regionFromCountry(supplier.country),
+        readiness: readinessForJob({
+          kind,
+          deadlineAt: open?.deadlineDate,
+          plannedAt: open?.plannedDate,
+          hasResponses: Boolean(open?.responses && Object.keys(open.responses || {}).length),
+          todayIso,
+        }),
+        source: 'seller',
+        auditorId: open?.auditorId || '',
+        assignedEmail: String(supplier.externalAuditAssignedAuditorEmail || ''),
+      })
+    }
   }
 
   for (const request of requests || []) {
@@ -349,6 +405,8 @@ export function buildAssignmentPool({
       region: regionFromCountry(request.address || supplier?.country),
       readiness: readinessForJob({ kind: 'request', todayIso, hasResponses: false }),
       source: 'request',
+      auditorId: '',
+      assignedEmail: '',
     })
   }
 
@@ -412,7 +470,7 @@ export function matchWholePool(jobs = [], auditors = [], audits = [], existingPr
 }
 
 export function poolKpis(jobs = [], capacityRows = [], todayIso = utcTodayIso(), programmeYear = todayIso.slice(0, 4)) {
-  const unassigned = jobs.length
+  const unassigned = jobs.filter((j) => !j.auditorId && !String(j.assignedEmail || '').trim()).length
   const critical = jobs.filter((j) => j.risk.level === 'CRITICAL' || j.risk.level === 'HIGH').length
   const pastTarget = jobs.filter((j) => j.targetDate && j.targetDate < todayIso).length
   const booked = (capacityRows || []).reduce((n, r) => n + (r.booked || 0), 0)

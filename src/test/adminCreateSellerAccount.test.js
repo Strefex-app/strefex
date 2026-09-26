@@ -48,6 +48,25 @@ describe('adminCreateSellerAccount', () => {
     })
     expect(out.email).toBe('owner@maker.de')
     expect(patches[0].patch.pendingOwnerTransfer).toBe(false)
+  })
+
+  it('transfers rights even when the invite email fails', async () => {
+    const patches = []
+    const out = await transferSellerAccountRights({
+      registryKey: 'pending.x@admin-created.strefex.local',
+      currentEmail: 'pending.x@admin-created.strefex.local',
+      newEmail: 'owner@maker.de',
+      sendInvite: true,
+      updateAccount: (key, patch) => {
+        patches.push({ key, patch })
+        return { email: patch.email, ...patch }
+      },
+      inviteTeamUser: async () => {
+        throw new Error('Failed to send a request to the Edge Function')
+      },
+    })
+    expect(out.email).toBe('owner@maker.de')
+    expect(out.inviteError).toMatch(/Edge Function/)
     expect(patches[0].patch.email).toBe('owner@maker.de')
   })
 })

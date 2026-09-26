@@ -1,5 +1,6 @@
 /** Map industry hub ids (from industryStore) to exhibition catalog industry labels */
 import { BUYER_TRACK_PATH } from '../constants/rfqPaths'
+import { AUDITORS_DIRECTORY_ALIAS } from './auditorsDirectory'
 
 export const INDUSTRY_ID_TO_EXHIBITION_LABEL = {
   automotive: 'Automotive',
@@ -75,6 +76,7 @@ export function collectPlatformCalendarEvents({
   trainingRecords = [],
   goals = [],
   employees = [],
+  audits = [],
 }) {
   /** @type {PlatformCalendarEvent[]} */
   const events = []
@@ -277,6 +279,29 @@ export function collectPlatformCalendarEvents({
       meta: 'HR · Goal due date',
       color: '#5e35b1',
       href: '/hr-space',
+    })
+  })
+
+  ;(audits || []).forEach((audit) => {
+    const start = normalizeDateStr(audit.plannedDate || audit.completedDate)
+    if (!start) return
+    const span = Math.max(1, Number(audit.auditDays) || 1)
+    const endD = new Date(`${start}T12:00:00`)
+    endD.setDate(endD.getDate() + span - 1)
+    const dates = eachDateInRange(start, endD.toISOString().slice(0, 10))
+    const done = String(audit.status || '') === 'Completed'
+    dates.forEach((d, i) => {
+      push(d, {
+        id: `supplier-audit-${audit.id}-${d}`,
+        type: 'supplier_audit',
+        title: audit.title || 'Supplier audit',
+        detail: [audit.standard, done ? 'Performed' : 'Planned', span > 1 ? `Day ${i + 1}/${span}` : '']
+          .filter(Boolean)
+          .join(' · '),
+        meta: done ? 'Audit performed' : 'Audit visit',
+        color: done ? '#1565c0' : '#0A2540',
+        href: `${AUDITORS_DIRECTORY_ALIAS}/calendar`,
+      })
     })
   })
 

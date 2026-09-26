@@ -29,6 +29,7 @@ import { syncDomTheme } from './theme/syncDomTheme'
 import RfqIntelligenceRedirect from './pages/RfqIntelligenceRedirect'
 import LegacyCutDbRedirect from './routes/LegacyCutDbRedirect'
 import { managementLegacyRedirectRoutes } from './routes/managementLegacyRedirectRoutes'
+import { resolveWorkspaceLandingPath } from './utils/workspaceLanding'
 
 /* ── Code-split pages (see routes/lazyPages.js) ──────────── */
 import {
@@ -63,18 +64,12 @@ import {
   ManagementClusterPage,
   AuditProgramGate,
   AuditProLayout,
-  AuditProDashboard,
-  AuditProNewAudit,
-  AuditProAuditPlans,
   AuditProCalendar,
+  AuditProDirectory,
   AuditProFindingsReport,
   AuditProSellerRecord,
   AuditProAuditorRegistry,
-  AuditProStandards,
   AuditProSupplierRegistry,
-  AuditProRiskMatrix,
-  AuditProLogs,
-  AuditProReports,
   AuditProConduct,
   AuditProPrintReport,
   ProjectManagement,
@@ -287,6 +282,8 @@ function PlanGate({ feature, planName, children, requiredRole }) {
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const authRole = useAuthStore((state) => state.role)
+  const authAccountTypes = useAuthStore((state) => state.user?.accountTypes)
   const tenantReady = useAuthStore((state) => state.tenantReady)
   const passwordRecoveryPending = useAuthStore((state) => state.passwordRecoveryPending)
   const startRequestRefresh = useServiceRequestStore((s) => s.startRefreshSequence)
@@ -391,9 +388,17 @@ function App() {
           {/* ── Public ────────────────────────────────────── */}
           <Route
             path="/login"
-            element={isAuthenticated && !passwordRecoveryPending ? <Navigate to="/main-menu" /> : <Login />}
+            element={isAuthenticated && !passwordRecoveryPending ? <Navigate to={resolveWorkspaceLandingPath({
+              isSuperAdmin: authRole === 'superadmin',
+              role: authRole,
+              accountTypes: authAccountTypes,
+            })} replace /> : <Login />}
           />
-          <Route path="/register" element={isAuthenticated && !passwordRecoveryPending ? <Navigate to="/main-menu" /> : <Register />} />
+          <Route path="/register" element={isAuthenticated && !passwordRecoveryPending ? <Navigate to={resolveWorkspaceLandingPath({
+            isSuperAdmin: authRole === 'superadmin',
+            role: authRole,
+            accountTypes: authAccountTypes,
+          })} replace /> : <Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Public marketing site (www.strefex.pro) — always the introduction */}
@@ -420,7 +425,11 @@ function App() {
           <Route path="/resources" element={<P><Resources /></P>} />
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/project" element={<P><Project /></P>} />
-          <Route path="/intelligence/*" element={<P><Navigate to="/main-menu" replace /></P>} />
+          <Route path="/intelligence/*" element={<P><Navigate to={resolveWorkspaceLandingPath({
+            isSuperAdmin: authRole === 'superadmin',
+            role: authRole,
+            accountTypes: authAccountTypes,
+          })} replace /></P>} />
           <Route path="/seller-dashboard" element={<P><Navigate to="/dashboard/supplier" replace /></P>} />
           <Route path="/hub/partner" element={<P><PartnerHub /></P>} />
           <Route path="/hub/governance" element={<Admin><GovernanceHub /></Admin>} />
@@ -465,20 +474,20 @@ function App() {
             <Route path="print/:auditId" element={<AuditProPrintReport />} />
             <Route path="overview" element={<Navigate to=".." replace />} />
             <Route element={<AuditProLayout />}>
-              <Route index element={<Navigate to="suppliers" replace />} />
-              <Route path="pool" element={<Navigate to="suppliers" replace />} />
-              <Route path="dashboard" element={<AuditProDashboard />} />
-              <Route path="new-audit" element={<AuditProNewAudit />} />
-              <Route path="plans" element={<AuditProAuditPlans />} />
+              <Route index element={<Navigate to="calendar" replace />} />
+              <Route path="pool" element={<AuditProDirectory />} />
+              <Route path="dashboard" element={<Navigate to="calendar" replace />} />
+              <Route path="new-audit" element={<Navigate to="calendar" replace />} />
+              <Route path="plans" element={<Navigate to="calendar" replace />} />
               <Route path="calendar" element={<AuditProCalendar />} />
               <Route path="findings/:auditId" element={<AuditProFindingsReport />} />
               <Route path="record/:supplierId" element={<AuditProSellerRecord />} />
               <Route path="auditors" element={<AuditProAuditorRegistry />} />
-              <Route path="standards" element={<AuditProStandards />} />
+              <Route path="standards" element={<Navigate to="/management/contracts-compliance/auditors/auditors" replace />} />
               <Route path="suppliers" element={<AuditProSupplierRegistry />} />
-              <Route path="risk-matrix" element={<AuditProRiskMatrix />} />
-              <Route path="logs" element={<AuditProLogs />} />
-              <Route path="reports" element={<AuditProReports />} />
+              <Route path="risk-matrix" element={<Navigate to="/management/contracts-compliance/auditors/suppliers?view=records" replace />} />
+              <Route path="logs" element={<Navigate to="/management/contracts-compliance/auditors/suppliers?view=records" replace />} />
+              <Route path="reports" element={<Navigate to="/management/contracts-compliance/auditors/suppliers?view=records" replace />} />
               <Route path="conduct/:auditId" element={<AuditProConduct />} />
             </Route>
           </Route>

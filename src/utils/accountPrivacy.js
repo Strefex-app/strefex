@@ -22,7 +22,7 @@ export const IDENTIFIED_ACCOUNT_FIELDS = [
   'vatNumber',
 ]
 
-export const PRIVILEGED_PRIVACY_ROLES = new Set(['superadmin', 'auditor_external'])
+export const PRIVILEGED_PRIVACY_ROLES = new Set(['superadmin'])
 
 export function maskEmail(value) {
   const raw = String(value || '').trim()

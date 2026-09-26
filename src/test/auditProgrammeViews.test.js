@@ -64,6 +64,8 @@ describe('audit programme views', () => {
     expect(auditKindLabel(audit)).toBe('Surveillance')
     const capa = buildCapaRows({ audits: [audit], suppliers: [supplier], auditors: [auditor], todayIso: '2026-09-17' })
     expect(capa[0].overdue).toBe(true)
+    expect(capa[0].leadTime).toMatch(/overdue/)
+    expect(capa[0].action).toBe('Lock parameter access')
     expect(capa[0].supplierId).toBe('s1')
     expect(filterCapaRows(capa, 'major')).toHaveLength(1)
   })

@@ -1,3 +1,5 @@
+import { isAuditorWorkspaceRole } from './auditorWorkspaceAccess'
+
 /**
  * Role helpers for the flat app nav (no Network/Company mode switch).
  *
@@ -18,22 +20,26 @@ export function normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin 
 
 export function hasManufacturerSide(types = []) {
   const set = new Set(types)
-  return set.has('seller') || set.has('service_provider') || set.has('auditor')
+  return set.has('seller') || set.has('service_provider')
 }
 
 export function hasBuyerSide(types = []) {
   return types.includes('buyer')
 }
 
-export function shouldShowHomeInNav({ accountType, accountTypes, isSuperAdmin = false } = {}) {
+export function shouldShowHomeInNav({ accountType, accountTypes, isSuperAdmin = false, role } = {}) {
   if (isSuperAdmin) return true
+  if (isAuditorWorkspaceRole(role)) return false
   const types = normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin })
+  if (types.length && types.every((t) => t === 'auditor')) return false
   return types.length > 0
 }
 
-export function shouldShowSourcingInNav({ accountType, accountTypes, isSuperAdmin = false } = {}) {
+export function shouldShowSourcingInNav({ accountType, accountTypes, isSuperAdmin = false, role } = {}) {
   if (isSuperAdmin) return true
+  if (isAuditorWorkspaceRole(role)) return false
   const types = normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin })
+  if (types.includes('auditor') && !hasBuyerSide(types) && !hasManufacturerSide(types)) return false
   return hasBuyerSide(types) || hasManufacturerSide(types)
 }
 
@@ -43,8 +49,9 @@ export function shouldShowInboxInNav() {
 }
 
 /** Management hub — plant tools for any company account. */
-export function shouldShowManagementInNav({ accountType, accountTypes, isSuperAdmin = false } = {}) {
+export function shouldShowManagementInNav({ accountType, accountTypes, isSuperAdmin = false, role } = {}) {
   if (isSuperAdmin) return true
+  if (String(role || '').toLowerCase() === 'auditor_external') return false
   const types = normalizeAccountTypes({ accountType, accountTypes, isSuperAdmin })
   return hasBuyerSide(types) || hasManufacturerSide(types) || types.length > 0
 }

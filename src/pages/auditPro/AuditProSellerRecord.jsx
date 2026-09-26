@@ -1,15 +1,8 @@
-import { useMemo } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import useAuditProStore from '../../store/auditProStore'
-import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
-import {
-  filterAuditProAuditsForVisibility,
-  filterAuditProAuditorsForVisibility,
-  filterAuditProSuppliersForVisibility,
-} from '../../data/auditProDemoKit'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
 import { Btn } from './auditProUi'
-import { AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
-import { sellerSiteCode } from '../../utils/auditorsAssignmentPool'
+import { AUDITORS_DIRECTORY_ALIAS, sellerCategoryLabel } from '../../utils/auditorsDirectory'
+import { sellerSiteCode, utcTodayIso } from '../../utils/auditorsAssignmentPool'
 import { formatAuditDateLabel, toAuditDateInput } from '../../utils/companyExternalAudit'
 import { useTranslation } from '../../i18n/useTranslation'
 import {
@@ -25,28 +18,13 @@ export default function AuditProSellerRecord() {
   const { supplierId } = useParams()
   const navigate = useNavigate()
   const { language } = useTranslation()
-  const auditsAll = useAuditProStore((s) => s.audits)
-  const auditorsAll = useAuditProStore((s) => s.auditors)
-  const suppliersAll = useAuditProStore((s) => s.suppliers)
-  const demoKitShown = useAuditProDemoKitVisible()
-  const audits = useMemo(
-    () => filterAuditProAuditsForVisibility(auditsAll, auditorsAll, suppliersAll, demoKitShown),
-    [auditsAll, auditorsAll, suppliersAll, demoKitShown],
-  )
-  const auditors = useMemo(
-    () => filterAuditProAuditorsForVisibility(auditorsAll, demoKitShown),
-    [auditorsAll, demoKitShown],
-  )
-  const suppliers = useMemo(
-    () => filterAuditProSuppliersForVisibility(suppliersAll, demoKitShown),
-    [suppliersAll, demoKitShown],
-  )
+  const { audits, auditors, suppliers } = useAuditorsHubScopedData()
   const supplier = suppliers.find((s) => s.id === supplierId)
   if (!supplierId) return <Navigate to={`${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`} replace />
   if (!supplier) {
     return (
       <div className="ap-prog">
-        <p className="ap-dir-empty">Seller record was not found in this workspace.</p>
+        <p className="ap-dir-empty">This company is not on your assigned list.</p>
         <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`)}>← Back</Btn>
       </div>
     )
@@ -54,8 +32,9 @@ export default function AuditProSellerRecord() {
 
   const sellerAudits = audits.filter((a) => a.supplierId === supplier.id)
   const reports = buildFindingsReports({ audits: sellerAudits, suppliers, auditors, language })
-  const capa = buildCapaRows({ audits: sellerAudits, suppliers, auditors })
+  const capa = buildCapaRows({ audits: sellerAudits, suppliers, auditors, todayIso: utcTodayIso() })
   const openNc = capa.filter((r) => r.open).length
+  const overdueNc = capa.filter((r) => r.open && r.overdue).length
   const comparison = yearComparison(supplier.id, sellerAudits, language)
   const nextAudit = sellerAudits
     .filter((a) => a.status !== 'Completed' && a.status !== 'Cancelled' && toAuditDateInput(a.plannedDate))
@@ -74,7 +53,7 @@ export default function AuditProSellerRecord() {
         <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`)}>← Company records</Btn>
         {latestCompleted ? (
           <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/print/${latestCompleted.id}?doc=closing`)}>
-            Print closing report
+            Signature report
           </Btn>
         ) : null}
         {latestCompleted && latestResult && latestResult.key !== 'rejected' ? (
@@ -88,13 +67,20 @@ export default function AuditProSellerRecord() {
       <h2 className="ap-prog-title stx-text-wrap">{supplier.name}</h2>
       <div className="ap-dir-actions">
         {suspended ? <span className="ap-result ap-result--rejected">Suspended</span> : null}
-        {supplier.industry ? <span className="ap-pool-chip is-on">{supplier.industry}</span> : null}
+        {overdueNc ? (
+          <span className="ap-result ap-result--rejected">Action plan overdue · {overdueNc}</span>
+        ) : openNc ? (
+          <span className="ap-result ap-result--conditional">Action plan needed · {openNc}</span>
+        ) : latestCompleted ? (
+          <span className="ap-result ap-result--approved">Audited</span>
+        ) : null}
+        {supplier.industry ? <span className="ap-pool-chip is-on">{sellerCategoryLabel(supplier)}</span> : null}
         <span className="ap-pool-chip">{[supplier.country, supplier.city].filter(Boolean).join(' · ') || 'Site not set'}</span>
       </div>
 
       <div className="ap-report-facts">
         <article><div className="ap-pool-kpi-label">Registered</div><div className="ap-fact">{formatAuditDateLabel(supplier.registeredAt) || '—'}</div></article>
-        <article><div className="ap-pool-kpi-label">Commodity</div><div className="ap-fact stx-text-wrap">{supplier.notes || supplier.industry || '—'}</div></article>
+        <article><div className="ap-pool-kpi-label">Commodity</div><div className="ap-fact stx-text-wrap">{supplier.notes || (supplier.industry ? sellerCategoryLabel(supplier) : '—')}</div></article>
         <article><div className="ap-pool-kpi-label">Contact</div><div className="ap-fact stx-text-wrap">{supplier.contact || supplier.email || '—'}</div></article>
         <article><div className="ap-pool-kpi-label">Approval until</div><div className="ap-fact">{suspended ? '—' : formatAuditDateLabel(latestCompleted?.nextAuditDate) || '—'}</div></article>
         <article><div className="ap-pool-kpi-label">Audit interval</div><div className="ap-fact">{suspended ? 'On hold' : '12 months'}</div></article>
@@ -167,7 +153,7 @@ export default function AuditProSellerRecord() {
                 </div>
                 <div className="ap-dir-actions">
                   <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/findings/${row.id}`)}>Findings report</Btn>
-                  <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/print/${row.id}?doc=closing`)}>Print closing report</Btn>
+                  <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/print/${row.id}?doc=closing`)}>Signature report</Btn>
                 </div>
               </article>
             )

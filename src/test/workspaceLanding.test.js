@@ -29,4 +29,12 @@ describe('resolveWorkspaceLandingPath', () => {
       accountTypes: [],
     })).toBe('/management')
   })
+
+  it('sends auditors to the Auditors hub, not Home or Sourcing', () => {
+    expect(resolveWorkspaceLandingPath({
+      accountType: 'auditor',
+      accountTypes: ['auditor'],
+      role: 'auditor_external',
+    })).toBe('/management/auditors/calendar')
+  })
 })

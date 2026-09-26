@@ -58,6 +58,7 @@ export function mergeAuditorLists(existing, incoming) {
       auditorCode: prev.auditorCode || prev.registrationNo || row.auditorCode || row.registrationNo,
       certifications: (prev.certifications || []).length ? prev.certifications : (row.certifications || []),
       certificationFiles: (prev.certificationFiles || []).length ? prev.certificationFiles : (row.certificationFiles || []),
+      visibleIndustries: (row.visibleIndustries || []).length ? row.visibleIndustries : (prev.visibleIndustries || []),
     }
   }
 

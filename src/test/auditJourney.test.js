@@ -6,6 +6,7 @@ import {
   openAuditForSeller,
   sellerBoardStatus,
   sellersWaitingToPlan,
+  buildCalendarQueue,
 } from '../utils/auditJourney'
 
 describe('auditJourney', () => {
@@ -49,5 +50,27 @@ describe('auditJourney', () => {
       [{ id: 'a2', supplierId: 's2', plannedDate: '2026-10-02', status: 'Planned' }],
     )
     expect(waiting.map((s) => s.id)).toEqual(['s1'])
+  })
+
+  it('queues new, planned and buyer-request suppliers for the calendar', () => {
+    const rows = buildCalendarQueue({
+      todayIso: '2026-09-20',
+      suppliers: [
+        { id: 'new', name: 'New Co', email: 'new@co.test', registeredAt: '2026-09-01' },
+        { id: 'plan', name: 'Plan Co', email: 'plan@co.test' },
+      ],
+      audits: [{ id: 'a1', supplierId: 'plan', plannedDate: '2026-10-02', status: 'Planned' }],
+      requests: [{
+        id: 'SR-1',
+        status: 'new',
+        serviceCategoryId: 'supplier-audit',
+        companyName: 'Buyer Ltd',
+        email: 'buyer@urgent.test',
+        services: ['Supplier Audit'],
+      }],
+    })
+    expect(rows.find((r) => r.id === 'new')?.tags).toContain('new_registered')
+    expect(rows.find((r) => r.id === 'plan')?.tags).toContain('planned')
+    expect(rows.some((r) => r.tags.includes('buyer_request'))).toBe(true)
   })
 })

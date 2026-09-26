@@ -31,7 +31,7 @@ const BottomNav = () => {
   const accountTypes = Array.isArray(user?.accountTypes) && user.accountTypes.length > 0
     ? user.accountTypes
     : [accountType].filter(Boolean)
-  const roleCtx = { accountType, accountTypes, isSuperAdmin }
+  const roleCtx = { accountType, accountTypes, isSuperAdmin, role }
   const showHome = shouldShowHomeInNav(roleCtx)
   const showSourcing = shouldShowSourcingInNav(roleCtx)
   const showManagement = shouldShowManagementInNav(roleCtx)

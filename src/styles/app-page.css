@@ -338,6 +338,12 @@ a.app-page-btn-secondary {
   border-color: var(--accent);
 }
 
+.app-page-btn-outline.is-on {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
 /* Secondary = same as outline (explicit class for pages that already use "secondary") */
 .app-page-btn-secondary {
   background: var(--bg-card);

@@ -127,8 +127,13 @@ export default function AppLayout({ children }) {
   const roleLabel = roleLabels[role] || 'User'
 
   const showSupplierSideNav =
-    role === 'superadmin' || accountType === 'seller' || accountType === 'service_provider'
-  const showBuyerSideNav = role === 'superadmin' || accountType === 'buyer'
+    role === 'superadmin' ||
+    ((accountType === 'seller' || accountType === 'service_provider')
+      && role !== 'auditor_external'
+      && role !== 'auditor_internal')
+  const showBuyerSideNav =
+    role === 'superadmin'
+    || (accountType === 'buyer' && role !== 'auditor_external' && role !== 'auditor_internal')
   const accountTypes = Array.isArray(user?.accountTypes) && user.accountTypes.length > 0
     ? user.accountTypes
     : [accountType].filter(Boolean)
@@ -136,6 +141,7 @@ export default function AppLayout({ children }) {
     accountType,
     accountTypes,
     isSuperAdmin: role === 'superadmin',
+    role,
   }
   const showHomeNav = shouldShowHomeInNav(roleCtx)
   const showSourcingNav = shouldShowSourcingInNav(roleCtx)

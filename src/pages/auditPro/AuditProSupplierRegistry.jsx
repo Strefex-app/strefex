@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
 import { notifyWorkspaceKeyDirty } from '../../services/workspaceCloudSync'
 import { useAuthStore } from '../../store/authStore'
@@ -7,12 +8,13 @@ import { collectAuditProSuppliersFromAllTenants } from '../../utils/superadminLo
 import AuditProSupplierHub from './AuditProSupplierHub'
 import { INDUSTRIES, Btn, Card, Field, Grid2, Input, Select } from './auditProUi'
 import { useTranslation } from '../../i18n/useTranslation'
-import { filterAuditProSuppliersForVisibility } from '../../data/auditProDemoKit'
-import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
+import { isIndustryScopedAuditorRole } from '../../utils/auditorIndustryScope'
 import {
   normSellerRegistryEmail as normEmail,
   syncAuditSupplierRowToSellerRegistry,
 } from '../../services/supplierSellerRegistrySync'
+import { AUDITORS_DIRECTORY_PATH } from '../../utils/auditorsDirectory'
 
 const emptyForm = {
   name: '',
@@ -26,22 +28,31 @@ const emptyForm = {
 
 export default function AuditProSupplierRegistry() {
   const { language } = useTranslation()
-  const audits = useAuditProStore((s) => s.audits)
-  const auditors = useAuditProStore((s) => s.auditors)
-  const suppliers = useAuditProStore((s) => s.suppliers)
+  const [params] = useSearchParams()
+  const view = params.get('view')
+  const suppliersAll = useAuditProStore((s) => s.suppliers)
   const setSuppliers = useAuditProStore((s) => s.setSuppliers)
   const showToast = useAuditProStore((s) => s.showToast)
+  const { audits, auditors, suppliers, role } = useAuditorsHubScopedData()
   const currentTenantId = useAuthStore((s) => s.tenant?.id || '')
-  const superadminRole = useAuthStore((s) => s.role === 'superadmin')
-  const showDemoKit = useAuditProDemoKitVisible()
+  const superadminRole = role === 'superadmin'
   const [showPanel, setShowPanel] = useState(false)
   const [form, setForm] = useState(() => ({ ...emptyForm }))
+  const [peerSuppliers, setPeerSuppliers] = useState([])
+
+  useEffect(() => {
+    if (!superadminRole) return undefined
+    const id = window.requestAnimationFrame(() => {
+      setPeerSuppliers(collectAuditProSuppliersFromAllTenants())
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [superadminRole])
 
   const displaySuppliers = useMemo(() => {
     if (!superadminRole) return suppliers
     const seenId = new Set((suppliers || []).map((s) => s.id))
     const out = [...(suppliers || [])]
-    for (const { tenantId, supplier } of collectAuditProSuppliersFromAllTenants()) {
+    for (const { tenantId, supplier } of peerSuppliers) {
       if (!supplier || tenantId === currentTenantId) continue
       const id = `agg-${tenantId}-${supplier.id}`
       if (seenId.has(id)) continue
@@ -59,12 +70,9 @@ export default function AuditProSupplierRegistry() {
       })
     }
     return out
-  }, [suppliers, superadminRole, currentTenantId])
+  }, [suppliers, superadminRole, currentTenantId, peerSuppliers])
 
-  const suppliersForUi = useMemo(
-    () => filterAuditProSuppliersForVisibility(displaySuppliers, showDemoKit),
-    [displaySuppliers, showDemoKit],
-  )
+  const suppliersForUi = displaySuppliers
 
   const closePanel = () => {
     setShowPanel(false)
@@ -91,20 +99,26 @@ export default function AuditProSupplierRegistry() {
       if (!r.ok) throw new Error(r.reason || 'sync failed')
     } catch {
       showToast('Saved in Audit Pro only — seller database sync failed.', 'error')
-      setSuppliers([...suppliers, row])
+      setSuppliers([...suppliersAll, row])
       closePanel()
       notifyWorkspaceKeyDirty('audit_pro', true)
       return
     }
-    setSuppliers([...suppliers, row])
+    setSuppliers([...suppliersAll, row])
     notifyWorkspaceKeyDirty('audit_pro', true)
     showToast('Supplier registered.')
     closePanel()
   }
 
+  if (view !== 'records' && view !== 'certs') {
+    return <Navigate to={`${AUDITORS_DIRECTORY_PATH}/calendar`} replace />
+  }
+
+  const canRegisterSeller = !isIndustryScopedAuditorRole(role)
+
   return (
     <div className="ap-suphub-page">
-      {showPanel ? (
+      {showPanel && canRegisterSeller ? (
         <Card title="Register supplier" style={{ marginBottom: 18 }}>
           <Grid2>
             <Field label="Supplier name *">
@@ -146,11 +160,6 @@ export default function AuditProSupplierRegistry() {
         audits={audits}
         auditors={auditors}
         language={language}
-        superadminRole={superadminRole}
-        onRegister={() => setShowPanel(true)}
-        onRemind={(row) => {
-          showToast(`Reminder sent to ${row.supplier?.email || row.name} for questionnaire due ${row.dueBack || 'soon'}.`)
-        }}
       />
     </div>
   )

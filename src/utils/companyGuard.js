@@ -21,6 +21,16 @@
  */
 
 import { getUserId, getUserRole, getCompanyName, getTenantId } from './tenantStorage'
+import { recordInAuditorScope } from './auditorIndustryScope'
+
+function auditorAllowedIndustriesFromSession() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+    return Array.isArray(raw?.user?.auditorVisibleIndustries) ? raw.user.auditorVisibleIndustries : []
+  } catch {
+    return []
+  }
+}
 
 /* ── Role hierarchy levels ─────────────────────────────────── */
 export const ROLE_HIERARCHY = {
@@ -92,8 +102,11 @@ export function filterByCompanyRole(records, opts = {}) {
   const userId = getUserId()
   const companyId = getTenantId()
 
-  // Superadmin and external auditor see everything across companies
-  if (role === 'superadmin' || role === 'auditor_external') return records
+  if (role === 'superadmin') return records
+  if (role === 'auditor_external') {
+    const allowed = auditorAllowedIndustriesFromSession()
+    return records.filter((r) => recordInAuditorScope(r, allowed))
+  }
 
   // If records have a company field (global stores), filter by company first
   let companyFiltered = records

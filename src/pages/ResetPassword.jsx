@@ -104,6 +104,7 @@ export default function ResetPassword() {
         accountType,
         accountTypes,
         isSuperAdmin: auth.role === 'superadmin',
+        role: auth.role,
       }), { replace: true })
     } catch (err) {
       setError(getReadableErrorMessage(err, 'Could not update password. Request a new reset email.'))

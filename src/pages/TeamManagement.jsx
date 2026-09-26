@@ -125,6 +125,11 @@ export default function TeamManagement() {
       setError('Please enter a valid email address')
       return
     }
+    const { isBusinessEmail, businessEmailError } = await import('../utils/businessEmail')
+    if (!isBusinessEmail(inviteEmail)) {
+      setError(businessEmailError(inviteEmail))
+      return
+    }
     if (members.some((m) => m.email === inviteEmail)) {
       setError('This email is already a team member')
       return

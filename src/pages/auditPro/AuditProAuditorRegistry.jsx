@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import useAuditProStore from '../../store/auditProStore'
-import { filterAuditProAuditsForVisibility, filterAuditProAuditorsForVisibility } from '../../data/auditProDemoKit'
-import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
-import { fetchCompanyProfilesAsAuditAuditors, getActorCompanyId } from '../../services/auditManagementDb'
+import { getActorCompanyId } from '../../services/auditManagementDb'
 import { auditProUid } from '../../utils/auditProUid'
-import {
-  attachAuditorCertificationFile,
-  mergeAuditorLists,
-  nextAuditorRegistrationNumber,
-  normAuditorEmail,
-  openAuditorCertification,
-} from '../../utils/auditorRegistry'
+import { attachAuditorCertificationFile, nextAuditorRegistrationNumber, normAuditorEmail, openAuditorCertification } from '../../utils/auditorRegistry'
+import { isBusinessEmail, businessEmailError } from '../../utils/businessEmail'
 import { uniqueAuditStandards } from '../../utils/auditStandardsCatalogue'
 import { AUDIT_STANDARDS } from '../../data/auditManagementDetailedData'
 import {
@@ -21,6 +14,8 @@ import {
   programmeYear,
 } from '../../utils/auditorDatabase'
 import { Card, Btn, Field, Grid2, Input, Textarea, Select } from './auditProUi'
+import AuditProStandards from './AuditProStandards'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
 
 const emptyForm = {
   name: '',
@@ -45,19 +40,9 @@ export default function AuditProAuditorRegistry() {
   const [params, setParams] = useSearchParams()
   const selectedId = params.get('auditor') || ''
   const auditors = useAuditProStore((s) => s.auditors)
-  const auditsAll = useAuditProStore((s) => s.audits)
-  const suppliersAll = useAuditProStore((s) => s.suppliers)
   const setAuditors = useAuditProStore((s) => s.setAuditors)
   const showToast = useAuditProStore((s) => s.showToast)
-  const showDemoKit = useAuditProDemoKitVisible()
-  const auditorsForUi = useMemo(
-    () => filterAuditProAuditorsForVisibility(auditors, showDemoKit),
-    [auditors, showDemoKit],
-  )
-  const audits = useMemo(
-    () => filterAuditProAuditsForVisibility(auditsAll, auditors, suppliersAll, showDemoKit),
-    [auditsAll, auditors, suppliersAll, showDemoKit],
-  )
+  const { auditors: auditorsForUi, audits } = useAuditorsHubScopedData()
   const standardsCatalogue = useMemo(() => uniqueAuditStandards(AUDIT_STANDARDS), [])
   const year = programmeYear()
 
@@ -66,7 +51,7 @@ export default function AuditProAuditorRegistry() {
   const [form, setForm] = useState(emptyForm)
   const [certs, setCerts] = useState([emptyCert()])
 
-  const previewCode = nextAuditorRegistrationNumber(auditorsForUi)
+  const previewCode = nextAuditorRegistrationNumber(auditors)
   const rows = useMemo(
     () => buildAuditorDatabaseRows({
       auditors: auditorsForUi,
@@ -78,24 +63,6 @@ export default function AuditProAuditorRegistry() {
   )
   const kpis = useMemo(() => auditorDatabaseKpis(rows, audits, year), [rows, audits, year])
   const selected = rows.find((row) => String(row.id) === selectedId) || null
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const cid = await getActorCompanyId()
-      if (!cid || cancelled) return
-      const fromDb = await fetchCompanyProfilesAsAuditAuditors(cid)
-      if (cancelled || !fromDb.length) return
-      const current = useAuditProStore.getState().auditors || []
-      const merged = mergeAuditorLists(current, fromDb)
-      const same = current.length === merged.length
-        && current.every((row) => merged.some((m) => m.id === row.id && m.auditorCode === row.auditorCode))
-      if (!same) setAuditors(merged)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [setAuditors])
 
   const closeForm = () => {
     setShow(false)
@@ -121,7 +88,11 @@ export default function AuditProAuditorRegistry() {
       return
     }
     const email = normAuditorEmail(form.email)
-    if (auditorsForUi.some((row) => normAuditorEmail(row.email) === email)) {
+    if (!isBusinessEmail(email)) {
+      showToast(businessEmailError(email), 'error')
+      return
+    }
+    if (auditors.some((row) => normAuditorEmail(row.email) === email)) {
       showToast('That email is already on the auditor panel.', 'error')
       return
     }
@@ -395,6 +366,10 @@ export default function AuditProAuditorRegistry() {
           )}
         </>
       )}
+      <div className="ap-adb-standards">
+        <div className="ap-capacity-kicker" style={{ marginTop: 28 }}>Standards & questionnaires</div>
+        <AuditProStandards />
+      </div>
     </div>
   )
 }

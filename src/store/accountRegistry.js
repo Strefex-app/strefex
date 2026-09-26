@@ -26,6 +26,7 @@ import {
 } from '../utils/accountSourcingCompleteness'
 import { mergeSourcingNetworkIntoRegistry, resetSourcingNetworkFetchCache } from '../services/sourcingNetworkService'
 import { applyAccountPrivacyVeil, isPrivilegedPrivacyRole } from '../utils/accountPrivacy'
+import { recordInAuditorScope } from '../utils/auditorIndustryScope'
 import { useIdentifiedDataDisclosureStore } from './identifiedDataDisclosureStore'
 import {
   accountOffersAuditServices,
@@ -213,9 +214,23 @@ function mergeAllRegistryLocalStorageSlices() {
 const loadRegistry = () => {
   try {
     const role = getAuthRole()
-    if (role === 'superadmin' || role === 'auditor_external') {
+    if (role === 'superadmin') {
       const merged = mergeAllRegistryLocalStorageSlices()
       if (merged.length > 0) return merged.map(ensureSourcingFieldPlaceholders)
+    }
+    if (role === 'auditor_external') {
+      const merged = mergeAllRegistryLocalStorageSlices()
+      const allowed = (() => {
+        try {
+          const raw = JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+          return Array.isArray(raw?.user?.auditorVisibleIndustries) ? raw.user.auditorVisibleIndustries : []
+        } catch {
+          return []
+        }
+      })()
+      return merged
+        .filter((a) => recordInAuditorScope(a, allowed))
+        .map(ensureSourcingFieldPlaceholders)
     }
 
     const scopedRaw = localStorage.getItem(getRegistryKey())
@@ -687,6 +702,11 @@ export const useAccountRegistry = create((set, get) => ({
 
   /** Merge DB sourcing-network rows into the local registry (map + RFQ pools). */
   mergeNetworkAccounts: (networkAccounts = []) => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('strefex-auth') || '{}')
+      const role = String(parsed?.role || '')
+      if (role === 'auditor_external' || role === 'auditor_internal') return get().accounts.length
+    } catch { /* */ }
     const merged = mergeSourcingNetworkIntoRegistry(get().accounts, networkAccounts)
     let next = merged
     try {

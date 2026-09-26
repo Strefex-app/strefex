@@ -40,6 +40,8 @@ import { sessionExpiresAtMs } from '../utils/sessionExpiry'
 import { hydrateFeatureGrantsForSession } from './featureGrantsService'
 import { setServerFeatureGrants } from '../utils/featureGrants'
 import { validateNewPassword } from '../utils/passwordPolicy'
+import { isBusinessEmail, businessEmailError, emailDomain } from '../utils/businessEmail'
+import { readAuditorVisibleIndustries } from '../utils/auditorIndustryScope'
 import {
   clearPasswordRecovery,
   detectRecoveryFromLocation,
@@ -49,13 +51,6 @@ import {
 const AUTH_TIMEOUT_MS = 12000
 const VALID_ACCOUNT_TYPES = new Set(['seller', 'buyer', 'service_provider', 'auditor'])
 const VALID_ROLES = new Set(['superadmin', 'auditor_external', 'admin', 'auditor_internal', 'manager', 'user', 'guest'])
-const PUBLIC_EMAIL_DOMAINS = new Set([
-  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
-  'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
-  'icloud.com', 'me.com', 'mac.com',
-  'aol.com', 'proton.me', 'protonmail.com', 'pm.me',
-  'mail.com', 'gmx.com', 'zoho.com', 'yandex.com', 'yandex.ru',
-])
 
 /* ── Internal helpers ────────────────────────────────────── */
 
@@ -163,19 +158,8 @@ function getRegistryAccountByEmail(email) {
   }
 }
 
-function isBusinessEmail(email) {
-  const normalized = normalizeEmail(email)
-  const parts = normalized.split('@')
-  if (parts.length !== 2) return false
-  const domain = parts[1]
-  if (!domain || !domain.includes('.')) return false
-  return !PUBLIC_EMAIL_DOMAINS.has(domain)
-}
-
 function getEmailDomain(email) {
-  const normalized = normalizeEmail(email)
-  const parts = normalized.split('@')
-  return parts.length === 2 ? parts[1].toLowerCase() : ''
+  return emailDomain(email)
 }
 
 function isDomainIndustryTakenFromRegistry(email, accountType, industryId) {
@@ -372,6 +356,12 @@ async function storeSupabaseSession(session, profile) {
       accountTypes,
       accountType: primaryAccountType,
       primaryAccountType,
+      auditorVisibleIndustries: readAuditorVisibleIndustries({
+        ...metadata,
+        metadata,
+        industries: profile?.companies?.industries,
+        companies: profile?.companies,
+      }),
     },
     tenant: mapTenantFromProfileCompany(profile),
   })
@@ -741,7 +731,7 @@ const authService = {
   }) {
     const normalizedEmail = normalizeEmail(email)
     if (!isBusinessEmail(normalizedEmail)) {
-      throw new Error('Please register using your business email domain (no public email providers).')
+      throw new Error(businessEmailError(normalizedEmail))
     }
     const normalizedPrimaryIndustry = String(selectedIndustry || '').trim().toLowerCase() || 'general'
     const normalizedPrimaryAccountType = normalizeAccountType(accountType)
@@ -837,6 +827,7 @@ const authService = {
           service_categories: effectiveServiceCategories,
           auditor_documents: normalizedAuditorDocuments,
           auditor_verification_status: primaryAccountType === 'auditor' ? 'pending_review' : null,
+          auditor_visible_industries: primaryAccountType === 'auditor' ? normalizedIndustries : undefined,
           tier: normalizedTier,
           country: normalizedCountry || null,
           city: normalizedCity || null,
@@ -875,6 +866,9 @@ const authService = {
               account_type: primaryAccountType,
               account_types: normalizedAccountTypes,
               address: normalizedAddress || null,
+              ...(primaryAccountType === 'auditor'
+                ? { auditor_visible_industries: normalizedIndustries }
+                : {}),
             },
           })
 

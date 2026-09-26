@@ -49,6 +49,7 @@ describe('accountPrivacy', () => {
       viewer: { companyId: 'buyer-1' },
       grantedCompanyIds: ['co-1'],
     })).toBe(true)
+    expect(shouldExposeIdentifiedAccount(seller, { role: 'auditor_external' })).toBe(false)
     expect(veilAccountIdentifiedFields(seller).identifiedVeiled).toBe(true)
   })
 

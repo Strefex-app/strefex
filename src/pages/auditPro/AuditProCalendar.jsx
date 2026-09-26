@@ -1,83 +1,28 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import AppListSelect from '../../components/AppListSelect'
 import useAuditProStore from '../../store/auditProStore'
-import {
-  filterAuditProAuditsForVisibility,
-  filterAuditProAuditorsForVisibility,
-  filterAuditProSuppliersForVisibility,
-} from '../../data/auditProDemoKit'
-import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
-import { useAuthStore } from '../../store/authStore'
+import { useMyCalendarStore } from '../../store/myCalendarStore'
+import { useServiceRequestStore } from '../../store/serviceRequestStore'
+import { scheduleEventsFromPersonalCalendar } from '../../utils/auditCalendarBridge'
 import { sellerCategoryLabel, AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
-import { utcTodayIso } from '../../utils/auditorsAssignmentPool'
+import { normalizeLabelKey } from '../../utils/displayLabel'
+import { isOpenAuditRequest, sellerSiteCode, utcTodayIso } from '../../utils/auditorsAssignmentPool'
 import { formatAuditDateLabel } from '../../utils/companyExternalAudit'
 import { sellerCompanyName } from '../../utils/auditSellerLabel'
-import { sellersWaitingToPlan } from '../../utils/auditJourney'
+import { buildCalendarQueue, CALENDAR_QUEUE } from '../../utils/auditJourney'
 import { planSellerAudit } from './auditJourneyActions'
-import { Btn } from './auditProUi'
 import {
-  buildCapaRows,
-  buildFindingsReports,
   buildScheduleEvents,
-  capaKpis,
-  filterCapaRows,
-  findingsKpis,
   nextCommitments,
 } from '../../utils/auditProgrammeViews'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
+import { isIndustryScopedAuditorRole, suppliersForCalendarWorkspace } from '../../utils/auditorIndustryScope'
 
 function useProgrammeData() {
-  const auditsAll = useAuditProStore((s) => s.audits)
-  const auditorsAll = useAuditProStore((s) => s.auditors)
-  const suppliersAll = useAuditProStore((s) => s.suppliers)
   const reminders = useAuditProStore((s) => s.reminders)
-  const demoKitShown = useAuditProDemoKitVisible()
-  const authRole = useAuthStore((s) => s.role)
-  const authEmail = useAuthStore((s) => String(s.user?.email || '').toLowerCase())
-
-  const auditors = useMemo(
-    () => filterAuditProAuditorsForVisibility(auditorsAll, demoKitShown),
-    [auditorsAll, demoKitShown],
-  )
-  const suppliers = useMemo(
-    () => filterAuditProSuppliersForVisibility(suppliersAll, demoKitShown),
-    [suppliersAll, demoKitShown],
-  )
-  const audits = useMemo(() => {
-    const visible = filterAuditProAuditsForVisibility(auditsAll, auditorsAll, suppliersAll, demoKitShown)
-    if (authRole !== 'auditor_external' && authRole !== 'auditor_internal') return visible
-    const selfIds = new Set(
-      (auditorsAll || [])
-        .filter((a) => String(a.email || '').toLowerCase() === authEmail)
-        .map((a) => a.id),
-    )
-    return visible.filter((a) => selfIds.has(a.auditorId) || selfIds.has(a.secondaryAuditorId))
-  }, [auditsAll, auditorsAll, suppliersAll, demoKitShown, authRole, authEmail])
-
-  return { audits, auditors, suppliers, reminders, authEmail }
-}
-
-function ProgrammeTabs({ view, capaCount, onChange }) {
-  return (
-    <div className="ap-prog-tabs" role="tablist">
-      {[
-        { id: 'calendar', label: 'Calendar' },
-        { id: 'findings', label: 'Audits & findings' },
-        { id: 'capa', label: 'CAPA tracker', count: capaCount },
-      ].map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={view === tab.id}
-          className={`ap-prog-tab${view === tab.id ? ' is-on' : ''}`}
-          onClick={() => onChange(tab.id)}
-        >
-          {tab.label}
-          {tab.count ? <span className="ap-prog-tab-count">{tab.count}</span> : null}
-        </button>
-      ))}
-    </div>
-  )
+  const { audits, auditors, suppliers, email: authEmail, role } = useAuditorsHubScopedData()
+  return { audits, auditors, suppliers, reminders, authEmail, role }
 }
 
 function CalendarBoard({ events, month, year, onPrev, onNext, onOpen, onPickDay, selectedIso, onDropSeller }) {
@@ -97,9 +42,9 @@ function CalendarBoard({ events, month, year, onPrev, onNext, onOpen, onPickDay,
   return (
     <div className="ap-sched-cal">
       <div className="ap-sched-cal-head">
-        <button type="button" className="ap-input ap-sched-nav" onClick={onPrev}>←</button>
+        <button type="button" className="app-page-btn-outline stx-click-feedback ap-sched-nav" onClick={onPrev} aria-label="Previous month">←</button>
         <h3 className="ap-sched-month">{mName}</h3>
-        <button type="button" className="ap-input ap-sched-nav" onClick={onNext}>→</button>
+        <button type="button" className="app-page-btn-outline stx-click-feedback ap-sched-nav" onClick={onNext} aria-label="Next month">→</button>
         <span className="ap-sched-count">{monthEvents.length} entries this month</span>
       </div>
       <div className="ap-sched-grid">
@@ -130,7 +75,7 @@ function CalendarBoard({ events, month, year, onPrev, onNext, onOpen, onPickDay,
                 <button
                   key={ev.id}
                   type="button"
-                  className={`ap-sched-chip ap-sched-chip--${ev.type}`}
+                  className={`ap-sched-chip ap-tone--${eventTone(ev.type)}`}
                   onClick={(e) => { e.stopPropagation(); onOpen(ev) }}
                 >
                   {ev.label}
@@ -141,235 +86,128 @@ function CalendarBoard({ events, month, year, onPrev, onNext, onOpen, onPickDay,
         })}
       </div>
       <div className="ap-sched-legend">
-        <span><i className="ap-sched-dot ap-sched-chip--performed" /> Audit performed</span>
-        <span><i className="ap-sched-dot ap-sched-chip--planned" /> Audit planned</span>
-        <span><i className="ap-sched-dot ap-sched-chip--questionnaire" /> Questionnaire due</span>
-        <span><i className="ap-sched-dot ap-sched-chip--capa" /> CAPA due</span>
+        <span><i className="ap-sched-dot ap-tone--upcoming" /> Audit performed</span>
+        <span><i className="ap-sched-dot ap-tone--planned" /> Audit planned</span>
+        <span><i className="ap-sched-dot ap-tone--new_registered" /> Questionnaire due</span>
+        <span><i className="ap-sched-dot ap-tone--reevaluation" /> CAPA due</span>
+        <span><i className="ap-sched-dot ap-tone--personal" /> Auditor calendar</span>
       </div>
     </div>
   )
 }
 
-function FindingsTable({ reports, onReport, onSeller }) {
-  const kpis = findingsKpis(reports)
-  return (
-    <>
-      <div className="ap-pool-kpis">
-        <article className="ap-pool-kpi ap-pool-kpi--info">
-          <div className="ap-pool-kpi-label">Reports on file</div>
-          <div className="ap-pool-kpi-value">{kpis.reports}</div>
-          <div className="ap-pool-kpi-hint">Since first completed visit — all signed</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--ok">
-          <div className="ap-pool-kpi-label">Average score {kpis.year}</div>
-          <div className="ap-pool-kpi-value">{kpis.yearAvg}%</div>
-          <div className="ap-pool-kpi-hint">Weighted conformity</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--warn">
-          <div className="ap-pool-kpi-label">Open corrective actions</div>
-          <div className="ap-pool-kpi-value">{kpis.openCapa}</div>
-          <div className="ap-pool-kpi-hint">{kpis.majorOpen} of them major</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--danger">
-          <div className="ap-pool-kpi-label">Rejected / suspended</div>
-          <div className="ap-pool-kpi-value">{kpis.rejected}</div>
-          <div className="ap-pool-kpi-hint">Removed from sourcing until re-audit</div>
-        </article>
-      </div>
-      <div className="ap-pool-table-wrap">
-        <table className="ap-pool-table">
-          <thead>
-            <tr>
-              <th>Report no.</th>
-              <th>Supplier</th>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Lead auditor</th>
-              <th>Score</th>
-              <th>Maj / min / obs</th>
-              <th>Result</th>
-              <th>CAPA</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {reports.length === 0 ? (
-              <tr><td colSpan={10} className="ap-pool-empty">No performed audits with findings yet. Complete a visit to raise a report.</td></tr>
-            ) : reports.map((row) => (
-              <tr key={row.id}>
-                <td>{row.reportNo}</td>
-                <td>
-                  <button type="button" className="ap-linkish" onClick={() => onSeller(row.supplier?.id)}>
-                    {row.supplierName}
-                  </button>
-                  <div className="ap-pool-sub stx-text-wrap">{row.site}</div>
-                </td>
-                <td>{formatAuditDateLabel(row.date) || '—'}</td>
-                <td>{row.kind}</td>
-                <td className="stx-text-wrap">{row.auditorLabel}</td>
-                <td>{row.score != null ? `${row.score}%` : '—'}</td>
-                <td>{row.counts.major} / {row.counts.minor} / {row.counts.obs}</td>
-                <td><span className={`ap-result ap-result--${row.result.key}`}>{row.result.label}</span></td>
-                <td className={row.capaOpen ? 'ap-capa-open' : 'ap-capa-closed'}>
-                  {row.capaOpen ? `${row.capaOpen} open` : 'Closed'}
-                </td>
-                <td><Btn onClick={() => onReport(row.id)}>Report</Btn></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )
+const SIDE_FILTERS = [
+  { id: 'assigned', label: 'Assigned' },
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'new_registered', label: 'New suppliers' },
+  { id: 'to_plan', label: 'To plan' },
+  { id: 'planned', label: 'Planned' },
+  { id: 'reevaluation', label: 'Re-evaluation' },
+  { id: 'buyer_request', label: 'Buyer request' },
+]
+
+function queueRowTone(tags = []) {
+  if (tags.includes('buyer_request')) return 'buyer_request'
+  if (tags.includes('reevaluation')) return 'reevaluation'
+  if (tags.includes('new_registered')) return 'new_registered'
+  if (tags.includes('planned')) return 'planned'
+  if (tags.includes('to_plan')) return 'to_plan'
+  return 'assigned'
 }
 
-function CapaTable({ rows, kpis, filter, onFilter, onSeller }) {
-  return (
-    <>
-      <div className="ap-pool-kpis">
-        <article className="ap-pool-kpi ap-pool-kpi--info">
-          <div className="ap-pool-kpi-label">Open corrective actions</div>
-          <div className="ap-pool-kpi-value">{kpis.open}</div>
-          <div className="ap-pool-kpi-hint">{kpis.raised} raised this year</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--warn">
-          <div className="ap-pool-kpi-label">Past their due date</div>
-          <div className="ap-pool-kpi-value">{kpis.overdue}</div>
-          <div className="ap-pool-kpi-hint">Supplier owes evidence</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--danger">
-          <div className="ap-pool-kpi-label">Major and late</div>
-          <div className="ap-pool-kpi-value">{kpis.majorLate}</div>
-          <div className="ap-pool-kpi-hint">Escalate — approval status at risk</div>
-        </article>
-        <article className="ap-pool-kpi ap-pool-kpi--ok">
-          <div className="ap-pool-kpi-label">Suppliers affected</div>
-          <div className="ap-pool-kpi-value">{kpis.suppliersAffected}</div>
-          <div className="ap-pool-kpi-hint">Of {kpis.suppliersTotal} in the register</div>
-        </article>
-      </div>
-      <div className="ap-pool-regions" style={{ marginBottom: 10 }}>
-        {['open', 'overdue', 'major', 'mine', 'all'].map((id) => (
-          <button key={id} type="button" className={`ap-pool-chip${filter === id ? ' is-on' : ''}`} onClick={() => onFilter(id)}>
-            {id === 'all' ? 'All' : id.charAt(0).toUpperCase() + id.slice(1)}
-          </button>
-        ))}
-      </div>
-      <div className="ap-pool-table-wrap">
-        <table className="ap-pool-table">
-          <thead>
-            <tr>
-              <th>Finding</th>
-              <th>Supplier</th>
-              <th>Clause</th>
-              <th>Corrective action</th>
-              <th>Due</th>
-              <th>Escalation</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr><td colSpan={6} className="ap-pool-empty">No corrective actions in this filter.</td></tr>
-            ) : rows.map((row) => (
-              <tr key={row.id} className={row.isMajor ? 'ap-pool-risk--critical' : ''}>
-                <td>
-                  <div>{row.findingNo}</div>
-                  <span className={`ap-pool-risk-tag ap-pool-risk-tag--${row.isMajor ? 'critical' : 'high'}`}>
-                    {row.isMajor ? 'MAJOR' : row.type}
-                  </span>
-                </td>
-                <td>
-                  <button type="button" className="ap-linkish" onClick={() => onSeller(row.supplierId)}>
-                    {row.supplierName}
-                  </button>
-                  <div className="ap-pool-sub">{row.supplierCode}</div>
-                </td>
-                <td className="stx-text-wrap">{row.clause}</td>
-                <td className="stx-text-wrap">
-                  <div className="ap-pool-seller">{row.action}</div>
-                  {row.description && row.description !== row.action ? (
-                    <div className="ap-pool-sub">Finding: {row.description}</div>
-                  ) : null}
-                </td>
-                <td>
-                  <div className={row.overdue ? 'ap-pool-date is-late' : ''}>{formatAuditDateLabel(row.due) || '—'}</div>
-                  {row.overdue ? <div className="ap-pool-sub is-late">{row.daysLate} d overdue</div> : null}
-                </td>
-                <td className={`stx-text-wrap${row.open ? ' ap-capa-open' : ''}`}>{row.escalation}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )
+function eventTone(type) {
+  if (type === 'planned') return 'planned'
+  if (type === 'questionnaire') return 'new_registered'
+  if (type === 'capa') return 'reevaluation'
+  if (type === 'personal') return 'personal'
+  if (type === 'performed') return 'upcoming'
+  return 'assigned'
 }
 
 export default function AuditProCalendar() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { audits, auditors, suppliers, reminders, authEmail } = useProgrammeData()
+  const { audits, auditors, suppliers, reminders, authEmail, role } = useProgrammeData()
+  const personalEntries = useMyCalendarStore((s) => s.entries)
+  const allRequests = useServiceRequestStore((s) => s.requests)
+  const getSafeRequests = useServiceRequestStore((s) => s.getSafeRequests)
   const todayIso = utcTodayIso()
-  const view = ['calendar', 'findings', 'capa'].includes(searchParams.get('view'))
-    ? searchParams.get('view')
-    : 'calendar'
+  const requests = useMemo(
+    () => (typeof getSafeRequests === 'function' ? getSafeRequests() : allRequests || []).filter((row) => isOpenAuditRequest(row)),
+    [getSafeRequests, allRequests],
+  )
+  const rawView = searchParams.get('view')
+  const sendToRecords = ['actions', 'findings', 'capa'].includes(rawView)
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
-  const [capaFilter, setCapaFilter] = useState('open')
+  const [queueFilter, setQueueFilter] = useState('assigned')
   const [pickIso, setPickIso] = useState('')
   const [schedBusy, setSchedBusy] = useState(false)
+
+  const calendarSuppliers = useMemo(
+    () => suppliersForCalendarWorkspace(suppliers, audits, {
+      role,
+      email: authEmail,
+      auditorIds: new Set((auditors || []).map((a) => a.id)),
+    }),
+    [suppliers, audits, role, authEmail, auditors],
+  )
+  const isAuditorWorkspace = isIndustryScopedAuditorRole(role)
 
   const industry = searchParams.get('industry') || ''
   const scopedAudits = useMemo(() => {
     if (!industry) return audits
-    const byId = new Map((suppliers || []).map((s) => [s.id, s]))
+    const byId = new Map((calendarSuppliers || []).map((s) => [s.id, s]))
     return audits.filter(
-      (a) => sellerCategoryLabel(byId.get(a.supplierId) || { industry: a.industry }) === industry,
+      (a) => normalizeLabelKey(sellerCategoryLabel(byId.get(a.supplierId) || { industry: a.industry })) === normalizeLabelKey(industry),
     )
-  }, [audits, suppliers, industry])
+  }, [audits, calendarSuppliers, industry])
 
-  const events = useMemo(
-    () => buildScheduleEvents({ audits: scopedAudits, suppliers, auditors, reminders, todayIso }),
-    [scopedAudits, suppliers, auditors, reminders, todayIso],
-  )
+  const events = useMemo(() => {
+    const programme = buildScheduleEvents({ audits: scopedAudits, suppliers: calendarSuppliers, auditors, reminders, todayIso })
+    const personal = scheduleEventsFromPersonalCalendar(personalEntries)
+      .filter((ev) => !programme.some((p) => p.date === ev.date && String(ev.id).includes(String(p.auditId || ''))))
+    return [...programme, ...personal]
+  }, [scopedAudits, calendarSuppliers, auditors, reminders, todayIso, personalEntries])
   const upcoming = useMemo(() => nextCommitments(events, todayIso, 8), [events, todayIso])
-  const reports = useMemo(
-    () => buildFindingsReports({ audits: scopedAudits, suppliers, auditors }),
-    [scopedAudits, suppliers, auditors],
-  )
-  const capaAll = useMemo(
-    () => buildCapaRows({ audits: scopedAudits, suppliers, auditors, todayIso }),
-    [scopedAudits, suppliers, auditors, todayIso],
-  )
-  const capaRows = useMemo(
-    () => filterCapaRows(capaAll, capaFilter, authEmail),
-    [capaAll, capaFilter, authEmail],
-  )
-  const capaCounts = capaKpis(capaAll)
 
-  const waitingToPlan = useMemo(
-    () => sellersWaitingToPlan(suppliers, audits),
-    [suppliers, audits],
+  const queue = useMemo(
+    () => buildCalendarQueue({
+      suppliers: calendarSuppliers,
+      audits,
+      requests: isAuditorWorkspace ? [] : requests,
+      todayIso,
+      includeUnmatchedRequests: !isAuditorWorkspace,
+    }),
+    [calendarSuppliers, audits, requests, todayIso, isAuditorWorkspace],
+  )
+  const queueCounts = useMemo(() => {
+    const c = { assigned: queue.length, upcoming: upcoming.length }
+    CALENDAR_QUEUE.forEach((q) => { c[q.id] = queue.filter((row) => row.tags.includes(q.id)).length })
+    return c
+  }, [queue, upcoming])
+  const sideFilters = useMemo(
+    () => (isAuditorWorkspace
+      ? SIDE_FILTERS.filter((q) => !['reevaluation', 'buyer_request'].includes(q.id))
+      : SIDE_FILTERS),
+    [isAuditorWorkspace],
+  )
+  const shownQueue = useMemo(
+    () => {
+      if (queueFilter === 'assigned' || queueFilter === 'all') return queue
+      if (queueFilter === 'upcoming') return []
+      return queue.filter((row) => row.tags.includes(queueFilter))
+    },
+    [queue, queueFilter],
   )
   const selfAuditor = useMemo(
     () => (auditors || []).find((a) => String(a.email || '').toLowerCase() === authEmail) || auditors?.[0] || null,
     [auditors, authEmail],
   )
 
-  const setView = (next) => {
-    const nextParams = new URLSearchParams(searchParams)
-    if (next === 'calendar') nextParams.delete('view')
-    else nextParams.set('view', next)
-    setSearchParams(nextParams)
-  }
-
-  const openSeller = (supplierId) => {
-    if (!supplierId) return
-    navigate(`${AUDITORS_DIRECTORY_ALIAS}/record/${encodeURIComponent(supplierId)}`)
-  }
   const openEvent = (ev) => {
     if (ev.type === 'capa' && ev.supplierId) {
-      navigate(`${AUDITORS_DIRECTORY_ALIAS}/calendar?view=capa`)
+      navigate(`${AUDITORS_DIRECTORY_ALIAS}/record/${encodeURIComponent(ev.supplierId)}`)
       return
     }
     if (ev.type === 'performed' && ev.auditId) {
@@ -384,7 +222,7 @@ export default function AuditProCalendar() {
   }
 
   const dropSellerOnDay = async (iso, sellerId) => {
-    const seller = (suppliers || []).find((s) => s.id === sellerId)
+    const seller = (calendarSuppliers || []).find((s) => s.id === sellerId)
     if (!seller || !iso || !selfAuditor) return
     setSchedBusy(true)
     try {
@@ -395,108 +233,106 @@ export default function AuditProCalendar() {
     }
   }
 
-  return (
+  return sendToRecords
+    ? <Navigate to={`${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`} replace />
+    : (
     <div className="ap-prog">
-      <ProgrammeTabs view={view} capaCount={capaCounts.open} onChange={setView} />
-
-      {view === 'calendar' ? (
-        <>
-          <select
-            className="ap-select"
-            value={industry}
-            onChange={(e) => {
-              const nextParams = new URLSearchParams(searchParams)
-              if (!e.target.value) nextParams.delete('industry')
-              else nextParams.set('industry', e.target.value)
-              setSearchParams(nextParams)
-            }}
-            aria-label="Filter by seller category"
-            style={{ width: 'auto', minWidth: 180, marginBottom: 8 }}
-          >
-            <option value="">All seller categories</option>
-            {[...new Set((suppliers || []).map((s) => sellerCategoryLabel(s)))].sort().map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <div className="ap-sched">
-            <CalendarBoard
-              events={events}
-              month={month}
-              year={year}
-              onPrev={() => {
-                if (month === 0) { setMonth(11); setYear((y) => y - 1) }
-                else setMonth((m) => m - 1)
-              }}
-              onNext={() => {
-                if (month === 11) { setMonth(0); setYear((y) => y + 1) }
-                else setMonth((m) => m + 1)
-              }}
-              onOpen={openEvent}
-              onPickDay={pickDay}
-              selectedIso={pickIso}
-              onDropSeller={dropSellerOnDay}
-            />
-            <aside className="ap-sched-side">
-              <div className="ap-capacity-kicker">To plan · drag onto a day</div>
-              {waitingToPlan.length === 0 ? (
-                <p className="ap-dir-empty">Every seller has a visit date. New and Need action rows appear here.</p>
-              ) : waitingToPlan.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="ap-commit ap-sched-drag"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/seller-id', s.id)
-                    e.dataTransfer.effectAllowed = 'copy'
-                  }}
-                  onClick={() => {
-                    if (pickIso && selfAuditor) void dropSellerOnDay(pickIso, s.id)
-                  }}
-                >
-                  <div className="ap-pool-seller stx-text-wrap">{sellerCompanyName(s)}</div>
-                  <div className="ap-pool-sub stx-text-wrap">{s.email || s.industry || '—'}</div>
-                </button>
-              ))}
-              {pickIso ? (
-                <p className="ap-dir-empty">Selected day {formatAuditDateLabel(pickIso)}. Drop a seller here or click one in the list.</p>
-              ) : null}
-              {schedBusy ? <p className="ap-dir-empty">Planning…</p> : null}
-              <div className="ap-capacity-kicker">Upcoming audits</div>
-              {upcoming.length === 0 ? (
-                <p className="ap-dir-empty">No upcoming visit dates.</p>
-              ) : upcoming.map((ev) => (
-                <button key={ev.id} type="button" className="ap-commit" onClick={() => openEvent(ev)}>
-                  <div className="ap-commit-top">
-                    <span>{ev.date}</span>
-                    <span className={`ap-result ap-result--${ev.type === 'planned' ? 'planned' : ev.type}`}>{ev.statusLabel}</span>
-                  </div>
-                  <div className="ap-pool-seller stx-text-wrap">{ev.label}</div>
-                  <div className="ap-pool-sub stx-text-wrap">{ev.detail}</div>
-                </button>
-              ))}
-            </aside>
+      <div className="app-page-toolbar ap-sched-toolbar">
+        <AppListSelect
+          className="ap-sched-cat"
+          value={industry}
+          ariaLabel="Filter by seller category"
+          placeholder="All seller categories"
+          options={[{ value: '', label: 'All seller categories' }, ...[...new Set((calendarSuppliers || []).map((s) => sellerCategoryLabel(s)))].sort().map((cat) => ({ value: cat, label: cat }))]}
+          onChange={(next) => {
+            const nextParams = new URLSearchParams(searchParams)
+            if (!next) nextParams.delete('industry')
+            else nextParams.set('industry', next)
+            setSearchParams(nextParams)
+          }}
+        />
+        <div className="app-page-btn-row ap-sched-filters" role="group" aria-label="Supplier list">
+          {sideFilters.map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              className={`ap-sched-q ap-tone--${q.id} stx-click-feedback${queueFilter === q.id ? ' is-on' : ''}`}
+              onClick={() => setQueueFilter(q.id)}
+              aria-pressed={queueFilter === q.id}
+            >
+              {q.label}
+              {queueCounts[q.id] != null ? ` · ${queueCounts[q.id]}` : ''}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="ap-sched">
+        <CalendarBoard
+          events={events}
+          month={month}
+          year={year}
+          onPrev={() => {
+            if (month === 0) { setMonth(11); setYear((y) => y - 1) }
+            else setMonth((m) => m - 1)
+          }}
+          onNext={() => {
+            if (month === 11) { setMonth(0); setYear((y) => y + 1) }
+            else setMonth((m) => m + 1)
+          }}
+          onOpen={openEvent}
+          onPickDay={pickDay}
+          selectedIso={pickIso}
+          onDropSeller={dropSellerOnDay}
+        />
+        <aside className="ap-sched-side">
+          <div className="ap-sched-side-list">
+          {queueFilter === 'upcoming' ? (
+            upcoming.length === 0 ? (
+              <p className="ap-dir-empty">No upcoming visit dates.</p>
+            ) : upcoming.map((ev) => (
+              <button key={ev.id} type="button" className={`ap-commit ap-sched-card ap-tone--${eventTone(ev.type)}`} onClick={() => openEvent(ev)}>
+                <div className="ap-sched-seller-row">
+                  <span className="ap-pool-seller stx-text-wrap">{ev.label}</span>
+                  <span className="ap-pool-sub">{ev.date}</span>
+                </div>
+              </button>
+            ))
+          ) : shownQueue.length === 0 ? (
+            <p className="ap-dir-empty">
+              {isAuditorWorkspace
+                ? 'No companies assigned to you yet.'
+                : 'Assign companies on Supplier pool. They appear here once an auditor is set.'}
+            </p>
+          ) : shownQueue.map((row) => {
+            const canDrag = Boolean(row.supplier?.id) && !String(row.supplier.id).startsWith('req-')
+            return (
+              <button
+                key={row.id}
+                type="button"
+                className={`ap-commit ap-sched-card ap-sched-drag ap-tone--${queueRowTone(row.tags)}`}
+                draggable={canDrag}
+                onDragStart={canDrag ? (e) => {
+                  e.dataTransfer.setData('text/seller-id', row.supplier.id)
+                  e.dataTransfer.effectAllowed = 'copy'
+                } : undefined}
+                onClick={() => {
+                  if (canDrag && pickIso && selfAuditor) void dropSellerOnDay(pickIso, row.supplier.id)
+                }}
+              >
+                <div className="ap-sched-seller-row">
+                  <span className="ap-pool-seller">{sellerCompanyName(row.supplier)}</span>
+                  <span className="ap-pool-code">{sellerSiteCode(row.supplier)}</span>
+                </div>
+              </button>
+            )
+          })}
+          {pickIso ? (
+            <p className="ap-dir-empty">Selected day {formatAuditDateLabel(pickIso)}. Drop a supplier here or click one in the list.</p>
+          ) : null}
+          {schedBusy ? <p className="ap-dir-empty">Planning…</p> : null}
           </div>
-        </>
-      ) : null}
-
-      {view === 'findings' ? (
-        <FindingsTable
-          reports={reports}
-          onReport={(id) => navigate(`${AUDITORS_DIRECTORY_ALIAS}/findings/${encodeURIComponent(id)}`)}
-          onSeller={openSeller}
-        />
-      ) : null}
-
-      {view === 'capa' ? (
-        <CapaTable
-          rows={capaRows}
-          kpis={capaCounts}
-          filter={capaFilter}
-          onFilter={setCapaFilter}
-          onSeller={openSeller}
-        />
-      ) : null}
+        </aside>
+      </div>
     </div>
-  )
+    )
 }

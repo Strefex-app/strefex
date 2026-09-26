@@ -213,6 +213,7 @@ export default function AuditProStandards() {
                 site={visit?.site}
                 auditDate={visit?.auditDate}
                 auditorLabel={visit?.auditorLabel}
+                closeWithSignatures={!!sheet.closeWithSignatures}
                 signatories={[
                   { role: 'Lead auditor', name: visit?.auditorLabel || '\u00a0' },
                   { role: 'Supplier representative', name: visit?.supplierLabel || '\u00a0' },

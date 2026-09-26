@@ -270,6 +270,22 @@ export function findingsKpis(reports = [], year) {
   }
 }
 
+export function leadTimeForFinding(finding, todayIso, completedDate) {
+  const open = String(finding?.status || 'Open') === 'Open'
+  let due = toAuditDateInput(finding?.dueDate)
+  if (!due && open) {
+    const start = toAuditDateInput(completedDate) || todayIso
+    const days = finding?.type === 'Major NC' ? 30 : finding?.type === 'Minor NC' ? 90 : 60
+    due = addDaysIso(start, days)
+  }
+  if (!open) return { due, open: false, overdue: false, days: null, label: 'Closed' }
+  if (!due) return { due: '', open: true, overdue: false, days: null, label: 'No due date' }
+  const days = Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${todayIso}T00:00:00Z`)) / 86400000)
+  if (days < 0) return { due, open: true, overdue: true, days, label: `${Math.abs(days)} d overdue` }
+  if (days === 0) return { due, open: true, overdue: false, days: 0, label: 'Due today' }
+  return { due, open: true, overdue: false, days, label: `${days} d left` }
+}
+
 export function buildCapaRows({ audits = [], suppliers = [], auditors = [], todayIso } = {}) {
   const supById = new Map((suppliers || []).map((s) => [s.id, s]))
   const audById = new Map((auditors || []).map((a) => [a.id, a]))
@@ -278,18 +294,18 @@ export function buildCapaRows({ audits = [], suppliers = [], auditors = [], toda
     const supplier = supById.get(audit.supplierId)
     const auditor = audById.get(audit.auditorId)
     ;(audit.findings || []).forEach((finding, index) => {
-      const due = toAuditDateInput(finding.dueDate)
-      const open = String(finding.status || 'Open') === 'Open'
-      const daysLate = due && todayIso && due < todayIso ? Math.round((Date.parse(`${todayIso}T00:00:00Z`) - Date.parse(`${due}T00:00:00Z`)) / 86400000) : 0
+      const lead = leadTimeForFinding(finding, todayIso, audit.completedDate || audit.plannedDate)
       rows.push({
         id: finding.id || `${audit.id}-${index}`,
         finding,
         findingNo: finding.code || `F-${String(index + 1).padStart(2, '0')}`,
         type: finding.type || 'Minor NC',
         isMajor: finding.type === 'Major NC',
-        open,
-        overdue: open && daysLate > 0,
-        daysLate,
+        open: lead.open,
+        overdue: lead.overdue,
+        daysLate: lead.overdue ? Math.abs(lead.days || 0) : 0,
+        leadTime: lead.label,
+        leadDays: lead.days,
         supplier,
         supplierId: audit.supplierId,
         supplierName: supplier?.name || 'Unnamed seller',
@@ -297,11 +313,12 @@ export function buildCapaRows({ audits = [], suppliers = [], auditors = [], toda
         clause: finding.reference || finding.section || audit.standard || '—',
         action: finding.action || finding.responsibleParty || finding.description || '',
         description: finding.description || '',
-        due,
+        due: lead.due,
+        reportNo: reportNumber(audit),
         auditId: audit.id,
         auditor,
         auditorEmail: auditor?.email || '',
-        escalation: open
+        escalation: lead.open
           ? `Escalate to head of supplier quality${auditor ? ` · Auditor ${auditor.name} (${auditorCode(auditor)})` : ''}`
           : 'Closed',
       })

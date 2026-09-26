@@ -7,6 +7,7 @@ import useExhibitionStore from '../store/exhibitionStore'
 import { useIndustryStore } from '../store/industryStore'
 import useContractStore from '../store/contractStore'
 import { useMyCalendarStore } from '../store/myCalendarStore'
+import useAuditProStore from '../store/auditProStore'
 import {
   appendPersonalCalendarEvents,
   collectPlatformCalendarEvents,
@@ -33,6 +34,7 @@ export function usePlatformCalendarEvents(year, month0) {
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const contracts = useContractStore((s) => s.getSafeContracts())
   const myCalendarEntries = useMyCalendarStore((s) => s.entries)
+  const audits = useAuditProStore((s) => s.audits)
 
   return useMemo(() => {
     const exMonth = filterExhibitionsForMonth(exhibitions, year, month0)
@@ -49,6 +51,7 @@ export function usePlatformCalendarEvents(year, month0) {
       trainingRecords,
       goals,
       employees,
+      audits,
     })
     const personalMonth = filterPersonalEntriesForMonth(myCalendarEntries, year, month0)
     const flat = appendPersonalCalendarEvents(base, personalMonth)
@@ -70,6 +73,7 @@ export function usePlatformCalendarEvents(year, month0) {
     exhibitions,
     selectedIndustries,
     myCalendarEntries,
+    audits,
     year,
     month0,
   ])
@@ -93,6 +97,7 @@ export function usePlatformCalendarYearEvents(year) {
   const selectedIndustries = useIndustryStore((s) => s.selectedIndustries)
   const contracts = useContractStore((s) => s.getSafeContracts())
   const myCalendarEntries = useMyCalendarStore((s) => s.entries)
+  const audits = useAuditProStore((s) => s.audits)
 
   return useMemo(() => {
     /** @type {import('../utils/platformCalendarEvents').PlatformCalendarEvent[]} */
@@ -112,6 +117,7 @@ export function usePlatformCalendarYearEvents(year) {
         trainingRecords,
         goals,
         employees,
+        audits,
       })
       const personalMonth = filterPersonalEntriesForMonth(myCalendarEntries, year, m)
       flatAll.push(...appendPersonalCalendarEvents(base, personalMonth))
@@ -134,6 +140,7 @@ export function usePlatformCalendarYearEvents(year) {
     exhibitions,
     selectedIndustries,
     myCalendarEntries,
+    audits,
     year,
   ])
 }

@@ -200,6 +200,47 @@ export function resolveRegistrationCodeForDashboard({ email, accountType, hints 
   return ''
 }
 
+const HASHED_SUPPLIER_CODE = /^SUP-\d+$/i
+
+/**
+ * Official platform number from a company, profile, registry account, or audit supplier.
+ * Same value as `companies.registration_code` (S###### / SP####### / B####### / A######).
+ */
+export function readPlatformNumber(source) {
+  if (source == null) return ''
+  if (typeof source === 'string') {
+    const v = source.trim()
+    return HASHED_SUPPLIER_CODE.test(v) ? '' : v
+  }
+  if (typeof source !== 'object') return ''
+  const md = source.metadata && typeof source.metadata === 'object' ? source.metadata : {}
+  const co = source.companies && typeof source.companies === 'object' ? source.companies : {}
+  const candidates = [
+    source.registrationCode,
+    source.registration_code,
+    source.supplierCode,
+    source.platformNumber,
+    source.platform_number,
+    co.registration_code,
+    co.registrationCode,
+    md.registration_code,
+    md.registrationCode,
+  ]
+  for (const raw of candidates) {
+    const v = String(raw || '').trim()
+    if (!v || HASHED_SUPPLIER_CODE.test(v)) continue
+    return v
+  }
+  return ''
+}
+
+export function withPlatformNumber(row, extra) {
+  if (!row || typeof row !== 'object') return row
+  const code = readPlatformNumber(extra) || readPlatformNumber(row)
+  if (!code) return row
+  return { ...row, supplierCode: code, registrationCode: code }
+}
+
 export function mergeRegistrationPreference(prevCode, nextCode) {
   const a = String(prevCode || '').trim()
   const b = String(nextCode || '').trim()

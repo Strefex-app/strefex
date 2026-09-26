@@ -50,8 +50,8 @@ export function questionnaireForStandard(row, language = 'en') {
 
 export function flattenQuestionnaireRows(questionnaire = []) {
   const rows = []
-  for (const section of questionnaire || []) {
-    for (const q of section.questions || []) {
+  ;(questionnaire || []).forEach((section, si) => {
+    (section.questions || []).forEach((q, qi) => {
       const docs = Array.isArray(q.docs) ? q.docs.filter(Boolean) : []
       const rawClause = String(q.isoRef || q.iatfRef || q.checklistNo || q.clause || q.reference || section.clause || '').trim()
       const clause = rawClause.split(/[·,;/]| and /)[0].trim() || '—'
@@ -63,9 +63,10 @@ export function flattenQuestionnaireRows(questionnaire = []) {
         lookAt: q.lookAt || q.examples,
         reference: q.reference,
         docs,
+        responseKey: `${si}-${qi}`,
       })
-    }
-  }
+    })
+  })
   return rows
 }
 
@@ -99,14 +100,27 @@ export function chunkQuestionnairePages(rows = [], size = 8) {
   return out.length ? out : [[]]
 }
 
-/** Cover sheet (header + first questions), continuation sheets (questions only), closing signatures. */
+/** Cover sheet then continuation sheets. Signatures belong on the last sheet, not a separate page. */
 export function questionnairePrintSheets(rows = [], coverSize = 4, contSize = 8) {
   const list = Array.isArray(rows) ? rows : []
   const sheets = [{ kind: 'cover', questions: list.slice(0, coverSize) }]
   chunkQuestionnairePages(list.slice(coverSize), contSize)
     .filter((chunk) => chunk.length)
     .forEach((questions) => sheets.push({ kind: 'cont', questions }))
-  sheets.push({ kind: 'sign', questions: [] })
+  const last = sheets.length - 1
+  sheets[last] = { ...sheets[last], closeWithSignatures: true }
+  return sheets
+}
+
+/** Same questionnaire pack. Findings and signatures close the last page. */
+export function completedAuditPrintSheets(rows = [], findings = []) {
+  const sheets = questionnairePrintSheets(rows)
+  const last = sheets.length - 1
+  sheets[last] = {
+    ...sheets[last],
+    findings: findings || [],
+    closeWithSignatures: true,
+  }
   return sheets
 }
 

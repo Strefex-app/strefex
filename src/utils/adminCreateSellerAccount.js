@@ -6,6 +6,7 @@ import { isSupabaseConfigured, companiesService } from '../services/supabaseServ
 import { buildCompanyTaxonomyWrite } from './companyTaxonomyPayload'
 import { publishAccountsToNetworkDirectory } from './accountSourcingCompleteness'
 import { companyLegalNameError } from './companyLegalName'
+import { isBusinessEmail, businessEmailError } from './businessEmail'
 
 export const ADMIN_CREATED_EMAIL_DOMAIN = 'admin-created.strefex.local'
 
@@ -178,6 +179,9 @@ export async function transferSellerAccountRights({
   if (isAdminCreatedPlaceholderEmail(nextEmail)) {
     throw new Error('Use the real seller email, not a placeholder.')
   }
+  if (!isBusinessEmail(nextEmail)) {
+    throw new Error(businessEmailError(nextEmail))
+  }
   if (typeof updateAccount !== 'function') {
     throw new Error('Account registry is not available.')
   }
@@ -213,30 +217,35 @@ export async function transferSellerAccountRights({
   if (!updated && companyId) updated = updateAccount(companyId, registryPatch)
 
   let invite = null
+  let inviteError = null
   if (sendInvite && typeof inviteTeamUser === 'function') {
-    invite = await inviteTeamUser({
-      email: nextEmail,
-      fullName: String(contactName || '').trim() || undefined,
-      role: 'admin',
-      companyId: companyId || null,
-      accountType: 'seller',
-    })
-    if (invite?.user?.id && companyId && typeof profilesUpdate === 'function') {
-      try {
-        await profilesUpdate({
-          id: invite.user.id,
-          company_id: companyId,
-          full_name: String(contactName || '').trim() || null,
-          role: 'admin',
-          metadata: {
-            account_type: 'seller',
-            account_types: ['seller'],
-            transferred_from_admin: true,
-          },
-        })
-      } catch { /* privileged update may be restricted */ }
+    try {
+      invite = await inviteTeamUser({
+        email: nextEmail,
+        fullName: String(contactName || '').trim() || undefined,
+        role: 'admin',
+        companyId: companyId || null,
+        accountType: 'seller',
+      })
+      if (invite?.user?.id && companyId && typeof profilesUpdate === 'function') {
+        try {
+          await profilesUpdate({
+            id: invite.user.id,
+            company_id: companyId,
+            full_name: String(contactName || '').trim() || null,
+            role: 'admin',
+            metadata: {
+              account_type: 'seller',
+              account_types: ['seller'],
+              transferred_from_admin: true,
+            },
+          })
+        } catch { /* privileged update may be restricted */ }
+      }
+    } catch (err) {
+      inviteError = err?.message || String(err)
     }
   }
 
-  return { company, account: updated, invite, email: nextEmail }
+  return { company, account: updated, invite, inviteError, email: nextEmail }
 }

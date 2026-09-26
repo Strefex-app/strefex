@@ -1,3 +1,4 @@
+import AppListSelect from '../../components/AppListSelect'
 import {
   FINDING_TYPES,
   STATUS_COLORS,
@@ -70,16 +71,16 @@ export function Textarea({ value, onChange, placeholder = '', rows = 3 }) {
   )
 }
 
-export function Select({ value, onChange, options, disabled = false }) {
+export function Select({ value, onChange, options, disabled = false, placeholder = 'Select' }) {
   const opts = options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="ap-select">
-      {opts.map((o) => (
-        <option key={String(o.value)} value={o.value}>
-          {o.label || o.value || '—'}
-        </option>
-      ))}
-    </select>
+    <AppListSelect
+      value={value}
+      onChange={onChange}
+      options={opts}
+      disabled={disabled}
+      placeholder={placeholder}
+    />
   )
 }
 

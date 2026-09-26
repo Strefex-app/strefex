@@ -2,6 +2,7 @@ import { mergeAuditorLists } from './auditorRegistry'
 import { applyCompanyAuditCloudToSuppliers, normalizeAuditEmail } from './companyExternalAudit'
 import { buildScheduleEvents } from './auditProgrammeViews'
 import { pickSellerCompanyName, sellerCompanyName } from './auditSellerLabel'
+import { mergeRegistrationPreference, readPlatformNumber, withPlatformNumber } from './platformRegistrationCode'
 
 const SELLER_ACCOUNT_TYPES = new Set(['seller', 'service_provider'])
 
@@ -41,7 +42,11 @@ export function mergeSupplierLists(existing, incoming) {
       continue
     }
     const prev = list[idx]
-    list[idx] = {
+    const platformNumber = mergeRegistrationPreference(
+      readPlatformNumber(prev),
+      readPlatformNumber(row),
+    )
+    list[idx] = withPlatformNumber({
       ...row,
       ...prev,
       name: pickSellerCompanyName(prev, row),
@@ -53,15 +58,43 @@ export function mergeSupplierLists(existing, incoming) {
       platformCompanyId: prev.platformCompanyId || row.platformCompanyId || null,
       platformProfileId: prev.platformProfileId || row.platformProfileId,
       accountDirectoryEntryId: prev.accountDirectoryEntryId || row.accountDirectoryEntryId,
+      vendorMasterId: prev.vendorMasterId || row.vendorMasterId,
       source: prev.source && !['companies', 'supabase_directory', 'supabase_profiles'].includes(prev.source)
         ? prev.source
         : (prev.source || row.source),
-    }
+    }, { registrationCode: platformNumber })
   }
   return list
 }
 
 /** Seller companies the caller can read (superadmin all; auditor = assigned). */
+export function vendorsAsAuditSuppliers(vendors = []) {
+  return (vendors || [])
+    .filter((v) => v && v.status !== 'archived')
+    .map((v) => {
+      const general = v.general || {}
+      const main = v.addresses?.main || v.addresses || {}
+      const contact = (v.contacts || []).find((c) => c?.isPrimary) || (v.contacts || [])[0] || {}
+      const industry = Array.isArray(general.industry) ? general.industry[0] : general.industry
+      const email = String(general.strefexPrimaryEmail || contact.email || '').trim().toLowerCase()
+      const name = String(general.companyName || v.vendorNumber || '').trim()
+      if (!name && !email) return null
+      return {
+        id: `vendor_${v.id}`,
+        name: name || email,
+        email,
+        country: String(general.country || main.country || '').trim(),
+        city: String(main.city || '').trim(),
+        industry: String(industry || '').trim(),
+        contact: String(contact.name || '').trim(),
+        vendorMasterId: v.id,
+        source: 'vendor_master',
+        registeredAt: String(v.createdAt || '').slice(0, 10),
+      }
+    })
+    .filter(Boolean)
+}
+
 export function sellersFromCompanyAuditRows(cloudRows = []) {
   return (cloudRows || [])
     .filter((row) => {
@@ -75,7 +108,7 @@ export function sellersFromCompanyAuditRows(cloudRows = []) {
         || row.externalAuditPlannedAt,
       )
     })
-    .map((row) => ({
+    .map((row) => withPlatformNumber({
       id: `platform_company_${row.id}`,
       name: sellerCompanyName(row),
       email: normalizeAuditEmail(row.email),
@@ -91,7 +124,7 @@ export function sellersFromCompanyAuditRows(cloudRows = []) {
       externalAuditAssignedAuditorName:
         row.external_audit_assigned_auditor_name || row.externalAuditAssignedAuditorName || '',
       externalAuditNotes: row.external_audit_notes || row.externalAuditNotes || '',
-    }))
+    }, row))
 }
 
 /**
@@ -107,6 +140,7 @@ export function assembleAuditWorkspaceFromServer({
   companyAuditRows = [],
   localAuditors = [],
   localSuppliers = [],
+  vendorSuppliers = [],
 } = {}) {
   const auditors = mergeAuditorLists(
     keepUnsyncedLocalRows(directoryAuditors, localAuditors),
@@ -125,6 +159,12 @@ export function assembleAuditWorkspaceFromServer({
     ),
     companyAuditRows,
   )
+  if (vendorSuppliers?.length) {
+    return {
+      auditors,
+      suppliers: mergeSupplierLists(suppliers, vendorSuppliers),
+    }
+  }
   return { auditors, suppliers }
 }
 

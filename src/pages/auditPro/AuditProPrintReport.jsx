@@ -1,19 +1,24 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import useAuditProStore from '../../store/auditProStore'
-import { Btn, getQuestionnaire, getTotalQuestions } from './auditProUi'
+import { Btn, getTotalQuestions } from './auditProUi'
 import { uploadClosingReport } from './auditJourneyActions'
-import AuditProOfficialReport from './auditProOfficialReport'
-import { AuditProCertificateDocument, AuditProClosingDocument, AuditProChecklistDocument } from './AuditProPrintDocuments'
-import { flattenQuestionnaireRows, questionnaireFormCode, questionnairePrintSheets } from '../../utils/auditStandardsCatalogue'
+import { AuditProCertificateDocument, AuditProChecklistDocument } from './AuditProPrintDocuments'
+import {
+  flattenQuestionnaireRows,
+  questionnaireFormCode,
+  questionnairePrintSheets,
+  completedAuditPrintSheets,
+  questionnaireForStandard,
+} from '../../utils/auditStandardsCatalogue'
 import { formatAuditDateLabel } from '../../utils/companyExternalAudit'
 import { sellerSiteCode } from '../../utils/auditorsAssignmentPool'
+import { AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
 import { auditorCode } from '../../utils/auditProgrammeViews'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
 import { useTranslation } from '../../i18n/useTranslation'
-import { getCompanyName } from '../../utils/tenantStorage'
-import { certificateNumber } from '../../utils/auditSupplierRegister'
-import { reportNumber } from '../../utils/auditProgrammeViews'
+import { certificateNumber, closingReportModel } from '../../utils/auditSupplierRegister'
 import '../../styles/auditPro.css'
 
 export default function AuditProPrintReport() {
@@ -21,26 +26,23 @@ export default function AuditProPrintReport() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { language } = useTranslation()
-  const user = useAuthStore((s) => s.user)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
   const isAuditor = useAuthStore((s) => s.isAuditor)
   const canUse = isSuperAdmin() || isAuditor()
-  const doc = searchParams.get('doc') || 'checklist'
+  const doc = searchParams.get('doc') || 'closing'
   const [uploading, setUploading] = useState(false)
 
   const ensureSeed = useAuditProStore((s) => s.ensureSeed)
-  const audits = useAuditProStore((s) => s.audits)
-  const auditors = useAuditProStore((s) => s.auditors)
-  const suppliers = useAuditProStore((s) => s.suppliers)
+  const { audits, auditors, suppliers } = useAuditorsHubScopedData()
 
   useEffect(() => {
     ensureSeed()
   }, [ensureSeed])
 
-  const reportDateStr = useMemo(
-    () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-    [],
-  )
+  const isCertificate = doc === 'certificate'
+  const isBlankForm = doc === 'checklist'
+  const isCompletedPack = !isCertificate && !isBlankForm
+  const fromConduct = searchParams.get('from') === 'conduct'
 
   if (!canUse) {
     return <Navigate to="/management" replace />
@@ -48,51 +50,53 @@ export default function AuditProPrintReport() {
 
   const audit = audits.find((a) => a.id === auditId)
   if (!auditId || !audit) {
-    return <Navigate to="/management/auditors/suppliers" replace />
+    return <Navigate to="/management/auditors/suppliers?view=records" replace />
   }
 
   const auditor = auditors.find((a) => a.id === audit.auditorId)
   const supplier = suppliers.find((s) => s.id === audit.supplierId)
-  const questionnaire = getQuestionnaire(audit.standard, audit.auditType, language)
-  const printedBy =
-    user?.fullName?.trim() || user?.companyName?.trim() || user?.email?.trim() || 'Unknown'
-  const brandLogoSrc = `${import.meta.env.BASE_URL}assets/strefex-logo-executive-summary.png`
-  const orgDisplayName = getCompanyName()
+  const questionnaire = questionnaireForStandard({ name: audit.standard, standard: audit.standard }, language)
   const totalQ = questionnaire ? getTotalQuestions(questionnaire) : 0
-  const answeredQ = questionnaire
-    ? (questionnaire || []).reduce(
-        (acc, sec, si) =>
-          acc +
-          (sec.questions || []).reduce(
-            (a, _, qi) => a + (audit.responses?.[`${si}-${qi}`]?.verdict ? 1 : 0),
-            0,
-          ),
-        0,
-      )
-    : 0
-  const subtitleBar =
-    `${audit.standard} · ${audit.industry} · Status: ${audit.status}` +
-    ` · Auditor: ${auditor?.name || '—'} · Supplier: ${supplier?.name || '—'}` +
-    (totalQ ? ` · Checklist progress: ${answeredQ}/${totalQ}` : '')
+  const model = closingReportModel({ audit, supplier, auditor, language })
+  const checkIssued = formatAuditDateLabel(audit.completedDate || audit.plannedDate || new Date().toISOString())
+  const supplierLabel = supplier ? `${supplier.name} · ${sellerSiteCode(supplier)}` : ''
+  const site = [supplier?.country, supplier?.city].filter(Boolean).join(' · ')
+  const auditorLabel = auditor ? `${auditor.name} · ${auditorCode(auditor)}` : ''
+  const signatories = model.signatories
+  const formCode = questionnaireFormCode(audit.standard)
+  const extraFacts = isCompletedPack
+    ? [
+      ['Report No.', model.reportNo],
+      ['Result', `${model.result.label}${model.result.score != null ? ` · ${model.result.score}% conformity` : ''}`],
+      ['Findings', `${model.counts.major} major · ${model.counts.minor} minor · ${model.counts.obs} observations`],
+      ['CAPA plan due', formatAuditDateLabel(model.capaDue) || '—'],
+      ...model.scores.slice(0, 8).map((sec) => [sec.name, sec.pct != null ? `${sec.pct}%` : '—']),
+    ]
+    : []
 
-  const label = doc === 'certificate'
+  const flatRows = flattenQuestionnaireRows(questionnaire)
+  const sheets = isCompletedPack
+    ? completedAuditPrintSheets(flatRows, model.findings)
+    : questionnairePrintSheets(flatRows)
+
+  const label = isCertificate
     ? `A4 portrait · Certificate ${certificateNumber(audit)}`
-    : doc === 'closing'
-      ? `A4 portrait · Closing report ${reportNumber(audit)}`
-      : doc === 'checklist'
-        ? 'A4 portrait · On-site audit questionnaire'
-        : 'Official audit report'
+    : isBlankForm
+      ? 'A4 portrait · On-site audit questionnaire'
+      : `A4 portrait · ${questionnaireFormCode(audit.standard)}`
 
-  const checkSheets = questionnairePrintSheets(flattenQuestionnaireRows(questionnaire))
-  const checkIssued = (audit.plannedDate || audit.completedDate || new Date().toISOString()).slice(0, 10)
+  const backToOnsite = fromConduct || (!audit.completedDate && audit.status !== 'Completed' && audit.status !== 'Cancelled')
+  const closeTo = backToOnsite
+    ? `${AUDITORS_DIRECTORY_ALIAS}/conduct/${encodeURIComponent(audit.id)}`
+    : `${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`
 
   return (
     <div className="ap-root ap-scrollbar ap-print-page-root">
       <div className="ap-print-toolbar ap-pdf-exclude no-print">
         <Btn onClick={() => window.print()}>Print / save PDF</Btn>
-        {doc === 'closing' ? (
+        {isCompletedPack ? (
           <label className="app-page-btn-primary ap-btn ap-btn-primary">
-            {uploading ? 'Uploading…' : 'Upload signed closing report'}
+            {uploading ? 'Uploading…' : 'Upload signed report'}
             <input
               type="file"
               accept="application/pdf,image/*"
@@ -104,80 +108,53 @@ export default function AuditProPrintReport() {
                 if (!file) return
                 setUploading(true)
                 void uploadClosingReport({ audit, supplier, auditor, file })
-                  .then(() => navigate('/management/auditors/suppliers'))
+                  .then(() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/suppliers?view=records`))
                   .finally(() => setUploading(false))
               }}
             />
           </label>
         ) : null}
-        <Btn onClick={() => navigate(`/management/auditors/suppliers?view=${doc === 'certificate' ? 'certs' : doc === 'closing' ? 'records' : 'register'}`)} variant="secondary">
-          Close
+        {supplier?.id ? (
+          <Btn variant="secondary" onClick={() => navigate(`${AUDITORS_DIRECTORY_ALIAS}/record/${encodeURIComponent(supplier.id)}`)}>
+            Supplier record
+          </Btn>
+        ) : null}
+        <Btn onClick={() => navigate(closeTo)} variant="secondary">
+          {backToOnsite ? 'Back to questionnaire' : 'Close'}
         </Btn>
         <span className="ap-print-toolbar-note">{label}</span>
       </div>
-      {doc === 'certificate' || doc === 'closing' ? (
+      {isCertificate ? (
         <div className="ap-doc-sheet">
-          {doc === 'certificate' ? (
-            <AuditProCertificateDocument audit={audit} supplier={supplier} auditor={auditor} language={language} />
-          ) : (
-            <AuditProClosingDocument audit={audit} supplier={supplier} auditor={auditor} language={language} />
-          )}
+          <AuditProCertificateDocument audit={audit} supplier={supplier} auditor={auditor} language={language} />
         </div>
-      ) : doc === 'checklist' ? (
-        checkSheets.map((sheet, index) => (
-          <div className="ap-doc-sheet ap-check-sheet" key={`${sheet.kind}-${index}`}>
-            <AuditProChecklistDocument
-              variant={sheet.kind}
-              standard={audit.standard}
-              family=""
-              questions={sheet.questions}
-              formCode={questionnaireFormCode(audit.standard)}
-              issued={checkIssued}
-              page={index + 1}
-              pageCount={checkSheets.length}
-              questionCount={totalQ}
-              supplierLabel={supplier ? `${supplier.name} · ${sellerSiteCode(supplier)}` : ''}
-              site={[supplier?.country, supplier?.city].filter(Boolean).join(' · ')}
-              auditDate={formatAuditDateLabel(audit.plannedDate || audit.completedDate)}
-              auditorLabel={auditor ? `${auditor.name} · ${auditorCode(auditor)}` : ''}
-              signatories={[
-                { role: 'Lead auditor', name: auditor ? `${auditor.name} · ${auditorCode(auditor)}` : '\u00a0' },
-                { role: 'Supplier representative', name: supplier ? `${supplier.name} · ${sellerSiteCode(supplier)}` : '\u00a0' },
-                { role: 'Head of Supplier Quality', name: 'STREFEX' },
-              ]}
-            />
-          </div>
-        ))
       ) : (
-        <div className="ap-print-sheet pm-portfolio-shell app-page ap-pm-print-sheet stx-text-wrap">
-          <div className="ap-pm-print-frame">
-            <div className="ap-pm-print-brand-bar">
-              <img src={brandLogoSrc} alt="STREFEX" className="ap-pm-print-brand-logo" decoding="async" />
-              <p className="ap-pm-print-org-name stx-text-wrap">{orgDisplayName}</p>
-            </div>
-            <header className="ap-pm-print-header" aria-label="Export header">
-              <div className="ap-pm-print-header-gutter-left" aria-hidden="true" />
-              <h1 className="ap-pm-print-header-title stx-text-wrap">{audit.title || 'Official audit report'}</h1>
-              <time className="ap-pm-print-header-date" dateTime={reportDateStr}>
-                {reportDateStr}
-              </time>
-            </header>
-            <div className="ap-pm-print-subtitle">{subtitleBar}</div>
-            <div className="app-page-card ap-pm-print-body-card">
-              <AuditProOfficialReport
-                audit={audit}
-                auditor={auditor}
-                supplier={supplier}
-                questionnaire={questionnaire}
-                suppressReportChrome
+        <div className="ap-std-print-root">
+          {sheets.map((sheet, index) => (
+            <div className="ap-doc-sheet ap-check-sheet" key={`${sheet.kind}-${index}`}>
+              <AuditProChecklistDocument
+                variant={sheet.kind}
+                filled={isCompletedPack}
+                responses={audit.responses || {}}
+                extraFacts={sheet.kind === 'cover' ? extraFacts : []}
+                findings={sheet.findings || []}
+                closeWithSignatures={!!sheet.closeWithSignatures}
+                standard={audit.standard}
+                family=""
+                questions={sheet.questions}
+                formCode={formCode}
+                issued={checkIssued}
+                page={index + 1}
+                pageCount={sheets.length}
+                questionCount={totalQ}
+                supplierLabel={supplierLabel}
+                site={site}
+                auditDate={formatAuditDateLabel(audit.plannedDate || audit.completedDate)}
+                auditorLabel={auditorLabel}
+                signatories={signatories}
               />
             </div>
-            <footer className="ap-pm-print-footer">
-              <span className="ap-pm-print-footer-left">Printed by: {printedBy}</span>
-              <span className="ap-pm-print-footer-centre">STREFEX Platform — Confidential</span>
-              <span className="ap-pm-print-footer-right">Page 1 of 1</span>
-            </footer>
-          </div>
+          ))}
         </div>
       )}
     </div>

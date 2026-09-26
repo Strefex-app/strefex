@@ -5,6 +5,8 @@
 import { isSupabaseConfigured, supabase } from '../config/supabase'
 import { accountDirectoryEntriesService, profilesService } from './supabaseService'
 import { sellerCompanyName } from '../utils/auditSellerLabel'
+import { readPlatformNumber, withPlatformNumber } from '../utils/platformRegistrationCode'
+import { readAuditorVisibleIndustries } from '../utils/auditorIndustryScope'
 
 export function isLikelyUuid(id) {
   return (
@@ -317,6 +319,12 @@ export function auditDirectoryEntriesFromProfileRows(rows = []) {
           registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
           platformProfileId: row.id,
           platformCompanyId: c?.id ?? null,
+          visibleIndustries: readAuditorVisibleIndustries({
+            ...md,
+            metadata: md,
+            industries: c?.industries,
+            companies: c,
+          }),
           source: 'supabase_profiles',
         })
       }
@@ -335,7 +343,8 @@ export function auditDirectoryEntriesFromProfileRows(rows = []) {
         : Array.isArray(md.industries)
           ? md.industries
           : []
-      suppliers.push({
+      const platformNumber = readPlatformNumber(c) || readPlatformNumber(row)
+      suppliers.push(withPlatformNumber({
         id: sid,
         name: sellerCompanyName({
           name: c?.name,
@@ -363,7 +372,7 @@ export function auditDirectoryEntriesFromProfileRows(rows = []) {
         externalAuditDeadlineAt: c?.external_audit_deadline_at || '',
         externalAuditAssignedAuditorEmail: c?.external_audit_assigned_auditor_email || '',
         externalAuditAssignedAuditorName: c?.external_audit_assigned_auditor_name || '',
-      })
+      }, { registration_code: platformNumber }))
     }
   }
   return { auditors, suppliers }
@@ -408,6 +417,11 @@ export async function fetchCompanyProfilesAsAuditAuditors(companyId) {
           registeredAt: (row.created_at || new Date().toISOString()).slice(0, 10),
           platformProfileId: row.id,
           source: 'supabase_profiles',
+          visibleIndustries: readAuditorVisibleIndustries({
+            metadata: row.metadata,
+            industries: row.companies?.industries,
+            companies: row.companies,
+          }),
         }
       })
       .filter(Boolean)
@@ -504,6 +518,8 @@ export function supplierUniverseRecordToAuditSupplier(record) {
     source: 'supplier_universe',
     supplySegment: segment,
     universeSource: record.source || '',
+    supplierCode: readPlatformNumber(record) || undefined,
+    registrationCode: readPlatformNumber(record) || undefined,
   }
 }
 
@@ -511,10 +527,11 @@ export async function fetchPlatformDirectoryProfilesForSuperadmin() {
   const out = { auditors: [], suppliers: [] }
   try {
     const { useAuthStore } = await import('../store/authStore')
-    const role = String(useAuthStore.getState().role || '')
-    if (role !== 'superadmin' && role !== 'auditor_external' && !useAuthStore.getState().isSuperAdmin?.()) {
-      return out
-    }
+    const auth = useAuthStore.getState()
+    const role = String(auth.role || '')
+    const isSa = role === 'superadmin' || Boolean(auth.isSuperAdmin?.())
+    const isExtAuditor = role === 'auditor_external'
+    if (!isSa && !isExtAuditor) return out
     const { profilesService } = await import('./supabaseService')
     let offset = 0
     const page = 400
@@ -540,6 +557,13 @@ export async function fetchPlatformDirectoryProfilesForSuperadmin() {
       seenS.add(key)
       return true
     })
+    if (isExtAuditor && !isSa) {
+      const self = String(auth.user?.email || '').trim().toLowerCase()
+      out.auditors = out.auditors.filter((row) => String(row.email || '').toLowerCase() === self)
+      out.suppliers = out.suppliers.filter((row) => (
+        String(row.externalAuditAssignedAuditorEmail || '').trim().toLowerCase() === self
+      ))
+    }
   } catch {
     /* offline / denied */
   }

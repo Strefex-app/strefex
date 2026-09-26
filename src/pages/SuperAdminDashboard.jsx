@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import AppListSelect from '../components/AppListSelect'
 import { PLANS, getPlanById, BUYER_TRIAL_DAYS } from '../services/stripeService'
 import { PROMO_CODES } from '../services/featureFlags'
 import { EQUIPMENT_CATEGORIES_BY_INDUSTRY } from '../data/equipmentCategoriesByIndustry'
@@ -23,6 +24,7 @@ import {
   sellerNeedsAuditDate,
   toAuditDateInput,
 } from '../utils/companyExternalAudit'
+import { formatDisplayLabel } from '../utils/displayLabel'
 import { loadFeatureGrants, saveFeatureGrants } from '../utils/featureGrants'
 import {
   deleteFeatureGrant,
@@ -203,7 +205,7 @@ function platformAccountOptionTitleAttr(acct) {
   const email = String(acct?.email || '').trim()
   if (email) parts.push(`Email: ${email}`)
   const reg = String(acct?.registrationCode || '').trim()
-  if (reg) parts.push(`Platform #: ${reg}`)
+  if (reg) parts.push(`Platform number: ${reg}`)
   const cid = acct?.companyId || acct?.company_id
   if (cid) parts.push(`Tenant company UUID: ${cid}`)
   parts.push(`Profile row: ${acct?.id || '—'}`)
@@ -1599,15 +1601,13 @@ export default function SuperAdminDashboard() {
               </label>
               <label className="sad-modal-field">
                 Industry
-                <select
+                <AppListSelect
                   value={addSellerForm.industryId}
-                  onChange={(e) => setAddSellerForm((f) => ({ ...f, industryId: e.target.value }))}
                   disabled={creatingSeller}
-                >
-                  {INDUSTRIES.map((ind) => (
-                    <option key={ind.id} value={ind.id}>{ind.label}</option>
-                  ))}
-                </select>
+                  ariaLabel="Industry"
+                  options={INDUSTRIES.map((ind) => ({ value: ind.id, label: ind.label }))}
+                  onChange={(industryId) => setAddSellerForm((f) => ({ ...f, industryId }))}
+                />
               </label>
             </div>
             <div className="sad-modal-actions">
@@ -1656,7 +1656,7 @@ export default function SuperAdminDashboard() {
           <thead>
             <tr>
               <th>Company</th>
-              <th>Platform #</th>
+              <th>Platform number</th>
               <th>Contact</th>
               <th>Type</th>
               <th>Visibility</th>
@@ -1755,7 +1755,7 @@ export default function SuperAdminDashboard() {
               <h3 className="sad-detail-company">{selectedAccount.company}</h3>
               <p className="sad-detail-email">{selectedAccount.email}</p>
               <p className="sad-detail-meta">
-                Platform #{' '}
+                Platform number{' '}
                 <span className="sad-mono">{selectedAccount.registrationCode || '—'}</span>
               </p>
             </div>
@@ -2439,7 +2439,7 @@ export default function SuperAdminDashboard() {
 
                   <div className="sad-detail-grid">
                     <div><strong>Services:</strong> {(srSelectedRequest.services || []).join(', ')}</div>
-                    <div><strong>Industry:</strong> {srSelectedRequest.industryId || '—'}</div>
+                    <div><strong>Industry:</strong> {formatDisplayLabel(srSelectedRequest.industryId) || '—'}</div>
                     <div><strong>Priority:</strong> {srSelectedRequest.priority}</div>
                     <div><strong>Status:</strong> {srSelectedRequest.status}</div>
                     <div><strong>Assigned To:</strong> {srSelectedRequest.assignedTo || 'Unassigned'}</div>

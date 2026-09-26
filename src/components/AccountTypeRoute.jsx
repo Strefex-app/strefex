@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { auditorLandingPath, isAuditorWorkspaceRole } from '../utils/auditorWorkspaceAccess'
 
 const toArray = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean)
@@ -23,7 +24,8 @@ export default function AccountTypeRoute({ children, allowed = [] }) {
   const hasAccess = normalizedAllowed.some((type) => currentTypes.has(type))
 
   if (!hasAccess) {
-    return <Navigate to="/main-menu" state={{ from: location.pathname }} replace />
+    const to = isAuditorWorkspaceRole(role) ? auditorLandingPath() : '/main-menu'
+    return <Navigate to={to} state={{ from: location.pathname }} replace />
   }
 
   return children

@@ -10,6 +10,7 @@ import { stripAuditProDemoWorkspace } from '../data/auditProDemoKit'
 
 /** Wired after `useAuditProStore` is created — persist calls this when localStorage hydration finishes. */
 const auditProAfterPersistRehydrate = { flush: () => {} }
+let hydrateInFlight = null
 
 function responseTouchesCount(audit) {
   const r = audit?.responses || {}
@@ -205,8 +206,12 @@ const useAuditProStore = create(
         set(stripAuditProDemoWorkspace(get()))
       },
 
-      /** Canonical server merge when authenticated with company UUID + Supabase. */
-      hydrateFromSupabase: async () => {
+      /** Canonical server merge. Fast path skips the paged platform directory so the list can paint. */
+      hydrateFromSupabase: async (opts = {}) => {
+        const includePlatformDirectory = !!opts.includePlatformDirectory
+        if (hydrateInFlight && !includePlatformDirectory) return hydrateInFlight
+        if (hydrateInFlight && includePlatformDirectory) await hydrateInFlight
+        const run = async () => {
         try {
           const { isSupabaseConfigured } = await import('../config/supabase')
           if (!isSupabaseConfigured) return
@@ -218,29 +223,35 @@ const useAuditProStore = create(
             fetchAccountDirectoryRowsAsAuditSuppliers,
             fetchPlatformDirectoryProfilesForSuperadmin,
           } = await import('../services/auditManagementDb')
-          const { assembleAuditWorkspaceFromServer } = await import('../utils/auditProgramHydrate')
+          const { assembleAuditWorkspaceFromServer, vendorsAsAuditSuppliers } = await import('../utils/auditProgramHydrate')
           const { listCompanyExternalAudits } = await import('../services/companyExternalAuditService')
           const cid = await getActorCompanyId()
           if (!cid) return
+          let vendorSuppliers = []
+          try {
+            const { default: useVendorStore } = await import('./vendorStore')
+            vendorSuppliers = vendorsAsAuditSuppliers(useVendorStore.getState().vendors)
+          } catch {
+            vendorSuppliers = []
+          }
+          const platformPromise = includePlatformDirectory
+            ? fetchPlatformDirectoryProfilesForSuperadmin()
+            : Promise.resolve({ auditors: [], suppliers: [] })
           const [
             { audits: serverAudits, auditLogs, reminders },
             dir,
             platformAuditors,
             accountSuppliers,
             registeredAccounts,
+            cloudSellers,
           ] = await Promise.all([
             fetchAuditProgramForCompany(cid),
             fetchAuditDirectoryForCompany(cid),
             fetchCompanyProfilesAsAuditAuditors(cid),
             fetchAccountDirectoryRowsAsAuditSuppliers(cid),
-            fetchPlatformDirectoryProfilesForSuperadmin(),
+            platformPromise,
+            listCompanyExternalAudits().catch(() => []),
           ])
-          let cloudSellers = []
-          try {
-            cloudSellers = await listCompanyExternalAudits()
-          } catch {
-            cloudSellers = []
-          }
           const localAudits = get().audits || []
           const localMap = new Map(localAudits.map((a) => [a.id, a]))
           const mergedAudits = serverAudits.map((s) => mergeAuditOnHydrate(localMap.get(s.id), s))
@@ -254,9 +265,10 @@ const useAuditProStore = create(
             platformAuditors: [...(platformAuditors || []), ...(registeredAccounts?.auditors || [])],
             accountSuppliers,
             platformSuppliers: registeredAccounts?.suppliers || [],
-            companyAuditRows: cloudSellers,
+            companyAuditRows: cloudSellers || [],
             localAuditors: prevAuditors,
             localSuppliers: prevSuppliers,
+            vendorSuppliers,
           })
           set({
             ...stripAuditProDemoWorkspace({
@@ -283,6 +295,16 @@ const useAuditProStore = create(
         } catch {
           /* network / RLS */
         }
+        }
+        if (!includePlatformDirectory) {
+          hydrateInFlight = run()
+          try {
+            return await hydrateInFlight
+          } finally {
+            hydrateInFlight = null
+          }
+        }
+        return run()
       },
 
       /** Explicit import only (Supplier Registry buttons) — do not auto-run on layout mount. */

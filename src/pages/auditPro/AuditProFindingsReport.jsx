@@ -1,8 +1,5 @@
-import { useMemo } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import useAuditProStore from '../../store/auditProStore'
-import { useAuditProDemoKitVisible } from '../../hooks/useAuditProDemoKitVisible'
-import { filterAuditProAuditsForVisibility, filterAuditProAuditorsForVisibility, filterAuditProSuppliersForVisibility } from '../../data/auditProDemoKit'
+import { useAuditorsHubScopedData } from '../../hooks/useAuditorsHubScopedData'
 import { Btn } from './auditProUi'
 import { AUDITORS_DIRECTORY_ALIAS } from '../../utils/auditorsDirectory'
 import { sellerSiteCode } from '../../utils/auditorsAssignmentPool'
@@ -21,22 +18,7 @@ export default function AuditProFindingsReport() {
   const { auditId } = useParams()
   const navigate = useNavigate()
   const { language } = useTranslation()
-  const auditsAll = useAuditProStore((s) => s.audits)
-  const auditorsAll = useAuditProStore((s) => s.auditors)
-  const suppliersAll = useAuditProStore((s) => s.suppliers)
-  const demoKitShown = useAuditProDemoKitVisible()
-  const audits = useMemo(
-    () => filterAuditProAuditsForVisibility(auditsAll, auditorsAll, suppliersAll, demoKitShown),
-    [auditsAll, auditorsAll, suppliersAll, demoKitShown],
-  )
-  const auditors = useMemo(
-    () => filterAuditProAuditorsForVisibility(auditorsAll, demoKitShown),
-    [auditorsAll, demoKitShown],
-  )
-  const suppliers = useMemo(
-    () => filterAuditProSuppliersForVisibility(suppliersAll, demoKitShown),
-    [suppliersAll, demoKitShown],
-  )
+  const { audits, auditors, suppliers } = useAuditorsHubScopedData()
 
   const audit = audits.find((a) => a.id === auditId)
   if (!auditId) return <Navigate to={`${AUDITORS_DIRECTORY_ALIAS}/calendar?view=findings`} replace />

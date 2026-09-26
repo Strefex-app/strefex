@@ -6,6 +6,7 @@ import {
   getTotalQuestions,
   VERDICT_PRESET_SUPPLIER_RU_SCORE,
 } from './auditProUi'
+import { formatDisplayLabel } from '../../utils/displayLabel'
 
 const FINDING_TYPE_TAG = {
   'Major NC': 'var(--danger)',
@@ -35,8 +36,8 @@ export default function AuditProOfficialReport({
   questionnaire,
   suppressReportChrome = false,
 }) {
-  const majors = audit.findings.filter((f) => f.type === 'Major NC')
-  const minors = audit.findings.filter((f) => f.type === 'Minor NC')
+  const majors = (audit.findings || []).filter((f) => f.type === 'Major NC')
+  const minors = (audit.findings || []).filter((f) => f.type === 'Minor NC')
   const totalQ = getTotalQuestions(questionnaire)
   const verdictPreset = getQuestionnaireVerdictPreset(audit.standard)
   const supplierScoreMode = verdictPreset === VERDICT_PRESET_SUPPLIER_RU_SCORE
@@ -69,19 +70,19 @@ export default function AuditProOfficialReport({
         { l: 'Minor NCs', v: minors.length, br: 'var(--rfqi-amber)', val: 'var(--badge-warning-text)' },
         {
           l: 'Observations',
-          v: audit.findings.filter((f) => f.type === 'Observation').length,
+          v: (audit.findings || []).filter((f) => f.type === 'Observation').length,
           br: 'var(--accent)',
           val: 'var(--accent)',
         },
         {
           l: 'OFIs',
-          v: audit.findings.filter((f) => f.type === 'Opportunity for Improvement').length,
+          v: (audit.findings || []).filter((f) => f.type === 'Opportunity for Improvement').length,
           br: 'var(--rfqi-purple)',
           val: 'var(--rfqi-purple)',
         },
         {
           l: 'Positive',
-          v: audit.findings.filter((f) => f.type === 'Positive Finding').length,
+          v: (audit.findings || []).filter((f) => f.type === 'Positive Finding').length,
           br: 'var(--badge-success-text)',
           val: 'var(--badge-success-text)',
         },
@@ -119,7 +120,7 @@ export default function AuditProOfficialReport({
         {audit.title}
       </div>
       <div style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Tag color="var(--accent)">{audit.industry}</Tag>
+        <Tag color="var(--accent)">{formatDisplayLabel(audit.industry)}</Tag>
         <Tag color="var(--rfqi-purple)">{audit.standard}</Tag>
         <StatusBadge status={audit.status} />
       </div>
