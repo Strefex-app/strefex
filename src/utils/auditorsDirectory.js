@@ -47,8 +47,6 @@ export function auditorsHubLeaf(pathname = '') {
   return (match[1] || '').split('/').filter(Boolean)[0] || ''
 }
 
-import { formatDisplayLabel } from './displayLabel'
-
 export function sellerCategoryLabel(supplier) {
   const industry = String(supplier?.industry || '').trim()
   return formatDisplayLabel(industry || 'Uncategorized')

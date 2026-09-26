@@ -7,6 +7,8 @@
  * assigned external auditor), or a buyer after the seller grants a logged disclosure.
  */
 
+import { pickLegalCompanyName } from './companyLegalName'
+
 export const IDENTIFIED_ACCOUNT_FIELDS = [
   'email',
   'phone',
@@ -101,8 +103,6 @@ export function applyAccountPrivacyVeil(accounts = [], ctx = {}) {
     shouldExposeIdentifiedAccount(row, ctx) ? row : veilAccountIdentifiedFields(row)
   ))
 }
-
-import { pickLegalCompanyName } from './companyLegalName'
 
 export function publicLocationLabel(account) {
   return [account?.city, account?.country].filter(Boolean).join(' · ')
