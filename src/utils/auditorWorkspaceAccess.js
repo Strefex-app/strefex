@@ -9,6 +9,12 @@ export function auditorLandingPath() {
   return `${AUDITORS_DIRECTORY_ALIAS}/calendar`
 }
 
+/** Auditors must not be sent to /management when the hub gate denies access (that path is blocked). */
+export function auditProgramDeniedPath(role) {
+  if (isAuditorWorkspaceRole(role)) return '/profile'
+  return '/management'
+}
+
 /** Surfaces that expose the seller network, RFQs, or plant catalogues. */
 export function isSourcingSurfacePath(pathname = '') {
   const p = String(pathname || '').split('?')[0]

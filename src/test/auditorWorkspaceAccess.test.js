@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  auditProgramDeniedPath,
   auditorLandingPath,
   auditorSafeRedirect,
   isSourcingSurfacePath,
@@ -20,11 +21,18 @@ describe('auditor workspace access', () => {
     expect(auditorSafeRedirect('auditor_external', '/sourcing')).toBe(auditorLandingPath())
     expect(auditorSafeRedirect('auditor_internal', '/product-hub')).toBe(auditorLandingPath())
     expect(auditorSafeRedirect('auditor_external', '/management/auditors')).toBe(null)
+    expect(auditorSafeRedirect('auditor_external', '/management')).toBe(auditorLandingPath())
     expect(shouldShowSourcingInNav({
       accountType: 'auditor',
       accountTypes: ['auditor'],
       role: 'auditor_external',
     })).toBe(false)
+  })
+
+  it('does not bounce denied auditors through Management (that path is blocked)', () => {
+    expect(auditProgramDeniedPath('auditor_external')).toBe('/profile')
+    expect(auditProgramDeniedPath('auditor_internal')).toBe('/profile')
+    expect(auditProgramDeniedPath('user')).toBe('/management')
   })
 
   it('keeps buyers on sourcing', () => {

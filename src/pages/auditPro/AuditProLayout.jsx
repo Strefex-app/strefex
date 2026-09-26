@@ -7,6 +7,7 @@ import { auditProReminderTouchesDemoReminder } from '../../data/auditProDemoKit'
 import { hydrateAuditProFromManagementTables } from '../../services/workspaceCloudSync'
 import { useAuditProProgramAccess } from '../../utils/auditProgramAccess'
 import { auditorsHubLeaf } from '../../utils/auditorsDirectory'
+import { auditProgramDeniedPath } from '../../utils/auditorWorkspaceAccess'
 import { useAuthStore } from '../../store/authStore'
 import { AuditorsHubNavContext } from './auditorsHubNavContext'
 import '../../styles/app-page.css'
@@ -43,6 +44,7 @@ export default function AuditProLayout() {
   const ensureSeed = useAuditProStore((s) => s.ensureSeed)
   const hydrateFromSupabase = useAuditProStore((s) => s.hydrateFromSupabase)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const role = useAuthStore((s) => s.role)
   const reminders = useAuditProStore((s) => s.reminders)
   const toast = useAuditProStore((s) => s.toast)
   const audits = useAuditProStore((s) => s.audits)
@@ -81,7 +83,7 @@ export default function AuditProLayout() {
   }, [rehydrateRegistryFromStorage, ensureSeed, hydrateFromSupabase, isSuperAdmin])
 
   if (!canUse) {
-    return <Navigate to="/management" replace />
+    return <Navigate to={auditProgramDeniedPath(role)} replace />
   }
 
   const leaf = auditorsHubLeaf(location.pathname)

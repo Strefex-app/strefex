@@ -201,9 +201,10 @@ export default function AuditProCalendar() {
     [queue, queueFilter],
   )
   const selfAuditor = useMemo(
-    () => (auditors || []).find((a) => String(a.email || '').toLowerCase() === authEmail) || auditors?.[0] || null,
+    () => (auditors || []).find((a) => String(a.email || '').toLowerCase() === authEmail) || null,
     [auditors, authEmail],
   )
+  const showToast = useAuditProStore((s) => s.showToast)
 
   const openEvent = (ev) => {
     if (ev.type === 'capa' && ev.supplierId) {
@@ -223,11 +224,17 @@ export default function AuditProCalendar() {
 
   const dropSellerOnDay = async (iso, sellerId) => {
     const seller = (calendarSuppliers || []).find((s) => s.id === sellerId)
-    if (!seller || !iso || !selfAuditor) return
+    if (!seller || !iso) return
+    if (!selfAuditor) {
+      showToast('Your auditor profile is not on the panel yet.', 'error')
+      return
+    }
     setSchedBusy(true)
     try {
       await planSellerAudit({ supplier: seller, date: iso, auditor: selfAuditor })
       setPickIso(iso)
+    } catch (err) {
+      showToast(err?.message || 'Could not plan this visit.', 'error')
     } finally {
       setSchedBusy(false)
     }

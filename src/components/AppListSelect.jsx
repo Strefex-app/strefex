@@ -59,8 +59,8 @@ export default function AppListSelect({
       </button>
       {open && !disabled ? (
         <ul className="app-list-select__menu" role="listbox" aria-label={ariaLabel || placeholder}>
-          {items.map((item) => (
-            <li key={String(item.value) || 'empty'}>
+          {items.map((item, index) => (
+            <li key={`${String(item.value)}:${index}`}>
               <button
                 type="button"
                 role="option"
