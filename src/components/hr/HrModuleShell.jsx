@@ -1,11 +1,8 @@
 import { useTranslation } from '../../i18n/useTranslation'
-import { useSearchParams } from 'react-router-dom'
-import useHrSpaceStore from '../../store/hrSpaceStore'
-import CompanyWorkflowRail from '../company/CompanyWorkflowRail'
 import './HrModuleShell.css'
 
 /**
- * Shared HR module chrome: back link, title, Plan / Track / Manage tabs.
+ * Shared HR module chrome: title, Plan / Track / Manage tabs.
  */
 export function HrModuleShell({
   title,
@@ -17,10 +14,6 @@ export function HrModuleShell({
   tabs: tabsOverride,
 }) {
   const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-  const employeeId = searchParams.get('employeeId') || ''
-  const employees = useHrSpaceStore((s) => s.employees)
-  const subject = employeeId ? employees.find((row) => row.id === employeeId) : null
   const tabs = tabsOverride ?? [
     { id: 'plan', label: t('hrSpace.tabPlan', 'Plan') },
     { id: 'track', label: t('hrSpace.tabTrack', 'Track') },
@@ -28,7 +21,6 @@ export function HrModuleShell({
   ]
   return (
     <div className="hr-mod">
-      <CompanyWorkflowRail chainId="people-hire" subject={subject} />
       <div className="hr-mod-header">
         <h1 className="hr-mod-title">{title}</h1>
         {subtitle && <p className="hr-mod-sub">{subtitle}</p>}

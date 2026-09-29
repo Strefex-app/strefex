@@ -1,38 +1,33 @@
-import { useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
-import CompanyWorkflowRail from '../components/company/CompanyWorkflowRail'
 import { useTranslation } from '../i18n/useTranslation'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../services/featureFlags'
-import { COMPANY_WORKFLOWS_PATH, hrCanon } from '../data/companyWorkflows'
+import useHrSpaceStore from '../store/hrSpaceStore'
+import { hrCanon } from '../data/companyWorkflows'
+import { buildHrHubIndicators } from '../utils/peopleHrDashboard'
 import './HeadcountManagement.css'
-import AiInsightsCtaStrip from '../components/AiInsightsCtaStrip'
 
 const HeadcountManagement = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const hasFeature = useSubscriptionStore((s) => s.hasFeature)
   const isSuperAdmin = useAuthStore((s) => s.role === 'superadmin')
+  const employees = useHrSpaceStore((s) => s.employees)
+  const ratings = useHrSpaceStore((s) => s.ratings)
+  const goals = useHrSpaceStore((s) => s.goals)
+  const dialogues = useHrSpaceStore((s) => s.dialogues)
+  const indicators = useMemo(
+    () => buildHrHubIndicators({ employees, ratings, goals, dialogues }),
+    [employees, ratings, goals, dialogues],
+  )
 
-  const [indicators, setIndicators] = useState([
-    { id: 'employees', labelKey: 'headcount.totalEmployees', value: '48', icon: 'team', iconClass: 'blue' },
-    { id: 'qualification', labelKey: 'headcount.averageQualification', value: '3.8 / 5.0', icon: 'quality', iconClass: 'orange' },
-    { id: 'goals', labelKey: 'headcount.openGoals', value: '24', icon: 'target', iconClass: 'green' },
-    { id: 'reviews', labelKey: 'headcount.pendingReviews', value: '6', icon: 'clipboard', iconClass: 'purple' },
-  ])
-  const [editModal, setEditModal] = useState(null)
   const role = useAuthStore((s) => s.role)
   const canEdit = role === 'manager' || role === 'admin' || role === 'superadmin'
   const canEnterprise = isSuperAdmin || hasFeature('enterpriseManagement')
   const canTemplates = isSuperAdmin || hasFeature('templateLibrary')
-
-  const saveIndicator = useCallback(() => {
-    if (!editModal) return
-    setIndicators((prev) => prev.map((ind) => (ind.id === editModal.id ? { ...editModal, iconClass: ind.iconClass, labelKey: ind.labelKey } : ind)))
-    setEditModal(null)
-  }, [editModal])
 
   const pages = [
     { id: 'workforce', path: hrCanon('workforce'), icon: 'workforce', color: '#2c3e50' },
@@ -79,26 +74,15 @@ const HeadcountManagement = () => {
 
   return (
     <AppLayout>
-      <div className="headcount-page">
+      <div className="headcount-page headcount-page--modules-only">
         {/* Header */}
         <div className="headcount-header">
           <h1 className="headcount-title">{t('hrSpace.title')}</h1>
           <p className="headcount-subtitle">{t('hrSpace.subtitle')}</p>
-          <p className="headcount-subtitle stx-text-wrap">
-            {t('hrSpace.workflowHint', 'Workforce → hiring → onboarding → qualification → training → goals → review → documents.')}
-            {' '}
-            <Link to={COMPANY_WORKFLOWS_PATH}>
-              {t('hrSpace.openWorkflows', 'Open company workflows')}
-            </Link>
-          </p>
         </div>
 
-        <CompanyWorkflowRail chainId="people-hire" />
-
-        <AiInsightsCtaStrip context="hr" />
-
         {/* Top Indicators */}
-        <div className="headcount-indicators">
+        <div className="stx-indicator-strip headcount-indicators">
           {indicators.map((ind) => (
             <div key={ind.id} className="headcount-indicator-card">
               <div className={`headcount-indicator-icon ${ind.iconClass || 'blue'}`}>
@@ -114,17 +98,6 @@ const HeadcountManagement = () => {
                 </div>
                 <div className="headcount-indicator-label">{t(ind.labelKey)}</div>
               </div>
-              {canEdit && (
-                <button
-                  type="button"
-                  className="hm-edit-btn stx-click-feedback"
-                  onClick={(e) => { e.stopPropagation(); setEditModal({ ...ind }); }}
-                  title="Edit"
-                  aria-label={`Edit ${t(ind.labelKey)}`}
-                >
-                  <Icon name="edit" size={14} />
-                </button>
-              )}
             </div>
           ))}
         </div>
@@ -137,7 +110,7 @@ const HeadcountManagement = () => {
             <h2 className="headcount-card-title">{t('hrSpace.coreModules')}</h2>
             <p className="headcount-card-subtitle">{t('hrSpace.coreModulesDesc')}</p>
             <div className="headcount-pages-list">
-              {pages.map((page) => (
+              {pages.map((page, index) => (
                 <div
                   key={page.id}
                   className="headcount-page-item stx-click-feedback"
@@ -146,12 +119,13 @@ const HeadcountManagement = () => {
                   tabIndex={0}
                   onKeyDown={(e) => e.key === 'Enter' && navigate(page.path)}
                 >
+                  <span className="headcount-page-item-step" aria-hidden="true">{index + 1}</span>
                   <div className="headcount-page-item-icon" style={{ background: `${page.color}15`, color: page.color }}>
                     <Icon name={page.icon} size={20} />
                   </div>
                   <div className="headcount-page-item-info">
                     <div className="headcount-page-item-name">{t(`hrSpace.page.${page.id}.label`)}</div>
-                    <div className="headcount-page-item-desc">{t(`hrSpace.page.${page.id}.desc`)}</div>
+                    <div className="headcount-page-item-desc stx-text-wrap">{t(`hrSpace.page.${page.id}.desc`)}</div>
                   </div>
                   <span className="headcount-page-item-arrow"><Icon name="chevron-right" size={16} /></span>
                 </div>
@@ -245,29 +219,6 @@ const HeadcountManagement = () => {
           </div>
         </div>
       </div>
-
-      {editModal && (
-        <div className="hm-modal-overlay" onClick={() => setEditModal(null)}>
-          <div className="hm-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="hm-modal-header">
-              <h3>Edit {t(editModal.labelKey)}</h3>
-              <button type="button" className="hm-modal-close" onClick={() => setEditModal(null)} aria-label="Close">×</button>
-            </div>
-            <div className="hm-modal-body">
-              <label className="hm-field-label">Value</label>
-              <input
-                className="hm-field-input"
-                value={editModal.value}
-                onChange={(e) => setEditModal((m) => ({ ...m, value: e.target.value }))}
-              />
-            </div>
-            <div className="hm-modal-footer">
-              <button type="button" className="hm-modal-cancel" onClick={() => setEditModal(null)}>Cancel</button>
-              <button type="button" className="hm-modal-save" onClick={saveIndicator}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
     </AppLayout>
   )
 }

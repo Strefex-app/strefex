@@ -1,8 +1,7 @@
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import CompanyWorkflowRail from '../components/company/CompanyWorkflowRail'
 import useHrSpaceStore from '../store/hrSpaceStore'
-import { COMPANY_WORKFLOWS_PATH, hrCanon, withEmployee } from '../data/companyWorkflows'
+import { hrCanon, withEmployee } from '../data/companyWorkflows'
 import { useTranslation } from '../i18n/useTranslation'
 import './HrEmployeeProfile.css'
 
@@ -62,15 +61,8 @@ export default function HrEmployeeProfile() {
           </div>
         </header>
 
-        <CompanyWorkflowRail chainId="people-hire" subject={employee} />
-
         <section className="hr-emp-prof-section">
           <h2>{t('hrSpace.employeeModuleLinks', 'Open in module (filtered / linked)')}</h2>
-          <p className="hr-emp-prof-hint stx-text-wrap">
-            {t('hrSpace.workflowHint', 'Workforce → hiring → onboarding → qualification → training → goals → review → documents.')}
-            {' '}
-            <Link to={COMPANY_WORKFLOWS_PATH}>{t('hrSpace.openWorkflows', 'Open company workflows')}</Link>
-          </p>
           <ul className="hr-emp-prof-links">
             {MODULE_LINKS.map((m) => (
               <li key={m.key}>

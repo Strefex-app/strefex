@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useCompanyWorkflowProgress } from '../../hooks/useCompanyWorkflows'
 import './CompanyWorkflowRail.css'
 
@@ -7,6 +7,10 @@ export default function CompanyWorkflowRail({
   subject,
   title,
 }) {
+  const { pathname } = useLocation()
+  const onHrSpace = pathname.includes('/hr-space') || pathname.includes('/production/headcount')
+  if (chainId === 'people-hire' && onHrSpace) return null
+
   const progress = useCompanyWorkflowProgress(chainId, subject)
   if (!progress) return null
   const current = progress.steps[progress.currentIndex]

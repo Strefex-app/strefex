@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import './AiInsightsCtaStrip.css'
 
 const HINT = {
@@ -8,7 +8,6 @@ const HINT = {
   procurement: 'View PR backlog and spend concentration insights in AI Insights.',
   spend: 'Cross-check vendor mix and contract coverage in AI Insights.',
   management: 'Risk analysis, recommendations, and Ops/finance/HR simulations (documents, training, goals, matrix, hiring).',
-  hr: 'HR documents, training, requalification, goals, dialogue, onboarding, workforce — surfaced in AI Insights.',
 }
 
 /**
@@ -16,6 +15,10 @@ const HINT = {
  * @param {{ context?: keyof typeof HINT, className?: string }} props
  */
 export default function AiInsightsCtaStrip({ context = 'management', className = '' }) {
+  const { pathname } = useLocation()
+  if (context === 'hr' || pathname.includes('/hr-space') || pathname.includes('/production/headcount')) {
+    return null
+  }
   return (
     <div className={`ai-insights-cta-strip ${className}`.trim()}>
       <div className="ai-insights-cta-strip__text">
@@ -29,11 +32,6 @@ export default function AiInsightsCtaStrip({ context = 'management', className =
         <Link to="/ai-insights?tab=operations" className="ai-insights-cta-strip__btn ai-insights-cta-strip__btn--primary">
           Ops / finance / HR
         </Link>
-        {(context === 'management' || context === 'hr') && (
-          <Link to="/hr-space" className="ai-insights-cta-strip__btn">
-            HR Space hub
-          </Link>
-        )}
       </div>
     </div>
   )

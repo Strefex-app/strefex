@@ -9,6 +9,19 @@ export function hrCanon(suffix = '') {
   return `${HR_CANON}/${String(suffix).replace(/^\//, '')}`
 }
 
+/** Hire sequence as HR Space modules (no separate workflow banner). */
+export const HR_MODULE_FLOW = [
+  { id: 'workforce', suffix: 'workforce' },
+  { id: 'hiring', suffix: 'hiring' },
+  { id: 'onboarding', suffix: 'onboarding' },
+  { id: 'qualification-matrix', suffix: 'qualification-matrix' },
+  { id: 'training', suffix: 'training' },
+  { id: 'goals', suffix: 'goals' },
+  { id: 'dialogue', suffix: 'dialogue' },
+  { id: 'hr-docs', suffix: 'hr-docs' },
+  { id: 'attendance', suffix: 'attendance' },
+]
+
 export function withEmployee(path, employeeId) {
   if (!employeeId) return path
   const join = path.includes('?') ? '&' : '?'

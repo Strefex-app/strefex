@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import AppLayout from '../components/AppLayout'
+import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import useHrSpaceStore from '../store/hrSpaceStore'
 import { hrSpacePath } from '../constants/hrSpaceRoutes'
+import { COMPANY_DATABASE_PATH, HR_PEOPLE_SPACE } from '../data/companyDatabaseSpaces'
 import { attachPlantFile, openPlantFile } from '../utils/iatfFileAttach'
 import './HRDocumentation.css'
 
@@ -40,8 +42,8 @@ const getFileType = (name = '') => {
 const HRDocumentation = () => {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
-  const documents = useHrSpaceStore((s) => s.hrDocuments)
-  const employees = useHrSpaceStore((s) => s.employees)
+  const documents = useHrSpaceStore((s) => s.hrDocuments) || []
+  const employees = useHrSpaceStore((s) => s.employees) || []
   const addHrDocument = useHrSpaceStore((s) => s.addHrDocument)
   const updateHrDocument = useHrSpaceStore((s) => s.updateHrDocument)
   const deleteHrDocument = useHrSpaceStore((s) => s.deleteHrDocument)
@@ -182,7 +184,7 @@ const HRDocumentation = () => {
           <p className="hrdoc-subtitle">
             Manage employment contracts, policies, and HR documents
             {' · '}
-            <Link to="/management/company-database/hr-people">Open HR folder space</Link>
+            <Link to={`${COMPANY_DATABASE_PATH}/${HR_PEOPLE_SPACE}`}>Open HR folder space</Link>
           </p>
         </div>
 
