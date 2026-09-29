@@ -24,12 +24,12 @@
 }
 
 .persistent-sourcing-canvas.is-live {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  inset: auto;
   z-index: 1;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
   opacity: 1;
   pointer-events: auto;
 }
@@ -37,7 +37,8 @@
 .persistent-sourcing-canvas__frame {
   display: block;
   width: 100%;
-  height: 100%;
+  min-height: calc(100dvh - var(--stx-chrome-top-h, 77px) - var(--stx-menu-deadzone, 12px));
+  height: auto;
   border: 0;
 }
 

@@ -11,6 +11,8 @@ import {
 import { platformMessageTargetOrigin, isTrustedIframeMessage } from '../utils/platformMessageTrust'
 import { buildSourcingTaxonomyOverlay } from '../utils/unifiedSourcingTaxonomy'
 import { mergeNetworkManufacturersWithAccounts } from '../utils/accountSourcingCompleteness'
+import { useProductComponentCatalogueStore } from '../store/productComponentCatalogueStore'
+import { catalogueItemsFingerprint } from '../utils/productComponentCatalogueItem'
 
 function registryFingerprint(sellers) {
   if (!Array.isArray(sellers) || !sellers.length) return '0'
@@ -37,6 +39,7 @@ function isPhoneShell() {
  * postMessage payloads and reports a fake ~980px iframe width.
  */
 export function useSourcingFramePlatformSync() {
+  const role = useAuthStore((s) => s.role)
   const user = useAuthStore((s) => s.user)
   const tenant = useAuthStore((s) => s.tenant)
   const accounts = useAccountRegistry((s) => s.accounts)
@@ -44,6 +47,8 @@ export function useSourcingFramePlatformSync() {
   const rfqs = useRfqStore((s) => s.rfqs)
   const getSafeRfqs = useRfqStore((s) => s.getSafeRfqs)
   const { iframeRef, frameReady, live } = usePersistentSourcingCanvas()
+  const catalogueItems = useProductComponentCatalogueStore((s) => s.items)
+  const skip = role === 'auditor_external' || role === 'auditor_internal'
 
   const myAccount = useMemo(() => {
     const email = String(user?.email || '').toLowerCase()
@@ -76,17 +81,19 @@ export function useSourcingFramePlatformSync() {
         rfqs: buyerRfqs,
       }),
       rfqs: buyerRfqs,
+      productCatalogueItems: catalogueItems,
     }),
-    [registrySellers, tenant, user, myAccount, selectedIndustries, buyerRfqs],
+    [registrySellers, tenant, user, myAccount, selectedIndustries, buyerRfqs, catalogueItems],
   )
 
-  const payloadSig = `${registryFingerprint(registrySellers)}:${buyerRfqs.length}:${frameReady ? '1' : '0'}`
+  const payloadSig = `${registryFingerprint(registrySellers)}:${buyerRfqs.length}:${catalogueItemsFingerprint(catalogueItems)}:${frameReady ? '1' : '0'}`
   const payloadRef = useRef(payload)
   payloadRef.current = payload
   const appliedCountRef = useRef(-1)
   const extraRetryRef = useRef(0)
 
   const pushViewport = useCallback(() => {
+    if (skip) return
     const win = iframeRef.current?.contentWindow
     const frame = iframeRef.current
     if (!win || !frame) return
@@ -106,9 +113,10 @@ export function useSourcingFramePlatformSync() {
         platformMessageTargetOrigin(),
       )
     } catch { /* */ }
-  }, [iframeRef, live])
+  }, [iframeRef, live, skip])
 
   const pushPlatformToFrame = useCallback(() => {
+    if (skip) return false
     const win = iframeRef.current?.contentWindow
     if (!win) return false
 
@@ -131,6 +139,7 @@ export function useSourcingFramePlatformSync() {
         rfqs: full.rfqs || [],
         userInitials: full.userInitials,
         allowDemoSeed: false,
+        productCatalogueItems: full.productCatalogueItems || [],
       }
       const phone = isPhoneShell()
       const chunkAt = phone || suppliers.length > 16 ? 12 : 48

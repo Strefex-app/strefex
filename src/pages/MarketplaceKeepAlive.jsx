@@ -6,6 +6,8 @@ import BuyerWorkspace from './BuyerWorkspace'
 import { fetchSourcingNetworkAccounts } from '../services/sourcingNetworkService'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useSourcingFramePlatformSync } from '../hooks/useSourcingFramePlatformSync'
+import { useAuthStore } from '../store/authStore'
+import { isAuditorWorkspaceRole } from '../utils/auditorWorkspaceAccess'
 import './MarketplaceKeepAlive.css'
 
 const TRACK_TABS = new Set(['track'])
@@ -26,6 +28,8 @@ export default function MarketplaceKeepAlive() {
   const [keepHome, setKeepHome] = useState(isHome)
   const [networkTick, setNetworkTick] = useState(0)
   const mergeNetworkAccounts = useAccountRegistry((s) => s.mergeNetworkAccounts)
+  const role = useAuthStore((s) => s.role)
+  const skipSourcingNetwork = isAuditorWorkspaceRole(role)
   useSourcingFramePlatformSync()
 
   useEffect(() => {
@@ -39,6 +43,7 @@ export default function MarketplaceKeepAlive() {
   }, [])
 
   useEffect(() => {
+    if (skipSourcingNetwork) return undefined
     let cancelled = false
     let timer = 0
     let attempt = 0
@@ -70,7 +75,7 @@ export default function MarketplaceKeepAlive() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [mergeNetworkAccounts, networkTick])
+  }, [mergeNetworkAccounts, networkTick, skipSourcingNetwork])
 
   return (
     <>

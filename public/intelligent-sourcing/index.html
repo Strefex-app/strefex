@@ -34,7 +34,8 @@
       'button[aria-label="Menu"]{display:none!important}',
       'main>header{box-sizing:border-box!important;min-height:56px!important;height:auto!important;max-height:none!important;padding:10px 16px!important;align-items:center!important;flex-wrap:wrap!important;gap:8px 12px!important}',
       '@media (min-width:901px){main>header{height:77px!important;min-height:77px!important;max-height:77px!important;padding:0 24px!important;flex-wrap:nowrap!important}}',
-      'html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip}',
+      'html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip;overflow-y:visible;height:auto!important}',
+      '.stx-sourcing-scroll{overflow:visible;height:auto;min-height:0}',
       'html[data-theme="dark"],html[data-theme="dark"] body{background:#0d0e10!important;color:#e8eaf2!important}',
       '@media (max-width:640px){',
       'main>header{padding:8px 12px!important}',
@@ -1676,6 +1677,7 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
       d.userInitials = String(plat.userInitials).slice(0, 2).toUpperCase();
     }
     if (plat.taxonomy && typeof plat.taxonomy === "object") {
+      d.taxonomy = Object.assign({}, d.taxonomy || {}, plat.taxonomy);
       if (plat.taxonomy.categories && typeof plat.taxonomy.categories === "object") {
         d.CATEGORIES = Object.assign({}, d.CATEGORIES || {});
         Object.keys(plat.taxonomy.categories).forEach(function (key) {
@@ -1688,11 +1690,25 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
           d.SUBCATS[key] = plat.taxonomy.subcats[key];
         });
       }
+      if (plat.taxonomy.spareParts && typeof plat.taxonomy.spareParts === "object") {
+        d.SPARE_PARTS = plat.taxonomy.spareParts;
+      }
+      if (Array.isArray(plat.taxonomy.catalogues)) {
+        d.PRODUCT_CATALOGUES = plat.taxonomy.catalogues;
+      }
+      if (plat.taxonomy.catalogExt && window.HOUSEHOLD_CATALOG && typeof window.HOUSEHOLD_CATALOG.ingestTaxonomy === "function") {
+        window.HOUSEHOLD_CATALOG.ingestTaxonomy(plat.taxonomy.catalogExt);
+      }
+    }
+    if (Array.isArray(plat.productCatalogueItems)) {
+      d.PRODUCT_CATALOGUE_ITEMS = plat.productCatalogueItems;
     }
     bump();
   }
 };
 </script>
+<script src="assets/taxonomy-catalog-ext.js?v=20260924catn"></script>
+<script src="assets/household-catalog.js?v=20260924catn"></script>
 <script src="assets/99eca733-7ff7-4470-87d5-d54710858547.js"></script>
 <script>
 (function () {
@@ -1715,6 +1731,58 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
   a { color: var(--navy-600); text-decoration: none; }
   a:hover { color: var(--navy-800); text-decoration: underline; }
   ::selection { background: rgba(46,86,133,.18); }
+
+  .stx-chrome-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 52px;
+    max-height: 56px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .stx-chrome-bar__crumbs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .stx-chrome-bar__crumbs span {
+    font-size: 12px !important;
+  }
+  .stx-chrome-bar__end {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 8px !important;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+  .stx-chrome-bar__end > div {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+  }
+  .stx-chrome-bar__end select {
+    max-width: 132px;
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+  }
+  .stx-chrome-bar__end button {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    gap: 4px !important;
+  }
+  .stx-chrome-bar__avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
+    flex: none;
+  }
 
   /* Title column must shrink/grow — never crush into a 1-word-wide ribbon */
   .stx-page-head {
@@ -1889,33 +1957,33 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
 
   <main style="flex:1; min-width:0; display:flex; flex-direction:column">
 
-    <header style="background:var(--surface-card); border-bottom:1px solid var(--border-hairline); padding:{{ headPad }}; display:flex; align-items:center; gap:{{ headGap }}; flex-wrap:wrap; position:sticky; top:0; z-index:20">
-      <button sc-camel-on-click="{{ onToggleNav }}" aria-label="Menu" style="display:{{ menuDisplay }}; align-items:center; justify-content:center; width:38px; height:38px; flex:none; background:var(--navy-800); color:#fff; border:none; border-radius:4px; cursor:pointer">
-        <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="more" size="18" hint-size="18px,18px"></x-import>
+    <header class="stx-chrome-bar" style="background:var(--surface-card); border-bottom:1px solid var(--border-hairline); padding:{{ headPad }}; position:sticky; top:0; z-index:20">
+      <button sc-camel-on-click="{{ onToggleNav }}" aria-label="Menu" style="display:{{ menuDisplay }}; align-items:center; justify-content:center; width:32px; height:32px; flex:none; background:var(--navy-800); color:#fff; border:none; border-radius:4px; cursor:pointer">
+        <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="more" size="16" hint-size="16px,16px"></x-import>
       </button>
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0">
+      <div class="stx-chrome-bar__crumbs">
         <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="2">
-          <span style="display:flex; align-items:center; gap:8px">
-            <span sc-camel-on-click="{{ c.onPick }}" style="font-size:13px; color:{{ c.fg }}; font-weight:{{ c.weight }}; cursor:{{ c.cursor }}" style-hover="text-decoration:{{ c.hover }}">{{ c.label }}</span>
-            <sc-if value="{{ c.more }}"><span style="color:var(--steel-500); font-size:12px">/</span></sc-if>
+          <span style="display:inline-flex; align-items:center; gap:6px; flex:none">
+            <span sc-camel-on-click="{{ c.onPick }}" style="font-size:12px; color:{{ c.fg }}; font-weight:{{ c.weight }}; cursor:{{ c.cursor }}" style-hover="text-decoration:{{ c.hover }}">{{ c.label }}</span>
+            <sc-if value="{{ c.more }}"><span style="color:var(--steel-500); font-size:11px">/</span></sc-if>
           </span>
         </sc-for>
       </div>
-      <div style="margin-left:auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
-        <div style="display:flex; align-items:center; gap:8px">
-          <span style="display:{{ labelDisplay }}; font-family:var(--font-condensed); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Receiving plant</span>
-          <sc-raw-select sc-camel-on-change="{{ onBuyer }}" value="{{ buyerId }}" style="max-width:180px; font-family:var(--font-sans); font-size:13px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:6px 8px">
+      <div class="stx-chrome-bar__end">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap">
+          <span style="display:{{ labelDisplay }}; font-family:var(--font-condensed); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint)">Receiving plant</span>
+          <sc-raw-select sc-camel-on-change="{{ onBuyer }}" value="{{ buyerId }}" style="max-width:132px; font-family:var(--font-sans); font-size:12px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:4px 6px">
             <sc-for list="{{ buyers }}" as="b" hint-placeholder-count="4"><option value="{{ b.id }}">{{ b.label }}</option></sc-for>
           </sc-raw-select>
-          <button sc-camel-on-click="{{ onPlants }}" title="Add or edit your receiving plants" style="display:inline-flex; align-items:center; gap:6px; font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:7px 10px; cursor:pointer" style-hover="background:var(--steel-200)">
-            <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="cog" size="14" hint-size="14px,14px"></x-import>Plants
+          <button sc-camel-on-click="{{ onPlants }}" title="Add or edit your receiving plants" style="display:inline-flex; align-items:center; gap:4px; font-family:var(--font-condensed); font-weight:600; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:5px 8px; cursor:pointer" style-hover="background:var(--steel-200)">
+            <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="cog" size="12" hint-size="12px,12px"></x-import>Plants
           </button>
         </div>
-        <div sc-camel-on-click="{{ onOpenProfile }}" title="Account profile" role="button" tabindex="0" style="width:34px; height:34px; flex:none; border-radius:4px; background:var(--navy-800); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:12.5px; font-weight:600; cursor:pointer" style-hover="background:var(--navy-700)">{{ userInitials }}</div>
+        <div class="stx-chrome-bar__avatar" sc-camel-on-click="{{ onOpenProfile }}" title="Account profile" role="button" tabindex="0" style="width:28px; height:28px; flex:none; border-radius:4px; background:var(--navy-800); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:600; cursor:pointer" style-hover="background:var(--navy-700)">{{ userInitials }}</div>
       </div>
     </header>
 
-    <div style="flex:1; min-width:0; padding:{{ mainPad }}">
+    <div class="stx-sourcing-scroll" style="flex:1; min-width:0; min-height:0; overflow:visible; padding:{{ mainPad }}">
 
       <!-- ══ STEP 1 — domains ══ -->
       <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
@@ -2251,13 +2319,708 @@ window.__STREFEX_SOURCING_BRIDGE__ = {
                   <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15.5px; color:{{ b.headColor }}">{{ b.headroom }}%</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Headroom</span></div>
                 </div>
 
+
                 <div style="display:flex; align-items:center; gap:12px; margin-top:16px">
                   <button sc-camel-on-click="{{ b.onPick }}" style="flex:1; font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:var(--action-primary); border:1px solid var(--action-primary); border-radius:6px; padding:9px 12px; cursor:pointer" style-hover="background:var(--action-primary-hover)">Executive summary &amp; supplier map</button>
                   <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); flex:none">{{ b.rfqLabel }}</span>
                 </div>
+                <sc-if value="{{ b.showCatalogue }}">
+                <button sc-camel-on-click="{{ b.onCatalogue }}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin-top:10px; text-align:left; font-family:var(--font-sans); font-size:13px; color:var(--navy-800); background:var(--steel-100); border:1px solid var(--border-hairline); border-left:3px solid var(--signal-data); border-radius:4px; padding:9px 12px; cursor:pointer" style-hover="background:var(--steel-200)">
+                  <span>Product catalogue · <strong>{{ b.catLabel }}</strong></span>
+                  <span style="font-family:var(--font-condensed); font-weight:600; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase">Open →</span>
+                </button>
+                </sc-if>
               </div>
             </sc-for>
           </div>
+
+          <sc-if value="{{ showSpareCatalogue }}">
+            <div style="margin-top:28px; background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:20px 22px">
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px">
+                <div style="min-width:0">
+                  <div style="font-family:var(--font-serif); font-size:21px; color:var(--navy-800)">Spare parts catalogue</div>
+                  <div style="font-size:13px; color:var(--text-faint); margin-top:4px; max-width:640px; text-wrap:pretty">Parts makers compared against the equipment list for {{ industryName }}. OEM machine sellers sit next to aftermarket manufacturers for each SKU.</div>
+                </div>
+                <div style="display:flex; gap:10px; flex:none">
+                  <div style="border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; padding:8px 12px"><span style="font-family:var(--font-mono); font-weight:600; font-size:18px; color:var(--navy-800)">{{ spareProductCount }}</span><div style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint)">Part numbers</div></div>
+                  <div style="border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; padding:8px 12px"><span style="font-family:var(--font-mono); font-weight:600; font-size:18px; color:var(--navy-800)">{{ spareMakerCount }}</span><div style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint)">Makers</div></div>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:12px">
+                <sc-for list="{{ spareProducts }}" as="p" hint-placeholder-count="4">
+                  <div style="border:1px solid var(--border-hairline); border-radius:6px; padding:14px 15px; min-width:0">
+                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-faint)">{{ p.sku }}</div>
+                    <div style="font-weight:600; font-size:15.5px; color:var(--navy-800); margin-top:3px">{{ p.name }}</div>
+                    <div style="font-size:12px; color:var(--text-faint); margin-top:4px">{{ p.equipmentName }} · life {{ p.typicalLife }}</div>
+                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px">
+                      <sc-for list="{{ p.makers }}" as="m" hint-placeholder-count="3">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px">
+                          <span style="min-width:0; overflow-wrap:break-word">{{ m.name }} · {{ m.country }}</span>
+                          <span style="flex:none; font-family:var(--font-condensed); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy-700)">{{ m.roleLabel }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showProductCatalogue }}">
+            <div style="margin-top:28px; background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:20px 22px">
+              <div style="min-width:0; margin-bottom:14px">
+                <div style="font-family:var(--font-serif); font-size:21px; color:var(--navy-800)">Product catalogue</div>
+                <div style="font-size:13px; color:var(--text-faint); margin-top:4px; max-width:640px; text-wrap:pretty">Articles sellers and the platform added under {{ categoryName }}. Empty until someone registers a SKU.</div>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px">
+                <sc-for list="{{ productCatalogueGroups }}" as="g" hint-placeholder-count="3">
+                  <span style="font-size:11.5px; color:var(--text-body); background:var(--steel-200); border-radius:3px; padding:4px 8px">{{ g.name }}</span>
+                </sc-for>
+              </div>
+              <sc-if value="{{ productCatalogueEmpty }}">
+                <div style="font-size:13px; color:var(--text-faint)">No catalogue articles in this category yet.</div>
+              </sc-if>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:12px">
+                <sc-for list="{{ productCatalogueItems }}" as="p" hint-placeholder-count="2">
+                  <div style="border:1px solid var(--border-hairline); border-radius:6px; padding:14px 15px; min-width:0">
+                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-faint)">{{ p.sku }}</div>
+                    <div style="font-weight:600; font-size:15.5px; color:var(--navy-800); margin-top:3px">{{ p.name }}</div>
+                    <div style="font-size:12px; color:var(--text-faint); margin-top:4px">{{ p.material }} · {{ p.sellerName }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ══ PRODUCT CATALOGUE — SKU finder ══ -->
+      <sc-if value="{{ isCatalog }}">
+        <div style="max-width:1560px">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:18px">
+            <div style="min-width:280px">
+              <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">{{ catScopeLabel }} · {{ domainName }} · Catalogue</span></div>
+              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">{{ catScopeTitle }}</h1>
+              <p style="font-size:14px; line-height:1.55; color:var(--text-muted); margin:0; max-width:760px; text-wrap:pretty">{{ catScopeIntro }}</p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onListing }}" hint-size="auto,40px">How suppliers list a product</x-import>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="ghost" sc-camel-on-click="{{ onRequestProduct }}" hint-size="auto,40px">Request an article</x-import>
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap">
+              <sc-for list="{{ catStats }}" as="k" hint-placeholder-count="4">
+                <div style="border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; background:var(--white); padding:11px 16px">
+                  <div style="font-family:var(--font-mono); font-weight:600; font-size:22px; color:var(--navy-800)">{{ k.n }}</div>
+                  <div style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">{{ k.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-bottom:14px">
+            <div style="position:relative; flex:1; min-width:260px">
+              <input value="{{ catQ }}" sc-camel-on-input="{{ onCatQ }}" placeholder="{{ catSearchPh }}" style="width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:14px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:10px 12px 10px 36px">
+              <span style="position:absolute; left:11px; top:10px; color:var(--steel-600)"><x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="search" size="17" hint-size="17px,17px"></x-import></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Sort</span>
+              <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden">
+                <sc-for list="{{ pcSorts }}" as="s" hint-placeholder-count="5">
+                  <button sc-camel-on-click="{{ s.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 11px; border:none; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ catHasMoqFilter }}">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">MOQ</span>
+              <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden">
+                <sc-for list="{{ catMoqs }}" as="s" hint-placeholder-count="3">
+                  <button sc-camel-on-click="{{ s.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 11px; border:none; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+            <sc-if value="{{ catHasCertFilter }}">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Certification</span>
+              <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden">
+                <sc-for list="{{ catCerts }}" as="s" hint-placeholder-count="4">
+                  <button sc-camel-on-click="{{ s.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 11px; border:none; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+            <div style="display:flex; align-items:center; gap:8px; padding-left:14px; border-left:1px solid var(--border-hairline)">
+              <sc-if value="{{ isContainerScope }}">
+                <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Monthly volume</span>
+              <input type="number" min="1" max="60" value="{{ contPerMonth }}" sc-camel-on-change="{{ onContPerMonth }}" style="width:62px; font-family:var(--font-mono); font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:8px 9px">
+              <sc-raw-select value="{{ contType }}" sc-camel-on-change="{{ onContType }}" style="font-family:var(--font-sans); font-size:13px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:8px 9px">
+                <sc-for list="{{ contTypes }}" as="c" hint-placeholder-count="2"><option value="{{ c.id }}">{{ c.label }}</option></sc-for>
+              </sc-raw-select>
+              <span style="font-size:12.5px; color:var(--text-faint)">per month</span>
+              </sc-if>
+              <sc-if value="{{ isOrderScope }}">
+                <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Ordered by the piece · set the quantity on the component</span>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px">
+            <sc-for list="{{ catChips }}" as="g" hint-placeholder-count="10">
+              <button sc-camel-on-click="{{ g.onPick }}" style="font-family:var(--font-sans); font-size:12.5px; font-weight:500; color:{{ g.fg }}; background:{{ g.bg }}; border:1px solid {{ g.bd }}; border-radius:999px; padding:6px 13px; cursor:pointer">{{ g.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:12px">
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-faint)">{{ catCount }} · {{ catBasisNote }}</span>
+            <button sc-camel-on-click="{{ onClearQ }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--navy-800); background:none; border:none; cursor:pointer" style-hover="text-decoration:underline">Reset filters</button>
+          </div>
+
+          <sc-if value="{{ catHasCards }}">
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax({{ catGridMin }},1fr)); gap:16px">
+              <sc-for list="{{ catCards }}" as="p" hint-placeholder-count="9">
+                <div sc-camel-on-click="{{ p.onOpen }}" style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:box-shadow 160ms cubic-bezier(.2,0,.1,1)" style-hover="box-shadow:0 6px 18px rgba(6,24,41,.10)">
+                  <div style="position:relative; padding:12px 12px 0; background:var(--white); border-bottom:1px solid var(--border-hairline)">
+                    <div style="position:relative; height:158px; background:#fff; border:1px solid var(--border-hairline); overflow:hidden">
+                      <sc-if value="{{ p.hasImg }}">
+                        <div role="img" aria-label="{{ p.name }}" style="position:absolute; inset:10px; background-image:url({{ p.img }}); background-size:contain; background-repeat:no-repeat; background-position:center"></div>
+                      </sc-if>
+                      <sc-if value="{{ p.noImg }}">
+                        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--steel-500); background:var(--steel-100)">
+                          <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="{{ p.icon }}" size="28" hint-size="28px,28px"></x-import>
+                          <span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.1em; text-transform:uppercase">Awaiting supplier photo</span>
+                        </div>
+                      </sc-if>
+                      <span style="position:absolute; top:0; left:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; top:0; left:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; top:0; right:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; top:0; right:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; left:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; left:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; right:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; right:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 1px 9px">
+                      <span style="font-family:var(--font-mono); font-size:10px; color:var(--text-faint)">{{ p.code }}</span>
+                      <span style="font-family:var(--font-condensed); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--steel-600)">STREFEX photo standard</span>
+                    </div>
+                  </div>
+                  <div style="padding:16px 17px 17px; display:flex; flex-direction:column; flex:1">
+                    <div style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">{{ p.group }}</div>
+                    <div style="font-weight:600; font-size:15px; line-height:1.35; color:var(--navy-800); margin-top:6px; text-wrap:pretty">{{ p.name }}</div>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:5px">{{ p.material }} · {{ p.variantsLabel }}</div>
+                    <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:4px">{{ p.sizeList }}</div>
+
+                    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; padding-top:13px; border-top:1px solid var(--border-hairline)">
+                      <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ p.price }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">FOB unit range</span></div>
+                      <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ p.moq }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">MOQ from</span></div>
+                      <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ p.tile3Value }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">{{ p.tile3Label }}</span></div>
+                      <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ p.lead }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Lead from</span></div>
+                    </div>
+
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:13px">
+                      <sc-for list="{{ p.certs }}" as="c" hint-placeholder-count="2">
+                        <span style="font-size:11px; color:var(--text-body); background:var(--steel-200); border-radius:3px; padding:3px 7px">{{ c }}</span>
+                      </sc-for>
+                    </div>
+
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; padding-top:15px">
+                      <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint)">{{ p.countries }}</span>
+                      <span style="display:inline-flex; align-items:center; gap:7px; font-family:var(--font-sans); font-weight:600; font-size:13px; color:#fff; background:var(--action-primary); border-radius:6px; padding:8px 13px">Compare {{ p.offers }}
+                        <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="arrowRight" size="15" hint-size="15px,15px"></x-import>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ catNoCards }}">
+            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:40px; max-width:820px">
+              <div style="font-family:var(--font-serif); font-size:23px; color:var(--navy-800)">No catalogued article matches that</div>
+              <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:14px 0 20px; max-width:620px; text-wrap:pretty">The catalogue holds what suppliers have declared and the desk has priced. If the article you buy is missing, request it — the desk catalogues and quotes new articles within five working days.</p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap">
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onRequestProduct }}" hint-size="auto,40px">Request this article</x-import>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onClearQ }}" hint-size="auto,40px">Reset filters</x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr)); gap:16px; margin-top:22px">
+            <sc-for list="{{ searchCompare }}" as="c" hint-placeholder-count="2">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; padding:17px 19px">
+                <div style="font-family:var(--font-condensed); font-weight:600; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint)">You are searching for — {{ c.tag }}</div>
+                <div style="font-weight:600; font-size:15px; color:var(--navy-800); margin-top:7px">{{ c.title }}</div>
+                <div style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-top:6px; text-wrap:pretty">{{ c.body }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══ SUPPLIER LISTING PATH ══ -->
+      <sc-if value="{{ isListing }}">
+        <div style="max-width:1200px">
+          <div style="margin-bottom:20px">
+            <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Product catalogue · Supply side</span></div>
+            <h1 style="font-family:var(--font-serif); font-weight:400; font-size:34px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px">How a supplier lists a product</h1>
+            <p style="font-size:14px; line-height:1.6; color:var(--text-muted); margin:0; max-width:760px; text-wrap:pretty">Account registration makes a company visible. Listing a product is a second, article-level path on top of it — the buyer only ever compares offers that cleared all six gates.</p>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <sc-for list="{{ listingStages }}" as="g" hint-placeholder-count="6">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; padding:17px 20px; display:grid; grid-template-columns:{{ formCols2 }}; gap:18px">
+                <div>
+                  <div style="display:flex; align-items:baseline; gap:10px">
+                    <span style="font-family:var(--font-mono); font-weight:600; font-size:17px; color:var(--steel-600)">{{ g.n }}</span>
+                    <span style="font-weight:600; font-size:16px; color:var(--navy-800)">{{ g.name }}</span>
+                  </div>
+                  <div style="font-family:var(--font-condensed); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-top:7px">{{ g.owner }} · {{ g.days }}</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; line-height:1.6; color:var(--text-body); text-wrap:pretty">{{ g.needs }}</div>
+                  <div style="font-size:12.5px; line-height:1.55; color:var(--text-muted); margin-top:8px; padding-top:8px; border-top:1px solid var(--border-hairline); text-wrap:pretty"><strong style="color:var(--navy-800)">Gate —</strong> {{ g.gate }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:{{ formCols2 }}; gap:16px; margin-top:16px">
+            <div style="background:var(--navy-900); border-radius:6px; padding:20px 22px">
+              <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9DB1C8">Photo standard</div>
+              <div style="font-family:var(--font-serif); font-size:20px; color:#fff; margin-top:8px">Real photography, one frame</div>
+              <p style="font-size:13px; line-height:1.6; color:#9DB1C8; margin:8px 0 14px; text-wrap:pretty">Every supplier uploads its own product photograph. The platform applies the frame, the article code and the verification stamp, so twelve plants selling the same article look comparable rather than competing on photo retouching.</p>
+              <div style="display:flex; flex-direction:column; gap:9px">
+                <sc-for list="{{ photoSpec }}" as="p" hint-placeholder-count="5">
+                  <div style="display:flex; gap:9px; align-items:flex-start">
+                    <span style="font-family:var(--font-mono); font-size:12px; color:var(--signal-data); line-height:1.5">●</span>
+                    <span style="font-size:12.5px; line-height:1.55; color:#C6D2DF; text-wrap:pretty">{{ p }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:20px 22px">
+              <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted)">Frame specimen</div>
+              <div style="padding:14px 0 0">
+                <div style="position:relative; height:210px; background:#fff; border:1px solid var(--border-hairline); overflow:hidden">
+                  <img src="" alt="Frame specimen" style="position:absolute; inset:12px; width:calc(100% - 24px); height:calc(100% - 24px); object-fit:contain; display:block">
+                  <span style="position:absolute; top:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; top:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; top:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; top:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; bottom:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; bottom:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; bottom:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                  <span style="position:absolute; bottom:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                  <div style="position:absolute; left:0; bottom:0; background:var(--navy-900); color:#fff; padding:5px 10px; font-family:var(--font-mono); font-size:10.5px">GPK22-640/L1</div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 1px 0">
+                  <span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--steel-600)">Supplier photo · desk-checked</span>
+                  <span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--steel-600)">STREFEX photo standard</span>
+                </div>
+              </div>
+              <p style="font-size:12.5px; line-height:1.6; color:var(--text-muted); margin:14px 0 0; text-wrap:pretty">Frame, article code and stamp are drawn by the platform over the supplier's own file. A rejected photograph blocks publication of the offer, not the account.</p>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px">
+            <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onInvitePlants }}" hint-size="auto,40px">Invite a supplier to list</x-import>
+            <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onRegistration }}" hint-size="auto,40px">Account registration path</x-import>
+            <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="ghost" sc-camel-on-click="{{ onOpenCatalog }}" hint-size="auto,40px">Back to catalogue</x-import>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr)); gap:16px; margin-top:22px">
+            <sc-for list="{{ searchCompare }}" as="c" hint-placeholder-count="2">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-left:3px solid var(--navy-800); border-radius:4px; padding:17px 19px">
+                <div style="font-family:var(--font-condensed); font-weight:600; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint)">You are searching for — {{ c.tag }}</div>
+                <div style="font-weight:600; font-size:15px; color:var(--navy-800); margin-top:7px">{{ c.title }}</div>
+                <div style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-top:6px; text-wrap:pretty">{{ c.body }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══ PRODUCT — offer comparison ══ -->
+      <sc-if value="{{ isProduct }}">
+        <div style="max-width:1560px">
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px">
+            <button sc-camel-on-click="{{ onBackToCatalog }}" style="display:inline-flex; align-items:center; gap:8px; font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:8px 12px; cursor:pointer" style-hover="background:var(--steel-200)">Back to catalogue</button>
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-faint)">{{ pGroup }} · {{ pOfferCountLabel }} · variant {{ pVariantCode }}</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:{{ prodCols }}; gap:16px; margin-bottom:16px">
+            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); overflow:hidden">
+              <sc-if value="{{ pHasImages }}">
+                <div style="padding:14px 14px 0; background:var(--white)">
+                  <div style="position:relative; height:300px; background:#fff; border:1px solid var(--border-hairline); overflow:hidden">
+                    <div role="img" aria-label="{{ pName }}" style="position:absolute; inset:14px; background-image:url({{ pHero }}); background-size:contain; background-repeat:no-repeat; background-position:center"></div>
+                    <span style="position:absolute; top:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <div style="position:absolute; left:0; bottom:0; display:flex; align-items:center; gap:7px; background:var(--navy-900); color:#fff; padding:5px 10px">
+                      <span style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em">{{ pVariantCode }}</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 1px 4px">
+                    <span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--steel-600)">Supplier photo · desk-checked</span>
+                    <span sc-camel-on-click="{{ onListing }}" style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--navy-700); cursor:pointer" style-hover="text-decoration:underline">Photo standard</span>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ pHasThumbs }}">
+                <div style="display:flex; gap:8px; padding:10px 12px; flex-wrap:wrap; border-bottom:1px solid var(--border-hairline)">
+                  <sc-for list="{{ pThumbs }}" as="t" hint-placeholder-count="4">
+                    <div role="img" aria-label="Product view" sc-camel-on-click="{{ t.onPick }}" style="width:58px; height:52px; background-image:url({{ t.src }}); background-size:cover; background-position:center; border:2px solid {{ t.bd }}; border-radius:4px; cursor:pointer"></div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ pNoImages }}">
+                <div style="padding:14px 14px 0; background:var(--white)">
+                  <div style="position:relative; height:240px; background:var(--steel-100); border:1px solid var(--border-hairline); overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--steel-500)">
+                    <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="{{ pIcon }}" size="34" hint-size="34px,34px"></x-import>
+                    <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase">Awaiting supplier photo</span>
+                    <span style="position:absolute; top:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; top:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; left:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; left:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; right:0; width:14px; height:1px; background:var(--steel-500)"></span>
+                    <span style="position:absolute; bottom:0; right:0; width:1px; height:14px; background:var(--steel-500)"></span>
+                    <div style="position:absolute; left:0; bottom:0; background:var(--navy-900); color:#fff; padding:5px 10px; font-family:var(--font-mono); font-size:10.5px">{{ pVariantCode }}</div>
+                  </div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 1px 4px">
+                    <span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--steel-600)">Photo requested from suppliers</span>
+                    <span sc-camel-on-click="{{ onListing }}" style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--navy-700); cursor:pointer" style-hover="text-decoration:underline">Photo standard</span>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="padding:18px 20px 20px">
+                <h1 style="font-family:var(--font-serif); font-weight:400; font-size:25px; line-height:1.25; letter-spacing:-.01em; color:var(--navy-800); margin:0 0 8px; text-wrap:pretty">{{ pName }}</h1>
+                <p style="font-size:13.5px; line-height:1.6; color:var(--text-muted); margin:0 0 14px; text-wrap:pretty">{{ pDesc }}</p>
+                <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-faint)">{{ pMaterial }}</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
+                  <sc-for list="{{ pCerts }}" as="c" hint-placeholder-count="3">
+                    <span style="font-size:11.5px; color:var(--text-body); background:var(--steel-200); border-radius:3px; padding:4px 8px">{{ c }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px">
+                <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px">Variant — every offer below is priced for this size</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px">
+                  <sc-for list="{{ pVariants }}" as="v" hint-placeholder-count="4">
+                    <button sc-camel-on-click="{{ v.onPick }}" style="text-align:left; background:{{ v.bg }}; color:{{ v.fg }}; border:1px solid {{ v.bd }}; border-radius:5px; padding:10px 14px; cursor:pointer">
+                      <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px">{{ v.label }}</span>
+                      <span style="display:block; font-size:11px; color:{{ v.sub }}; margin-top:3px">{{ v.code }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+                <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:12px">{{ pVariantDim }} · {{ pVariantWeight }}</div>
+              </div>
+
+              <div style="background:var(--navy-900); border-radius:6px; padding:18px 20px">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap">
+                  <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9DB1C8">Your demand</div>
+                  <sc-if value="{{ pIsGoods }}">
+                    <div style="display:flex; align-items:center; gap:8px">
+                      <input type="number" min="1" max="60" value="{{ contPerMonth }}" sc-camel-on-change="{{ onContPerMonth }}" style="width:62px; font-family:var(--font-mono); font-size:13.5px; color:#fff; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.22); border-radius:4px; padding:7px 9px">
+                      <sc-raw-select value="{{ contType }}" sc-camel-on-change="{{ onContType }}" style="font-family:var(--font-sans); font-size:13px; color:var(--navy-900); background:#fff; border:1px solid rgba(255,255,255,.22); border-radius:4px; padding:7px 9px">
+                        <sc-for list="{{ contTypes }}" as="c" hint-placeholder-count="2"><option value="{{ c.id }}">{{ c.label }}</option></sc-for>
+                      </sc-raw-select>
+                      <span style="font-size:12.5px; color:#9DB1C8">per month</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ pIsSpare }}">
+                    <div style="display:flex; align-items:center; gap:8px">
+                      <span style="font-size:12.5px; color:#9DB1C8">Order quantity</span>
+                      <input type="number" min="1" value="{{ orderQty }}" sc-camel-on-change="{{ onOrderQty }}" style="width:100px; font-family:var(--font-mono); font-size:13.5px; color:#fff; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.22); border-radius:4px; padding:7px 9px">
+                      <span style="font-size:12.5px; color:#9DB1C8">pcs per order</span>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px">
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:#fff">{{ pPcsMonth }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">{{ pPcsLabel }}</span></div>
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:#fff">{{ pBestUnit }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">Best FOB unit</span></div>
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:#fff">{{ pBestCont }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">{{ pContLabel }}</span></div>
+                  <sc-if value="{{ pMulti }}">
+                    <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:var(--signal-warning)">{{ pSpread }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">Spread to dearest</span></div>
+                    <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:var(--signal-running)">{{ pYearSaving }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">{{ pYearLabel }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ pSingle }}">
+                    <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:20px; color:var(--signal-warning)">Single source</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:#6E8299">No second offer to compare</span></div>
+                  </sc-if>
+                </div>
+                <div style="font-size:12px; line-height:1.55; color:#6E8299; margin-top:14px; text-wrap:pretty">FOB figures as declared by the supplier and refreshed at the date in each row. Freight, duty and insurance are not included — use Compare suppliers for the landed view.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px 20px">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px">
+              <div>
+                <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted)">Supplier offers · {{ pVariantLabel }} · {{ pDemandLabel }}</div>
+                <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:5px">Unit price is the supplier's tier price at the quantity above. A red MOQ means your quantity sits below their minimum.</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+                <button sc-camel-on-click="{{ onOpenCapture }}" style="display:inline-flex; align-items:center; gap:8px; font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:8px 12px; cursor:pointer" style-hover="background:var(--steel-200)">
+                  <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="plus" size="14" hint-size="14px,14px"></x-import>Add supplier from expo
+                </button>
+                <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden">
+                  <sc-for list="{{ pOfferSorts }}" as="s" hint-placeholder-count="5">
+                    <button sc-camel-on-click="{{ s.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 11px; border:none; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <sc-if value="{{ captureOpen }}">
+              <div style="border:1px solid var(--border-strong); border-left:3px solid var(--signal-warning); border-radius:4px; padding:16px 18px; margin-bottom:16px; background:var(--steel-100)">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap">
+                  <div>
+                    <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted)">Capture a supplier you met · quoted for {{ pVariantLabel }} ({{ pVariantCode }})</div>
+                    <div style="font-size:13px; line-height:1.55; color:var(--text-muted); margin-top:6px; max-width:720px; text-wrap:pretty">Type what you were quoted on the stand. The offer joins this comparison immediately, marked unverified, so you can negotiate against your listed plants. It stays out of the supply base, the map and the KPIs until the supplier registers and reaches stage 5.</div>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:{{ formCols4 }}; gap:12px; margin-top:16px">
+                  <sc-for list="{{ captureFields }}" as="f" hint-placeholder-count="12">
+                    <label style="display:block">
+                      <span style="display:block; font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:5px">{{ f.label }}</span>
+                      <input data-cap="{{ f.key }}" sc-camel-default-value="{{ f.value }}" sc-camel-on-input="{{ f.onInput }}" placeholder="{{ f.ph }}" style="width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:13px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:8px 10px">
+                    </label>
+                  </sc-for>
+                </div>
+
+                <div style="display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-top:16px">
+                  <div>
+                    <span style="display:block; font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px">Stand photo</span>
+                    <div style="position:relative; width:150px; height:112px; background:#fff; border:1px solid var(--border-hairline); overflow:hidden">
+                      <sc-if value="{{ captureHasPhoto }}">
+                        <div role="img" aria-label="Captured product photo" style="position:absolute; inset:8px; background-image:url({{ capturePhoto }}); background-size:contain; background-repeat:no-repeat; background-position:center"></div>
+                      </sc-if>
+                      <sc-if value="{{ captureNoPhoto }}">
+                        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-condensed); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--steel-600); background:var(--steel-100)">No photo yet</div>
+                      </sc-if>
+                      <span style="position:absolute; top:0; left:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; top:0; left:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; right:0; width:12px; height:1px; background:var(--steel-500)"></span>
+                      <span style="position:absolute; bottom:0; right:0; width:1px; height:12px; background:var(--steel-500)"></span>
+                    </div>
+                  </div>
+                  <input type="file" accept="image/*" sc-camel-on-change="{{ onCapturePhoto }}" style="font-family:var(--font-sans); font-size:12.5px; color:var(--text-muted)">
+                  <div style="display:flex; gap:10px; margin-left:auto">
+                    <button sc-camel-on-click="{{ onSaveCapture }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:var(--action-primary); border:1px solid var(--action-primary); border-radius:6px; padding:10px 16px; cursor:pointer" style-hover="background:var(--action-primary-hover)">Add to comparison</button>
+                    <button sc-camel-on-click="{{ onCancelCapture }}" style="font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:var(--navy-800); background:var(--white); border:1px solid var(--border-strong); border-radius:6px; padding:10px 16px; cursor:pointer" style-hover="background:var(--steel-200)">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ pHasOffers }}">
+              <div style="overflow-x:auto">
+                <sc-raw-table style="width:100%; border-collapse:collapse; min-width:1080px">
+                  <sc-raw-thead>
+                    <sc-raw-tr>
+                      <sc-raw-th style="width:34px; padding:0 8px 10px 0; border-bottom:1px solid var(--border-strong)"></sc-raw-th>
+                      <sc-raw-th style="text-align:left; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Supplier</sc-raw-th>
+                      <sc-raw-th style="text-align:right; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">MOQ</sc-raw-th>
+                      <sc-raw-th style="text-align:right; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">FOB unit</sc-raw-th>
+                      <sc-raw-th style="text-align:right; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">{{ colPcsLabel }}</sc-raw-th>
+                      <sc-raw-th style="text-align:right; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">{{ colContLabel }}</sc-raw-th>
+                      <sc-raw-th style="text-align:right; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">{{ colMonthlyLabel }}</sc-raw-th>
+                      <sc-raw-th style="text-align:left; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Pack</sc-raw-th>
+                      <sc-raw-th style="text-align:left; padding:0 12px 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Make + transit</sc-raw-th>
+                      <sc-raw-th style="text-align:left; padding:0 0 10px 0; border-bottom:1px solid var(--border-strong); font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)">Compliance</sc-raw-th>
+                    </sc-raw-tr>
+                  </sc-raw-thead>
+                  <sc-raw-tbody>
+                    <sc-for list="{{ pOffers }}" as="r" hint-placeholder-count="6">
+                      <sc-raw-tr style="background:{{ r.rowBg }}">
+                        <sc-raw-td style="padding:12px 8px 12px 0; border-bottom:1px solid var(--border-hairline); vertical-align:top">
+                          <span sc-camel-on-click="{{ r.onToggle }}" style="display:block; width:17px; height:17px; border:1px solid {{ r.selBd }}; background:{{ r.selBg }}; border-radius:3px; cursor:pointer"></span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); vertical-align:top">
+                          <span style="display:block; font-weight:600; font-size:13.5px; color:var(--navy-800)">{{ r.supplier }}</span>
+                          <span style="display:block; font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:3px">{{ r.city }} · {{ r.port }}</span>
+                          <sc-if value="{{ r.captured }}">
+                            <span style="display:inline-block; font-family:var(--font-condensed); font-weight:600; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9A6B12; background:var(--signal-warning-bg); border-radius:999px; padding:3px 8px; margin-top:6px">Expo capture · unverified</span>
+                            <span style="display:block; font-size:11px; color:var(--text-faint); margin-top:4px">{{ r.capturedNote }}</span>
+                            <span style="display:block; font-size:11px; color:#9A6B12; margin-top:2px">{{ r.capturedVariant }}</span>
+                          </sc-if>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); text-align:right; vertical-align:top">
+                          <span style="display:block; font-family:var(--font-mono); font-size:13.5px; color:{{ r.moqFg }}">{{ r.moq }}</span>
+                          <span style="display:block; font-size:11px; color:var(--text-faint); margin-top:3px; white-space:nowrap">{{ r.moqNote }}</span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); text-align:right; vertical-align:top">
+                          <span style="font-family:var(--font-mono); font-weight:600; font-size:15px; color:{{ r.unitFg }}">{{ r.unit }}</span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); text-align:right; vertical-align:top; font-family:var(--font-mono); font-size:13.5px; color:var(--text-body)">{{ r.pcsCont }}</sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); text-align:right; vertical-align:top">
+                          <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px; color:{{ r.contFg }}">{{ r.contCost }}</span>
+                          <span style="display:block; font-family:var(--font-mono); font-size:11px; color:{{ r.deltaFg }}; margin-top:3px">{{ r.delta }}</span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); text-align:right; vertical-align:top; font-family:var(--font-mono); font-size:13.5px; color:var(--text-body)">{{ r.monthly }}</sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); vertical-align:top">
+                          <span style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--text-body)">{{ r.pack }}</span>
+                          <span style="display:block; font-size:11px; color:var(--text-faint); margin-top:3px">{{ r.tooling }} · sample {{ r.sample }}</span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 12px 12px 0; border-bottom:1px solid var(--border-hairline); vertical-align:top">
+                          <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:13px; color:{{ r.totalFg }}">{{ r.totalLabel }}</span>
+                          <span style="display:block; font-family:var(--font-mono); font-size:11.5px; color:var(--text-body); margin-top:3px">{{ r.lead }} make + {{ r.transit }}</span>
+                          <span style="display:block; font-size:11px; color:var(--text-faint); margin-top:3px">arrives ~{{ r.eta }}</span>
+                        </sc-raw-td>
+                        <sc-raw-td style="padding:12px 0 12px 0; border-bottom:1px solid var(--border-hairline); vertical-align:top">
+                          <sc-if value="{{ r.listed }}">
+                            <span style="display:block; font-size:12px; color:var(--text-body)">{{ r.certs }}</span>
+                            <span style="display:block; font-family:var(--font-condensed); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:{{ r.auditFg }}; margin-top:3px">{{ r.audit }} · updated {{ r.updated }}</span>
+                          </sc-if>
+                          <sc-if value="{{ r.captured }}">
+                            <span style="display:block; font-size:12px; color:var(--text-muted)">Nothing verified yet</span>
+                            <div style="display:flex; gap:8px; margin-top:7px">
+                              <button sc-camel-on-click="{{ r.onInviteDraft }}" style="font-family:var(--font-condensed); font-weight:600; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:var(--action-primary); border:none; border-radius:4px; padding:6px 10px; cursor:pointer">Invite to register</button>
+                              <button sc-camel-on-click="{{ r.onRemoveDraft }}" style="font-family:var(--font-condensed); font-weight:600; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:6px 10px; cursor:pointer">Remove</button>
+                            </div>
+                          </sc-if>
+                        </sc-raw-td>
+                      </sc-raw-tr>
+                    </sc-for>
+                  </sc-raw-tbody>
+                </sc-raw-table>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-hairline)">
+                <button sc-camel-on-click="{{ onQuoteSelected }}" style="display:inline-flex; align-items:center; gap:8px; font-family:var(--font-sans); font-weight:600; font-size:13.5px; color:#fff; background:{{ pSelBg }}; border:none; border-radius:6px; padding:11px 16px; cursor:pointer">{{ pSelLabel }}
+                  <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Icon" name="arrowRight" size="15" hint-size="15px,15px"></x-import>
+                </button>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onCompareOffers }}" hint-size="auto,40px">Compare one to one</x-import>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onSampleRequest }}" hint-size="auto,40px">Request samples</x-import>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onExportOffers }}" hint-size="auto,40px">Export comparison (CSV)</x-import>
+                <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="ghost" sc-camel-on-click="{{ onOpenCompare }}" hint-size="auto,40px">Landed-cost compare</x-import>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ pNoOffers }}">
+              <div style="padding:26px 0 8px; font-size:14px; color:var(--text-muted)">No plant has this article published yet. Request it and the desk will map and quote it.</div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ pHasOffers }}">
+            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px 20px; margin-top:16px">
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px">
+                <div>
+                  <div style="font-family:var(--font-condensed); font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); border-left:3px solid var(--navy-800); padding-left:9px">Where these plants are · lanes to {{ buyerName }}</div>
+                  <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:7px">Total lead time is production plus transit from the loading port to your receiving plant. Indicative — not a carrier quote.</div>
+                  <sc-if value="{{ hasCaptured }}">
+                    <div style="font-family:var(--font-mono); font-size:11.5px; color:#9A6B12; margin-top:5px">Expo captures sit in the price table but not on this map — their plant address is unverified.</div>
+                  </sc-if>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+                  <div style="display:inline-flex; border:1px solid var(--border-strong); border-radius:4px; overflow:hidden">
+                    <sc-for list="{{ mapFocus }}" as="m" hint-placeholder-count="4">
+                      <button sc-camel-on-click="{{ m.onPick }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 11px; border:none; cursor:pointer; background:{{ m.bg }}; color:{{ m.fg }}">{{ m.label }}</button>
+                    </sc-for>
+                  </div>
+                  <button sc-camel-on-click="{{ onToggleLanes }}" style="font-family:var(--font-condensed); font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 12px; border:1px solid {{ lanesBorder }}; border-radius:4px; cursor:pointer; background:{{ lanesBg }}; color:{{ lanesFg }}">{{ lanesLabel }}</button>
+                </div>
+              </div>
+
+              <x-import component-from-global-scope="supplier-map" from="cba1251b-34c1-47d7-9d64-33fc92617c3b#/supplier-map-standalone.js" metric="risk" focus="{{ focus }}" highlight="" names="{{ pcMapNames }}" lanes="{{ pcMapLanes }}" buyer="{{ mapBuyer }}" showlanes="{{ showLanes }}" height="{{ mapHeight }}" hint-size="100%,560px"></x-import>
+
+              <div style="display:flex; gap:22px; flex-wrap:wrap; margin:16px 0 4px">
+                <sc-if value="{{ pMulti }}">
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:#2F7A2C">{{ pFastest }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Fastest total lead</span></div>
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ pSlowest }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Slowest total lead</span></div>
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--signal-warning)">{{ pDeliverySpread }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Spread</span></div>
+                </sc-if>
+                <sc-if value="{{ pSingle }}">
+                  <div><span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:15px; color:var(--navy-800)">{{ pFastest }}</span><span style="font-family:var(--font-condensed); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">Total lead · single source</span></div>
+                </sc-if>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-hairline)">
+                <sc-for list="{{ pDeliveryRows }}" as="d" hint-placeholder-count="6">
+                  <div style="display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) auto; gap:14px; align-items:center">
+                    <div style="min-width:0">
+                      <span style="display:block; font-weight:600; font-size:13px; color:var(--navy-800); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ d.supplier }}</span>
+                      <span style="display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-faint)">{{ d.city }} · FOB {{ d.port }}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:3px; min-width:0">
+                      <span style="height:10px; width:{{ d.bar }}%; background:var(--navy-700)"></span>
+                      <span style="height:10px; width:{{ d.barT }}%; background:var(--signal-data)"></span>
+                      <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin-left:8px; white-space:nowrap">{{ d.lead }} make + {{ d.transit }} {{ d.mode }}</span>
+                    </div>
+                    <div style="text-align:right; white-space:nowrap">
+                      <span style="display:block; font-family:var(--font-mono); font-weight:600; font-size:14px; color:{{ d.totalFg }}">{{ d.total }}</span>
+                      <span style="display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-faint)">arrives ~{{ d.eta }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="display:flex; gap:16px; align-items:center; margin-top:4px">
+                  <span style="display:inline-flex; align-items:center; gap:6px; font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)"><span style="width:14px; height:8px; background:var(--navy-700)"></span>Production</span>
+                  <span style="display:inline-flex; align-items:center; gap:6px; font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)"><span style="width:14px; height:8px; background:var(--signal-data)"></span>Transit to {{ buyerName }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ══ PRODUCT — one-to-one comparison ══ -->
+      <sc-if value="{{ isPCompare }}">
+        <div style="max-width:1560px">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:18px">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px"><span style="width:3px; height:14px; background:var(--navy-800)"></span><span style="font-family:var(--font-condensed); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted)">Catalogue · one-to-one comparison</span></div>
+              <h1 style="font-family:var(--font-serif); font-weight:400; font-size:30px; letter-spacing:-.02em; color:var(--navy-800); margin:12px 0 6px; text-wrap:pretty">{{ pcCompareTitle }}</h1>
+              <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-faint)">{{ pcCompareMeta }}</div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onBackToProduct }}" hint-size="auto,40px">Back to all offers</x-import>
+              <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="secondary" sc-camel-on-click="{{ onExportOffers }}" hint-size="auto,40px">Export (CSV)</x-import>
+              <x-import component-from-global-scope="STREFEXDesignSystem_b5f82d.Button" variant="primary" sc-camel-on-click="{{ onQuoteSelected }}" hint-size="auto,40px">Request quotes</x-import>
+            </div>
+          </div>
+
+          <sc-if value="{{ pcCompareEmpty }}">
+            <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:6px; box-shadow:var(--shadow-sm); padding:32px; max-width:760px; font-size:14px; line-height:1.6; color:var(--text-muted)">Tick at least two offers in the price table, then open the one-to-one view.</div>
+          </sc-if>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); gap:16px; align-items:start">
+            <sc-for list="{{ pcCompareCols }}" as="c" hint-placeholder-count="3">
+              <div style="background:var(--surface-card); border:1px solid var(--border-hairline); border-top:3px solid {{ c.rule }}; border-radius:6px; box-shadow:var(--shadow-sm); padding:18px 20px 16px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px">
+                  <div style="min-width:0">
+                    <div style="font-weight:600; font-size:16px; color:var(--navy-800); text-wrap:pretty">{{ c.supplier }}</div>
+                    <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:4px">{{ c.city }} · {{ c.port }}</div>
+                  </div>
+                  <button sc-camel-on-click="{{ c.onDrop }}" title="Remove from this comparison" style="flex:none; font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); background:var(--white); border:1px solid var(--border-strong); border-radius:4px; padding:5px 8px; cursor:pointer" style-hover="background:var(--steel-200)">Drop</button>
+                </div>
+                <span style="display:inline-block; font-family:var(--font-condensed); font-weight:600; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:{{ c.tagFg }}; background:{{ c.tagBg }}; border-radius:999px; padding:3px 9px; margin-top:10px">{{ c.tag }}</span>
+
+                <div style="display:flex; flex-direction:column; margin-top:14px">
+                  <sc-for list="{{ c.metrics }}" as="m" hint-placeholder-count="16">
+                    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-hairline)">
+                      <span style="font-family:var(--font-condensed); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint)">{{ m.label }}</span>
+                      <span style="font-family:var(--font-mono); font-size:13px; font-weight:{{ m.weight }}; color:{{ m.fg }}; text-align:right">{{ m.value }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); margin-top:14px">Green marks the better column on that line. Expo captures carry no verified certificate or audit — treat their figures as a negotiating input, not a qualified quote.</div>
         </div>
       </sc-if>
 
@@ -3202,6 +3965,11 @@ class Component extends DCLogic {
     step: "home", domain: null, industry: null, category: null, subcat: null, sub: null,
     indFilter: "All", catSort: "suppliers", sortKey: "fit", sortDir: -1,
     catQuery: "",
+    catQ: "", catGroup: "all", catMoq: "any", catCert: "any",
+    catCategory: null, catSub: null, pcSort: "price",
+    family: null, variantIdx: 0, offerSel: [], imgIdx: 0,
+    contType: "40HQ", contPerMonth: 2, orderQty: 0, offerSort: "unit",
+    drafts: {}, captureOpen: false, captureDraft: null,
     metric: "risk", focus: "all", buyerId: "muc", empty: false,
     sel: [], selScope: {}, focusName: "",
     rfqSent: false, rfqIndsSel: ["Automotive"], rfqMode: "sea",
@@ -3633,7 +4401,593 @@ transitFor(sup) {
     return { dist, rows, std: std, prod };
   }
 
-  renderVals() {
+  blankDraft() {
+    return { name: "", city: "", cc: "", unit: "", moq: "", pack: "", cbm: "", lead: "", port: "", payment: "30% TT + 70% B/L", contact: "", note: "", photo: "" };
+  }
+  removeDraft(id) {
+    const fid = this.state.family;
+    this.setState(p => ({ drafts: Object.assign({}, p.drafts, { [fid]: (p.drafts[fid] || []).filter(x => x.id !== id) }) }));
+  }
+
+  CAT() {
+    const C = window.HOUSEHOLD_CATALOG || null;
+    try {
+      const ext = ((typeof D === "function" ? D() : window.SOURCING_DATA) || {}).taxonomy && ((typeof D === "function" ? D() : window.SOURCING_DATA).taxonomy.catalogExt);
+      if (C && C.ingestTaxonomy && ext) C.ingestTaxonomy(ext);
+    } catch (e) {}
+    return C;
+  }
+  catalogIndustryId(id) {
+    const map = { "household-products": "household", "oil-gas": "oilgas", "green-energy": "energy", "raw-materials": "rawmat" };
+    return map[id] || id || "household";
+  }
+  PT() {
+    const dd = (typeof D === "function" ? D() : (window.SOURCING_DATA || {}));
+    return { SUBS: dd.SUBCATS || {} };
+  }
+
+  catFamilies() {
+    const C = this.CAT(); if (!C) return [];
+    const s = this.state, q = (s.catQ || "").trim().toLowerCase();
+    const dom = s.domain || "product", ind = this.catalogIndustryId(s.industry);
+    let list = C.FAMILIES.filter(f => f.dom === dom && f.inds.indexOf(ind) >= 0);
+    if (s.catCategory) {
+      list = list.filter(f => f.taxCat === s.catCategory || !f.catMap || (f.catMap[ind] || []).indexOf(s.catCategory) >= 0);
+    }
+    if (s.catSub) list = list.filter(f => f.sub === s.catSub);
+    list = list.filter(f => s.catGroup === "all" || f.group === s.catGroup);
+    if (q) list = list.filter(f => q.split(/\s+/).every(w => f.search.indexOf(w) >= 0));
+    if (s.catMoq !== "any") { const capv = parseInt(s.catMoq, 10); if (capv > 0 && list.some(f => f.minMoq <= capv)) list = list.filter(f => f.minMoq <= capv); }
+    /* a filter value left over from another industry scope is ignored, not applied to zero */
+    if (s.catCert !== "any" && list.some(f => (f.certs || []).indexOf(s.catCert) >= 0)) {
+      list = list.filter(f => (f.certs || []).indexOf(s.catCert) >= 0);
+    }
+    const k = s.pcSort;
+    return list.slice().sort((a, b) =>
+      k === "price" ? a.minUnit - b.minUnit :
+      k === "moq" ? a.minMoq - b.minMoq :
+      k === "lead" ? a.minLead - b.minLead :
+      k === "offers" ? b.offerCount - a.offerCount :
+      a.name.localeCompare(b.name));
+  }
+
+  contSpec() {
+    const C = this.CAT();
+    return (C && C.CONTAINERS[this.state.contType]) || { label: "40 ft HQ", cbm: 67.7, usable: 0.9 };
+  }
+
+  /* pieces of one variant that fit one container at this supplier's carton spec */
+  pcsPerCont(o, variant) {
+    const c = this.contSpec();
+    const cbm = o.cbm * (variant && !o.captured ? variant.pf : 1);
+    return Math.max(1, Math.floor(c.cbm * c.usable / cbm) * o.pack);
+  }
+
+  tierPrice(o, variant, qty) {
+    /* a captured quote is the price the buyer was given for the variant on screen —
+       it is never re-scaled to another size */
+    if (o.captured) { let cp = o.tiers[0].p; o.tiers.forEach(t => { if (qty >= t.q) cp = t.p; }); return cp; }
+    const pf = variant ? variant.pf : 1;
+    let p = o.tiers[0].p;
+    o.tiers.forEach(t => { if (qty >= t.q) p = t.p; });
+    return Math.round(p * pf * 1000) / 1000;
+  }
+
+  /* spare parts are ordered by the piece, not by the container: the default order
+     quantity clears every listed MOQ so the price breaks stay comparable */
+  defaultQty(fam) {
+    const C = this.CAT(); if (!C || !fam) return 100;
+    const o = C.OFFERS[fam.id] || [];
+    const m = o.length ? Math.max.apply(null, o.map(x => x.moq)) : fam.moq;
+    return Math.max(fam.moq, m);
+  }
+  orderQty(fam) {
+    return this.state.orderQty || this.defaultQty(fam);
+  }
+
+  offerRows(fam, variant) {
+    const C = this.CAT(); if (!C || !fam) return [];
+    const per = this.state.contPerMonth || 1;
+    const spare = !!fam.spare;
+    const oq = spare ? this.orderQty(fam) : 0;
+    const base = (C.OFFERS[fam.id] || []).concat(this.state.drafts[fam.id] || []);
+    const rows = base.map(o => {
+      const pcsCont = this.pcsPerCont(o, variant);
+      const qty = spare ? oq : pcsCont * per;
+      const unit = this.tierPrice(o, variant, qty);
+      const t = o.lat === null || o.lat === undefined ? { std: null } : this.transitFor(o);
+      const std = (t && t.std) || { days: 0, mode: "—" };
+      return Object.assign({}, o, {
+        pcsCont, qty, unit, spare,
+        contCost: Math.round(unit * (spare ? qty : pcsCont)),
+        monthly: Math.round(unit * qty),
+        belowMoq: qty < o.moq,
+        transit: std.days || 0,
+        mode: (std.mode || "—").replace(" freight", "").replace(" / truck", ""),
+        total: (o.lead + (std.days || 0))
+      });
+    });
+    const k = this.state.offerSort;
+    rows.sort((a, b) =>
+      k === "cont" ? a.contCost - b.contCost :
+      k === "moq" ? a.moq - b.moq :
+      k === "lead" ? a.total - b.total :
+      k === "pcs" ? b.pcsCont - a.pcsCont :
+      a.unit - b.unit);
+    return rows;
+  }
+
+  catalogVals() {
+    const C = this.CAT(), s = this.state;
+    if (!C) return { isCatalog: false, isProduct: false, catalogOn: false, isListing: s.step === "listing", isPCompare: s.step === "pcompare" };
+    try {
+      const liveItems = ((typeof D === "function" ? D() : window.SOURCING_DATA) || {}).PRODUCT_CATALOGUE_ITEMS || [];
+      const liveInd = this.catalogIndustryId(s.industry);
+      liveItems.forEach(function (it) {
+        const fam = C.FAMILIES.filter(function (f) {
+          return f.sub === it.subcategoryId || (f.subMap && ((f.subMap[liveInd] || []).indexOf(it.subcategoryId) >= 0));
+        })[0];
+        if (!fam) return;
+        C.OFFERS[fam.id] = C.OFFERS[fam.id] || [];
+        const key = String(it.id || it.sku || it.name);
+        if (C.OFFERS[fam.id].some(function (o) { return String(o.liveId || "") === key; })) return;
+        const unit = Number(it.unitPrice != null ? it.unitPrice : it.unit_price);
+        C.OFFERS[fam.id].push({
+          liveId: key, supplier: it.sellerName || it.seller_name || "Registered seller",
+          city: "—", cc: "—", lat: null, lon: null, port: "tbc",
+          audit: "Registered", resp: 0, stage: 5, published: true,
+          certs: [], moq: Number(it.moq) || fam.moq || 1,
+          unit: Number.isFinite(unit) ? unit : 0,
+          tiers: [{ q: Number(it.moq) || 1, p: Number.isFinite(unit) ? unit : 0 }],
+          pack: 12, cbm: 0.06, cartons40: 0, pcs40: 0,
+          lead: 0, sample: 0, sampleDays: 0, tooling: 0, stock: false,
+          incoterm: "FOB", payment: "to agree", updated: 0
+        });
+        fam.offerCount = C.OFFERS[fam.id].length;
+      });
+    } catch (e) {}
+    const narrow = s.vw < 1024;
+    const dom = s.domain || "product", ind = this.catalogIndustryId(s.industry);
+    const inCat = f => !s.catCategory || !f.catMap || (f.catMap[ind] || []).indexOf(s.catCategory) >= 0;
+    const inSub = f => !s.catSub || (f.sub ? f.sub === s.catSub : (!f.subMap || (f.subMap[ind] || []).indexOf(s.catSub) >= 0));
+    const scoped = C.FAMILIES.filter(f => f.dom === dom && f.inds.indexOf(ind) >= 0 && inCat(f) && inSub(f));
+    const groups = C.GROUPS.filter(g => g.dom === dom && g.inds.indexOf(ind) >= 0 && scoped.some(f => f.group === g.id));
+    const fams = scoped;
+    const isSpareScope = groups.length > 0 && groups.every(g => g.spare);
+    const isOrderScope = fams.length > 0 && fams.every(f => f.spare);
+    const exPool = [];
+    groups.forEach(g => { const first = fams.filter(f => f.group === g.id)[0]; if (first) exPool.push(first.name.split(",")[0].split(" — ")[0]); });
+    const exNames = exPool.slice(0, 2);
+    const exList = exNames.length === 2 ? exNames[0] + " or " + exNames[1] : (exNames[0] || "an article");
+    const totalOffers = fams.reduce((a, f) => a + f.offerCount, 0);
+    const totalSkus = fams.reduce((a, f) => a + f.variants.length, 0);
+    const cont = this.contSpec();
+    const list = this.catFamilies();
+    const openCat = (patch) => this.go("catalog", Object.assign({ domain: s.domain || "product", industry: s.industry }, patch || {}));
+    const catName = (() => {
+      if (!s.catCategory) return "";
+      const list = (((window.SOURCING_DATA || {}).CATEGORIES || {})[dom + ":" + ind] || []);
+      const c = list.filter(x => x.id === s.catCategory)[0];
+      return c ? c.name : "";
+    })();
+    const subName = (() => {
+      if (!s.catSub) return "";
+      const all = Object.keys((this.PT() || { SUBS: {} }).SUBS).filter(k => k.indexOf(dom + ":" + ind + ":") === 0);
+      let found = "";
+      all.forEach(k => this.PT().SUBS[k].forEach(x => { if (x.id === s.catSub) found = x.name; }));
+      return found;
+    })();
+    const indName = (((window.SOURCING_DATA || {}).INDUSTRIES || []).filter(i => i.id === ind)[0] || {}).name || "";
+    const catsInCategory = cid => C.FAMILIES.filter(f => f.dom === dom && f.inds.indexOf(ind) >= 0 && f.catMap && (f.catMap[ind] || []).indexOf(cid) >= 0);
+
+    let cards = list.map(f => {
+      const best = (C.OFFERS[f.id] || [])[0];
+      const v0 = f.variants[Math.min(2, f.variants.length - 1)];
+      const pcs = best ? this.pcsPerCont(best, v0) : 0;
+      return {
+        id: f.id, name: f.name, group: f.groupName || subName || f.taxSubName || "", material: f.material, desc: f.desc,
+        img: f.hero || "", hasImg: !!f.hero, noImg: !f.hero, icon: (groups.filter(g => g.id === f.group)[0] || {}).icon || "package",
+        variantsLabel: f.variants.length + " size" + (f.variants.length > 1 ? "s" : ""),
+        code: v0 ? v0.code : f.id.toUpperCase(),
+        sizeList: f.variants.map(v => v.label).join(" · "),
+        price: f.minUnit === f.maxUnit ? "$" + f.minUnit.toFixed(2) : "$" + f.minUnit.toFixed(2) + " – $" + f.maxUnit.toFixed(2),
+        moq: f.minMoq.toLocaleString("en-US"),
+        lead: f.minLead + " d",
+        offers: f.offerCount + (f.offerCount === 1 ? " offer" : " offers"),
+        offersN: f.offerCount,
+        countries: f.countries.join(" · "),
+        pcsCont: pcs ? pcs.toLocaleString("en-US") : "—",
+        tile3Label: f.spare ? "Price break at" : "Pcs / " + cont.label,
+        tile3Value: f.spare ? ((C.OFFERS[f.id] || [])[0] ? ((C.OFFERS[f.id][0].tiers[1] || C.OFFERS[f.id][0].tiers[0]).q).toLocaleString("en-US") : "—") : (pcs ? pcs.toLocaleString("en-US") : "—"),
+        monthPcs: pcs ? (pcs * (s.contPerMonth || 1)).toLocaleString("en-US") : "—",
+        certs: (f.certs || []).slice(0, 3),
+        onOpen: () => this.go("product", { family: f.id, variantIdx: Math.min(2, f.variants.length - 1), offerSel: [], imgIdx: 0 })
+      };
+    });
+    cards.forEach(c => {
+      if (!c.offersN) {
+        c.price = "—"; c.moq = "—"; c.lead = "—";
+        c.countries = "No listed plants yet";
+        c.tile3Value = "—";
+        c.offers = "0 offers";
+      }
+    });
+    if (!cards.length) {
+      const shellName = subName || catName || indName || "Catalogue article";
+      cards = [{
+        id: "shell", name: shellName, group: "Catalogue structure", material: "—", desc: "",
+        img: "", hasImg: false, noImg: true, icon: "package",
+        variantsLabel: "Sizes added when a seller lists",
+        code: "STRUCTURE", sizeList: "Awaiting supplier variants",
+        price: "—", moq: "—", lead: "—", offers: "0 offers", offersN: 0,
+        countries: "No listed plants yet", pcsCont: "—",
+        tile3Label: "Pcs / container", tile3Value: "—", monthPcs: "—",
+        certs: [],
+        onOpen: () => this.go("product", { family: null, variantIdx: 0, offerSel: [], imgIdx: 0 })
+      }];
+    }
+
+    const moqSteps = (() => {
+      const moqs = fams.map(f => f.minMoq).filter(n => n > 0).sort((a, b) => a - b);
+      if (moqs.length < 3) return [];
+      const q = p => moqs[Math.min(moqs.length - 1, Math.floor(moqs.length * p))];
+      const top = moqs[moqs.length - 1];
+      return [q(0.34), q(0.67)].filter((v, i, a) => v > 0 && a.indexOf(v) === i && v < top);
+    })();
+    const certOpts = (() => {
+      const tally = {};
+      fams.forEach(f => (f.certs || []).forEach(c => { tally[c] = (tally[c] || 0) + 1; }));
+      return Object.keys(tally).filter(c => tally[c] < fams.length).sort((a, b) => tally[b] - tally[a]).slice(0, 3);
+    })();
+
+    const chips = [{ id: "all", name: isSpareScope ? "All components" : "All products", n: fams.length }].concat(
+      groups.map(g => ({ id: g.id, name: g.name, n: fams.filter(f => f.group === g.id).length }))
+    ).map(g => ({
+      label: g.name + " · " + g.n, key: g.id,
+      bg: s.catGroup === g.id ? NAVY : "var(--white)",
+      fg: s.catGroup === g.id ? "#fff" : "var(--text-body)",
+      bd: s.catGroup === g.id ? NAVY : "var(--border-strong)",
+      onPick: () => this.setState({ catGroup: g.id })
+    }));
+
+    /* ---- product page ---- */
+    const fam = s.family ? C.family(s.family) : null;
+    const variant = fam ? (fam.variants[Math.min(s.variantIdx, fam.variants.length - 1)] || fam.variants[0]) : null;
+    const rows = fam ? this.offerRows(fam, variant) : [];
+    const bestUnit = rows.length ? Math.min.apply(null, rows.map(r => r.unit)) : 0;
+    const bestCont = rows.length ? Math.min.apply(null, rows.map(r => r.contCost)) : 0;
+    const worstCont = rows.length ? Math.max.apply(null, rows.map(r => r.contCost)) : 0;
+    const per = s.contPerMonth || 1;
+    const money = n => "$" + Math.round(n).toLocaleString("en-US");
+    const fastestT = rows.length ? Math.min.apply(null, rows.map(r => r.total)) : 0;
+
+    const offerRows = rows.map(r => {
+      const on = s.offerSel.indexOf(r.supplier) >= 0;
+      const dPct = bestCont ? Math.round((r.contCost - bestCont) / bestCont * 100) : 0;
+      return {
+        supplier: r.supplier, city: r.city + " · " + r.cc, port: "FOB " + r.port,
+        captured: !!r.captured, listed: !r.captured,
+        capturedNote: r.captured ? (r.contact ? "Expo capture · " + r.contact : "Expo capture · unverified") : "",
+        capturedVariant: r.captured ? (r.variantCode === (variant ? variant.code : "") ? "Quoted for this size" : "Quoted for " + (r.variantCode || "another size") + " — not re-priced") : "",
+        onInviteDraft: () => { this.say(r.supplier + " invited to register — the offer stays in your comparison until the account reaches stage 5."); this.go("registration"); },
+        onRemoveDraft: () => this.removeDraft(r.id),
+        moq: r.moq.toLocaleString("en-US"),
+        moqFg: r.belowMoq ? "var(--signal-fault)" : "var(--text-body)",
+        moqNote: r.belowMoq ? "above your order qty" : (r.spare ? "met at your order qty" : "met at " + per + " × " + cont.label),
+        unit: "$" + r.unit.toFixed(r.unit < 1 ? 3 : 2),
+        unitFg: r.unit === bestUnit ? "#2F7A2C" : "var(--navy-800)",
+        pcsCont: r.pcsCont.toLocaleString("en-US"),
+        contCost: money(r.contCost),
+        contFg: r.contCost === bestCont ? "#2F7A2C" : "var(--navy-800)",
+        delta: dPct === 0 ? "best" : "+" + dPct + "%",
+        deltaFg: dPct === 0 ? "#2F7A2C" : dPct > 12 ? "var(--signal-fault)" : "var(--text-muted)",
+        monthly: money(r.monthly),
+        pack: r.pack + " pcs/ctn · " + r.cbm.toFixed(3) + " cbm",
+        lead: r.lead + " d",
+        totalLabel: r.transit ? r.total + " d total" : r.lead + " d make",
+        totalFg: r.total === fastestT ? "#2F7A2C" : "var(--navy-800)",
+        transit: r.transit ? r.transit + " d " + r.mode : (r.captured ? "transit tbc" : "—"),
+        eta: r.transit ? fmtDate(r.lead + r.transit) : "needs plant address",
+        certs: r.certs.length ? r.certs.join(" · ") : "none declared",
+        audit: r.audit,
+        auditFg: r.audit === "Passed" ? "#2F7A2C" : r.audit === "Flagged" || r.audit === "None" ? "var(--signal-fault)" : "#9A6B12",
+        terms: r.incoterm + " · " + r.payment,
+        tooling: r.tooling ? money(r.tooling) + " print plate" : "no tooling",
+        sample: "$" + r.sample + " · " + r.sampleDays + " d",
+        updated: r.updated + " d ago",
+        stock: r.stock, noStock: !r.stock,
+        selBg: on ? NAVY : "var(--white)", selBd: on ? NAVY : "var(--border-strong)",
+        rowBg: on ? "var(--steel-100)" : "transparent",
+        onToggle: () => this.setState(p => ({
+          offerSel: p.offerSel.indexOf(r.supplier) >= 0 ? p.offerSel.filter(x => x !== r.supplier) : p.offerSel.concat([r.supplier])
+        }))
+      };
+    });
+
+    const variants = fam ? fam.variants.map((v, i) => ({
+      label: v.label, code: v.code, dim: v.dim, weight: v.weight,
+      bg: i === s.variantIdx ? NAVY : "var(--white)",
+      fg: i === s.variantIdx ? "#fff" : "var(--navy-800)",
+      bd: i === s.variantIdx ? NAVY : "var(--border-strong)",
+      sub: i === s.variantIdx ? "rgba(255,255,255,.66)" : "var(--text-faint)",
+      onPick: () => this.setState({ variantIdx: i })
+    })) : [];
+
+    const bestRow = rows[0];
+    const pcsMonth = bestRow ? bestRow.pcsCont * per : 0;
+    const fastest = rows.length ? rows.slice().sort((a, b) => a.total - b.total)[0] : null;
+    const slowest = rows.length ? rows.slice().sort((a, b) => b.total - a.total)[0] : null;
+
+    return {
+      catalogOn: true,
+      isCatalog: s.step === "catalog", isProduct: s.step === "product",
+      onOpenCatalog: () => openCat(),
+      catalogHere: fams.length > 0,
+      catScopeLabel: subName ? indName + " · " + subName : (catName ? indName + " · " + catName : indName),
+      catSubName: subName,
+      onClearCategory: () => this.setState({ catCategory: null, catSub: null, catGroup: "all" }),
+      bannerHere: fams.length > 0 && dom !== "equipment" && !C.GROUPS.some(g => g.subMap && g.subMap[ind]),
+      catHasCategory: !!catName,
+      catCategoryName: catName,
+      /* deep-dive (step 4) entry: spares that hang off the category being viewed */
+      catForCatCount: s.category ? catsInCategory(s.category).length : 0,
+      catForCatHere: dom !== "equipment" && !!(s.category && catsInCategory(s.category).length),
+      catForCatLabel: s.category ? catsInCategory(s.category).length + " spare parts and standard components are catalogued under this category" : "",
+      onCatalogForCategory: () => openCat({ catCategory: s.category, catGroup: "all", catQ: "" }),
+      catBannerTitle: isSpareScope ? "Buying spare parts and standard components?" : "Buying a catalogue article rather than a drawing?",
+      catBannerBody: isSpareScope
+        ? " — search the component (" + exList + ") and compare MOQ, price break and delivery across every supplier that stocks it."
+        : " — search the article (" + exList + ") and compare MOQ, price break, pieces per container and delivery across every plant that makes it.",
+      catOpenLabel: isSpareScope ? "Open spare-parts catalogue" : "Open product catalogue",
+      catShortLabel: isSpareScope ? "Looking for a spare part or standard component?" : "Looking for a finished article rather than a process?",
+      catScopeTitle: isSpareScope ? "Find the spare part, then compare the offers" : "Find the article, then compare the offers",
+      catScopeIntro: isOrderScope && !isSpareScope
+        ? "Qualified industrial articles are bought by order quantity against a qualification file, not by the container. Search the article, pick the variant, and read every qualified supplier's MOQ, price break, lead time and certification side by side."
+        : isSpareScope
+        ? "Equipment is bought once; its standard components are bought every month. Search the component — an ejector pin, a hot-runner tip, a screw and barrel — and read every supplier's MOQ, price break and delivery against each other."
+        : "Catalogue articles are bought by article and shipped by the container or pallet, so the process taxonomy is the wrong entry point. Search the article, pick the size, and read every plant's MOQ, price break and pieces per container side by side.",
+      catTeaser: fams.length + " catalogued products · " + totalSkus + " SKUs · " + totalOffers + " live supplier offers",
+      catStats: [
+        { n: String(fams.length), label: "Products" },
+        { n: String(totalSkus), label: "SKU variants" },
+        { n: String(totalOffers), label: "Supplier offers" },
+        { n: String(fams.reduce((a, f) => {
+            (C.OFFERS[f.id] || []).forEach(o => { if (o.published && a.indexOf(o.supplier) < 0) a.push(o.supplier); });
+            return a;
+          }, []).length), label: "Listed plants" }
+      ],
+      catQ: s.catQ,
+      onCatQ: e => this.setState({ catQ: e.target.value }),
+      onClearQ: () => this.setState({ catQ: "", catGroup: "all", catMoq: "any", catCert: "any" }),
+      catChips: chips,
+      pcSorts: this.seg([{ key: "price", label: "FOB price" }, { key: "moq", label: "MOQ" }, { key: "lead", label: "Lead" }, { key: "offers", label: "Offers" }, { key: "name", label: "A–Z" }],
+        s.pcSort, k => this.setState({ pcSort: k })),
+      /* filter options are derived from what the families in scope actually declare */
+      catMoqs: moqSteps.length ? this.seg([{ key: "any", label: "Any MOQ" }].concat(
+        moqSteps.map(v => ({ key: String(v), label: "≤ " + v.toLocaleString("en-US") }))
+      ), s.catMoq, k => this.setState({ catMoq: k })) : [],
+      catCerts: certOpts.length ? this.seg([{ key: "any", label: "Any" }].concat(
+        certOpts.map(c => ({ key: c, label: c }))
+      ), s.catCert, k => this.setState({ catCert: k })) : [],
+      catHasMoqFilter: moqSteps.length > 0,
+      catHasCertFilter: certOpts.length > 0,
+      catSearchPh: isSpareScope
+        ? "Search a component, size or code — " + (exNames[0] || "") + ", " + (fams[0] ? fams[0].variants[0].code : "") + "…"
+        : "Search an article, size or code — " + (exNames[0] || "") + ", " + (fams[0] ? fams[0].variants[0].label : "") + ", " + (fams[0] ? fams[0].variants[0].code : "") + "…",
+      contTypes: Object.keys(C.CONTAINERS).map(k => ({ id: k, label: C.CONTAINERS[k].label })),
+      contType: s.contType, contLabel: cont.label,
+      onContType: e => this.setState({ contType: e.target.value }),
+      contPerMonth: per,
+      onContPerMonth: e => this.setState({ contPerMonth: Math.max(1, Math.min(60, parseInt(e.target.value, 10) || 1)) }),
+      catCards: cards, catHasCards: cards.length > 0, catNoCards: cards.length === 0,
+      catCount: cards.length + " of " + fams.length + (isSpareScope ? " components" : " products"),
+      isSpareScope: isSpareScope, isOrderScope: isOrderScope, isContainerScope: !isOrderScope,
+      catBasisNote: isOrderScope
+        ? "Prices are the supplier's tier price at your order quantity. Carton and CBM are shown for freight planning only."
+        : "Prices are FOB unit at your monthly volume · pieces per " + cont.label + ".",
+      orderQty: fam && fam.spare ? this.orderQty(fam) : 0,
+      orderQtyLabel: (fam && fam.spare ? this.orderQty(fam) : 0).toLocaleString("en-US"),
+      onOrderQty: e => this.setState({ orderQty: Math.max(1, parseInt(String(e.target.value).replace(/\D/g, ""), 10) || 1) }),
+      pDemandLabel: fam && fam.spare
+        ? "order of " + (fam ? this.orderQty(fam).toLocaleString("en-US") : "") + " pcs"
+        : per + " × " + cont.label + " per month",
+      pIsSpare: !!(fam && fam.spare), pIsGoods: !!(fam && !fam.spare),
+      colContLabel: fam && fam.spare ? "Order value" : "Cost / container",
+      colPcsLabel: fam && fam.spare ? "Pcs / container (info)" : "Pcs / container",
+      colMonthlyLabel: fam && fam.spare ? "Per order" : "Monthly spend",
+      catGridMin: narrow ? "min(300px,100%)" : "min(330px,100%)",
+      prodCols: narrow ? "1fr" : "minmax(300px,0.85fr) 1.7fr",
+      onRequestProduct: () => this.say("Product request sent to the research desk — new articles are catalogued and quoted within 5 working days."),
+
+      /* product detail */
+      pName: fam ? fam.name : "", pGroup: fam ? fam.groupName : "", pDesc: fam ? fam.desc : "",
+      pMaterial: fam ? fam.material : "", pCerts: fam ? (fam.certs || []) : [],
+      pImages: fam && fam.images.length ? fam.images : [],
+      pHero: fam && fam.images.length ? fam.images[Math.min(s.imgIdx, fam.images.length - 1)] : "",
+      pThumbs: fam && fam.images.length > 1 ? fam.images.map((src, i) => ({
+        src: src, bd: i === Math.min(s.imgIdx, fam.images.length - 1) ? NAVY : "var(--border-hairline)",
+        onPick: () => this.setState({ imgIdx: i })
+      })) : [],
+      pHasThumbs: !!(fam && fam.images.length > 1),
+      pHasImages: !!(fam && fam.images.length), pNoImages: !!(fam && !fam.images.length),
+      pIcon: fam ? ((groups.filter(g => g.id === fam.group)[0] || {}).icon || "package") : "package",
+      pVariants: variants,
+      pVariantLabel: variant ? variant.label : "",
+      pVariantCode: variant ? variant.code : "",
+      pVariantDim: variant ? variant.dim : "",
+      pVariantWeight: variant ? variant.weight : "",
+      pOffers: offerRows, pOfferCount: rows.length,
+      pOfferCountLabel: rows.length + (rows.length === 1 ? " supplier offer" : " supplier offers"),
+      pMulti: rows.length > 1, pSingle: rows.length === 1,
+      pHasOffers: rows.length > 0, pNoOffers: !!(s.step === "product" && rows.length === 0),
+      pOfferSorts: this.seg([{ key: "unit", label: "Unit price" }, { key: "cont", label: "Per container" }, { key: "moq", label: "MOQ" }, { key: "lead", label: "Delivery" }, { key: "pcs", label: "Pcs/container" }],
+        s.offerSort, k => this.setState({ offerSort: k })),
+      pBestUnit: bestUnit ? "$" + bestUnit.toFixed(bestUnit < 1 ? 3 : 2) : "—",
+      pBestCont: bestCont ? money(bestCont) : "—",
+      pSpread: bestCont ? "+" + Math.round((worstCont - bestCont) / bestCont * 100) + "%" : "—",
+      pPcsMonth: fam && fam.spare ? (rows[0] ? rows[0].qty.toLocaleString("en-US") : "—") : (pcsMonth ? pcsMonth.toLocaleString("en-US") : "—"),
+      pPcsLabel: fam && fam.spare ? "Pieces per order" : "Pieces / month",
+      pContLabel: fam && fam.spare ? "Best order value" : "Best / container",
+      pMonthlySpend: bestCont ? money(bestCont * per) : "—",
+      pYearSaving: bestCont ? money((worstCont - bestCont) * (fam && fam.spare ? 1 : per * 12)) : "—",
+      pYearLabel: fam && fam.spare ? "Cheapest vs dearest / order" : "Cheapest vs dearest / yr",
+      /* map + delivery on the product page */
+      pcMapNames: rows.filter(r => !r.captured).map(r => r.supplier).join("|"),
+      pcMapLanes: JSON.stringify(rows.filter(r => !r.captured).map(r => ({
+        name: r.supplier, lat: r.lat, lon: r.lon, lead: r.lead,
+        transit: r.transit, mode: r.mode, eta: r.transit ? fmtDate(r.lead + r.transit) : "—"
+      }))),
+      pDeliveryRows: rows.slice().filter(r => !r.captured).sort((a, b) => a.total - b.total).map(r => ({
+        supplier: r.supplier, city: r.city + " · " + r.cc, port: r.port,
+        lead: r.lead + " d", transit: r.transit ? r.transit + " d" : "—", mode: r.mode,
+        total: r.total + " d", eta: r.transit ? fmtDate(r.lead + r.transit) : "—",
+        bar: Math.max(6, Math.round(r.lead / Math.max(1, slowest ? slowest.total : 1) * 100)),
+        barT: Math.max(4, Math.round(r.transit / Math.max(1, slowest ? slowest.total : 1) * 100)),
+        totalFg: fastest && r.total === fastest.total ? "#2F7A2C" : "var(--navy-800)"
+      })),
+      pFastest: fastest ? fastest.supplier + " · " + fastest.total + " d" : "—",
+      pSlowest: slowest ? slowest.supplier + " · " + slowest.total + " d" : "—",
+      pDeliverySpread: fastest && slowest ? (slowest.total - fastest.total) + " d" : "—",
+
+      /* supplier listing path */
+      isListing: s.step === "listing",
+      onListing: () => this.go("listing"),
+      listingStages: [
+        { n: "01", name: "Published supplier account", owner: "Supplier", days: "Prerequisite",
+          needs: "Registration stages 1–5 complete: legal entity, plant with a geocoded address, certificates verified at source.",
+          gate: "Account at stage 5 or above — an unverified account cannot hold a catalogue listing." },
+        { n: "02", name: "Claim or propose the article", owner: "Supplier", days: "Same day",
+          needs: "Search the catalogue for the article. Claim an existing family (the taxonomy, specs and photo standard are already fixed) or propose a new one with a description and two reference photos.",
+          gate: "The desk accepts the claim or opens a new family — duplicates are merged, not listed twice." },
+        { n: "03", name: "Declare the variants", owner: "Supplier", days: "1–2 days",
+          needs: "One row per size: internal code, capacity, external dimensions, net weight, material and finish. Optional colours and decoration methods.",
+          gate: "Dimensions and weight inside the family tolerance — otherwise the variant becomes a new family." },
+        { n: "04", name: "Photograph to the STREFEX standard", owner: "Supplier", days: "2–5 days",
+          needs: "Own product photography only: pure white background, product centred, 4:3, minimum 1 600 px, no watermarks, no retail text overlays, one carton and one packed-container shot.",
+          gate: "The platform applies the standard frame with the article code and supplier stamp — rejected files are returned with the reason." },
+        { n: "05", name: "Commercial terms per variant", owner: "Supplier", days: "1–3 days",
+          needs: "MOQ, FOB price at three quantity tiers, carton pack, carton CBM, loading port, production lead time, sample fee and lead, print-plate or tooling cost, payment terms.",
+          gate: "Pieces per container are computed from the declared carton — the arithmetic must reconcile before the offer can publish." },
+        { n: "06", name: "Desk check and publish", owner: "STREFEX desk", days: "5 working days",
+          needs: "Specification, certificate scope and photography checked against the family; prices sense-checked against the category basket.",
+          gate: "Live in the catalogue. Terms must be re-confirmed every 90 days — a stale offer is greyed out and drops out of the comparison." }
+      ],
+      photoSpec: [
+        "Pure white or neutral seamless background — no lifestyle scenes in the primary shot",
+        "Product centred, 4:3 frame, minimum 1 600 px on the long edge",
+        "No watermarks, price stickers, retail banners or competitor branding",
+        "One carton shot and one loaded-container shot for the packing evidence",
+        "The platform adds the frame, article code and verification stamp — suppliers never add their own"
+      ],
+      searchCompare: [
+        { title: "Category search (steps 1–5)", body: "Finds a capability: a process, a machine class, a qualification. You arrive at a supplier set and an executive summary. Right when you are buying to your own drawing — a moulded part, a machining cell, an audit service.", tag: "Capability" },
+        { title: "Product catalogue", body: "Finds an article a supplier already makes and sells: a 640 ml clip-lid glass container in five sizes. You arrive at one SKU with every plant's MOQ, tier price, pieces per container and delivery. Right when you are buying finished goods by the container.", tag: "Article" }
+      ],
+
+      /* expo capture */
+      captureOpen: !!s.captureOpen,
+      captureClosed: !s.captureOpen,
+      onOpenCapture: () => { this._cap = {}; this._capPhoto = ""; this.setState({ captureOpen: true, captureDraft: this.blankDraft() }); },
+      onCancelCapture: () => { this._cap = {}; this._capPhoto = ""; this.setState({ captureOpen: false, captureDraft: null }); },
+      onSaveCapture: () => this.saveDraft(this.readCaptureForm(), this.state.family, variant),
+      capturedCount: rows.filter(r => r.captured).length,
+      hasCaptured: rows.some(r => r.captured),
+      captureFields: [
+        { key: "name", label: "Supplier name", ph: "e.g. Ningbo Sunrise Glass" },
+        { key: "city", label: "City", ph: "Ningbo" },
+        { key: "cc", label: "Country", ph: "CN" },
+        { key: "unit", label: "FOB unit price USD", ph: "1.28" },
+        { key: "moq", label: "MOQ pcs", ph: "3000" },
+        { key: "pack", label: "Pcs per carton", ph: "12" },
+        { key: "cbm", label: "Carton CBM", ph: "0.062" },
+        { key: "lead", label: "Production lead days", ph: "35" },
+        { key: "port", label: "Loading port", ph: "Ningbo" },
+        { key: "payment", label: "Payment terms", ph: "30% TT + 70% B/L" },
+        { key: "contact", label: "Contact met", ph: "Name · e-mail · stand" },
+        { key: "note", label: "Note", ph: "Quoted at the stand, valid 30 days" }
+      ].map(f => ({
+        key: f.key, label: f.label, ph: f.ph,
+        value: (s.captureDraft || {})[f.key] || "",
+        onInput: e => { this._cap = this._cap || {}; this._cap[f.key] = e.target.value; }
+      })),
+      capturePhoto: this._capPhoto || "",
+      captureHasPhoto: !!this._capPhoto,
+      captureNoPhoto: !this._capPhoto,
+      onCapturePhoto: e => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const rd = new FileReader();
+        rd.onload = () => { this._capPhoto = rd.result; this.forceUpdate(); };
+        rd.readAsDataURL(file);
+      },
+
+      /* one-to-one comparison (same shape as the executive-summary compare) */
+      isPCompare: s.step === "pcompare",
+      onCompareOffers: () => {
+        if (s.offerSel.length < 2) return this.say("Tick at least two offers — one-to-one compares the columns side by side.");
+        this.go("pcompare");
+      },
+      pcCompareTitle: (fam ? fam.name : "Product") + " — " + (variant ? variant.label : ""),
+      pcCompareMeta: (fam ? fam.groupName : "") + " · " + (variant ? variant.code : "") + " · " + per + " × " + cont.label + " per month · to " + ((this.plantList().filter(b => b.id === s.buyerId)[0] || {}).name || "your plant"),
+      pcCompareCols: (() => {
+        const sel = rows.filter(r => s.offerSel.indexOf(r.supplier) >= 0);
+        if (!sel.length) return [];
+        const min = k => Math.min.apply(null, sel.map(x => x[k]));
+        const best = { unit: min("unit"), contCost: min("contCost"), moq: min("moq"), total: min("total"), monthly: min("monthly") };
+        const maxPcs = Math.max.apply(null, sel.map(x => x.pcsCont));
+        return sel.map(r => ({
+          supplier: r.supplier, city: r.city + " · " + r.cc, port: "FOB " + r.port,
+          tag: r.captured ? "Expo capture · unverified" : "Listed · stage " + r.stage,
+          tagFg: r.captured ? "#9A6B12" : "#2F7A2C",
+          tagBg: r.captured ? "var(--signal-warning-bg)" : "var(--signal-running-bg)",
+          rule: r.captured ? "var(--signal-warning)" : "var(--navy-800)",
+          onDrop: () => this.setState(p => ({ offerSel: p.offerSel.filter(x => x !== r.supplier) })),
+          metrics: [
+            { label: "FOB unit at your volume", value: "$" + r.unit.toFixed(r.unit < 1 ? 3 : 2), best: r.unit === best.unit },
+            { label: fam && fam.spare ? "Order value" : "Cost per " + cont.label, value: money(r.contCost), best: r.contCost === best.contCost },
+            { label: fam && fam.spare ? "Order quantity" : "Monthly spend", value: fam && fam.spare ? r.qty.toLocaleString("en-US") + " pcs" : money(r.monthly), best: false },
+            { label: "MOQ", value: r.moq.toLocaleString("en-US") + " pcs", best: r.moq === best.moq },
+            { label: fam && fam.spare ? "Pieces per container (info)" : "Pieces per container", value: r.pcsCont.toLocaleString("en-US"), best: !(fam && fam.spare) && r.pcsCont === maxPcs },
+            { label: "Carton", value: r.pack + " pcs · " + r.cbm.toFixed(3) + " cbm", best: false },
+            { label: "Production lead", value: r.lead + " d", best: false },
+            { label: "Transit", value: r.transit ? r.transit + " d " + r.mode : "tbc", best: false },
+            { label: "Total lead time", value: r.transit ? r.total + " d" : r.lead + " d + tbc", best: r.transit && r.total === best.total },
+            { label: "Estimated arrival", value: r.transit ? fmtDate(r.lead + r.transit) : "needs plant address", best: false },
+            { label: "Certificates", value: r.certs.length ? r.certs.join(" · ") : "none declared", best: false },
+            { label: "Audit", value: r.audit, best: r.audit === "Passed" },
+            { label: "Terms", value: r.incoterm + " · " + r.payment, best: false },
+            { label: "Tooling / print plate", value: r.tooling ? money(r.tooling) : "none", best: !r.tooling },
+            { label: "Sample", value: r.sample ? "$" + r.sample + " · " + r.sampleDays + " d" : "to agree", best: false },
+            { label: "Terms confirmed", value: r.captured ? "captured by you" : r.updated + " d ago", best: false }
+          ].map(m => ({ label: m.label, value: m.value, fg: m.best ? "#2F7A2C" : "var(--navy-800)", weight: m.best ? "600" : "500" }))
+        }));
+      })(),
+      pcCompareEmpty: s.offerSel.length < 2,
+      onBackToProduct: () => this.go("product"),
+
+      pSelCount: s.offerSel.length,
+      pSelLabel: s.offerSel.length ? "Request quotes from " + s.offerSel.length + " supplier" + (s.offerSel.length > 1 ? "s" : "") : "Select suppliers to quote",
+      pSelReady: s.offerSel.length > 0,
+      pSelBg: s.offerSel.length ? "var(--action-primary)" : "var(--steel-300)",
+      onBackToCatalog: () => this.go("catalog"),
+      onQuoteSelected: () => {
+        if (!s.offerSel.length) return this.say("Tick the offers you want quoted — the RFQ carries the SKU, the variant and your container volume.");
+        this.say("RFQ drafted for " + fam.name + " · " + (variant ? variant.code : "") + " — " + s.offerSel.length + " recipients, " + per + " × " + cont.label + " per month.");
+        this.go("rfq", { rfqSent: false });
+      },
+      onSampleRequest: () => this.say("Sample request sent — suppliers ship against the sample fee shown in their row."),
+      onExportOffers: () => {
+        const head = ["Product", "Variant", "Supplier", "City", "Country", "FOB port", "MOQ pcs", "Unit USD at your volume", "Pcs per " + cont.label, "Cost per container USD", "Monthly spend USD", "Carton pcs", "Carton CBM", "Production lead d", "Transit d", "Est delivery", "Certificates", "Audit", "Terms"];
+        const body = rows.map(r => [fam.name, variant.code, r.supplier, r.city, r.cc, r.port, r.moq, r.unit, r.pcsCont, r.contCost, r.monthly, r.pack, r.cbm, r.lead, r.transit, r.transit ? fmtDate(r.lead + r.transit) : "", r.certs.join(" / "), r.audit, r.incoterm + " · " + r.payment]);
+        this.download("strefex-" + (fam ? fam.id : "product") + "-offers.csv", "text/csv",
+          [head].concat(body).map(r => r.map(c => '"' + String(c === undefined ? "" : c).replace(/"/g, '""') + '"').join(",")).join("\n"));
+        this.say("Offer comparison exported as CSV.");
+      }
+    };
+  }
+
+
+    renderVals() {
     try {
       return this.renderValsInner();
     } catch (err) {
@@ -3652,7 +5006,11 @@ transitFor(sup) {
         homeKpis: [], domains: [], alerts: [], nav: [],
         cmpCols: [], cmpRows: [], cmpHas: false, cmpEmpty: true, cmpCount: 0,
         rows: [], indicators: [], buyerName: "Receiving plant",
-        selCount: 0, hasSelection: false
+        selCount: 0, hasSelection: false,
+        showSpareCatalogue: false, spareProducts: [], spareProductCount: 0, spareMakerCount: 0,
+        showProductCatalogue: false, productCatalogueItems: [], productCatalogueGroups: [], productCatalogueEmpty: true,
+        isCatalog: false, isProduct: false, isListing: false, isPCompare: false, catalogOn: false,
+        catCards: [], catHasCards: false, catNoCards: true, catStats: [], catChips: [], pOffers: [], pVariants: []
       };
     }
   }
@@ -3701,6 +5059,16 @@ transitFor(sup) {
     else if (s.step === "registration") cb.push({ label: "Registration path", step: "registration" });
     else if (s.step === "compare") cb.push({ label: "Compare suppliers", step: "compare" });
     else if (s.step === "rfq") cb.push({ label: "Create RFQ", step: "rfq" });
+    else if (s.step === "catalog" || s.step === "product" || s.step === "listing" || s.step === "pcompare") {
+      if (s.domain) cb.push({ label: domainName, step: "industry" });
+      if (s.industry) cb.push({ label: industryName, step: "category" });
+      if (s.category) cb.push({ label: cat ? cat.name : "Category", step: "subcat" });
+      if (s.catSub || s.subcat) cb.push({ label: sub ? sub.name : "Part family", step: "subcat" });
+      cb.push({ label: "Catalogue", step: "catalog" });
+      if (s.step === "listing") cb.push({ label: "How suppliers list", step: "listing" });
+      if (s.step === "product" || s.step === "pcompare") cb.push({ label: "Article", step: "product" });
+      if (s.step === "pcompare") cb.push({ label: "Compare offers", step: "pcompare" });
+    }
     else {
       if (s.domain) cb.push({ label: domainName, step: "industry" });
       if (s.industry) cb.push({ label: industryName, step: "category" });
@@ -4026,13 +5394,64 @@ transitFor(sup) {
       headColor: tone3(x.headroom, 15, 8),
       fitColor: tone3(x.fit, 80, 72),
       rfqLabel: x.rfqs ? x.rfqs + " open RFQs" : "No open RFQs",
+      catN: (() => {
+        const CC = window.HOUSEHOLD_CATALOG; if (!CC) return 0;
+        const ind = this.catalogIndustryId(s.industry);
+        const exact = CC.FAMILIES.filter(f => f.dom === domain && f.inds.indexOf(ind) >= 0 && f.sub === x.id);
+        return exact.length;
+      })(),
+      catLabel: "",
+      onCatalogue: e => { if (e && e.stopPropagation) e.stopPropagation(); this.go("catalog", { catSub: x.id, catCategory: s.category || null, catGroup: "all", catQ: "", family: null }); },
       onPick: () => this.go("summary", { subcat: x.id })
     }));
+    subcats.forEach(x => {
+      x.showCatalogue = domain === "product";
+      x.hasCat = x.showCatalogue;
+      x.catLabel = x.showCatalogue
+        ? (x.catN ? (x.catN + (x.catN === 1 ? " article" : " articles") + " to compare") : "No articles yet")
+        : "";
+    });
     const subStats = [
       { n: liveSubs.length, label: "Subcategories", tone: NAVY },
       { n: liveSubs.reduce((a, b) => a + b.suppliers, 0), label: "Suppliers", tone: CYAN },
       { n: liveSubs.filter(x => x.risk === "high").length, label: "High risk", tone: RED }
     ];
+    const sparePack = (dd.SPARE_PARTS && dd.SPARE_PARTS[s.industry]) || {};
+    const spareCatId = s.category || "";
+    const spareRaw = Array.isArray(sparePack.products) ? sparePack.products : [];
+    const spareFiltered = spareCatId
+      ? spareRaw.filter(p => !p.categoryId || p.categoryId === spareCatId || (p.categoryName && cat && p.categoryName === cat.name))
+      : spareRaw;
+    const showSpareCatalogue = false;
+    const platInd = (dd.INDUSTRIES || []).filter(function (i) { return i.id === s.industry; })[0];
+    const platIndustrySlug = (platInd && (platInd.platformId || platInd.slug)) || s.industry;
+    const catGroups = (dd.PRODUCT_CATALOGUES || []).filter(function (g) {
+      const inds = g.industryIds || [];
+      return !inds.length || inds.indexOf(platIndustrySlug) >= 0 || inds.indexOf(s.industry) >= 0;
+    }).filter(function (g) {
+      if (!s.category) return true;
+      if (g.categoryId && g.categoryId === s.category) return true;
+      const mapped = (g.subcategoryIdsByIndustry && (g.subcategoryIdsByIndustry[platIndustrySlug] || g.subcategoryIdsByIndustry[s.industry])) || [];
+      return mapped.length > 0;
+    });
+    const catItems = (dd.PRODUCT_CATALOGUE_ITEMS || []).filter(function (it) {
+      if (it.industryId && it.industryId !== platIndustrySlug && it.industryId !== s.industry) return false;
+      if (s.category && it.categoryId && it.categoryId !== s.category) return false;
+      return true;
+    }).map(function (it) {
+      return { sku: it.sku || "—", name: it.name, material: it.material || "—", sellerName: it.sellerName || "—" };
+    });
+    const showProductCatalogue = s.domain === "product";
+    const productCatalogueEmpty = catItems.length === 0;
+    const roleLabel = { oem: "OEM", aftermarket: "Parts maker", registered: "Registered" };
+    const spareProducts = spareFiltered.slice(0, 24).map(p => ({
+      sku: p.sku, name: p.name, typicalLife: p.typicalLife || "—",
+      equipmentName: p.equipmentName || "",
+      makers: (p.makers || []).slice(0, 4).map(m => ({
+        name: m.name, country: m.country || "—",
+        roleLabel: roleLabel[m.role] || m.role || "Maker"
+      }))
+    }));
 
     /* ── step 5 ── */
     const catId = s.category || null;
@@ -4654,7 +6073,7 @@ transitFor(sup) {
     const industrySuppliersCount = countRegistry(x => matchesIndustry(x, s.industry, industryName) && matchesDomainRole(x, domain));
     const liveCatForHeader = cat ? (liveCats.filter(c => c.id === cat.id)[0] || cat) : null;
 
-    return {
+    return Object.assign(this.catalogVals(), {
       nav, crumbs,
       userInitials: (dd.userInitials || (window.__STREFEX_PLATFORM_SOURCING__ && window.__STREFEX_PLATFORM_SOURCING__.userInitials) || "U"),
       onOpenProfile: () => { try { (window.__STREFEX_SOURCING_BRIDGE__ || {}).emit && window.__STREFEX_SOURCING_BRIDGE__.emit("open-profile", {}); } catch (e) {} },
@@ -4722,6 +6141,13 @@ transitFor(sup) {
         { label: "Safety stock at plant", value: "5 days" }
       ],
       subcats, subStats, hasSubs: subcats.length > 0,
+      showSpareCatalogue, spareProducts,
+      spareProductCount: spareFiltered.length,
+      spareMakerCount: sparePack.makerCount || 0,
+      showProductCatalogue,
+      productCatalogueItems: catItems,
+      productCatalogueGroups: catGroups.map(function (g) { return { name: g.name }; }),
+      productCatalogueEmpty,
       categoryName: cat ? cat.name : "Category",
       categoryDesc: cat ? cat.desc : "",
       categorySuppliers: cat ? countRegistry(x =>
@@ -4742,9 +6168,9 @@ transitFor(sup) {
       sidePos: narrow ? "fixed" : "static",
       sideInset: narrow ? "0 auto 0 0" : "auto",
       menuDisplay: narrow ? "inline-flex" : "none",
-      labelDisplay: phone ? "none" : "inline",
-      headPad: phone ? "10px 14px" : narrow ? "12px 20px" : "14px 32px",
-      headGap: phone ? "10px" : "20px",
+      labelDisplay: (phone || narrow) ? "none" : "inline",
+      headPad: phone ? "6px 12px" : "8px 20px",
+      headGap: "10px",
       mainPad: phone ? "18px 14px 60px" : narrow ? "22px 20px 60px" : "28px 32px 60px",
       kpiCols: phone ? "1fr" : narrow ? "repeat(2,minmax(0,1fr))" : "repeat(auto-fit,minmax(min(200px,100%),1fr))",
       /* Desktop: fixed 4 columns × 2 rows for the eight supplier indicators */
@@ -4946,7 +6372,7 @@ transitFor(sup) {
         "Keeps the email invitation as a third option, not the only one",
         "Every action stays on this page"
       ]
-    };
+    });
   }
 }
 

@@ -40,6 +40,11 @@ async function rpcListSourcingNetworkAccounts(limit) {
  * Failed RPCs are not cached, so a cold deploy cannot hide suppliers for 90s.
  */
 export async function fetchSourcingNetworkAccounts({ limit = 500, force = false } = {}) {
+  try {
+    const { useAuthStore } = await import('../store/authStore')
+    const { isAuditorWorkspaceRole } = await import('../utils/auditorWorkspaceAccess')
+    if (isAuditorWorkspaceRole(useAuthStore.getState().role)) return []
+  } catch { /* */ }
   const wanted = Math.min(Math.max(Number(limit) || 500, 1), 2000)
   if (!force && inflight) return inflight
   if (

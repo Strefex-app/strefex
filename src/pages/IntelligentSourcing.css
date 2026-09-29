@@ -1,16 +1,21 @@
-/* Full-bleed inside AppLayout .app-main (cancels horizontal padding so design fits the shell). */
+/* Same scroll rules as Profile: app-main scrolls; sidebar nav scrolls separately.
+   Bottom inset matches Profile (12px + safe area), not a large reserved strip. */
+.app-main:has(.intelligent-sourcing-page) .app-page-breadcrumb-bar {
+  margin-bottom: 0;
+}
+
 .intelligent-sourcing-page {
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   margin: 0 calc(-1 * var(--stx-page-pad-x, 24px));
-  margin-bottom: calc(-100px - env(safe-area-inset-bottom, 0px));
   width: calc(100% + 2 * var(--stx-page-pad-x, 24px));
-  height: calc(100dvh);
-  max-height: 100dvh;
+  min-height: calc(100dvh - var(--stx-chrome-top-h, 77px) - var(--stx-menu-deadzone, 12px));
+  height: auto;
+  max-height: none;
   background: var(--bg-primary, #f6f7f8);
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -22,12 +27,12 @@ html[data-theme="dark"] .intelligent-sourcing-page {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: calc(100dvh - var(--stx-chrome-top-h, 77px) - var(--stx-menu-deadzone, 12px));
   border: 0;
   display: block;
   background: var(--bg-primary, #f6f7f8);
-  overflow: hidden;
+  overflow: visible;
 }
 
 html[data-theme="dark"] .intelligent-sourcing-frame {
@@ -139,10 +144,6 @@ html[data-theme="dark"] .intelligent-sourcing-rfq-overlay {
 
 /* Tablet: icon rail + condensed pad (AppLayout ≤900) */
 @media (max-width: 900px) {
-  .intelligent-sourcing-page {
-    margin-bottom: calc(-80px - env(safe-area-inset-bottom, 0px));
-  }
-
   .intelligent-sourcing-rfq-panel {
     padding: 16px;
   }
@@ -151,10 +152,10 @@ html[data-theme="dark"] .intelligent-sourcing-rfq-overlay {
 /* Phone: hamburger chrome (AppLayout ≤640) — keep iframe usable, no double top padding */
 @media (max-width: 640px) {
   .intelligent-sourcing-page {
-    /* Cancel app-main top pad for hamburger without shrinking the iframe to zero */
     margin-top: calc(-64px - env(safe-area-inset-top, 0px));
-    height: 100dvh;
-    max-height: 100dvh;
+    min-height: calc(100dvh - var(--stx-menu-deadzone, 12px));
+    height: auto;
+    max-height: none;
     padding-top: calc(52px + env(safe-area-inset-top, 0px));
   }
 

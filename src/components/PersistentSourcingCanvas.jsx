@@ -10,7 +10,7 @@ import {
 } from 'react'
 import './PersistentSourcingCanvas.css'
 
-export const SOURCING_FRAME_VERSION = '20260919p'
+export const SOURCING_FRAME_VERSION = '20260928chromerow'
 
 function readSourcingTheme() {
   try {
@@ -91,6 +91,50 @@ export function PersistentSourcingCanvasProvider({ children }) {
     return () => window.removeEventListener('themechange', send)
   }, [])
 
+  useEffect(() => {
+    const next = sourcingFrameSrc()
+    const iframe = iframeRef.current
+    if (!iframe || !frameSrcRef.current || frameSrcRef.current === next) return undefined
+    frameSrcRef.current = next
+    setFrameReady(false)
+    iframe.src = next
+    return undefined
+  }, [booted, SOURCING_FRAME_VERSION])
+
+  /* Size the iframe to its document so app-main scrolls like Profile. */
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!live || !frameReady || !iframe) return undefined
+
+    const measure = () => {
+      try {
+        const doc = iframe.contentDocument
+        if (!doc) return
+        const h = Math.max(
+          doc.documentElement?.scrollHeight || 0,
+          doc.body?.scrollHeight || 0,
+        )
+        if (h > 80) iframe.style.height = `${h}px`
+      } catch { /* */ }
+    }
+
+    measure()
+    const id = window.setInterval(measure, 400)
+    let observer
+    try {
+      const doc = iframe.contentDocument
+      if (doc?.body && typeof MutationObserver !== 'undefined') {
+        observer = new MutationObserver(measure)
+        observer.observe(doc.body, { childList: true, subtree: true, attributes: true })
+      }
+    } catch { /* */ }
+
+    return () => {
+      window.clearInterval(id)
+      observer?.disconnect()
+    }
+  }, [live, frameReady])
+
   useLayoutEffect(() => {
     const host = hostRef.current
     const park = parkRef.current
@@ -110,6 +154,8 @@ export function PersistentSourcingCanvasProvider({ children }) {
     host.classList.add('is-parked')
     host.classList.remove('is-live')
     host.setAttribute('aria-hidden', 'true')
+    const iframe = iframeRef.current
+    if (iframe) iframe.style.height = ''
     return undefined
   }, [live])
 
