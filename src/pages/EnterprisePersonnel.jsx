@@ -35,7 +35,7 @@ const EnterprisePersonnel = () => {
   return (
     <EnterpriseCostPage
       title="Personnel Costs"
-      subtitle="Salaries, benefits, and training expenses by department"
+      subtitle="Headcount follows HR Space employees automatically; salary, benefits, and training rates stay here"
       costType="Personnel Cost"
       costs={personnelCosts}
       columns={columns}

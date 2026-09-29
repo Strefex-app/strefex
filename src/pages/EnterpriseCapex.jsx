@@ -42,7 +42,7 @@ const EnterpriseCapex = () => {
   return (
     <EnterpriseCostPage
       title="Capital Expenditures (CAPEX)"
-      subtitle="Long-term asset investments and their depreciation"
+      subtitle="Floor equipment from Production Management, plus manual assets and quote tooling"
       costType="Capital Asset"
       costs={capex}
       columns={columns}

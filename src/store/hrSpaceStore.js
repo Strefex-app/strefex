@@ -13,6 +13,7 @@ import {
   normalizeDepartment,
   normalizeDepartmentList,
 } from '../utils/departmentRecord'
+import { bindHrCompanyPersist } from '../utils/hrEnterprisePersonnel'
 
 /**
  * Talent pool entry (persisted in Zustand). Binary CV is in IndexedDB at cvStoredFileId.
@@ -323,11 +324,13 @@ const useHrSpaceStore = create(
         const seq = get().nextEmployeeSeq + 1
         const id = `e${seq}`
         const employeeNumber = formatEmployeeNumber(seq)
+        const deptName = department || 'Production'
         const employee = {
           id,
           name: name.trim(),
           email: (email || '').trim(),
-          department: department || 'Production',
+          department: deptName,
+          departmentId: makeDepartmentId(deptName),
           role: role || 'Employee',
           status: 'active',
           hireDate: hireDate || new Date().toISOString().slice(0, 10),
@@ -982,3 +985,5 @@ const useHrSpaceStore = create(
 )
 
 export default useHrSpaceStore
+
+bindHrCompanyPersist(useHrSpaceStore)

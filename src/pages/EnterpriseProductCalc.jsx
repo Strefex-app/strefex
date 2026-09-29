@@ -257,7 +257,7 @@ const EnterpriseProductCalc = () => {
           <div className="epc-header-row">
             <div>
               <h1 className="epc-title">Product Cost Calculation</h1>
-              <p className="epc-subtitle">Calculate real manufacturing costs and profit margins using all enterprise cost data</p>
+              <p className="epc-subtitle">Products from Cost Management plus enterprise hours, packaging, and volume — saved to this company automatically</p>
             </div>
             <div className="epc-header-actions">
               <button type="button" className="epc-btn primary" onClick={() => setShowAddModal(true)}>

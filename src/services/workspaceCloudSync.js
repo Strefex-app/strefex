@@ -2,13 +2,13 @@
  * Cross-device workspace sync (Supabase) for tenant-scoped Zustand / local data.
  * Requires Supabase auth + profiles.company_id (same as other tenant tables).
  *
- * Pull runs after login rehydration; local changes debounce-push to
- * tenant_workspace_snapshots (company_id + state_key).
+ * Pull runs after login rehydration; management-tool writes flush immediately to
+ * tenant_workspace_snapshots (company_id + state_key). Other keys still debounce.
  *
  * Synced keys (see SYNC_SPECS): projects, vendors, rfqs, contracts, procurement, cost,
  * enterprise, production, templates, audit_logs, audit_pro, hr_space, account_registry, profile_contacts,
  * industry_prefs, service_prefs, service_requests_workspace, messenger (Company Messenger / Brain),
- * quality_excellence, iatf_control.
+ * quality_excellence, iatf_control, rfq_intelligence, forum.
  */
 import { isSupabaseConfigured, workspaceSnapshotsService } from './supabaseService'
 import { isDemoModeActive } from '../config/demoAccount'
@@ -28,12 +28,24 @@ import { useTemplateStore } from '../store/templateStore'
 import useAuditStore from '../store/auditStore'
 import useAuditProStore from '../store/auditProStore'
 import useHrSpaceStore from '../store/hrSpaceStore'
+import { isHrSpaceSnapshotEmpty } from '../utils/hrEnterprisePersonnel'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
 import { useServiceStore } from '../store/serviceStore'
 import { useServiceRequestStore } from '../store/serviceRequestStore'
 import { useMessengerStore } from '../store/messengerStore'
+import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
 import { reportSyncError, useSyncStatusStore } from '../store/syncStatusStore'
+import {
+  applyForumPayload,
+  isForumSnapshotEmpty,
+  readForumPayload,
+} from '../utils/forumHub'
+import {
+  bindManagementEnterpriseLinks,
+  isRfqIntelligenceSnapshotEmpty,
+  MANAGEMENT_IMMEDIATE_KEY_SET,
+} from '../utils/managementCompanyPersist'
 
 const DEBOUNCE_MS = 2500
 const PROFILE_CONTACTS_STORAGE = 'strefex-profile-contacts'
@@ -561,7 +573,7 @@ const SYNC_SPECS = [
       }
       useHrSpaceStore.setState(next)
     },
-    isEmpty: (p) => !p?.employees?.length && !p?.openPositions?.length,
+    isEmpty: (p) => isHrSpaceSnapshotEmpty(p),
     subscribe: (cb) => useHrSpaceStore.subscribe(cb),
   },
   {
@@ -683,6 +695,38 @@ const SYNC_SPECS = [
     },
     subscribe: (cb) => useMessengerStore.subscribe(cb),
   },
+  {
+    key: 'rfq_intelligence',
+    extract: () => {
+      const s = useRfqIntelligenceStore.getState()
+      return {
+        readIncomingIds: s.readIncomingIds || [],
+        quotes: s.quotes || [],
+        lastToolingEUR: s.lastToolingEUR || 0,
+        lastCalculatorSnapshot: s.lastCalculatorSnapshot || null,
+        lastEstimateForRfq: s.lastEstimateForRfq || null,
+      }
+    },
+    apply: (p) => {
+      if (!p || typeof p !== 'object') return
+      const next = {}
+      if (Array.isArray(p.readIncomingIds)) next.readIncomingIds = p.readIncomingIds
+      if (Array.isArray(p.quotes)) next.quotes = p.quotes
+      if (typeof p.lastToolingEUR === 'number') next.lastToolingEUR = p.lastToolingEUR
+      if (p.lastCalculatorSnapshot !== undefined) next.lastCalculatorSnapshot = p.lastCalculatorSnapshot
+      if (p.lastEstimateForRfq !== undefined) next.lastEstimateForRfq = p.lastEstimateForRfq
+      if (Object.keys(next).length) useRfqIntelligenceStore.setState(next)
+    },
+    isEmpty: (p) => isRfqIntelligenceSnapshotEmpty(p),
+    subscribe: (cb) => useRfqIntelligenceStore.subscribe(cb),
+  },
+  {
+    key: 'forum',
+    extract: () => readForumPayload(),
+    apply: (p) => applyForumPayload(p),
+    isEmpty: (p) => isForumSnapshotEmpty(p),
+    subscribe: () => () => {},
+  },
 ]
 
 /**
@@ -743,13 +787,14 @@ function attachLifecycleSync() {
 
 function attachSubscribers() {
   SYNC_SPECS.forEach((spec) => {
-    if (spec.key === 'profile_contacts') return
+    if (spec.key === 'profile_contacts' || spec.key === 'forum') return
     const unsub = spec.subscribe(() => {
       if (applyingRemote) return
-      schedulePushKey(spec.key)
+      schedulePushKey(spec.key, MANAGEMENT_IMMEDIATE_KEY_SET.has(spec.key))
     })
     unsubscribers.push(unsub)
   })
+  bindManagementEnterpriseLinks()
 }
 
 /** management_audits realtime → debounced hydrate (phone saves show on web without refresh). */

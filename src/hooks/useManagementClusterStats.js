@@ -13,21 +13,13 @@ import useProductionStore from '../store/productionStore'
 import useQualityExcellenceStore from '../store/qualityExcellenceStore'
 import useIatfControlStore from '../store/iatfControlStore'
 import { useRfqIntelligenceStore } from '../store/rfqIntelligenceStore'
-import { tenantKey } from '../utils/tenantStorage'
-
-const FORUM_STORAGE_KEY = 'strefex-forum-hub'
+import { readForumPayload } from '../utils/forumHub'
 
 function loadForumCounts() {
-  try {
-    const raw = localStorage.getItem(tenantKey(FORUM_STORAGE_KEY))
-    if (!raw) return { announcements: 0, lessons: 0 }
-    const p = JSON.parse(raw)
-    return {
-      announcements: Array.isArray(p.announcements) ? p.announcements.length : 0,
-      lessons: Array.isArray(p.lessons) ? p.lessons.length : 0,
-    }
-  } catch {
-    return { announcements: 0, lessons: 0 }
+  const p = readForumPayload()
+  return {
+    announcements: Array.isArray(p.announcements) ? p.announcements.length : 0,
+    lessons: Array.isArray(p.lessons) ? p.lessons.length : 0,
   }
 }
 

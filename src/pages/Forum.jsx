@@ -4,40 +4,12 @@ import AppLayout from '../components/AppLayout'
 import Icon from '../components/Icon'
 import { useAuthStore } from '../store/authStore'
 import { tenantKey } from '../utils/tenantStorage'
+import { FORUM_STORAGE_KEY, readForumPayload, writeForumPayload } from '../utils/forumHub'
 import '../styles/app-page.css'
 import './Forum.css'
 
-const STORAGE_KEY = 'strefex-forum-hub'
-
 /** @typedef {{ id: string, title: string, body: string, severity: 'normal'|'high', createdAt: string, authorLabel: string }} ForumAnnouncement */
 /** @typedef {{ id: string, title: string, takeaway: string, category: string, createdAt: string, authorLabel: string }} ForumLesson */
-
-const emptyPayload = () => ({
-  announcements: /** @type {ForumAnnouncement[]} */ ([]),
-  lessons: /** @type {ForumLesson[]} */ ([]),
-})
-
-function loadHub() {
-  try {
-    const raw = localStorage.getItem(tenantKey(STORAGE_KEY))
-    if (!raw) return emptyPayload()
-    const p = JSON.parse(raw)
-    return {
-      announcements: Array.isArray(p.announcements) ? p.announcements : [],
-      lessons: Array.isArray(p.lessons) ? p.lessons : [],
-    }
-  } catch {
-    return emptyPayload()
-  }
-}
-
-function saveHub(payload) {
-  try {
-    localStorage.setItem(tenantKey(STORAGE_KEY), JSON.stringify(payload))
-  } catch {
-    /* ignore quota */
-  }
-}
 
 function newId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -53,25 +25,33 @@ function formatWhen(iso) {
 
 const MS_WEEK = 7 * 24 * 60 * 60 * 1000
 
-/** Interactive forum hub — workspace updates, lessons learned, shortcuts (tenant-local until backend exists). */
+/** Interactive forum hub — announcements and lessons learned, saved to the company workspace. */
 export default function Forum() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const authorLabel = user?.fullName?.trim() || user?.email || 'Member'
 
-  const [hub, setHub] = useState(loadHub)
+  const [hub, setHub] = useState(readForumPayload)
 
   useEffect(() => {
     const onVis = () => {
-      if (!document.hidden) setHub(loadHub())
+      if (!document.hidden) setHub(readForumPayload())
+    }
+    const onSync = (e) => {
+      if (e?.detail) setHub(e.detail)
+      else setHub(readForumPayload())
     }
     document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    window.addEventListener('strefex-forum-hub-sync', onSync)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('strefex-forum-hub-sync', onSync)
+    }
   }, [])
 
   const persist = useCallback((next) => {
     setHub(next)
-    saveHub(next)
+    writeForumPayload(next)
   }, [])
 
   const [announceTitle, setAnnounceTitle] = useState('')
@@ -156,7 +136,7 @@ export default function Forum() {
         JSON.stringify(
           {
             exportedAt: new Date().toISOString(),
-            storageScope: tenantKey(STORAGE_KEY),
+            storageScope: tenantKey(FORUM_STORAGE_KEY),
             announcements: hub.announcements,
             lessons: hub.lessons,
           },
