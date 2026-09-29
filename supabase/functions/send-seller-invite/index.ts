@@ -24,8 +24,8 @@ const DAILY_LIMIT = Number(Deno.env.get('SELLER_INVITE_DAILY_LIMIT') || 40)
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version, prefer',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 function json(status: number, body: Record<string, unknown>) {
@@ -37,6 +37,19 @@ function json(status: number, body: Record<string, unknown>) {
 
 function normalizeEmail(value: unknown) {
   return String(value || '').trim().toLowerCase()
+}
+
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
+  'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com', 'aol.com',
+  'protonmail.com', 'proton.me', 'mail.com', 'gmx.com', 'gmx.de',
+  'yandex.com', 'yandex.ru', 'mail.ru', 'bk.ru', 'inbox.ru', 'list.ru', 'rambler.ru',
+])
+
+function isBusinessEmail(email: string) {
+  const domain = email.split('@')[1] || ''
+  return Boolean(domain.includes('.') && !PUBLIC_EMAIL_DOMAINS.has(domain))
 }
 
 function escapeHtml(value: string) {
@@ -93,6 +106,9 @@ Deno.serve(async (req) => {
   const token = String(body.token || '').trim()
   if (!inviteeEmail.includes('@') || !token) {
     return json(400, { ok: false, error: 'invitee email and token are required' })
+  }
+  if (!isBusinessEmail(inviteeEmail)) {
+    return json(400, { ok: false, error: 'Company email domain required. Public mailboxes are not allowed.' })
   }
 
   const inviteeName = String(body.inviteeName || '').trim()

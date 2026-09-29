@@ -8,8 +8,11 @@
  * so the app falls back to localStorage seamlessly.
  */
 import { supabase, isSupabaseConfigured } from '../config/supabase'
+import { createClient } from '@supabase/supabase-js'
+import env from '../config/env'
 import { resolveCrudListLimit } from '../utils/crudListLimit'
 import { authEmailRedirectTo, signupAwaitingConfirmation } from '../utils/authEmailRedirect'
+import { invokeEdgeFunction, isEdgeFunctionUnreachable } from '../utils/invokeEdgeFunction'
 
 /**
  * Cross-tenant and tenant lists default to a finite window.
@@ -56,38 +59,97 @@ export const supabaseAuth = {
 
   /**
    * Invite a seller/team login via Edge Function (Resend + generateLink).
-   * Does not call signUp in the admin session — that often skips confirmation mail.
+   * Falls back to a session-less magic-link/OTP so mail still sends while
+   * Super Admin is signed in (client signUp often skips GoTrue SMTP).
    */
   async inviteTeamUser({ email, fullName, role = 'user', companyId = null, accountType = 'seller' }) {
     if (!isSupabaseConfigured || !supabase) return null
+    const { businessEmailError, isBusinessEmail } = await import('../utils/businessEmail')
+    if (!isBusinessEmail(email)) {
+      throw new Error(businessEmailError(email))
+    }
+    const payload = {
+      email,
+      fullName: (fullName || '').trim(),
+      role,
+      companyId,
+      accountType,
+    }
 
-    const { data, error } = await supabase.functions.invoke('invite-auth-user', {
-      body: {
-        email,
-        fullName: (fullName || '').trim(),
-        role,
-        companyId,
-        accountType,
+    try {
+      const data = await invokeEdgeFunction('invite-auth-user', payload)
+      if (data && data.ok === false) {
+        throw new Error(data.error || 'Invite email was not delivered')
+      }
+      return {
+        user: data?.user || null,
+        emailConfirmationPending: Boolean(data?.emailConfirmationPending ?? data?.delivered),
+        alreadyExists: Boolean(data?.alreadyExists),
+        delivered: Boolean(data?.delivered),
+        channel: data?.channel || 'resend',
+        actionLink: data?.actionLink || null,
+        error: data?.error || null,
+      }
+    } catch (error) {
+      const msg = String(error?.message || 'Invite email failed')
+      if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+        return { alreadyExists: true, user: null, delivered: false, channel: 'exists' }
+      }
+      const fallback = await this.sendLoginEmailFallback(payload).catch(() => null)
+      if (fallback?.delivered) return fallback
+      if (isEdgeFunctionUnreachable(error)) {
+        throw new Error(
+          `${msg} Rights can still be saved. Deploy invite-auth-user, or send confirmation from Authentication → Users.`,
+        )
+      }
+      throw new Error(msg)
+    }
+  },
+
+  /**
+   * Guest GoTrue client — current admin session must not own this call or
+   * confirmation mail is often skipped.
+   */
+  async sendLoginEmailFallback({ email, fullName, accountType = 'seller', companyId = null }) {
+    if (!isSupabaseConfigured) return null
+    const guest = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    })
+    const redirectTo = authEmailRedirectTo('/login?confirmed=true')
+    const { error: otpError } = await guest.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: redirectTo,
+        data: {
+          full_name: (fullName || '').trim(),
+          account_type: accountType,
+          company_id: companyId,
+          invited: true,
+        },
       },
     })
-
-    if (error) {
-      const msg = String(error.message || data?.error || 'Invite email failed')
-      if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
-        return { alreadyExists: true, user: null, delivered: false }
+    if (!otpError) {
+      return {
+        user: null,
+        delivered: true,
+        channel: 'supabase_otp',
+        emailConfirmationPending: true,
+        alreadyExists: false,
       }
-      throw new Error(data?.error || msg)
     }
-    if (data && data.ok === false) {
-      throw new Error(data.error || 'Invite email was not delivered')
+    const otpMsg = String(otpError.message || '').toLowerCase()
+    if (otpMsg.includes('rate') || otpMsg.includes('over_email')) {
+      throw otpError
     }
-
+    const { error: resendError } = await guest.auth.resend({ type: 'signup', email })
+    if (resendError) throw otpError
     return {
-      user: data?.user || null,
-      emailConfirmationPending: Boolean(data?.emailConfirmationPending ?? data?.delivered),
-      alreadyExists: Boolean(data?.alreadyExists),
-      delivered: Boolean(data?.delivered),
-      channel: data?.channel || 'resend',
+      user: null,
+      delivered: true,
+      channel: 'supabase_resend',
+      emailConfirmationPending: true,
+      alreadyExists: true,
     }
   },
 

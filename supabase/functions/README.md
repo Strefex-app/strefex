@@ -47,6 +47,12 @@ supabase functions deploy send-seller-invite
 supabase functions deploy invite-auth-user
 ```
 
+If the browser shows **Failed to send a request to the Edge Function**, the function is
+unreachable (not deployed) or CORS preflight failed. Redeploy after changing
+`Access-Control-Allow-Headers` (must include `x-supabase-api-version`).
+
+The platform then falls back to a session-less Supabase magic-link / confirmation email.
+
 ## Suggested cron schedule
 
 - Ingestion: every 5 minutes

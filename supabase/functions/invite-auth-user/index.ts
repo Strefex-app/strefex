@@ -20,8 +20,8 @@ const APP_ORIGIN = (Deno.env.get('APP_ORIGIN') || 'https://strefex.pro').replace
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version, prefer',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 function json(status: number, body: Record<string, unknown>) {
@@ -33,6 +33,19 @@ function json(status: number, body: Record<string, unknown>) {
 
 function normalizeEmail(value: unknown) {
   return String(value || '').trim().toLowerCase()
+}
+
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
+  'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com', 'aol.com',
+  'protonmail.com', 'proton.me', 'mail.com', 'gmx.com', 'gmx.de',
+  'yandex.com', 'yandex.ru', 'mail.ru', 'bk.ru', 'inbox.ru', 'list.ru', 'rambler.ru',
+])
+
+function isBusinessEmail(email: string) {
+  const domain = email.split('@')[1] || ''
+  return Boolean(domain.includes('.') && !PUBLIC_EMAIL_DOMAINS.has(domain))
 }
 
 function escapeHtml(value: string) {
@@ -80,6 +93,9 @@ Deno.serve(async (req) => {
   const email = normalizeEmail(body.email)
   if (!email.includes('@')) {
     return json(400, { ok: false, error: 'A valid email is required' })
+  }
+  if (!isBusinessEmail(email)) {
+    return json(400, { ok: false, error: 'Company email domain required. Public mailboxes are not allowed.' })
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -210,7 +226,17 @@ Deno.serve(async (req) => {
   const resendJson: any = await resendRes.json().catch(() => ({}))
   if (!resendRes.ok) {
     const errMsg = resendJson?.message || resendJson?.error || `Resend HTTP ${resendRes.status}`
-    return json(502, { ok: false, error: String(errMsg), fallbackMailto: true, actionLink })
+    return json(200, {
+      ok: true,
+      delivered: false,
+      channel: 'resend_failed',
+      alreadyExists,
+      emailConfirmationPending: !alreadyExists,
+      linkType,
+      actionLink,
+      error: String(errMsg),
+      user: gen.data?.user || null,
+    })
   }
 
   return json(200, {
@@ -220,6 +246,7 @@ Deno.serve(async (req) => {
     alreadyExists,
     emailConfirmationPending: !alreadyExists,
     linkType,
+    actionLink,
     messageId: resendJson?.id || null,
     user: gen.data?.user || null,
   })
