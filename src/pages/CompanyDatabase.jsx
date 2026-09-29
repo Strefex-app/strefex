@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import AppListSelect from '../components/AppListSelect'
 import FolderBrowser from '../components/company/FolderBrowser'
 import {
   COMPANY_DATABASE_PATH,
@@ -54,18 +55,19 @@ export default function CompanyDatabase() {
             {activeSpace.id === PLANT_QMS_SPACE && (
               <label className="cdb-industry-select">
                 <span className="stx-text-caption">Plant industry</span>
-                <select
+                <AppListSelect
                   value={plantIndustry}
                   disabled={readOnly}
-                  onChange={(e) => setPlantIndustry(e.target.value)}
-                >
-                  {PLATFORM_HUB_INDUSTRY_SLUGS.map((slug) => (
-                    <option key={slug} value={slug}>
-                      {getIndustryQualityProfile(slug).label}
-                    </option>
-                  ))}
-                  <option value="general">General manufacturing</option>
-                </select>
+                  ariaLabel="Plant industry"
+                  options={[
+                    ...PLATFORM_HUB_INDUSTRY_SLUGS.map((slug) => ({
+                      value: slug,
+                      label: getIndustryQualityProfile(slug).label,
+                    })),
+                    { value: 'general', label: 'General manufacturing' },
+                  ]}
+                  onChange={setPlantIndustry}
+                />
               </label>
             )}
             {activeSpace.iatfPath ? (
