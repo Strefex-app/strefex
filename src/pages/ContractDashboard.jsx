@@ -94,7 +94,7 @@ export default function ContractDashboard() {
         </div>
 
         {/* KPIs */}
-        <div className="ctr-kpis">
+        <div className="stx-indicator-strip ctr-kpis">
           <div className="ctr-kpi"><span className="ctr-kpi-n">{stats.total}</span>Total</div>
           <div className="ctr-kpi"><span className="ctr-kpi-n" style={{ color: '#27ae60' }}>{stats.active}</span>Active</div>
           <div className="ctr-kpi"><span className="ctr-kpi-n" style={{ color: '#e67e22' }}>{stats.expiringSoon}</span>Expiring Soon</div>

@@ -183,7 +183,7 @@ const IndustryHub = () => {
         </div>
 
         {/* Top indicator cards */}
-        <div className="industry-hub-indicators">
+        <div className="stx-indicator-strip industry-hub-indicators">
           <div className="industry-hub-indicator-card">
             <div className="industry-hub-indicator-icon blue">
               <Icon name="check-circle" size={24} />

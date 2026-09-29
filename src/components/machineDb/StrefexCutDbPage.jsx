@@ -1026,7 +1026,7 @@ function StrefexCutDbPageInner({ db }) {
             )}
 
             {!calcResult.error && (
-              <div className="stx-mdb-kpis" style={{ marginTop: 8 }}>
+              <div className="stx-indicator-strip stx-mdb-kpis" style={{ marginTop: 8 }}>
                 <div className="stx-mdb-kpi">
                   <div className="num">{calcResult.vc ?? '—'}</div>
                   <div className="lbl">Vc (m/min)</div>

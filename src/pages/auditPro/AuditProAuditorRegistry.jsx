@@ -285,7 +285,7 @@ export default function AuditProAuditorRegistry() {
         </section>
       ) : (
         <>
-          <div className="ap-pool-kpis ap-adb-kpis">
+          <div className="stx-indicator-strip ap-pool-kpis ap-adb-kpis">
             <article className="ap-pool-kpi ap-pool-kpi--info">
               <div className="ap-pool-kpi-label">Auditors on the panel</div>
               <div className="ap-pool-kpi-value">{kpis.panel}</div>

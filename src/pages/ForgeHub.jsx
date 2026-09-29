@@ -171,7 +171,7 @@ export default function ForgeHub() {
 
         <AiInsightsCtaStrip context="management" />
 
-        <div className="headcount-indicators forge-hub-indicators">
+        <div className="stx-indicator-strip headcount-indicators forge-hub-indicators">
           {indicators.map((ind) => (
             <button
               key={ind.id}

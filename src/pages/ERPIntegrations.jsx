@@ -82,7 +82,7 @@ export default function ERPIntegrations() {
         </div>
 
         {/* KPIs */}
-        <div className="erp-kpis">
+        <div className="stx-indicator-strip erp-kpis">
           <div className="erp-kpi"><span className="erp-kpi-n">{INTEGRATIONS.length}</span>Available</div>
           <div className="erp-kpi"><span className="erp-kpi-n" style={{ color: '#27ae60' }}>{INTEGRATIONS.filter((i) => getStatus(i) === 'connected').length}</span>Connected</div>
           <div className="erp-kpi"><span className="erp-kpi-n" style={{ color: '#e67e22' }}>{INTEGRATIONS.filter((i) => getStatus(i) === 'pending').length}</span>Pending</div>

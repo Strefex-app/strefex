@@ -152,7 +152,7 @@ export default function ServiceProviderDashboard() {
         </div>
 
         {/* ── KPI Cards ───────────────────────────────────── */}
-        <div className="spd-kpis">
+        <div className="stx-indicator-strip spd-kpis">
           <div className="spd-kpi-card">
             <div className="spd-kpi-icon blue">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>

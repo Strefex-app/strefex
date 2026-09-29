@@ -214,7 +214,7 @@ export default function ProcurementDashboard() {
   ]
 
   const renderKPIs = () => (
-    <div className="proc-kpis">
+    <div className="stx-indicator-strip proc-kpis">
       <div className="proc-kpi"><span className="proc-kpi-n">{stats.totalPRs}</span><span className="proc-kpi-l">Requisitions</span></div>
       <div className="proc-kpi"><span className="proc-kpi-n" style={{ color: '#e67e22' }}>{stats.pendingPRs}</span><span className="proc-kpi-l">Pending PRs</span></div>
       <div className="proc-kpi"><span className="proc-kpi-n" style={{ color: '#27ae60' }}>{stats.approvedPRs}</span><span className="proc-kpi-l">Approved PRs</span></div>

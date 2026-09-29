@@ -1,0 +1,279 @@
+/**
+ * Platform indicator strip — Home KPI cards, always one row.
+ * Count does not wrap: each tile shares the row equally and shrinks.
+ */
+
+.stx-indicator-strip,
+.home-dash__kpis,
+.mgmt-dash-kpis,
+.mgmt-cluster-stats,
+.production-indicators,
+.industry-hub-indicators,
+.enterprise-indicators,
+.cost-mgmt-indicators,
+.headcount-indicators,
+.forge-hub-indicators,
+.am-dash-kpi-strip,
+.ap-pool-kpis,
+.ap-adb-kpis,
+.sad-kpis,
+.sad-audit-kpis,
+.proc-kpis,
+.comp-kpis,
+.sa-kpis,
+.qe-kpis,
+.spc-kpis,
+.tpl-kpis {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 16px;
+  grid-template-columns: unset !important;
+}
+
+.stx-indicator-strip > *,
+.home-dash__kpis > *,
+.mgmt-dash-kpis > *,
+.mgmt-cluster-stats > *,
+.production-indicators > *,
+.industry-hub-indicators > *,
+.enterprise-indicators > *,
+.cost-mgmt-indicators > *,
+.headcount-indicators > *,
+.forge-hub-indicators > *,
+.am-dash-kpi-strip > *,
+.ap-pool-kpis > *,
+.ap-adb-kpis > *,
+.sad-kpis > *,
+.sad-audit-kpis > *,
+.proc-kpis > *,
+.comp-kpis > *,
+.sa-kpis > *,
+.qe-kpis > *,
+.spc-kpis > *,
+.tpl-kpis > * {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+  box-sizing: border-box;
+}
+
+/* Home-style tile: left rule, uppercase label, value + status, caption */
+.mgmt-dash-kpi,
+.industry-hub-indicator-card,
+.production-indicator-card,
+.enterprise-indicator-card,
+.cost-mgmt-indicator-card,
+.headcount-indicator-card,
+.forge-hub-indicator,
+.sad-kpi,
+.sad-kpi-card,
+.proc-kpi,
+.comp-kpi,
+.sa-kpi,
+.qe-kpi,
+.spc-kpi,
+.tpl-kpi,
+.ap-kpi-tile--dash {
+  text-align: left !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  flex-direction: column !important;
+  background: var(--surface-card, var(--bg-card));
+  border: 1px solid var(--border-hairline, var(--border-light));
+  border-left-width: 3px;
+  border-radius: var(--stx-radius, 6px);
+  box-shadow: var(--shadow-sm);
+  padding: 11px 13px !important;
+  gap: 0 !important;
+}
+
+.industry-hub-indicator-icon,
+.cost-mgmt-indicator-icon,
+.headcount-indicator-icon,
+.sad-kpi-icon,
+.indicator-icon {
+  display: none !important;
+}
+
+.production-indicators .stx-donut {
+  display: none !important;
+}
+
+.industry-hub-indicator-card > div,
+.cost-mgmt-indicator-card > div:last-child,
+.enterprise-indicator-card > div:last-of-type,
+.production-indicator-card > div:not(.indicator-icon):not(.stx-donut),
+.headcount-indicator-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.industry-hub-indicator-label,
+.cost-mgmt-indicator-label,
+.indicator-label,
+.headcount-indicator-label {
+  order: -1;
+}
+
+.industry-hub-indicator-label,
+.cost-mgmt-indicator-label,
+.indicator-label,
+.headcount-indicator-label,
+.mgmt-dash-kpi__label {
+  display: block;
+  font-size: clamp(8px, 0.85vw, 10.5px);
+  font-weight: var(--font-semibold, 600);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--color-muted));
+  margin: 0 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.industry-hub-indicator-value,
+.cost-mgmt-indicator-value,
+.indicator-value,
+.headcount-indicator-value,
+.mgmt-dash-kpi__value,
+.home-w__kpi-value,
+.sad-kpi-value,
+.sad-kpi-val {
+  font-size: clamp(14px, 1.8vw, 22px) !important;
+  font-weight: var(--font-semibold, 600);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mgmt-dash-kpi__hint,
+.home-w__kpi-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.qe-kpis--tight {
+  margin-bottom: 10px !important;
+}
+
+.home-w--kpi {
+  min-width: 0;
+}
+
+.home-w__kpi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.production-indicator-card,
+.enterprise-indicator-card {
+  position: relative;
+}
+
+.production-indicator-edit {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.sd-kpis,
+.wco-indicators,
+.stx-mdb-kpis,
+.ctr-kpis,
+.spd-kpis,
+.vd-eval-kpis,
+.erp-kpis,
+.aud-kpis,
+.vm-kpis,
+.sad-kpi-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: unset !important;
+}
+
+.sd-kpis > *,
+.wco-indicators > *,
+.stx-mdb-kpis > *,
+.ctr-kpis > *,
+.spd-kpis > *,
+.vd-eval-kpis > *,
+.erp-kpis > *,
+.aud-kpis > *,
+.vm-kpis > *,
+.sad-kpi-row > * {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+  box-sizing: border-box;
+}
+
+.sd-kpi-card,
+.vm-kpi,
+.erp-kpi,
+.aud-kpi,
+.stx-mdb-kpi,
+.ctr-kpi,
+.spd-kpi-card {
+  text-align: left !important;
+  align-items: flex-start !important;
+  flex-direction: column !important;
+  background: var(--surface-card, var(--bg-card));
+  border: 1px solid var(--border-hairline, var(--border-light));
+  border-left-width: 3px;
+  border-radius: var(--stx-radius, 6px);
+  box-shadow: var(--shadow-sm);
+  padding: 11px 13px !important;
+}
+
+.sd-kpi-icon {
+  display: none !important;
+}
+
+.sd-kpi-body,
+.spd-kpi-body {
+  align-items: flex-start !important;
+  width: 100%;
+}
+
+.sd-kpi-label,
+.spd-kpi-label,
+.vm-kpi-label,
+.erp-kpi-l,
+.aud-kpi-l,
+.stx-mdb-kpi .lbl {
+  order: -1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: clamp(8px, 0.85vw, 10.5px);
+  font-weight: var(--font-semibold, 600);
+  text-align: left !important;
+}
+
+.sd-kpi-value,
+.spd-kpi-value,
+.vm-kpi-val,
+.erp-kpi-n,
+.aud-kpi-n,
+.stx-mdb-kpi .num {
+  font-size: clamp(14px, 1.8vw, 22px) !important;
+  text-align: left !important;
+}

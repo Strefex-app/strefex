@@ -70,7 +70,7 @@ export default function ComplianceDashboard() {
         </div>
 
         {/* KPIs */}
-        <div className="comp-kpis">
+        <div className="stx-indicator-strip comp-kpis">
           <div className="comp-kpi"><span className="comp-kpi-n">{esgStats.pct}%</span>ESG Score</div>
           <div className="comp-kpi"><span className="comp-kpi-n" style={{ color: '#27ae60' }}>{esgStats.completed}</span>Completed</div>
           <div className="comp-kpi"><span className="comp-kpi-n" style={{ color: '#e67e22' }}>{esgStats.inProgress}</span>In Progress</div>

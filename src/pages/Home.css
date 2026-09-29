@@ -30,9 +30,10 @@
 .home-dash__crumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
   min-width: 0;
+  overflow: hidden;
 }
 
 .home-dash__crumb {
@@ -55,10 +56,11 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   min-width: 0;
+  flex: 0 0 auto;
 }
 
 .home-dash__actions--topbar {
@@ -228,6 +230,10 @@
   padding: 11px 13px;
   cursor: pointer;
   transition: box-shadow 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.home-w--kpi.stx-kpi--static {
+  cursor: default;
 }
 
 .home-w--kpi:hover {
@@ -785,12 +791,6 @@ button.home-w--inverse:hover {
 }
 
 @media (max-width: 1100px) {
-  .home-dash__kpis,
-  .home-dash__kpis--4,
-  .home-dash__kpis--5 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .home-dash__map-row {
     grid-template-columns: 1fr;
   }
@@ -813,10 +813,7 @@ button.home-w--inverse:hover {
 
   .home-dash__topbar {
     padding: 0 var(--stx-page-pad-x, 16px);
-    height: auto;
-    min-height: var(--stx-chrome-top-h, 77px);
-    max-height: none;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .home-dash__inner {
@@ -828,8 +825,7 @@ button.home-w--inverse:hover {
   }
 
   .home-dash__actions--topbar {
-    width: 100%;
-    order: -1;
+    flex: none;
   }
 
   .home-w__tiles {

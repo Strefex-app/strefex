@@ -55,7 +55,7 @@ const EnterpriseManagement = () => {
         <AiInsightsCtaStrip context="enterprise" />
 
         {/* Top Indicators */}
-        <div className="enterprise-indicators">
+        <div className="stx-indicator-strip enterprise-indicators">
           <div className="enterprise-indicator-card enterprise-indicator-clickable" onClick={() => navigate('/enterprise/fixed-costs')}>
             {canEdit && (
               <button className="em-edit-btn" onClick={(e) => { e.stopPropagation(); setEditModal({ id: 'monthlyCosts', label: 'Monthly Costs', value: summary.totalMonthlyCosts }) }}>

@@ -280,7 +280,7 @@ export default function TemplateLibrary() {
         </div>
 
         {/* KPIs */}
-        <div className="tpl-kpis">
+        <div className="stx-indicator-strip tpl-kpis">
           <div className="tpl-kpi"><span className="tpl-kpi-n">{templates.length}</span>Templates</div>
           <div className="tpl-kpi"><span className="tpl-kpi-n">{CATEGORIES.length - 1}</span>Categories</div>
           <div className="tpl-kpi"><span className="tpl-kpi-n">{featured.length}</span>Featured</div>

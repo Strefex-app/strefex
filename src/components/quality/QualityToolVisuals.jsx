@@ -288,7 +288,7 @@ function GageVisual({ fields = {} }) {
   return (
     <div className="qe-figure-stack">
       <GaugeVisual value={fields.grrPct} label="%GRR" />
-      <div className="qe-kpis qe-kpis--tight">
+      <div className="stx-indicator-strip qe-kpis qe-kpis--tight">
         <div className="qe-kpi"><strong>{fields.ndc || '—'}</strong><span className="stx-text-caption">ndc</span></div>
         <div className="qe-kpi"><strong className="stx-text-wrap">{String(fields.verdict || 'pending').replace(/_/g, ' ')}</strong><span className="stx-text-caption">Verdict</span></div>
       </div>
@@ -338,7 +338,7 @@ function CapabilityVisual({ fields = {}, rows = [] }) {
         {lsl != null && <line x1={(x(lsl) / 100) * w} x2={(x(lsl) / 100) * w} y1="8" y2={h - 16} className="qe-svg-limit qe-svg-limit--lo" />}
         {usl != null && <line x1={(x(usl) / 100) * w} x2={(x(usl) / 100) * w} y1="8" y2={h - 16} className="qe-svg-limit qe-svg-limit--hi" />}
       </svg>
-      <div className="qe-kpis qe-kpis--tight">
+      <div className="stx-indicator-strip qe-kpis qe-kpis--tight">
         <div className="qe-kpi"><strong>{fields.cpk || '—'}</strong><span className="stx-text-caption">Cpk</span></div>
         <div className="qe-kpi"><strong>{fields.ppk || '—'}</strong><span className="stx-text-caption">Ppk</span></div>
         <div className="qe-kpi"><strong>{fields.cp || '—'}</strong><span className="stx-text-caption">Cp</span></div>
@@ -489,7 +489,7 @@ function OeeVisual({ fields = {}, rows = [] }) {
   return (
     <div className="qe-figure-stack">
       <GaugeVisual value={oee} label="OEE %" good={target} mid={Math.max(target - 15, 40)} />
-      <div className="qe-kpis qe-kpis--tight">
+      <div className="stx-indicator-strip qe-kpis qe-kpis--tight">
         <div className="qe-kpi"><strong>{fields.availability || '—'}</strong><span className="stx-text-caption">A %</span></div>
         <div className="qe-kpi"><strong>{fields.performance || '—'}</strong><span className="stx-text-caption">P %</span></div>
         <div className="qe-kpi"><strong>{fields.quality || '—'}</strong><span className="stx-text-caption">Q %</span></div>
@@ -527,7 +527,7 @@ function KpiVisual({ rows = [] }) {
   }
   return (
     <div className="qe-figure-stack">
-      <div className="qe-kpis">
+      <div className="stx-indicator-strip qe-kpis">
         {items.map((k, i) => (
           <div key={k.id || i} className="qe-kpi">
             <strong className="stx-text-wrap">{k.actual || '—'}</strong>

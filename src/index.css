@@ -172,6 +172,8 @@
   --stx-ease: cubic-bezier(0.2, 0, 0.1, 1);
   /* Sidebar brand + page address bar — grey rule aligns across the shell (~3mm shorter than prior 88px) */
   --stx-chrome-top-h: 77px;
+  /* Space below the sidebar “Logout” label — the only bottom deadzone */
+  --stx-menu-deadzone: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ═══════════════════════════════════════════════════════════════

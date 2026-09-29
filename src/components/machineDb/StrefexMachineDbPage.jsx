@@ -246,7 +246,7 @@ function SupplierModal({ s, db, onClose }) {
           <button type="button" className="stx-mdb-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="stx-mdb-modal-body">
-          <div className="stx-mdb-kpis">
+          <div className="stx-indicator-strip stx-mdb-kpis">
             <div className="stx-mdb-kpi"><div className="num">{s.founded}</div><div className="lbl">Founded</div></div>
             <div className="stx-mdb-kpi"><div className="num">{s.employees}</div><div className="lbl">Employees</div></div>
             <div className="stx-mdb-kpi"><div className="num" style={{ fontSize: 13 }}>{s.revenue || '—'}</div><div className="lbl">Revenue</div></div>

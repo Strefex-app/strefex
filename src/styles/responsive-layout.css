@@ -258,14 +258,6 @@ canvas {
     width: auto;
   }
 
-  /* KPI strips: 2-up then stack via existing page CSS; ensure min width */
-  .mgmt-dash-kpis,
-  .home-dash__kpis,
-  .home-dash__kpis--4,
-  .home-dash__kpis--5 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .mgmt-dash-bar-row {
     grid-template-columns: minmax(0, 1fr) 1.4fr 32px;
   }
@@ -279,10 +271,6 @@ canvas {
     font-size: var(--text-heading);
   }
 
-  .mgmt-dash-kpis,
-  .home-dash__kpis,
-  .home-dash__kpis--4,
-  .home-dash__kpis--5,
   .home-dash__pulse-col {
     grid-template-columns: 1fr;
   }

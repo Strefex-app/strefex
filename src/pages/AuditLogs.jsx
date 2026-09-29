@@ -53,7 +53,7 @@ export default function AuditLogs() {
         </div>
 
         {/* KPIs */}
-        <div className="aud-kpis">
+        <div className="stx-indicator-strip aud-kpis">
           <div className="aud-kpi"><span className="aud-kpi-n">{stats.total}</span><span className="aud-kpi-l">Total Events</span></div>
           <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#2980b9' }}>{stats.today}</span><span className="aud-kpi-l">Today</span></div>
           <div className="aud-kpi"><span className="aud-kpi-n" style={{ color: '#e74c3c' }}>{stats.critical}</span><span className="aud-kpi-l">Critical</span></div>

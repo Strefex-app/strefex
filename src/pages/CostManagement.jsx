@@ -65,7 +65,7 @@ const CostManagement = () => {
         <AiInsightsCtaStrip context="cost" />
 
         {/* Top indicator cards */}
-        <div className="cost-mgmt-indicators">
+        <div className="stx-indicator-strip cost-mgmt-indicators">
           <div className="cost-mgmt-indicator-card">
             <div className="cost-mgmt-indicator-icon blue">
               <Icon name="enterprise" size={24} />
@@ -192,7 +192,7 @@ const CostManagement = () => {
               Open IATF Control
             </Link>
           </div>
-          <div className="cost-mgmt-indicators" style={{ marginTop: 12 }}>
+          <div className="stx-indicator-strip cost-mgmt-indicators" style={{ marginTop: 12 }}>
             <div className="cost-mgmt-indicator-card">
               <div>
                 <div className="cost-mgmt-indicator-value">{linkedCount}</div>

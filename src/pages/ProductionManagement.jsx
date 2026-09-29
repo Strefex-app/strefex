@@ -123,7 +123,7 @@ const ProductionManagement = () => {
         <CompanyWorkflowRail chainId="production-release" />
 
         {/* Top Indicators */}
-        <div className="production-indicators">
+        <div className="stx-indicator-strip production-indicators">
           <div className="production-indicator-card production-indicator-clickable" onClick={() => navigate('/production/oee')}>
             <DonutChart
               value={summary.avgOEE ?? 0}

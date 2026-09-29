@@ -621,7 +621,7 @@ export default function VendorDetail() {
           </div>
 
           {/* KPI row: evaluations, complaints, years */}
-          <div className="vd-eval-kpis">
+          <div className="stx-indicator-strip vd-eval-kpis">
             <div className="vd-eval-kpi"><span className="vd-eval-kpi-n">{vendor.evaluations.length}</span> Evaluations</div>
             <div className="vd-eval-kpi"><span className="vd-eval-kpi-n">{years.length}</span> Year{years.length !== 1 ? 's' : ''}</div>
             <div className="vd-eval-kpi"><span className="vd-eval-kpi-n" style={{ color: complaints.length > 0 ? '#e74c3c' : '#27ae60' }}>{complaints.length}</span> Complaints</div>

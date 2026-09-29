@@ -1,5 +1,5 @@
 .raw-materials-category-container {
-  min-height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
@@ -9,8 +9,7 @@
 .raw-materials-category-content {
   flex: 1;
   padding: 20px;
-  padding-bottom: 80px;
-  overflow-y: auto;
+  padding-bottom: var(--stx-menu-deadzone, 12px);
 }
 
 .raw-materials-category-container .page-title-section {

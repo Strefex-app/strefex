@@ -26,21 +26,8 @@ import {
   formatTransitLabel,
   transitDaysForMode,
 } from '../utils/transitLeadTime'
+import { KpiWidget, SIGNAL, SRC } from '../components/StxKpiWidget'
 import './Home.css'
-
-const SIGNAL = {
-  ok: 'var(--stx-signal-ok, #5FB85C)',
-  okBg: 'var(--badge-success-bg, #EAF6E9)',
-  okFg: 'var(--badge-success-text, #2F7A2C)',
-  watch: 'var(--stx-signal-watch, #E0A23B)',
-  critical: 'var(--stx-signal-critical, #D2483F)',
-  data: 'var(--stx-signal-data, #3AA6C9)',
-  dataBg: 'var(--accent-light, #E4F3F8)',
-  dataFg: 'var(--accent-text, #155F76)',
-  muted: 'var(--stx-ink-faint, #8B9298)',
-  navy: 'var(--stx-navy-800, #0A2540)',
-  steelBg: 'var(--stx-steel-200, #EEF0F2)',
-}
 
 
 /** KPI ↔ map relation colors (pins + dotted lanes). */
@@ -78,12 +65,6 @@ const MAP_FOCUS = {
 }
 
 
-const SRC = {
-  own: { src: 'Your activity', srcFg: SIGNAL.navy, srcBg: SIGNAL.steelBg },
-  live: { src: 'Live status', srcFg: SIGNAL.dataFg, srcBg: SIGNAL.dataBg },
-  ops: { src: 'Operations', srcFg: SIGNAL.okFg, srcBg: SIGNAL.okBg },
-}
-
 function formatWhen(value) {
   if (!value) return '—'
   try {
@@ -109,39 +90,6 @@ function statusTone(kind, status) {
   if (status === 'awarded') return { label: 'Awarded', color: SIGNAL.ok }
   if (status === 'declined') return { label: 'Declined', color: SIGNAL.muted }
   return { label: String(status || 'Open'), color: SIGNAL.data }
-}
-
-function KpiWidget({
-  label, value, unit, delta, deltaColor, sub, accent, src, srcFg, srcBg, onClick, active,
-}) {
-  return (
-    <button
-      type="button"
-      className={`home-w home-w--kpi${active ? ' home-w--kpi-active' : ''}`}
-      style={{ borderLeftColor: accent }}
-      onClick={onClick}
-      aria-pressed={active ? 'true' : 'false'}
-    >
-      <div className="home-w__kpi-label">{label}</div>
-      <div className="home-w__kpi-row">
-        <span className="home-w__kpi-value">
-          {value}
-          {unit ? <span className="home-w__kpi-unit">{unit}</span> : null}
-        </span>
-        {delta ? (
-          <span className="home-w__kpi-delta" style={{ color: deltaColor || SIGNAL.navy }}>
-            {delta}
-          </span>
-        ) : null}
-      </div>
-      {sub ? <div className="home-w__kpi-sub">{sub}</div> : null}
-      {src ? (
-        <span className="home-w__chip" style={{ color: srcFg, background: srcBg }}>
-          {src}
-        </span>
-      ) : null}
-    </button>
-  )
 }
 
 function Window({ title, ruleColor, meta, children, className = '', onClick }) {
@@ -1335,7 +1283,7 @@ export default function Home() {
         </header>
 
         <div className="home-dash__inner">
-          <div className={`home-dash__kpis home-dash__kpis--${Math.min(kpis.length, 5)}`}>
+          <div className={`stx-indicator-strip home-dash__kpis home-dash__kpis--${Math.min(kpis.length, 5)}`}>
             {kpis.map((k) => (
               <KpiWidget
                 key={k.key}
@@ -1421,7 +1369,7 @@ export default function Home() {
               <h2 className="home-w__main-title">Pipeline</h2>
               <span className="home-w__main-step">By status</span>
             </div>
-            <div className={`home-dash__kpis home-dash__kpis--${Math.min(pipeline.length, 5)} home-dash__kpis--pipeline`}>
+            <div className={`stx-indicator-strip home-dash__kpis home-dash__kpis--${Math.min(pipeline.length, 5)} home-dash__kpis--pipeline`}>
               {pipeline.map((k) => (
                 <KpiWidget
                   key={k.key}

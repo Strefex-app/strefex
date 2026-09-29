@@ -171,7 +171,7 @@ export default function AuditProSupplierHub({
 
   return (
     <div className="ap-suphub">
-      <div className="ap-pool-kpis">
+      <div className="stx-indicator-strip ap-pool-kpis">
         <article className="ap-pool-kpi ap-pool-kpi--ok">
           <div className="ap-pool-kpi-label">Suppliers on record</div>
           <div className="ap-pool-kpi-value">{workRows.length}</div>

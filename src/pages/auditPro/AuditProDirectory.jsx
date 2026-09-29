@@ -254,7 +254,7 @@ export default function AuditProDirectory() {
 
   return (
     <div className="ap-pool">
-      <div className="ap-pool-kpis">
+      <div className="stx-indicator-strip ap-pool-kpis">
         <article className="ap-pool-kpi ap-pool-kpi--danger">
           <div className="ap-pool-kpi-label">Unassigned in the pool</div>
           <div className="ap-pool-kpi-value">{kpis.unassigned}</div>

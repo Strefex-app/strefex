@@ -1293,7 +1293,7 @@ export default function SuperAdminDashboard() {
   const renderOverview = () => (
     <>
       {/* KPI cards */}
-      <div className="sad-kpis">
+      <div className="stx-indicator-strip sad-kpis">
         <div className="sad-kpi">
           <div className="sad-kpi-icon blue">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -2067,7 +2067,7 @@ export default function SuperAdminDashboard() {
   const renderSecurity = () => (
     <>
       {/* Threat overview KPIs */}
-      <div className="sad-kpis">
+      <div className="stx-indicator-strip sad-kpis">
         <div className="sad-kpi">
           <div className="sad-kpi-icon" style={{ background: secAnalytics.threatScore > 60 ? 'rgba(231,76,60,.12)' : secAnalytics.threatScore > 30 ? 'rgba(243,156,18,.12)' : 'rgba(46,204,113,.12)', color: secAnalytics.threatScore > 60 ? '#e74c3c' : secAnalytics.threatScore > 30 ? '#f39c12' : '#27ae60' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -2765,7 +2765,7 @@ export default function SuperAdminDashboard() {
   const renderRfqAnalytics = () => (
     <>
       {/* KPI row */}
-      <div className="sad-kpis">
+      <div className="stx-indicator-strip sad-kpis">
         <div className="sad-kpi">
           <div className="sad-kpi-icon blue">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2"/><path d="M14 2v6h6" stroke="currentColor" strokeWidth="2"/></svg>
@@ -3344,7 +3344,7 @@ export default function SuperAdminDashboard() {
         <h2 className="sad-widget-title">System audit log</h2>
         <p className="sad-audit-widget__desc">Platform-wide audit trail with filters (showing up to 100 events).</p>
 
-        <div className="sad-kpi-row sad-audit-kpis">
+        <div className="stx-indicator-strip sad-kpi-row sad-audit-kpis">
           <div className="sad-kpi-card">
             <div className="sad-kpi-val">{stats.total}</div>
             <div className="sad-kpi-label">Total events</div>

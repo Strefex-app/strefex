@@ -486,7 +486,7 @@ export default function AccountDirectoryPage() {
           ) : null}
         </div>
 
-        <div className="sd-kpis">
+        <div className="stx-indicator-strip sd-kpis">
           <div className="sd-kpi-card">
             <div className="sd-kpi-icon purple">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>

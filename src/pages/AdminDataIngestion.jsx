@@ -140,7 +140,7 @@ export default function AdminDataIngestion() {
           <span className="sad-badge-super">Super Admin</span>
         </div>
 
-        <div className="sad-kpis">
+        <div className="stx-indicator-strip sad-kpis">
           <div className="sad-kpi">
             <div className="sad-kpi-icon orange">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>

@@ -37,7 +37,6 @@
 .app-page-card,
 .mgmt-hub-record,
 .mgmt-dash-kpi,
-.phd,
 .industry-hub-card,
 .industry-hub-indicator-card,
 .production-card,
@@ -251,4 +250,93 @@ html[data-theme="dark"] .home-dash__avatar {
 html[data-theme="dark"] .home-dash__topbar {
   background: var(--bg-card);
   border-bottom-color: var(--border-color);
+}
+
+/* Address bars: path + trailing controls + avatar stay on one row */
+.app-page-breadcrumb-bar,
+.home-dash__topbar {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  overflow: hidden;
+  max-height: var(--stx-chrome-top-h, 77px);
+}
+
+.app-page-breadcrumb-bar .mgmt-breadcrumb,
+.home-dash__crumbs {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.home-dash__crumb,
+.mgmt-breadcrumb__link,
+.mgmt-breadcrumb__current,
+.mgmt-breadcrumb__sep {
+  font-size: 12px;
+}
+
+.home-dash__topbar-right,
+.app-page-breadcrumb-bar .audit-pro-app-nav--chrome {
+  flex: 0 0 auto;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.home-dash__plant {
+  flex-wrap: nowrap !important;
+  gap: 6px;
+}
+
+.home-dash__plant-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.home-dash__plant-select {
+  max-width: 132px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.home-dash__plants-btn {
+  padding: 5px 8px;
+  font-size: 10px;
+  gap: 4px;
+}
+
+.home-dash__avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.home-w__btn--topbar {
+  padding: 5px 9px;
+  font-size: 10px;
+}
+
+@media (max-width: 900px) {
+  .home-dash__plant-label {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-page-breadcrumb-bar {
+    height: var(--stx-chrome-top-h, 77px) !important;
+    min-height: var(--stx-chrome-top-h, 77px) !important;
+    max-height: var(--stx-chrome-top-h, 77px) !important;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .app-page-breadcrumb-bar .mgmt-breadcrumb {
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+  }
 }

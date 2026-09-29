@@ -109,7 +109,7 @@ export default function SpendAnalysis() {
         <AiInsightsCtaStrip context="spend" />
 
         {/* KPIs */}
-        <div className="sa-kpis">
+        <div className="stx-indicator-strip sa-kpis">
           <div className="sa-kpi"><span className="sa-kpi-n">{fmtCurrency(spendData.totalSpend)}</span>Total Spend</div>
           <div className="sa-kpi"><span className="sa-kpi-n">{spendData.poCount}</span>Purchase Orders</div>
           <div className="sa-kpi"><span className="sa-kpi-n">{Object.keys(spendData.byVendor).length}</span>Vendors</div>

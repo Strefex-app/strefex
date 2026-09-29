@@ -206,7 +206,7 @@ export default function VendorManagement() {
         </div>
 
         {/* KPI cards */}
-        <div className="vm-kpis">
+        <div className="stx-indicator-strip vm-kpis">
           <div className="vm-kpi"><div className="vm-kpi-val">{stats.total}</div><div className="vm-kpi-label">Total Vendors</div></div>
           <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#27ae60' }}>{stats.active}</div><div className="vm-kpi-label">Active</div></div>
           <div className="vm-kpi"><div className="vm-kpi-val" style={{ color: '#e67e22' }}>{stats.pending}</div><div className="vm-kpi-label">Pending</div></div>

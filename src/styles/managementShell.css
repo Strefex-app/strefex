@@ -63,16 +63,6 @@
 @media (max-width: 640px) {
   .app-page-breadcrumb-bar {
     margin-bottom: 16px;
-    height: auto;
-    min-height: 48px;
-    max-height: none;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .app-page-breadcrumb-bar .mgmt-breadcrumb {
-    flex-wrap: wrap;
-    white-space: normal;
   }
 }
 
@@ -110,6 +100,17 @@
 .mgmt-dash-kpi--primary { border-left-color: var(--stx-navy-800, var(--color-primary)); }
 .mgmt-dash-kpi--warning { border-left-color: var(--stx-signal-watch, #e0a23b); }
 .mgmt-dash-kpi--success { border-left-color: var(--stx-signal-ok, #5fb85c); }
+
+a.mgmt-dash-kpi {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.mgmt-dash-kpi:hover {
+  box-shadow: var(--stx-shadow-sm, var(--shadow-sm));
+}
 
 .mgmt-dash-kpi__label {
   display: block;

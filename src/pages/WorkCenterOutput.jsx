@@ -291,7 +291,7 @@ const WorkCenterOutput = () => {
             {selectedWC && calculations ? (
               <>
                 {/* Summary indicators */}
-                <div className="wco-indicators">
+                <div className="stx-indicator-strip wco-indicators">
                   <div className="wco-ind-card">
                     <span className="wco-ind-label">OEE</span>
                     <span className="wco-ind-value" style={{ color: oeeColor(calculations.oee) }}>{fmtPct(calculations.oee)}</span>

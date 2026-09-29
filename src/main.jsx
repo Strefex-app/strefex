@@ -12,6 +12,7 @@ import './styles/managementShell.css'
 import './styles/stx-chrome.css'
 /* After all routes — RFQ shell beats legacy light hex in lazily-loaded page CSS */
 import './styles/platform-rfq-shell.css'
+import './styles/stx-indicator-strip.css'
 import { registerServiceWorker } from './registerSW'
 
 clearDeprecatedLocalStorageOnce()
