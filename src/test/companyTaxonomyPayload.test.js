@@ -120,9 +120,9 @@ describe('1:1 Profile ↔ sourcing matching', () => {
     expect(sourcingSupplierMatchesDomainCategory(auditor, 'service', 'audit-services', 'system-audit')).toBe(false)
   })
 
-  it('overlay uses Profile subcategory ids (not plastic-0 style)', () => {
+  it('overlay uses product-first part families (not process-family ids)', () => {
     const { categories, subcats } = buildSourcingTaxonomyOverlay()
-    expect(categories['product:automotive']?.some((c) => c.id === 'plastic')).toBe(true)
+    expect(categories['product:automotive']?.some((c) => c.id === 'body')).toBe(true)
     expect(categories['equipment:automotive']?.some((c) => c.id === 'mold-makers')).toBe(true)
     expect(categories['service:automotive']?.map((c) => c.id)).toEqual(
       expect.arrayContaining(['project-management', 'supplier-services', 'quality-services', 'audit-services']),
@@ -130,9 +130,9 @@ describe('1:1 Profile ↔ sourcing matching', () => {
     const auditSubs = subcats['service:automotive:audit-services'] || []
     expect(auditSubs.some((s) => s.id === 'process-audit')).toBe(true)
     expect(auditSubs.some((s) => s.id === 'system-audit')).toBe(true)
-    const plasticSubs = subcats['product:automotive:plastic'] || []
-    expect(plasticSubs.some((s) => s.id === 'plastic-injection')).toBe(true)
-    expect(plasticSubs.some((s) => /^plastic-\d+$/.test(s.id))).toBe(false)
+    const bodySubs = subcats['product:automotive:body'] || []
+    expect(bodySubs.some((s) => s.id === 'body-bumper')).toBe(true)
+    expect(bodySubs.some((s) => /^body-\d+$/.test(s.id))).toBe(false)
     const moldSubs = subcats['equipment:automotive:mold-makers'] || []
     expect(moldSubs.some((s) => s.id === 'auto-die-making' || s.id === 'auto-mold-standard')).toBe(true)
   })

@@ -21,6 +21,7 @@ const INDUSTRIES = [
   { id: 'green-energy', tKey: 'industry.greenEnergy', path: '/industry/green-energy', descKey: 'industry.description' },
   { id: 'nuclear', tKey: 'industry.nuclear', path: '/industry/nuclear', descKey: 'industry.description' },
   { id: 'household-products', tKey: null, label: 'Household Products', path: '/industry/household-products', descKey: 'industry.description' },
+  { id: 'aerospace', tKey: null, label: 'Aerospace', path: '/industry/aerospace', descKey: 'industry.description' },
 ]
 
 const INDUSTRY_ICONS = {

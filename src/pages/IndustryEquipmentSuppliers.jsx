@@ -20,14 +20,14 @@ const INDUSTRY_LABELS = {
 
 const IndustryEquipmentSuppliers = () => {
   const navigate = useNavigate()
-  const { industryId, categoryId, equipmentId } = useParams()
-  const suppliers = getSuppliersForEquipment(equipmentId)
+  const { industryId, categoryId, itemId, equipmentId } = useParams()
+  const equipmentKey = itemId || equipmentId
+  const suppliers = getSuppliersForEquipment(equipmentKey)
   const equipmentList = getEquipmentForIndustryCategory(industryId, categoryId)
-  const equipment = equipmentList.find((e) => e.id === equipmentId) || { name: equipmentId, description: '' }
+  const equipment = equipmentList.find((e) => e.id === equipmentKey) || { name: equipmentKey, description: '' }
   const categories = getEquipmentCategoriesForIndustry(industryId)
   const category = categories.find((c) => c.id === categoryId) || { name: categoryId }
   const industryTitle = INDUSTRY_LABELS[industryId] || industryId
-  const basePath = `/industry/${industryId}/equipment/${categoryId}`
 
   const renderStars = (rating) => {
     const full = Math.floor(rating)

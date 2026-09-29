@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { getManufacturingCategory } from '../data/productCategoriesByIndustry'
 import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
-import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
+import { useAccountRegistry } from '../store/accountRegistry'
+import ProductComponentCatalogue from '../components/ProductComponentCatalogue'
 import '../styles/app-page.css'
 import './IndustryHub.css'
 import '../styles/hub-two-col-grid.css'
@@ -19,6 +20,7 @@ const INDUSTRY_LABELS = {
   nuclear: 'Nuclear',
   'green-energy': 'Green Energy',
   'household-products': 'Household Products',
+  aerospace: 'Aerospace',
 }
 
 /* ── Inline SVG icons ─────────────────────────────────────────────────────── */
@@ -57,6 +59,17 @@ export default function ProductSubcategoryPage() {
   const canSeeExecSummary = isSuperAdmin || isBuyer
 
   const [expandedSub, setExpandedSub] = useState(null)
+  const getSellersBySubcategory = useAccountRegistry((s) => s.getSellersBySubcategory)
+  const subcategories = category?.subcategories || []
+  const sellerCountBySub = useMemo(() => {
+    const m = {}
+    if (!industryId || !categoryId) return m
+    for (const sub of subcategories) {
+      m[sub.id] = getSellersBySubcategory(industryId, categoryId, sub.id, 'product').length
+    }
+    return m
+  }, [subcategories, industryId, categoryId, getSellersBySubcategory])
+  const totalSellers = Object.values(sellerCountBySub).reduce((a, n) => a + n, 0)
 
   /** Build URL with pre-filled product context query params */
   const quoteUrl = (sub) => {
@@ -100,8 +113,6 @@ export default function ProductSubcategoryPage() {
     )
   }
 
-  const subcategories = category.subcategories || []
-
   return (
     <AppLayout>
       <div className="industry-hub-page">
@@ -135,12 +146,12 @@ export default function ProductSubcategoryPage() {
             }}>
               {industryLabel}
             </span>
-            {category.description}. Select a manufacturing process to view suppliers.
+            {category.description}. Select a part family to view catalogues and registered suppliers.
           </p>
         </div>
 
         {/* Stats */}
-        <div className="industry-hub-indicators">
+        <div className="stx-indicator-strip industry-hub-indicators">
           <div className="industry-hub-indicator-card">
             <div className="industry-hub-indicator-icon blue">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -150,7 +161,7 @@ export default function ProductSubcategoryPage() {
             </div>
             <div>
               <div className="industry-hub-indicator-value">{subcategories.length}</div>
-              <div className="industry-hub-indicator-label">Processes</div>
+              <div className="industry-hub-indicator-label">Part families</div>
             </div>
           </div>
           <div className="industry-hub-indicator-card">
@@ -161,31 +172,8 @@ export default function ProductSubcategoryPage() {
               </svg>
             </div>
             <div>
-              <div className="industry-hub-indicator-value">--</div>
+              <div className="industry-hub-indicator-value">{totalSellers}</div>
               <div className="industry-hub-indicator-label">Suppliers</div>
-            </div>
-          </div>
-          <div className="industry-hub-indicator-card">
-            <div className="industry-hub-indicator-icon purple">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <div className="industry-hub-indicator-value">4.5</div>
-              <div className="industry-hub-indicator-label">Avg Rating</div>
-            </div>
-          </div>
-          <div className="industry-hub-indicator-card">
-            <div className="industry-hub-indicator-icon orange">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <div className="industry-hub-indicator-value">24h</div>
-              <div className="industry-hub-indicator-label">Avg Response</div>
             </div>
           </div>
         </div>
@@ -194,9 +182,9 @@ export default function ProductSubcategoryPage() {
         <div className="industry-hub-main">
           {/* Manufacturing Processes */}
           <div className="industry-hub-card">
-            <h2 className="industry-hub-card-title">{category.name} — Manufacturing Processes</h2>
+            <h2 className="industry-hub-card-title">{category.name} — Part families</h2>
             <p className="industry-hub-card-subtitle">
-              Select a {category.name.toLowerCase()} manufacturing process for the <strong>{industryLabel}</strong> industry to view suppliers and request quotes.
+              Select a {category.name.toLowerCase()} part family for <strong>{industryLabel}</strong> to open catalogues and registered suppliers.
             </p>
 
             <div className="industry-hub-pages-list hub-two-col-grid">
@@ -262,14 +250,24 @@ export default function ProductSubcategoryPage() {
                             width: 36, height: 36, borderRadius: 8, background: '#f1f5f9',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             color: '#94a3b8', fontSize: 14, fontWeight: 600,
-                          }}>0</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>No suppliers registered yet</div>
-                            <div style={{ fontSize: 12, color: '#888' }}>
-                              Be the first to register as a {sub.name} supplier for {industryLabel}
+                          }}>{sellerCountBySub[sub.id] || 0}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="stx-text-wrap" style={{ fontWeight: 600, color: '#1a1a2e' }}>
+                              {sellerCountBySub[sub.id] ? `${sellerCountBySub[sub.id]} registered supplier${sellerCountBySub[sub.id] === 1 ? '' : 's'}` : 'No suppliers registered yet'}
+                            </div>
+                            <div className="stx-text-wrap" style={{ color: '#888' }}>
+                              {sub.typicalMake ? `Typical make: ${sub.typicalMake}` : `Register as a ${sub.name} supplier for ${industryLabel}`}
                             </div>
                           </div>
                         </div>
+
+                        <ProductComponentCatalogue
+                          industryId={industryId}
+                          categoryId={categoryId}
+                          subcategoryId={sub.id}
+                          subcategoryName={sub.name}
+                          color={category.color}
+                        />
 
                         {/* ── Action buttons — inline under this process ── */}
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -279,7 +277,7 @@ export default function ProductSubcategoryPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                navigate(BUYER_WORKSPACE_PATH)
+                                navigate('/sourcing')
                               }}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -327,6 +325,7 @@ export default function ProductSubcategoryPage() {
                           {isSeller && (
                             <button
                               type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate(addSupplierUrl(sub)) }}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 padding: '7px 14px', borderRadius: 8,

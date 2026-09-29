@@ -122,7 +122,14 @@ const IndustryEquipmentLanding = () => {
     // Basic+ plan → all categories accessible (category is the final level — no sub-page)
     if (allCategoriesOpen) {
       return (
-        <div key={cat.id} className="industry-hub-page-item eq-cat-row">
+        <div
+          key={cat.id}
+          className="industry-hub-page-item eq-cat-row"
+          onClick={() => navigate(`${basePath}/${cat.id}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`${basePath}/${cat.id}`)}
+        >
           <div className="eq-cat-main">
             <span className="industry-hub-page-icon">{getCategoryIcon(cat.id)}</span>
             <div className="industry-hub-page-info">
@@ -138,7 +145,14 @@ const IndustryEquipmentLanding = () => {
     // Free plan: chosen category → registered (category is the final level)
     if (chosen) {
       return (
-        <div key={cat.id} className="industry-hub-page-item home-industry-chosen eq-cat-row">
+        <div
+          key={cat.id}
+          className="industry-hub-page-item home-industry-chosen eq-cat-row"
+          onClick={() => navigate(`${basePath}/${cat.id}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`${basePath}/${cat.id}`)}
+        >
           <div className="eq-cat-main">
             <span className="industry-hub-page-icon">{getCategoryIcon(cat.id)}</span>
             <div className="industry-hub-page-info">
@@ -216,7 +230,7 @@ const IndustryEquipmentLanding = () => {
         </div>
 
         {/* Stats Row */}
-        <div className="industry-hub-indicators">
+        <div className="stx-indicator-strip industry-hub-indicators">
           <div className="industry-hub-indicator-card">
             <div className="industry-hub-indicator-icon blue">
               <Icon name="grid-cols" size={24} />

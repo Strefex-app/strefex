@@ -15,7 +15,8 @@ import { useSubscriptionStore } from '../services/featureFlags'
 import { useAuthStore } from '../store/authStore'
 import { useMarketplaceCatalogVisibilityEffective } from '../hooks/useMarketplaceCatalogVisibilityEffective'
 import { MarketplaceCatalogVisibilityControl } from '../components/MarketplaceCatalogVisibilityControl'
-import { BUYER_WORKSPACE_PATH } from '../constants/rfqPaths'
+import SparePartsCatalogue from '../components/SparePartsCatalogue'
+import { PRODUCT_CATALOGUE_GROUPS } from '../data/productComponentCatalogue'
 import '../styles/app-page.css'
 import './IndustryHub.css'
 
@@ -29,6 +30,7 @@ const INDUSTRY_LABELS = {
   nuclear: 'Nuclear',
   'green-energy': 'Green Energy',
   'household-products': 'Household Products',
+  aerospace: 'Aerospace',
 }
 
 const getCategoryIcon = (catId) => {
@@ -74,6 +76,15 @@ export default function ProductIndustryLanding() {
       ).length,
     [industryId, corpusEntries, showMarketplaceCatalog, isSuperAdmin],
   )
+  const extraSellers = useMemo(
+    () =>
+      filterSuppliersRespectingCatalogVisibility(getSuppliersByIndustry(industryId), showMarketplaceCatalog),
+    [industryId, corpusEntries, showMarketplaceCatalog],
+  )
+  const catalogueGroupCount = useMemo(
+    () => PRODUCT_CATALOGUE_GROUPS.filter((g) => !g.industryIds?.length || g.industryIds.includes(industryId)).length,
+    [industryId],
+  )
 
   return (
     <AppLayout>
@@ -89,7 +100,7 @@ export default function ProductIndustryLanding() {
           </a>
           <h1 className="industry-hub-title">Product & Component — {industryLabel}</h1>
           <p className="industry-hub-subtitle">
-            Browse manufacturing categories relevant to the <strong>{industryLabel}</strong> industry. Each category shows processes and suppliers specific to this sector.
+            Browse product systems for the <strong>{industryLabel}</strong> industry. Part families and catalogues sit under each system. Suppliers are registered accounts only.
           </p>
           <div style={{ marginTop: 12 }}>
             <MarketplaceCatalogVisibilityControl compact />
@@ -97,7 +108,7 @@ export default function ProductIndustryLanding() {
         </div>
 
         {/* Stats Row */}
-        <div className="industry-hub-indicators">
+        <div className="stx-indicator-strip industry-hub-indicators">
           <div className="industry-hub-indicator-card">
             <div className="industry-hub-indicator-icon blue">
               <Icon name="hexagon" size={24} />
@@ -113,7 +124,7 @@ export default function ProductIndustryLanding() {
             </div>
             <div>
               <div className="industry-hub-indicator-value">{categories.reduce((sum, c) => sum + c.subcategories.length, 0)}</div>
-              <div className="industry-hub-indicator-label">Processes</div>
+              <div className="industry-hub-indicator-label">Part families</div>
             </div>
           </div>
           <div className="industry-hub-indicator-card">
@@ -130,8 +141,8 @@ export default function ProductIndustryLanding() {
               <Icon name="stars" size={24} />
             </div>
             <div>
-              <div className="industry-hub-indicator-value">4.6</div>
-              <div className="industry-hub-indicator-label">Avg Rating</div>
+              <div className="industry-hub-indicator-value">{catalogueGroupCount}</div>
+              <div className="industry-hub-indicator-label">Catalogue families</div>
             </div>
           </div>
         </div>
@@ -142,7 +153,7 @@ export default function ProductIndustryLanding() {
             <button
               key={cat.id}
               type="button"
-              onClick={() => navigate(canSeeExecSummary ? BUYER_WORKSPACE_PATH : `/product-hub/${industryId}/${cat.id}`)}
+              onClick={() => navigate(`/product-hub/${industryId}/${cat.id}`)}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 12,
                 padding: '20px 22px', borderRadius: 14,
@@ -207,7 +218,7 @@ export default function ProductIndustryLanding() {
                 fontSize: 13, fontWeight: 600, color: cat.color,
                 display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto',
               }}>
-                {cat.subcategories.length} processes → {canSeeExecSummary ? 'Sourcing' : 'Browse Subcategories'}
+                {cat.subcategories.length} part families → Browse
               </span>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {canSeeExecSummary && (
@@ -215,7 +226,7 @@ export default function ProductIndustryLanding() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(BUYER_WORKSPACE_PATH)
+                      navigate('/sourcing')
                     }}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -245,6 +256,16 @@ export default function ProductIndustryLanding() {
             </button>
           ))}
         </div>
+
+        {industryId !== 'raw-materials' && (
+          <div className="industry-hub-card" style={{ marginTop: 24 }}>
+            <SparePartsCatalogue
+              industryId={industryId}
+              extraSellers={extraSellers}
+              equipmentBasePath={`/industry/${industryId}/equipment`}
+            />
+          </div>
+        )}
       </div>
     </AppLayout>
   )

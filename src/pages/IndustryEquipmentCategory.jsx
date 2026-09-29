@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { getEquipmentForIndustryCategory } from '../data/equipmentByIndustryCategory'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import { formatDisplayLabel } from '../utils/displayLabel'
 import '../styles/app-page.css'
 import '../styles/hub-two-col-grid.css'
 
@@ -23,7 +24,7 @@ const IndustryEquipmentCategory = () => {
   const equipment = getEquipmentForIndustryCategory(industryId, categoryId)
   const categories = getEquipmentCategoriesForIndustry(industryId)
   const category = categories.find((c) => c.id === categoryId) || { name: categoryId, description: '' }
-  const industryTitle = INDUSTRY_LABELS[industryId] || industryId
+  const industryTitle = INDUSTRY_LABELS[industryId] || formatDisplayLabel(industryId)
   const basePath = `/industry/${industryId}/equipment/${categoryId}`
 
   return (
@@ -34,7 +35,7 @@ const IndustryEquipmentCategory = () => {
             ← Back
           </a>
           <h2 className="app-page-title">{category.name}</h2>
-          <p className="app-page-subtitle">{industryTitle} · Tap an equipment to see open source and database suppliers</p>
+          <p className="app-page-subtitle">{industryTitle} · Equipment list and suppliers</p>
           {category.description && <p className="app-page-body" style={{ marginTop: 0 }}>{category.description}</p>}
         </div>
 

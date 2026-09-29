@@ -785,6 +785,9 @@ function registrySellerToSupplier(acct) {
     coordinates,
     industries: acct.industries || [],
     categories: allCats,
+    productCategories: acct.productCategories || {},
+    productCategoryIds: Object.values(acct.productCategories || {}).flat(),
+    productSubcategories: acct.productSubcategories || {},
     source: acct.source === 'network_directory' ? 'registered' : (acct.source || 'registered'),
     rating: acct.rating ?? 0,
     riskLevel: acct.riskLevel ?? 50,
@@ -912,9 +915,14 @@ export function getSellerCountByCategory(industryId) {
  */
 export function getSuppliersByIndustryAndCategory(industryId, categoryId) {
   if (!industryId || !categoryId) return getSuppliersByIndustry(industryId)
-  return getAllSuppliers().filter(
-    (s) => s.industries.includes(industryId) && s.categories.includes(categoryId)
-  )
+  return getAllSuppliers().filter((s) => {
+    if (!(s.industries || []).includes(industryId)) return false
+    if ((s.categories || []).includes(categoryId)) return true
+    if ((s.productCategoryIds || []).includes(categoryId)) return true
+    const pc = s.productCategories?.[industryId]
+    if (Array.isArray(pc) && pc.includes(categoryId)) return true
+    return false
+  })
 }
 
 // Get supplier coordinates for mapping (includes registered sellers)

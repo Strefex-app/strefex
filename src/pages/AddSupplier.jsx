@@ -5,8 +5,11 @@ import { useAuthStore } from '../store/authStore'
 import { useSupplierStore } from '../store/supplierStore'
 import { useAccountRegistry } from '../store/accountRegistry'
 import { useIndustryStore } from '../store/industryStore'
-import { getProductCategoriesForIndustry } from '../data/productCategoriesByIndustry'
 import { getEquipmentCategoriesForIndustry } from '../data/equipmentCategoriesByIndustry'
+import {
+  buildSellerTaxonomyFromAddSupplierContext,
+  resolveProductCategoryAndSub,
+} from '../utils/addSupplierProductTaxonomy'
 import { ToggleCheckButton } from '../components/ToggleCheckButton'
 import { syncAuditSupplierRowToSellerRegistry } from '../services/supplierSellerRegistrySync'
 import '../styles/app-page.css'
@@ -23,6 +26,7 @@ const INDUSTRY_ID_TO_LABEL = {
   nuclear: 'Nuclear',
   'green-energy': 'Green Energy',
   'household-products': 'Household Products',
+  aerospace: 'Aerospace',
 }
 
 const INDUSTRY_LABEL_TO_ID = Object.fromEntries(
@@ -45,8 +49,9 @@ const AddSupplier = () => {
   const contextType = searchParams.get('context') || ''
   const isProductContext = contextType === 'product'
   const isServiceContext = contextType === 'service'
+  const isSparesContext = contextType === 'spares'
   const isEquipmentContext = contextType === 'equipment'
-  const hasContext = isProductContext || isServiceContext || isEquipmentContext
+  const hasContext = isProductContext || isServiceContext || isEquipmentContext || isSparesContext
 
   // Product params
   const qIndustry = searchParams.get('industry') || ''
@@ -55,6 +60,8 @@ const AddSupplier = () => {
   const qProcess = searchParams.get('process') || ''
   const qCategory = searchParams.get('category') || ''
   const qCategoryId = searchParams.get('categoryId') || ''
+  const qSku = searchParams.get('sku') || ''
+  const qReturnTo = searchParams.get('returnTo') || ''
 
   // Service params
   const qServiceCategory = searchParams.get('serviceCategory') || ''
@@ -80,6 +87,10 @@ const AddSupplier = () => {
       const label = INDUSTRY_ID_TO_LABEL[qIndustry]
       return label ? [label] : []
     }
+    if (isSparesContext) {
+      const label = INDUSTRY_ID_TO_LABEL[qIndustry]
+      return label ? [label] : []
+    }
     return []
   })()
 
@@ -93,6 +104,9 @@ const AddSupplier = () => {
     }
     if (isEquipmentContext) {
       return `Supplier for ${qCategory || 'equipment'} (${qIndustryLabel || qIndustry} industry)`
+    }
+    if (isSparesContext) {
+      return `Spare-parts manufacturer${qSku ? ` for ${qSku}` : ''} (${qIndustryLabel || qIndustry} industry)`
     }
     return ''
   })()
@@ -194,12 +208,16 @@ const AddSupplier = () => {
         ...(qIndustry ? [qIndustry] : []),
       ])]
 
-      // Resolve product category ID (if route came from product context)
       let resolvedCategoryId = null
+      let resolvedSubcategoryId = null
       if (isProductContext && qIndustry && qProductCategory) {
-        const productCategories = getProductCategoriesForIndustry(qIndustry)
-        const found = productCategories.find((c) => c.name.toLowerCase() === qProductCategory.toLowerCase())
-        resolvedCategoryId = found?.id || null
+        const resolved = resolveProductCategoryAndSub({
+          industryId: qIndustry,
+          categoryQuery: qProductCategory,
+          processQuery: qProcess,
+        })
+        resolvedCategoryId = resolved.categoryId
+        resolvedSubcategoryId = resolved.subcategoryId
       }
       if (isEquipmentContext && qIndustry) {
         if (qCategoryId) {
@@ -210,10 +228,17 @@ const AddSupplier = () => {
           resolvedCategoryId = found?.id || null
         }
       }
+      if (isSparesContext) {
+        resolvedCategoryId = 'spare-parts-consumables'
+      }
 
-      const categories = {}
-      industryIds.forEach((industryId) => {
-        categories[industryId] = resolvedCategoryId ? [resolvedCategoryId] : []
+      const { categories, productCategories, productSubcategories } = buildSellerTaxonomyFromAddSupplierContext({
+        isProductContext,
+        isEquipmentContext,
+        isSparesContext,
+        industryIds,
+        resolvedCategoryId,
+        resolvedSubcategoryId,
       })
 
       const emailKey = (formData.email || '').trim().toLowerCase()
@@ -229,6 +254,8 @@ const AddSupplier = () => {
         plan: 'start',
         industries: industryIds,
         categories,
+        productCategories,
+        productSubcategories,
         country: formData.country?.trim() || '',
         city: formData.city?.trim() || '',
         rating: 0,
@@ -304,9 +331,9 @@ const AddSupplier = () => {
                 <button 
                   type="button"
                   className="success-btn primary"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate(qReturnTo || '/profile')}
                 >
-                  Back to Profile
+                  {qReturnTo ? 'Back to catalogue' : 'Back to Profile'}
                 </button>
                 <button 
                   type="button"
@@ -352,14 +379,18 @@ const AddSupplier = () => {
             ← Back
           </a>
           <h2 className="app-page-title">
-            {isProductContext
+            {isSparesContext
+              ? 'Register spare-parts seller'
+              : isProductContext
               ? 'Register Supplier for Product / Manufacturing'
               : isServiceContext
                 ? `Register Supplier for ${qServiceCategoryLabel || 'Service'}`
                 : 'Add New Supplier'}
           </h2>
           <p className="app-page-subtitle">
-            {isProductContext
+            {isSparesContext
+              ? `Register a manufacturer on the spare-parts catalogue${qSku ? ` for ${qSku}` : ''}. They appear on the map once country and city are set.`
+              : isProductContext
               ? 'Submit a supplier specializing in the selected manufacturing process. Industry and product details are pre-filled below.'
               : isServiceContext
                 ? `Submit a supplier specializing in ${qServiceCategoryLabel}. Service details are pre-filled below.`
