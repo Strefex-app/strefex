@@ -1,20 +1,22 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useProjectStore } from '../../store/projectStore'
 import useProcurementStore from '../../store/procurementStore'
 import useVendorStore from '../../store/vendorStore'
 import '../../styles/managementShell.css'
 
-function BarChart({ items, max }) {
-  const peak = max || Math.max(...items.map((i) => i.value), 1)
+export function BarChart({ items = [], max }) {
+  const rows = Array.isArray(items) ? items : []
+  const peak = max || Math.max(1, ...rows.map((i) => Number(i.value) || 0))
   return (
     <div className="mgmt-dash-bars" role="img" aria-label="Activity bars">
-      {items.map((item) => (
-        <div key={item.label} className="mgmt-dash-bar-row">
-          <span className="mgmt-dash-bar-label">{item.label}</span>
+      {rows.map((item, idx) => (
+        <div key={`${item.label}-${idx}`} className="mgmt-dash-bar-row">
+          <span className="mgmt-dash-bar-label stx-text-wrap">{item.label}</span>
           <div className="mgmt-dash-bar-track">
             <div
               className={`mgmt-dash-bar-fill mgmt-dash-bar-fill--${item.tone || 'primary'}`}
-              style={{ width: `${Math.round((item.value / peak) * 100)}%` }}
+              style={{ width: `${Math.round(((Number(item.value) || 0) / peak) * 100)}%` }}
             />
           </div>
           <span className="mgmt-dash-bar-val">{item.value}</span>
@@ -24,14 +26,38 @@ function BarChart({ items, max }) {
   )
 }
 
-function KpiTile({ label, value, hint, tone = 'primary' }) {
-  return (
-    <div className={`mgmt-dash-kpi mgmt-dash-kpi--${tone}`}>
+export function KpiTile({ label, value, hint, tone = 'primary', to }) {
+  const chip = {
+    pm: { t: 'Operations', fg: '#1a7a4c', bg: '#e7f5ea' },
+    proc: { t: 'Live status', fg: '#1a7a4c', bg: '#e7f5ea' },
+    vendor: { t: 'Your activity', fg: '#0a2540', bg: '#eef2f6' },
+    primary: { t: 'Your activity', fg: '#0a2540', bg: '#eef2f6' },
+    warning: { t: 'Watch', fg: '#b45309', bg: '#fef6e7' },
+    success: { t: 'Live status', fg: '#1a7a4c', bg: '#e7f5ea' },
+  }[tone]
+  const body = (
+    <>
       <span className="mgmt-dash-kpi__label">{label}</span>
-      <span className="mgmt-dash-kpi__value">{value}</span>
+      <div className="home-w__kpi-row">
+        <span className="mgmt-dash-kpi__value">{value}</span>
+      </div>
       {hint ? <span className="mgmt-dash-kpi__hint">{hint}</span> : null}
-    </div>
+      {chip ? (
+        <span className="home-w__chip" style={{ color: chip.fg, background: chip.bg }}>
+          {chip.t}
+        </span>
+      ) : null}
+    </>
   )
+  const className = `mgmt-dash-kpi mgmt-dash-kpi--${tone}`
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {body}
+      </Link>
+    )
+  }
+  return <div className={className}>{body}</div>
 }
 
 export default function ManagementDashboardMetrics() {
@@ -88,7 +114,7 @@ export default function ManagementDashboardMetrics() {
 
   return (
     <section className="mgmt-dash" aria-label="Management overview metrics">
-      <div className="mgmt-dash-kpis">
+      <div className="stx-indicator-strip mgmt-dash-kpis">
         <KpiTile label="Projects" value={projects.length} hint={`${metrics.activeProjects} active`} tone="pm" />
         <KpiTile label="Procurement OPP" value={opportunities.length} hint={`${metrics.openQuotes} open quotes`} tone="proc" />
         <KpiTile label="Committed POs" value={metrics.withPo} hint={`${purchaseOrders.length} total POs`} tone="proc" />

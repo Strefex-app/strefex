@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
-import Icon from '../components/Icon'
 import ManagementModuleGrid, { moduleUnlocked } from '../components/management/ManagementModuleGrid'
 import PeopleHrDashboard from '../components/management/PeopleHrDashboard'
+import { KpiWidget, kpiChrome } from '../components/StxKpiWidget'
 import { isManagementClusterId } from '../constants/managementPaths'
 import { getManagementCluster } from '../data/managementModuleGroups'
 import { getClusterStatsForId, useManagementClusterStats } from '../hooks/useManagementClusterStats'
@@ -75,25 +75,21 @@ export default function ManagementClusterPage() {
         {isPeopleCluster ? (
           <PeopleHrDashboard />
         ) : (
-          <div className="mgmt-cluster-hero app-page-card">
-            <div className="mgmt-cluster-hero__main">
-              <div
-                className="mgmt-cluster-hero__icon"
-                style={{ background: `${cluster.color}18`, color: cluster.color }}
-              >
-                <Icon name={cluster.icon} size={28} />
-              </div>
-              <div className="min-width-0">
-                <h1 className="app-page-title">{cluster.label}</h1>
-                <p className="app-page-subtitle stx-text-wrap">{cluster.description}</p>
-              </div>
-            </div>
-            <div className="mgmt-cluster-stats" role="list" aria-label={`${cluster.label} metrics`}>
-              {stats.map((stat) => (
-                <div key={stat.label} className="mgmt-cluster-stat" role="listitem">
-                  <span className="mgmt-cluster-stat__value">{stat.value}</span>
-                  <span className="mgmt-cluster-stat__label">{stat.label}</span>
-                </div>
+          <div className="mgmt-cluster-hero">
+            <p className="mgmt-cluster-lead stx-text-wrap">{cluster.description}</p>
+            <div
+              className={`stx-indicator-strip home-dash__kpis mgmt-cluster-stats home-dash__kpis--${Math.min(stats.length, 5)}`}
+              role="list"
+              aria-label={`${cluster.label} metrics`}
+            >
+              {stats.map((stat, i) => (
+                <KpiWidget
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  sub="Live from company records"
+                  {...kpiChrome(i)}
+                />
               ))}
             </div>
           </div>
