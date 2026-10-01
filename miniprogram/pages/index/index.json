@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "PitchBook",
+  "usingComponents": {
+    "session-card": "/components/session-card/session-card"
+  }
+}

@@ -1,0 +1,40 @@
+<view class="container" wx:if="{{session}}">
+  <view class="page-title">Confirm booking</view>
+  <view class="page-subtitle">Review details before payment</view>
+
+  <view class="card">
+    <text class="booking-session-title">{{session.title}}</text>
+    <view class="divider"></view>
+    <view class="detail-row">
+      <text class="text-muted">Date</text>
+      <text>{{session.date}} {{session.start_time}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="text-muted">Venue</text>
+      <text>{{session.venue_name}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="text-muted">Coach</text>
+      <text>{{session.coach_name}}</text>
+    </view>
+    <view class="detail-row">
+      <text class="text-muted">Price</text>
+      <text class="price">¥{{session.price_yuan}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <text class="detail-section-title">Notes (optional)</text>
+    <textarea
+      class="notes-input"
+      placeholder="Injuries, position preference, etc."
+      value="{{notes}}"
+      bindinput="onNotesInput"
+      maxlength="200"
+    />
+  </view>
+
+  <button class="btn-primary booking-submit" loading="{{submitting}}" bindtap="onConfirm">
+    Continue to payment
+  </button>
+</view>

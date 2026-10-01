@@ -1,0 +1,74 @@
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.profile-header--guest {
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.profile-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0B3D2E, #1A6B4F);
+  color: #FFFFFF;
+  font-size: 40rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #0B3D2E;
+  display: block;
+}
+
+.profile-guest-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #0B3D2E;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.profile-login-btn {
+  margin-top: 24rpx;
+  width: 100%;
+}
+
+.menu-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 28rpx;
+  font-size: 28rpx;
+  color: #1A2E28;
+  border-bottom: 1rpx solid #E8EDE9;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-arrow {
+  color: #BDBDBD;
+  font-size: 36rpx;
+}
+
+.logout-btn {
+  width: 100%;
+  margin-top: 32rpx;
+}

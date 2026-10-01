@@ -1,0 +1,40 @@
+<view class="container">
+  <view class="hero">
+    <text class="hero__title">Train smarter. Play harder.</text>
+    <text class="hero__subtitle">Book football training sessions with pro coaches</text>
+    <button class="btn-primary hero__cta" bindtap="onViewSchedule">View weekly schedule</button>
+  </view>
+
+  <view class="section">
+    <text class="section__title">Training types</text>
+    <view class="categories">
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="category"
+        data-id="{{item.id}}"
+        bindtap="onCategoryTap"
+      >
+        <text class="category__icon">{{item.icon}}</text>
+        <text class="category__label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="flex-between section__header">
+      <text class="section__title">Featured sessions</text>
+      <text class="section__link" bindtap="onViewAll">See all</text>
+    </view>
+    <session-card wx:for="{{featured}}" wx:key="id" session="{{item}}" />
+    <view wx:if="{{featured.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">⚽</text>
+      <text>No sessions available yet</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <text class="section__title">Coming up</text>
+    <session-card wx:for="{{upcoming}}" wx:key="id" session="{{item}}" compact />
+  </view>
+</view>

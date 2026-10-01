@@ -1,0 +1,16 @@
+.week-nav {
+  margin-bottom: 8rpx;
+}
+
+.week-nav__btn {
+  font-size: 26rpx;
+  color: #1A6B4F;
+  padding: 8rpx 16rpx;
+}
+
+.schedule-date-label {
+  font-size: 26rpx;
+  color: #6B7C75;
+  margin-bottom: 20rpx;
+  font-weight: 500;
+}

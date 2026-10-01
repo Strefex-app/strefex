@@ -1,0 +1,30 @@
+<view class="container">
+  <view class="page-title">Training schedule</view>
+  <view class="page-subtitle">Pick a day to see available football sessions</view>
+
+  <view class="week-nav flex-between">
+    <text class="week-nav__btn" bindtap="onPrevWeek">‹ Prev</text>
+    <text class="week-nav__btn" bindtap="onNextWeek">Next ›</text>
+  </view>
+
+  <schedule-week
+    weekDates="{{weekDates}}"
+    selectedDate="{{selectedDate}}"
+    sessionCounts="{{sessionCounts}}"
+    bind:select="onSelectDay"
+  />
+
+  <view class="schedule-date-label">{{selectedDate}}</view>
+
+  <view wx:if="{{loading}}" class="empty-state">Loading sessions...</view>
+
+  <block wx:elif="{{sessions.length > 0}}">
+    <session-card wx:for="{{sessions}}" wx:key="id" session="{{item}}" />
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="empty-state-icon">📅</text>
+    <text>No sessions on this day</text>
+    <text class="text-small text-muted">Try another date or check back later</text>
+  </view>
+</view>
