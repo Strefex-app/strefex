@@ -32,6 +32,7 @@ import {
 import { buildCompanyTaxonomyWrite, checklistFromIndustryMaps, commitIndustryChecklist, countAccountTaxonomy } from '../utils/companyTaxonomyPayload'
 import {
   isAdminCreatedPlaceholderEmail,
+  slugifyCompanyName,
   transferSellerAccountRights,
 } from '../utils/adminCreateSellerAccount'
 import SourcingMetricsFields from '../components/SourcingMetricsFields'
@@ -55,6 +56,8 @@ import {
   sourcingMetricsRegistryPatch,
 } from '../utils/sourcingMetrics'
 import { firstFilledText, firstFilledObject, mergeAccountsPreferFilled, omitEmptyCompanyScalars } from '../utils/keepExistingAccountFields'
+import { isCompanyUuid, mergeCompanySources, pickPrimaryProfile } from '../utils/superadminAccountHydrate'
+import { superadminSaveCompanyAccount } from '../services/superadminCompanyAccountService'
 import {
   AUDIT_AND_SERVICE_EXPERTISE_OPTIONS,
   AUDITOR_EXPERTISE_OPTIONS,
@@ -395,42 +398,54 @@ export default function SuperAdminAccountDetailPage() {
   const accountStub = location.state?.accountStub || null
 
   const syncFormFromCompany = useCallback((c, plist) => {
-    const primary = Array.isArray(plist) && plist.length ? plist[0] : null
+    const emailHint = c?.email || c?._registryKey || accountStub?.email
+    const primary = pickPrimaryProfile(plist, emailHint)
     const reg = findRegistryAccount(c?.email || c?._registryKey || c?.id)
       || findRegistryAccount(primary?.email)
+      || findRegistryAccount(accountStub?.email)
+      || findRegistryAccount(localLookupKey)
     const maps = readTaxonomyMaps(c, {
-      categories: reg?.categories,
-      productCategories: reg?.productCategories,
-      equipmentSubcategories: reg?.equipmentSubcategories,
-      productSubcategories: reg?.productSubcategories,
+      categories: firstFilledObject(c?.categories, reg?.categories, accountStub?.categories),
+      productCategories: firstFilledObject(c?.productCategories, reg?.productCategories, accountStub?.productCategories),
+      equipmentSubcategories: firstFilledObject(c?.equipmentSubcategories, reg?.equipmentSubcategories, accountStub?.equipmentSubcategories),
+      productSubcategories: firstFilledObject(c?.productSubcategories, reg?.productSubcategories, accountStub?.productSubcategories),
     })
     const industryId = (Array.isArray(c?.industries) && c.industries[0])
       || (Array.isArray(reg?.industries) && reg.industries[0])
+      || (Array.isArray(accountStub?.industries) && accountStub.industries[0])
       || readIndustryFromSource(c)
       || readIndustryFromSource(primary)
       || Object.keys(maps.categories)[0]
       || Object.keys(maps.productCategories)[0]
       || ''
     const accountTypes = readAccountTypesFromSource(c, primary)
-    const filledName = firstFilledText(c?.name, c?.company, reg?.company, primary?.company_name)
+    const filledName = firstFilledText(
+      c?.name,
+      c?.company,
+      reg?.company,
+      accountStub?.company,
+      primary?.company_name,
+      primary?.metadata?.company_name,
+    )
     setCompany((prev) => ({
-      ...(prev && prev.id === c?.id ? prev : {}),
+      ...(prev && (prev.id === c?.id || !c?.id) ? prev : {}),
       ...c,
       name: filledName || c?.name || prev?.name || '',
-      account_types: accountTypes,
+      account_types: accountTypes.length ? accountTypes : (c?.account_types || prev?.account_types),
       account_type: accountTypes[0] || c?.account_type || 'seller',
     }))
     setForm({
+      ...emptyForm(),
       name: filledName,
-      email: firstFilledText(c?.email, primary?.email, reg?.email),
-      phone: firstFilledText(c?.phone, primary?.phone, reg?.phone),
-      website: firstFilledText(c?.website, reg?.website),
-      country: firstFilledText(c?.country, reg?.country),
-      city: firstFilledText(c?.city, reg?.city),
-      address: firstFilledText(c?.address, c?.metadata?.address, reg?.address),
-      account_types: accountTypes,
-      plan: c?.plan || reg?.plan || 'start',
-      contactName: firstFilledText(primary?.full_name, c?._contactName, reg?.contactName),
+      email: firstFilledText(c?.email, primary?.email, reg?.email, accountStub?.email),
+      phone: firstFilledText(c?.phone, primary?.phone, reg?.phone, accountStub?.phone),
+      website: firstFilledText(c?.website, reg?.website, accountStub?.website),
+      country: firstFilledText(c?.country, reg?.country, accountStub?.country),
+      city: firstFilledText(c?.city, reg?.city, accountStub?.city),
+      address: firstFilledText(c?.address, c?.metadata?.address, reg?.address, accountStub?.address),
+      account_types: accountTypes.length ? accountTypes : ['seller'],
+      plan: c?.plan || reg?.plan || accountStub?.plan || 'start',
+      contactName: firstFilledText(primary?.full_name, c?._contactName, reg?.contactName, accountStub?.contactName, accountStub?.name),
       contactPhone: firstFilledText(primary?.phone, c?._contactPhone, c?.phone, reg?.phone),
       contactProfileId: primary?.id || c?._profileId || '',
       industryId,
@@ -445,22 +460,26 @@ export default function SuperAdminAccountDetailPage() {
         if (fromCompany.length) return fromCompany
         const fromProfile = readServiceCategoriesFromSource(primary)
         if (fromProfile.length) return fromProfile
-        return Array.isArray(reg?.serviceCategories) ? [...reg.serviceCategories] : []
+        if (Array.isArray(reg?.serviceCategories) && reg.serviceCategories.length) return [...reg.serviceCategories]
+        if (Array.isArray(accountStub?.serviceCategories) && accountStub.serviceCategories.length) {
+          return [...accountStub.serviceCategories]
+        }
+        return []
       })(),
       auditorVisibleIndustries: readAuditorVisibleIndustries({
         ...c,
         metadata: c?.metadata,
-        industries: c?.industries || reg?.industries,
-        auditorVisibleIndustries: reg?.auditorVisibleIndustries,
+        industries: c?.industries || reg?.industries || accountStub?.industries,
+        auditorVisibleIndustries: reg?.auditorVisibleIndustries || accountStub?.auditorVisibleIndustries,
       }),
       sourcingMetrics: sourcingMetricsFormFromSource(c, reg),
     })
-    const saved = readReceivingPlantsFromAccount(
-      { receivingPlants: c?.metadata?.receiving_plants },
+    const plantsFromSources = readReceivingPlantsFromAccount(
+      { receivingPlants: c?.metadata?.receiving_plants || reg?.receivingPlants || accountStub?.receivingPlants },
       c,
     )
-    setPlants(saved.length ? saved : normalizeReceivingPlants([]))
-  }, [])
+    setPlants(plantsFromSources.length ? plantsFromSources : normalizeReceivingPlants([]))
+  }, [accountStub, localLookupKey])
 
   const applyAuditFields = useCallback((source) => {
     const audit = readExternalAuditFromCompany(source)
@@ -474,153 +493,120 @@ export default function SuperAdminAccountDetailPage() {
     setOnsiteAudited(audit.onsiteAudited === true)
   }, [])
 
-  const applyLocalShaped = useCallback((shaped, plist = []) => {
-    setCompany(shaped)
-    setRegistryKey(shaped._registryKey || shaped.email || localLookupKey)
-    setProfiles(plist)
-    applyAuditFields(shaped)
-    syncFormFromCompany(shaped, plist)
-  }, [applyAuditFields, localLookupKey, syncFormFromCompany])
-
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    setSavedMsg('')
     setPackPending({})
     setPackRemovePaths([])
-    setResolvedCloudId('')
-    setForceLocalEdit(false)
 
-    const hydrateFromStubOrFail = (fallbackMsg) => {
-      const shaped = companyFromAccountStub(accountStub)
-      if (shaped) {
-        setForceLocalEdit(true)
-        applyLocalShaped(shaped)
-        setLoading(false)
-        return true
-      }
-      setCompany(null)
-      setProfiles([])
-      setRegistryKey('')
-      setLoading(false)
-      setError(fallbackMsg)
-      return false
+    const registryHit = findRegistryAccount(localLookupKey)
+      || findRegistryAccount(accountStub?.email)
+      || findRegistryAccount(accountStub?.id)
+      || findRegistryAccount(accountStub?.companyId)
+      || findRegistryAccount(routeCompanyId)
+    const localShaped = companyFromRegistryAccount(registryHit)
+    const stubShaped = companyFromAccountStub(accountStub)
+
+    const applyMerged = (cloud, plist = [], extraProfile = null) => {
+      const primary = pickPrimaryProfile(plist, cloud?.email || localShaped?.email || stubShaped?.email || extraProfile?.email)
+        || extraProfile
+      const merged = mergeCompanySources(cloud, localShaped, stubShaped, primary)
+      if (!merged) return false
+      const cid = isCompanyUuid(merged.id) ? String(merged.id) : ''
+      setResolvedCloudId(cid)
+      setForceLocalEdit(!cid)
+      setRegistryKey(merged._registryKey || merged.email || localLookupKey || '')
+      setProfiles(Array.isArray(plist) && plist.length ? plist : (primary ? [primary] : []))
+      applyAuditFields(merged)
+      syncFormFromCompany(merged, Array.isArray(plist) && plist.length ? plist : (primary ? [primary] : []))
+      return true
     }
 
-    // Local route: registry → resolve company via stub/profile → stub hydrate
-    if (localLookupKey && !routeCompanyId) {
-      const acct = findRegistryAccount(localLookupKey)
-      if (acct) {
-        applyLocalShaped(companyFromRegistryAccount(acct))
-        setLoading(false)
-        return
-      }
-
-      const stubCid = accountStub?.companyId || accountStub?.company_id
-      const stubProfileId = accountStub?.id
-      const keyLooksLikeUuid = UUID_RE.test(String(localLookupKey))
-
+    try {
       if (isSupabaseConfigured) {
-        try {
-          // Prefer company UUID from navigation stub
-          if (stubCid && UUID_RE.test(String(stubCid))) {
-            const { c, plist } = await loadCloudCompany(String(stubCid))
-            setResolvedCloudId(String(stubCid))
-            setCompany(c)
-            setRegistryKey((c?.email || accountStub?.email || '').trim().toLowerCase())
-            setProfiles(plist)
-            applyAuditFields(c)
-            syncFormFromCompany(c, plist)
-            setLoading(false)
-            return
-          }
+        const candidateIds = [
+          routeCompanyId,
+          accountStub?.companyId,
+          accountStub?.company_id,
+          registryHit?.companyId,
+          registryHit?.company_id,
+        ].map((v) => String(v || '').trim()).filter(isCompanyUuid)
 
-          // Profile UUID in stub or in the local-account URL key
+        let loaded = null
+        for (const cid of [...new Set(candidateIds)]) {
+          try {
+            loaded = { cid, ...(await loadCloudCompany(cid)) }
+            break
+          } catch {
+            /* try next uuid */
+          }
+        }
+
+        if (!loaded) {
           const profileId =
-            (stubProfileId && UUID_RE.test(String(stubProfileId)) && String(stubProfileId))
-            || (keyLooksLikeUuid ? String(localLookupKey) : '')
+            (isCompanyUuid(accountStub?.id) && String(accountStub.id))
+            || (isCompanyUuid(localLookupKey) && String(localLookupKey))
+            || ''
+          const emailHint = firstFilledText(accountStub?.email, registryHit?.email, localLookupKey.includes('@') ? localLookupKey : '')
           let row = null
-          if (profileId) {
-            row = await profilesService.getByIdWithCompany(profileId)
-          } else if (localLookupKey.includes('@') || (accountStub?.email || '').includes('@')) {
-            row = await profilesService.getByEmailWithCompany(
-              accountStub?.email || localLookupKey,
-            )
+          try {
+            if (profileId) row = await profilesService.getByIdWithCompany(profileId)
+            if (!row && emailHint.includes('@')) row = await profilesService.getByEmailWithCompany(emailHint)
+          } catch {
+            row = null
           }
           if (row) {
             const coRaw = row?.companies
             const co = Array.isArray(coRaw) ? coRaw[0] : coRaw
             const cid = co?.id || row?.company_id
-            if (cid && UUID_RE.test(String(cid))) {
+            if (isCompanyUuid(cid)) {
               try {
-                const { c, plist } = await loadCloudCompany(String(cid))
-                setResolvedCloudId(String(cid))
-                setCompany(c)
-                setRegistryKey((c?.email || row?.email || '').trim().toLowerCase())
-                setProfiles(plist.length ? plist : [row])
-                applyAuditFields(c)
-                syncFormFromCompany(c, plist.length ? plist : [row])
-                setLoading(false)
-                return
+                loaded = { cid: String(cid), ...(await loadCloudCompany(String(cid))), profileRow: row }
               } catch {
-                /* fall through to stub / profile-shaped local */
+                loaded = { cid: String(cid), c: co || null, plist: [row], profileRow: row }
               }
+            } else {
+              loaded = { cid: '', c: null, plist: [row], profileRow: row }
             }
-            const shaped = companyFromAccountStub({
-              id: row.id,
-              email: row.email,
-              company: co?.name || row.metadata?.company_name || '',
-              name: row.full_name,
-              contactName: row.full_name,
-              phone: row.phone || co?.phone || '',
-              companyId: cid || null,
-              accountType: co?.account_type || 'seller',
-              plan: co?.plan || 'start',
-            })
-            applyLocalShaped(shaped, [row])
-            setLoading(false)
-            return
           }
-        } catch {
-          /* fall through to stub */
+        }
+
+        if (loaded?.c) {
+          applyMerged(loaded.c, loaded.plist, loaded.profileRow)
+          setLoading(false)
+          return
+        }
+        if (loaded?.plist?.length) {
+          applyMerged(null, loaded.plist, loaded.profileRow)
+          setLoading(false)
+          return
         }
       }
 
-      hydrateFromStubOrFail(
-        'Account not found. Open Edit from the accounts list, or ensure this profile is linked to a company.',
-      )
-      return
-    }
+      if (applyMerged(null, [])) {
+        setLoading(false)
+        return
+      }
 
-    if (!routeCompanyId) {
-      setLoading(false)
-      setError('Invalid company id.')
-      return
-    }
-
-    if (!isSupabaseConfigured) {
-      setLoading(false)
-      setError('Supabase is not configured.')
-      return
-    }
-
-    try {
-      const { c, plist } = await loadCloudCompany(routeCompanyId)
-      setCompany(c)
-      setRegistryKey((c?.email || '').trim().toLowerCase())
-      setProfiles(plist)
-      applyAuditFields(c)
-      syncFormFromCompany(c, plist)
+      setCompany(null)
+      setProfiles([])
+      setRegistryKey('')
+      setResolvedCloudId('')
+      setForceLocalEdit(false)
+      setError('Account not found. Open Edit from the accounts list, or ensure this profile is linked to a company.')
     } catch (e) {
-      // Company row missing / RLS: still allow edit from the list stub
-      if (hydrateFromStubOrFail(e?.message || 'Failed to load company.')) return
+      if (applyMerged(null, [])) {
+        setError(e?.message ? `Loaded saved account data. Database refresh failed: ${e.message}` : '')
+      } else {
+        setCompany(null)
+        setError(e?.message || 'Failed to load company.')
+      }
     } finally {
       setLoading(false)
     }
   }, [
     accountStub,
     applyAuditFields,
-    applyLocalShaped,
     localLookupKey,
     routeCompanyId,
     syncFormFromCompany,
@@ -826,7 +812,7 @@ export default function SuperAdminAccountDetailPage() {
   }
 
   const saveAccountProfile = async () => {
-    if (!company || (!isCloud && !isLocal && !company._fromStub && !company._local)) return
+    if (!company) return
     const existingLocal = findRegistryAccount(registryKey)
       || findRegistryAccount(form.email)
       || findRegistryAccount(company.email)
@@ -870,11 +856,6 @@ export default function SuperAdminAccountDetailPage() {
           : (Array.isArray(company.metadata?.service_categories) && company.metadata.service_categories.length
             ? [...company.metadata.service_categories]
             : (Array.isArray(existingLocal.serviceCategories) ? [...existingLocal.serviceCategories] : [])))
-      const nextAuditorVisible = nextAccountTypes.includes('auditor')
-        ? normalizeIndustryIds(form.auditorVisibleIndustries)
-        : []
-      const nextSourcingMetrics = parseSourcingMetricsForm(form.sourcingMetrics)
-      const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
       const nextAccountTypes = (() => {
         const raw = Array.isArray(form.account_types) ? form.account_types : []
         const cleaned = [...new Set(
@@ -886,111 +867,13 @@ export default function SuperAdminAccountDetailPage() {
         cleaned.forEach((id) => { if (!ordered.includes(id)) ordered.push(id) })
         return ordered
       })()
+      const nextAuditorVisible = nextAccountTypes.includes('auditor')
+        ? normalizeIndustryIds(form.auditorVisibleIndustries)
+        : []
+      const nextSourcingMetrics = parseSourcingMetricsForm(form.sourcingMetrics)
+      const sourcingRegistryPatch = sourcingMetricsRegistryPatch(nextSourcingMetrics)
       const primaryAccountType = nextAccountTypes[0]
       const nextPack = await flushCompanyPack(company.profile_attachments)
-
-      if (isLocal || (company._local && !companyId)) {
-        if (!lookup && !emailKey) throw new Error('Missing local account key.')
-        const patch = mergeAccountsPreferFilled({
-          company: resolvedName,
-          name: form.contactName.trim(),
-          email: emailKey,
-          phone: form.phone.trim() || form.contactPhone.trim(),
-          website: form.website.trim(),
-          country: form.country.trim(),
-          city: form.city.trim(),
-          address: nextAddress,
-          accountType: primaryAccountType,
-          accountTypes: nextAccountTypes,
-          plan: form.plan,
-          industries: nextIndustries,
-          categories: nextCategories,
-          productCategories: nextProductCategories,
-          equipmentSubcategories: nextEquipmentSubcategories,
-          productSubcategories: nextProductSubcategories,
-          serviceCategories: nextServiceCategories,
-        }, existingLocal)
-        Object.assign(patch, {
-          auditorVisibleIndustries: nextAuditorVisible,
-          receivingPlants: normalizeReceivingPlants(plants),
-          companyId: company.id || existingLocal.companyId || undefined,
-          ...sourcingRegistryPatch,
-          visibilityTier: company.visibility_tier || company.visibilityTier || existingLocal.visibilityTier || undefined,
-          profileAttachments: nextPack,
-        })
-        let updatedLocal = lookup ? updateAccount(lookup, patch) : null
-        if (!updatedLocal && emailKey) {
-          updatedLocal = updateAccount(emailKey, patch)
-        }
-        if (!updatedLocal) {
-          updatedLocal = registerAccount({
-            id: company._profileId || `local-${Date.now()}`,
-            email: emailKey || lookup,
-            ...patch,
-            accountType: primaryAccountType,
-            plan: form.plan || 'start',
-          })
-        }
-        if (!updatedLocal) throw new Error('Could not update local account registry.')
-        const localCompanyId = String(updatedLocal.companyId || updatedLocal.company_id || company.id || '')
-        if (isSupabaseConfigured && UUID_RE.test(localCompanyId)) {
-          try {
-            await companiesService.update(localCompanyId, { profile_attachments: nextPack })
-          } catch { /* may lack company row */ }
-        }
-        await saveReceivingPlantsToAccount({
-          plants,
-          email: emailKey || lookup,
-          companyId: updatedLocal.companyId || updatedLocal.company_id || null,
-          updateAccount,
-          tenant: null,
-        })
-        if (isSupabaseConfigured) {
-          try {
-            let profileId = form.contactProfileId || company._profileId || ''
-            if (!profileId && emailKey) {
-              const row = await profilesService.getByEmailWithCompany(emailKey)
-              profileId = row?.id || ''
-            }
-            if (profileId) {
-              const existingProfile = profiles.find((p) => p.id === profileId)
-                || (await profilesService.getByIdWithCompany(profileId))
-              const linkCompanyId = UUID_RE.test(String(company.id || ''))
-                ? String(company.id)
-                : (UUID_RE.test(String(updatedLocal.companyId || ''))
-                  ? String(updatedLocal.companyId)
-                  : null)
-              await profilesService.updateProfilePrivileged({
-                id: profileId,
-                ...(linkCompanyId ? { company_id: linkCompanyId } : {}),
-                ...(form.contactName.trim() ? { full_name: form.contactName.trim() } : {}),
-                ...(form.contactPhone.trim() ? { phone: form.contactPhone.trim() } : {}),
-                metadata: mergeSourcingMetricsIntoMetadata({
-                  ...(existingProfile?.metadata || company.metadata || {}),
-                  account_type: primaryAccountType,
-                  account_types: nextAccountTypes,
-                  industries: nextIndustries,
-                  categories: nextCategories,
-                  product_categories: nextProductCategories,
-                  equipment_subcategories: nextEquipmentSubcategories,
-                  product_subcategories: nextProductSubcategories,
-                  service_categories: nextServiceCategories,
-                  auditor_visible_industries: nextAuditorVisible,
-                  admin_taxonomy_unlocked: true,
-                }, nextSourcingMetrics),
-              })
-            }
-          } catch {
-            /* profile privileged update may be restricted */
-          }
-        }
-        setCompany(companyFromRegistryAccount({ ...updatedLocal, profileAttachments: nextPack, ...sourcingRegistryPatch }))
-        setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
-        setPackPending({})
-        setPackRemovePaths([])
-        setSavedMsg('Account profile saved to local registry.')
-        return
-      }
 
       const taxonomy = buildCompanyTaxonomyWrite({
         industries: nextIndustries,
@@ -1019,154 +902,165 @@ export default function SuperAdminAccountDetailPage() {
         plan: form.plan || company.plan,
         ...taxonomy.companyColumns,
       }, company)
-      const merged = {
+      const mergedPreview = {
         ...company,
         ...companyPayload,
         industries: nextIndustries,
         profile_attachments: nextPack,
       }
-      const vis = buildCompanyVisibilityUpdate(merged)
-      companyPayload.visibility_tier = vis.visibility_tier
+      const vis = buildCompanyVisibilityUpdate(mergedPreview)
+      if (vis.visibility_tier && vis.visibility_tier !== 'basic') {
+        companyPayload.visibility_tier = vis.visibility_tier
+      }
       companyPayload.profile_attachments = nextPack
+      if (!isCompanyUuid(companyId || company.id)) {
+        companyPayload.slug = `${slugifyCompanyName(resolvedName)}-${Date.now().toString(36)}`
+      }
       companyPayload.metadata = mergeSourcingMetricsIntoMetadata(
         { ...(companyPayload.metadata || {}), ...vis.metadata },
         nextSourcingMetrics,
       )
 
-      const updated = await companiesService.update(companyId, companyPayload)
-      setCompany(updated)
-
-      let profileSyncWarning = ''
-      try {
-        let profileId = form.contactProfileId || ''
-        let existingProfile = profiles.find((p) => p.id === profileId) || null
-        if (!profileId && emailKey) {
+      let profileId = form.contactProfileId || company._profileId || ''
+      let existingProfile = profiles.find((p) => p.id === profileId) || null
+      if (!profileId && emailKey && isSupabaseConfigured) {
+        try {
           const row = await profilesService.getByEmailWithCompany(emailKey)
           if (row?.id) {
             profileId = row.id
             existingProfile = row
           }
-        }
-        if (!profileId && profiles[0]?.id) {
-          profileId = profiles[0].id
-          existingProfile = profiles[0]
-        }
-        if (profileId) {
-          if (!existingProfile) {
-            existingProfile = await profilesService.getByIdWithCompany(profileId)
-          }
-          await profilesService.updateProfilePrivileged({
-            id: profileId,
-            company_id: companyId,
-            ...(form.contactName.trim() ? { full_name: form.contactName.trim() } : {}),
-            ...(form.contactPhone.trim() ? { phone: form.contactPhone.trim() } : {}),
-            metadata: mergeSourcingMetricsIntoMetadata({
-              ...(existingProfile?.metadata || company.metadata || {}),
-              ...taxonomy.metadataPatch,
-            }, nextSourcingMetrics),
-          })
-          setProfiles((prev) => {
-            const nextMeta = mergeSourcingMetricsIntoMetadata({
-              ...taxonomy.metadataPatch,
-            }, nextSourcingMetrics)
-            const found = prev.some((p) => p.id === profileId)
-            if (!found) {
-              return [{
-                id: profileId,
-                full_name: form.contactName.trim() || existingProfile?.full_name || '',
-                phone: form.contactPhone.trim() || existingProfile?.phone || '',
-                company_id: companyId,
-                email: emailKey || form.email,
-                metadata: { ...(existingProfile?.metadata || {}), ...nextMeta },
-              }, ...prev]
-            }
-            return prev.map((p) => (
-              p.id === profileId
-                ? {
-                  ...p,
-                  full_name: form.contactName.trim() || p.full_name,
-                  phone: form.contactPhone.trim() || p.phone,
-                  company_id: companyId,
-                  metadata: {
-                    ...(p.metadata || {}),
-                    ...nextMeta,
-                  },
-                }
-                : p
-            ))
-          })
-          setForm((prev) => ({ ...prev, contactProfileId: profileId }))
-        }
-      } catch (profileErr) {
-        profileSyncWarning = profileErr?.message
-          ? ` Company saved; profile sync failed: ${profileErr.message}`
-          : ' Company saved; profile directory sync failed.'
+        } catch { /* lookup optional */ }
+      }
+      if (!profileId && profiles[0]?.id) {
+        profileId = profiles[0].id
+        existingProfile = profiles[0]
       }
 
-      if (emailKey) {
-        const registryPatch = mergeAccountsPreferFilled({
-          company: resolvedName,
-          country: form.country.trim(),
-          city: form.city.trim(),
-          address: nextAddress,
-          accountType: primaryAccountType,
-          accountTypes: nextAccountTypes,
-          industries: nextIndustries,
-          categories: nextCategories,
-          productCategories: nextProductCategories,
-          equipmentSubcategories: nextEquipmentSubcategories,
-          productSubcategories: nextProductSubcategories,
-          serviceCategories: nextServiceCategories,
-          auditorVisibleIndustries: nextAuditorVisible,
-        }, existingLocal)
-        const existing = updateAccount(emailKey, {
-          ...registryPatch,
-          companyId,
-          visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
-          plan: form.plan || company.plan || existingLocal.plan || 'start',
-          ...sourcingRegistryPatch,
-          profileAttachments: nextPack,
+      const profilePatch = {
+        ...(form.contactName.trim() ? { full_name: form.contactName.trim() } : {}),
+        ...(form.contactPhone.trim() ? { phone: form.contactPhone.trim() } : {}),
+        metadata: mergeSourcingMetricsIntoMetadata({
+          ...(existingProfile?.metadata || company.metadata || {}),
+          ...taxonomy.metadataPatch,
+        }, nextSourcingMetrics),
+      }
+
+      let updated = null
+      if (isSupabaseConfigured) {
+        const saved = await superadminSaveCompanyAccount({
+          companyId: companyId || company.id,
+          profileId,
+          companyPayload,
+          profilePatch,
         })
-        if (!existing) {
-          registerAccount({
-            id: form.contactProfileId || emailKey,
-            email: emailKey,
-            company: resolvedName,
-            companyId,
-            country: registryPatch.country,
-            city: registryPatch.city,
-            address: registryPatch.address,
-            accountType: primaryAccountType,
-            accountTypes: nextAccountTypes,
-            plan: form.plan || 'start',
-            industries: nextIndustries,
-            categories: nextCategories,
-            productCategories: nextProductCategories,
-            equipmentSubcategories: nextEquipmentSubcategories,
-            productSubcategories: nextProductSubcategories,
-            serviceCategories: nextServiceCategories,
-            auditorVisibleIndustries: nextAuditorVisible,
-            visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || null,
-            ...sourcingRegistryPatch,
-            profileAttachments: nextPack,
-          })
-        }
+        updated = saved.company
+        if (saved.profile) existingProfile = saved.profile
+      } else if (!lookup && !emailKey) {
+        throw new Error('Missing account key.')
+      }
+
+      const savedCompanyId = isCompanyUuid(updated?.id)
+        ? String(updated.id)
+        : (isCompanyUuid(companyId) ? String(companyId) : (isCompanyUuid(company.id) ? String(company.id) : ''))
+
+      if (updated) {
+        setResolvedCloudId(savedCompanyId)
+        setForceLocalEdit(false)
+        setCompany(mergeCompanySources(updated, companyFromRegistryAccount(existingLocal), companyFromAccountStub(accountStub), existingProfile))
+      }
+
+      const registryPatch = mergeAccountsPreferFilled({
+        company: resolvedName,
+        name: form.contactName.trim(),
+        email: emailKey,
+        phone: form.phone.trim() || form.contactPhone.trim(),
+        website: form.website.trim(),
+        country: form.country.trim(),
+        city: form.city.trim(),
+        address: nextAddress,
+        accountType: primaryAccountType,
+        accountTypes: nextAccountTypes,
+        plan: form.plan,
+        industries: nextIndustries,
+        categories: nextCategories,
+        productCategories: nextProductCategories,
+        equipmentSubcategories: nextEquipmentSubcategories,
+        productSubcategories: nextProductSubcategories,
+        serviceCategories: nextServiceCategories,
+        auditorVisibleIndustries: nextAuditorVisible,
+      }, existingLocal)
+      Object.assign(registryPatch, {
+        receivingPlants: normalizeReceivingPlants(plants),
+        companyId: savedCompanyId || existingLocal.companyId || undefined,
+        ...sourcingRegistryPatch,
+        visibilityTier: updated?.visibility_tier || companyPayload.visibility_tier || existingLocal.visibilityTier || undefined,
+        profileAttachments: nextPack,
+      })
+      let updatedLocal = lookup ? updateAccount(lookup, registryPatch) : null
+      if (!updatedLocal && emailKey) updatedLocal = updateAccount(emailKey, registryPatch)
+      if (!updatedLocal && emailKey) {
+        updatedLocal = registerAccount({
+          id: profileId || savedCompanyId || `local-${Date.now()}`,
+          email: emailKey || lookup,
+          ...registryPatch,
+          accountType: primaryAccountType,
+          plan: form.plan || 'start',
+        })
       }
 
       if (plants.length) {
         await saveReceivingPlantsToAccount({
           plants,
-          email: emailKey,
-          companyId,
+          email: emailKey || lookup,
+          companyId: savedCompanyId || null,
           updateAccount,
           tenant: updated,
         })
       }
 
-      setSavedMsg(`Account profile saved.${profileSyncWarning}`)
+      if (profileId) {
+        setProfiles((prev) => {
+          const nextMeta = profilePatch.metadata || {}
+          const found = prev.some((p) => p.id === profileId)
+          const row = {
+            id: profileId,
+            full_name: form.contactName.trim() || existingProfile?.full_name || '',
+            phone: form.contactPhone.trim() || existingProfile?.phone || '',
+            company_id: savedCompanyId || companyId,
+            email: emailKey || form.email,
+            metadata: { ...(existingProfile?.metadata || {}), ...nextMeta },
+          }
+          if (!found) return [row, ...prev]
+          return prev.map((p) => (p.id === profileId ? { ...p, ...row, metadata: { ...(p.metadata || {}), ...nextMeta } } : p))
+        })
+        setForm((prev) => ({ ...prev, contactProfileId: profileId }))
+      }
+
+      if (updatedLocal && !updated) {
+        setCompany(companyFromRegistryAccount({ ...updatedLocal, profileAttachments: nextPack, ...sourcingRegistryPatch }))
+        setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
+      } else if (updatedLocal) {
+        setRegistryKey(updatedLocal.email || updatedLocal.id || lookup)
+      }
+
       setPackPending({})
       setPackRemovePaths([])
-      await load()
+      if (!isSupabaseConfigured) {
+        setSavedMsg('Account profile saved locally. Database is not configured.')
+      } else if (!updated) {
+        throw new Error('Could not save this account to the database.')
+      } else {
+        setSavedMsg('Account profile saved to the database.')
+        if (savedCompanyId && savedCompanyId !== routeCompanyId) {
+          navigate(`/admin-dashboard/account/${savedCompanyId}`, {
+            replace: true,
+            state: { accountStub: { ...(accountStub || {}), companyId: savedCompanyId, email: emailKey, company: resolvedName } },
+          })
+        } else {
+          await load()
+        }
+      }
     } catch (e) {
       setError(e?.message || 'Failed to save account profile.')
     } finally {
@@ -1378,7 +1272,7 @@ export default function SuperAdminAccountDetailPage() {
           </button>
         </div>
 
-        {loading && <p className="saad-muted">Loading…</p>}
+        {loading && <p className="saad-muted">Loading account data…</p>}
         {error && <div className="saad-error" role="alert">{error}</div>}
         {savedMsg && <div className="saad-ok" role="status">{savedMsg}</div>}
 
@@ -1418,9 +1312,7 @@ export default function SuperAdminAccountDetailPage() {
               <section className="saad-card saad-card-wide">
                 <h2>Account profile (editable)</h2>
                 <p className="saad-muted">
-                  {isLocal
-                    ? 'This manufacturer is stored in the local account registry (no cloud company UUID yet). Edits save locally and feed Intelligent Sourcing.'
-                    : 'Superadmin can correct buyer and user company data for sourcing geo accuracy. Changes sync to the platform company record and the local account registry.'}
+                  Superadmin edits are written to the platform company record in the database. The form is filled from the live account (database, then registry) before you change anything.
                 </p>
                 <div className="saad-form-block">
                   <p className="saad-form-legend">Company</p>

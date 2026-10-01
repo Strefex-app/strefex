@@ -35,6 +35,7 @@ import {
 import { mergeRegistrationPreference, resolveRegistrationCodeForDashboard } from '../utils/platformRegistrationCode'
 import { createAdminSellerAccount } from '../utils/adminCreateSellerAccount'
 import { countAccountTaxonomy, preferFilledTaxonomyMap } from '../utils/companyTaxonomyPayload'
+import { firstFilledText } from '../utils/keepExistingAccountFields'
 import '../styles/app-page.css'
 import './SuperAdminDashboard.css'
 
@@ -349,9 +350,9 @@ function overlayRegistryOntoStub(stub, reg) {
   const teamUsers = 1 + (Array.isArray(reg.teamMembers) ? reg.teamMembers.length : 0)
   return {
     ...stub,
-    company: stub.company || reg.company || reg.companyName || '',
-    name: stub.name || reg.name || reg.contactName || stub.contactName,
-    contactName: stub.contactName || reg.contactName || reg.name,
+    company: firstFilledText(stub.company, reg.company, reg.companyName),
+    name: firstFilledText(stub.name, stub.contactName, reg.contactName, reg.name),
+    contactName: firstFilledText(stub.contactName, reg.contactName, reg.name, stub.name),
     accountType: reg.accountType || stub.accountType,
     accountTypes: Array.isArray(reg.accountTypes) && reg.accountTypes.length
       ? reg.accountTypes
